@@ -1,0 +1,16 @@
+node_modules/*
+deployments/localhost_1337
+
+bin/
+cache/
+artifacts/
+
+yarn-error.log
+tmp_deployments/
+.mnemonic*
+.priv*
+.mythx_credentials
+.env
+
+.vscode/*
+!.vscode/settings.json.default

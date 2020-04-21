@@ -1,0 +1,6 @@
+{
+    "editor.formatOnSave": true,
+    "solidity.linter": "solhint",
+    "solidity.packageDefaultDependenciesContractsDirectory": "src",
+    "solidity.packageDefaultDependenciesDirectory": "node_modules"
+}
