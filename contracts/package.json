@@ -1,5 +1,5 @@
 {
-  "name": "{{=name}}-contracts",
+  "name": "{{=_.paramCase(name)}}-contracts",
   "version": "0.0.1",
   "description": "",
   "license": "UNLICENSED",

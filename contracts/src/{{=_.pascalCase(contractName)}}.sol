@@ -1,6 +1,6 @@
 pragma solidity 0.6.5;
 
-contract {{=contractName}}{
+contract {{=_.pascalCase(contractName)}}{
 
     event NameChanged(address indexed user, string name);
 

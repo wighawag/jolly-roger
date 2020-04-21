@@ -1,5 +1,5 @@
 {
-  "name": "{{=name}}-webapp",
+  "name": "{{=_.paramCase(name)}}-webapp",
   "description": "Frontend Application for {{=name}}",
   "version": "0.0.1",
   "license": "UNLICENSED",
