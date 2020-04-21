@@ -1,6 +1,6 @@
 {
   "name": "{{=_.paramCase(it.name)}}-webapp",
-  "description": "Frontend Application for {{=name}}",
+  "description": "Frontend Application for {{=it.name}}",
   "version": "0.0.1",
   "license": "UNLICENSED",
   "private": true,

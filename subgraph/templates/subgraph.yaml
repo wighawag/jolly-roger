@@ -1,5 +1,5 @@
 specVersion: 0.0.2
-description: {{=name}}
+description: {{=it.name}}
 schema:
   file: ./schema.graphql
 dataSources:
