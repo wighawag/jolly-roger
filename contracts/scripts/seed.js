@@ -2,7 +2,7 @@ const {getNamedAccounts, ethers, deployments} = require('@nomiclabs/buidler');
 
 async function main() {
     const {deployer} = await getNamedAccounts();
-    const {{=_.camelCase(contractName)}}Contract = await ethers.getContract({{=_.pascalCase(contractName)}});
+    const {{=_.camelCase(it.contractName)}}Contract = await ethers.getContract({{=_.pascalCase(it.contractName)}});
     // TODO seed with data
 }
 

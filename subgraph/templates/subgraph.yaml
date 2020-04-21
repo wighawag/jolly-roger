@@ -4,11 +4,11 @@ schema:
   file: ./schema.graphql
 dataSources:
   - kind: ethereum/contract
-    name: {{=_.pascalCase(contractName)}}
+    name: {{=_.pascalCase(it.contractName)}}
     network: mainnet
     source:
-      address: '{{contracts.{{=_.pascalCase(contractName)}}.address}}'
-      abi: {{=_.pascalCase(contractName)}}Contract
+      address: '{{contracts.{{=_.pascalCase(it.contractName)}}.address}}'
+      abi: {{=_.pascalCase(it.contractName)}}Contract
       # startBlock: TODO
     mapping:
       kind: ethereum/events
@@ -17,8 +17,8 @@ dataSources:
       entities:
         - Planet
       abis:
-        - name: {{=_.pascalCase(contractName)}}Contract
-          file: ./abis/{{=_.pascalCase(contractName)}}.json
+        - name: {{=_.pascalCase(it.contractName)}}Contract
+          file: ./abis/{{=_.pascalCase(it.contractName)}}.json
       eventHandlers:
         - event: NameChanged(indexed address,string)
           handler: handleNameChanged
