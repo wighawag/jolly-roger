@@ -11,7 +11,7 @@
   "rules": {
     "prettier/prettier": "error",
     "no-unused-vars": ["error", {"argsIgnorePattern": "^_"}],
-    "no-multi-spaces": ["error", {"exceptions": {"VariableDeclarator": true}}],
+    "no-multi-spaces": ["error", {"exceptions": {"VariableDeclarator": true{{!"}"}}}],
     "no-else-return": ["error", {"allowElseIf": true}],
     "max-params": ["error", 4],
     "no-await-in-loop": "off"

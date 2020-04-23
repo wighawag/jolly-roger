@@ -1,0 +1,6 @@
+{
+  "name": "{{=_.paramCase(it.name)}}",
+  "version": "0.0.1",
+  "description": "{{=_.capitalCase(it.name)}}",
+  "license": "MIT"
+}
