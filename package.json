@@ -2,5 +2,30 @@
   "name": "{{=_.paramCase(it.name)}}",
   "version": "0.0.1",
   "description": "{{=_.capitalCase(it.name)}}",
-  "license": "MIT"
+  "license": "UNLICENSED",
+  "private": true,
+  "devDependencies": {
+    "npm-run-all": "^4.1.5",
+    "wighawag_newsh": "^0.0.5"
+  },
+  "scripts": {
+    "yarn-install": "yarn --cwd contracts && yarn --cwd subgraph && yarn --cwd webapp",
+    
+    "externals-down": "docker-compose down -v",
+    "externals": "docker-compose up",
+    "shell:externals": "newsh \"npm run externals\"",
+
+    "subgraph:setup": "npm --prefix subgraph run local:setup",
+    "subgraph:deploy": "npm --prefix subgraph run local:deploy ../webapp/src/dev_contractsInfo.json",
+
+    "contracts:deploy": "npm --prefix contracts run local:deploy -- --export ../webapp/src/dev_contractsInfo.json",
+    "shell:contracts:deploy": "newsh \"npm run contracts:deploy\"",
+    "contracts:seed": "npm --prefix contracts run seed",
+
+    "webapp": "npm --prefix webapp run dev",
+    "shell:webapp": "newsh \"npm run webapp\"",
+
+    "dev": "npm-run-all -l externals-down --parallel webapp externals --sequential subgraph:setup contracts:deploy subgraph:deploy",
+    "shell:dev": "npm-run-all -l externals-down --parallel shell:webapp shell:externals --sequential subgraph:setup contracts:deploy subgraph:deploy"    
+  }
 }

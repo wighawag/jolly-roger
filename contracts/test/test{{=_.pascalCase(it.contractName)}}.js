@@ -1,10 +1,11 @@
-
 const {assert, should, expect} = require("local-chai");
-const {ethers, getNamedAccounts} = require("@nomiclabs/buidler");
+const {ethers, getNamedAccounts, deployments} = require("@nomiclabs/buidler");
 
 describe("{{=_.pascalCase(it.contractName)}}", function () {
-  it("should work", async function() {
+  it("should work", async function () {
+    await deployments.fixture();
     const {{=_.camelCase(it.contractName)}}Contract = await ethers.getContract("{{=_.pascalCase(it.contractName)}}");
-    expect(true).to.be('boolean');
+    expect(true).to.be.a("boolean");
+    expect({{=_.camelCase(it.contractName)}}Contract.address).to.be.a("string");
   });
 });

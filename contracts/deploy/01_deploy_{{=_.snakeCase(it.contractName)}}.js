@@ -10,6 +10,8 @@ module.exports = async ({getNamedAccounts, deployments}) => {
   );
   if ({{=_.camelCase(it.contractName)}}DeployResult.newlyDeployed) {
     const {{=_.camelCase(it.contractName)}}Contract = {{=_.camelCase(it.contractName)}}DeployResult.contract;
-    log(`{{=_.pascalCase(it.contractName)}}deployed at ${{{=_.camelCase(it.contractName)}}Contract.address} for ${{{=_.camelCase(it.contractName)}}DeployResult.receipt.gasUsed} gas`);
+    log(
+      `{{=_.pascalCase(it.contractName)}}deployed at ${{{=_.camelCase(it.contractName)}}Contract.address} for ${{{=_.camelCase(it.contractName)}}DeployResult.receipt.gasUsed} gas`
+    );
   }
 };

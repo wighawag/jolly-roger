@@ -1,20 +1,25 @@
 {
   "name": "{{=_.paramCase(it.name)}}-subgraph",
+  "description": "Subgraph (thegraph.com) for {{=_.capitalCase(it.name)}}",
   "version": "0.1.0",
-  "scripts": {
-    "create-local-graph": "wait-on http-get://127.0.0.1:8000 && graph create {{=_.paramCase(it.name)}}/{{=_.paramCase(it.name)}} --node http://127.0.0.1:8020",
-    "codegen-graph": "rm -Rf generated && graph codegen",
-    "build-graph": "graph build",
-    "generate-local-subgraph-yml": "template-file ../webapp/src/dev_contractsInfo.json templates/subgraph.yaml ./",
-    "deploy-local-graph": "graph codegen && wait-on http://127.0.0.1:5001/api/v0/version http-get://127.0.0.1:8000 && graph deploy {{=_.paramCase(it.name)}}/{{=_.paramCase(it.name)}} --ipfs http://localhost:5001 --node http://127.0.0.1:8020",
-    "deploy-graph": "dotenv -- cross-var graph deploy --access-token $THEGRAPH_TOKEN {{=_.paramCase(it.name)}}/{{=_.paramCase(it.name)}} --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/ --debug"
-  },
+  "license": "UNLICENSED",
+  "private": true,
   "devDependencies": {
     "@graphprotocol/graph-cli": "^0.16.0",
     "@graphprotocol/graph-ts": "^0.16.0",
     "cross-var": "^1.1.0",
     "dotenv-cli": "^3.1.0",
-    "template-file": "^3.1.0",
+    "fs-extra": "^9.0.0",
+    "handlebars": "^4.7.6",
     "wait-on": "^4.0.1"
+  },
+  "scripts": {
+    "local:setup": "wait-on http-get://127.0.0.1:8000 && graph create {{=_.paramCase(it.name)}}/{{=_.paramCase(it.name)}} --node http://127.0.0.1:8020",
+    "codegen": "rm -Rf generated && graph codegen",
+    "build": "graph build",
+    "generate": "node scripts/generate.js",
+    "local:redeploy": "graph codegen && wait-on http://127.0.0.1:5001/api/v0/version http-get://127.0.0.1:8000 && graph deploy {{=_.paramCase(it.name)}}/{{=_.paramCase(it.name)}} --ipfs http://localhost:5001 --node http://127.0.0.1:8020",
+    "local:deploy": "npm-run-all \"generate -- {1}\" local:redeploy --",
+    "mainnet:deploy": "dotenv -- cross-var graph deploy --access-token $THEGRAPH_TOKEN {{=_.paramCase(it.name)}}/{{=_.paramCase(it.name)}} --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/ --debug"
   }
 }

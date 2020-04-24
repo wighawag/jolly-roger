@@ -2,9 +2,15 @@ const webpack = require('webpack');
 const path = require('path');
 const config = require('sapper/config/webpack.js');
 const pkg = require('./package.json');
+const dotEnv = require('dotenv-webpack');
 
 const mode = process.env.NODE_ENV;
 const dev = mode === 'development';
+
+let envPath = '.env';
+if (mode) {
+	envPath = `./.env.${mode}`;
+}
 
 const alias = { svelte: path.resolve('node_modules', 'svelte') };
 const extensions = ['.mjs', '.js', '.json', '.svelte', '.html'];
@@ -38,6 +44,9 @@ module.exports = {
 		},
 		mode,
 		plugins: [
+			new dotEnv({
+				path: envPath
+			}),
 			// pending https://github.com/sveltejs/svelte/issues/2377
 			// dev && new webpack.HotModuleReplacementPlugin(),
 			new webpack.DefinePlugin({
@@ -70,6 +79,11 @@ module.exports = {
 			]
 		},
 		mode: process.env.NODE_ENV,
+		plugins: [
+			new dotEnv({
+				path: envPath
+			}),
+		],
 		performance: {
 			hints: false // it doesn't matter if server.js is large
 		}

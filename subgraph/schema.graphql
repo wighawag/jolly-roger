@@ -1,3 +1,4 @@
-type Token @entity {
+type NamedEntity @entity {
   id: ID!
+  name: String!
 }

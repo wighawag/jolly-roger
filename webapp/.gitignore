@@ -5,3 +5,4 @@ __sapper__/
 .vscode
 src/dev_contractsInfo*
 src/contractsInfo*
+.env
