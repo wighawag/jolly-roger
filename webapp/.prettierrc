@@ -1,0 +1,12 @@
+{
+  "overrides": [
+    {
+      "files": "*",
+      "options": {
+        "printWidth": 120,
+        "useTabs": false,
+        "tabWidth": 2
+      }
+    }
+  ]
+}

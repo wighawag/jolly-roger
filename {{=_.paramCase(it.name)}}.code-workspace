@@ -11,7 +11,7 @@
 		}
 	],
 	"settings": {
-		"todo-tree.filtering.excludeGlobs": ["export"]
+		"todo-tree.filtering.excludeGlobs": ["export"],
 	},
 	"extensions": {
 		"recommendations": [
@@ -20,8 +20,9 @@
 			"esbenp.prettier-vscode",
 			"hbenl.vscode-mocha-test-adapter",
 			"juanblanco.solidity",
-			"gruntfuggly.todo-tree"
+			"gruntfuggly.todo-tree",
+			"jamesbirtles.svelte-vscode"
 		],
 		"unwantedRecommendations": []
-	}	
+	}
 }
