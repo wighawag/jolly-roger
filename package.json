@@ -9,7 +9,7 @@
     "wighawag_newsh": "^0.0.5"
   },
   "scripts": {
-    "yarn-install": "yarn --cwd contracts && yarn --cwd subgraph && yarn --cwd webapp",
+    "postinstall": "yarn --cwd contracts && yarn --cwd subgraph && yarn --cwd webapp && ./.setup.js",
     
     "externals-down": "docker-compose down -v",
     "externals": "docker-compose up",
