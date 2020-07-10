@@ -11,7 +11,10 @@
 		}
 	],
 	"settings": {
-		"todo-tree.filtering.excludeGlobs": ["export"],
+		"todo-tree.filtering.excludeGlobs": [
+			"deployments",
+		]
+		
 	},
 	"extensions": {
 		"recommendations": [
@@ -24,5 +27,5 @@
 			"jamesbirtles.svelte-vscode"
 		],
 		"unwantedRecommendations": []
-	}
+	}	
 }

@@ -2,38 +2,24 @@ const logger = console;
 
 export default {
   trace(...args) {
-    if (process.browser) {
-      logger.trace(...args);
-    }
+    logger.trace(...args);
   },
   debug(...args) {
-    if (process.browser) {
-      logger.debug(...args);
-    }
+    logger.debug(...args);
   },
   info(...args) {
-    if (process.browser) {
-      logger.info(...args);
-    }
+    logger.info(...args);
   },
   warn(...args) {
-    if (process.browser) {
-      logger.error(...args);
-    }
+    logger.error(...args);
   },
   error(...args) {
-    if (process.browser) {
-      logger.error(...args);
-    }
+    logger.error(...args);
   },
   fatal(...args) {
-    if (process.browser) {
-      logger.fatal(...args);
-    }
+    logger.fatal(...args);
   },
   silent(...args) {
-    if (process.browser) {
-      logger.silent(...args);
-    }
-  }
+    logger.silent(...args);
+  },
 };

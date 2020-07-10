@@ -1,6 +1,11 @@
 #!/usr/bin/env node
-const fs = require('fs');
-
-if (!fs.existsSync('contracts/.vscode/settings.json')) {
-    fs.copyFileSync('contracts/.vscode/settings.json.default', 'contracts/.vscode/settings.json');
+const fs = require("fs");
+function copyFromDefault(p) {
+  if (!fs.existsSync(p)) {
+    const defaultFile = `${p}.default`;
+    if (fs.existsSync(defaultFile)) {
+      fs.copyFileSync(`${p}.default`, p);
+    }
+  }
 }
+[".vscode/settings.json", ".env"].map(copyFromDefault);

@@ -1,75 +1,72 @@
-import { writable } from "svelte/store";
-import { client, NAMES, NAMES_SUBSCRIPTION } from "../graphql";
-
-function wait(t, v) {
-  return new Promise(function(resolve) {
-    setTimeout(resolve.bind(null, v), t * 1000);
-  });
-}
+import {writable} from 'svelte/store';
+import {query, subscription} from '../utils/graphql';
 
 const $data = {};
-const { subscribe, set } = writable($data);
+const {subscribe, set} = writable($data);
 
 function _set(data) {
+  // TODO remove:
+  console.log('collections', data);
   Object.assign($data, data);
   set($data);
 }
 
-async function listen() {
-  if (!process.browser) {
-    return;
+function transform(result) {
+  if (result.fetching) {
+    _set({status: 'Loading'});
   }
+  if (result.stale) {
+    console.log({stale: result.stale}); // TODO ?
+  }
+  if (result.error) {
+    _set({error: data.error});
+  }
+  if (result.data) {
+    // console.log({data: result.data});
+    _set({status: 'Ready'});
+    if (result.data.namedEntities) {
+      _set({data: result.data.namedEntities});
+    } else {
+      _set({data: {{{!"}"}}});
+    }
+  }
+  if (result.extensions) {
+    // TODO ?
+    console.log({extensions: result.extensions});
+  }
+}
+
+async function listen() {
   if ($data.listenning) {
     return;
   }
-  _set({ listenning: true });
+  _set({listenning: true});
 
-  if ($data.status !== "loaded") {
-    _set({ status: "loading" });
+  if ($data.status !== 'loaded') {
+    _set({status: 'loading'});
   }
 
-  // TODO handle error
-
-  let sub = await client.subscribe({
-    query: NAMES_SUBSCRIPTION
-  });
-  // let sub = await client.watchQuery({
-  //     query: NAMES,
-  //     pollInterval : 1000
-  // });
-
-  sub.subscribe({
-    next: result => _set({ status: "loaded", data: result.data.namedEntities.map(item => item.name) }),
-    error: (...args) => console.log("error", ...args),
-    complete: (...args) => console.log("complete", ...args)
-  });
+  subscription({
+    query: `
+      subscription {
+        namedEntities(first: 5) {
+          id
+          name
+        }
+      }
+    `,
+    // for query pollInterval: 2000, // required to ensure polling (unless urql has a biggger default delay)
+    // for query requestPolicy: "cache-and-network" // required as cache-first will not try to get new data
+  }).subscribe(transform);
 }
 
 let dataStore;
 export default dataStore = {
   subscribe,
-  load: async () => {
-    if ($data.status !== "loaded") {
-      _set({ status: "loading" });
-    }
-    const result = await client.query({
-      query: NAMES,
-      fetchPolicy: process.browser ? undefined : "network-only"
-    });
-    console.log({ result: JSON.stringify(result, null, "  ") });
-    _set({ status: "loaded", data: result.data.namedEntities.map(item => item.name) });
-    return { data: result.data };
-  },
-  boot: data => {
-    if (data) {
-      client.writeQuery({ query: NAMES, data });
-      _set({ status: "loaded", data: data.namedEntities.map(item => item.name) });
-    }
-    listen();
-  },
-  listen
+  listen,
 };
 
-if (typeof window !== "undefined") {
+// TODO remove ?
+if (typeof window !== 'undefined') {
   window.names = $data;
 }

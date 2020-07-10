@@ -7,8 +7,8 @@
   "devDependencies": {
     "@nomiclabs/buidler": "^1.2.0",
     "@smartdec/smartcheck": "^2.0.1",
-    "buidler-deploy": "^0.1.19",
-    "buidler-ethers-v5": "^0.1.4",
+    "buidler-deploy": "^0.4.5",
+    "buidler-ethers-v5": "^0.2.2",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
     "cross-env": "^7.0.2",
@@ -18,7 +18,7 @@
     "eslint-config-prettier": "^6.10.1",
     "eslint-plugin-mocha": "^6.3.0",
     "eslint-plugin-prettier": "^3.1.3",
-    "ethers": "^5.0.0-beta.180",
+    "ethers": "^5.0.0-beta.183",
     "mocha": "^7.1.1",
     "npm-run-all": "^4.1.5",
     "prettier": "^2.0.4",
@@ -28,6 +28,8 @@
     "solhint-plugin-prettier": "^0.0.4"
   },
   "scripts": {
+    "format": "prettier --write src/**/*.sol test/**/*.js scripts/**/*.js deploy/**/*.js",
+    "postinstall": "node ./.setup.js",
     "prettier:solidity": "prettier --write src/**/*.sol",
     "prettier:js": "prettier --write deploy test scripts",
     "prettier": "run-s prettier:*",
@@ -38,6 +40,8 @@
     "local:run": "cross-env BUIDLER_NETWORK=localhost node",
     "local:seed": "cross-env BUIDLER_NETWORK=localhost node scripts/seed.js",
     "rinkeby:deploy": "buidler deploy --network rinkeby",
+    "kovan:deploy": "buidler deploy --network kovan --export ../webapp/src/contracts/staging.json",
+    "goerli:deploy": "buidler deploy --network goerli",
     "mainnet:deploy": "buidler deploy --network mainnet"
   }
 }

@@ -1,3 +1,8 @@
 node_modules/*
 yarn-error.log
 .newsh.json
+.DS_Store
+.env
+.mnemonic*
+.vscode/*
+!.vscode/settings.json.default

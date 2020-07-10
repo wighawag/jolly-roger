@@ -41,3 +41,12 @@ services:
     image: trufflesuite/ganache-cli:v6.9.1
     ports:
       - "8545:8545"
+    entrypoint:
+      - node
+      - /app/ganache-core.docker.cli.js
+      - --deterministic
+      - --mnemonic
+      - '${MNEMONIC-minimum symptom minute gloom tragic situate silver mechanic salad amused elite beef}'
+      - --hostname
+      - '0.0.0.0'
+      # - --debug

@@ -1,12 +1,14 @@
 {
-  "overrides": [
-    {
-      "files": "*",
-      "options": {
-        "printWidth": 120,
-        "useTabs": false,
-        "tabWidth": 2
-      }
-    }
-  ]
+  "tabWidth": 2,
+  "useTabs": false,
+  "semi": true,
+  "singleQuote": true,
+  "trailingComma": "es5",
+  "bracketSpacing": false,
+  "arrowParens": "always",
+  "plugins": ["./node_modules/prettier-plugin-svelte"],
+  "svelteSortOrder": "scripts-markup-styles",
+  "svelteStrictMode": true,
+  "svelteBracketNewLine": true,
+  "svelteAllowShorthand": true
 }

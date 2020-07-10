@@ -1,5 +1,5 @@
 node_modules/*
-deployments/localhost_1337
+deployments/localhost_*
 
 bin/
 cache/

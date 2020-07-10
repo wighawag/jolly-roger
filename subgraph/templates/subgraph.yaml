@@ -9,13 +9,13 @@ dataSources:
     source:
       address: '{{contracts.{{=_.pascalCase(it.contractName)}}.address{{!"}"}}}'
       abi: {{=_.pascalCase(it.contractName)}}Contract
-      # startBlock: TODO
+      startBlock: {{contracts.{{=_.pascalCase(it.contractName)}}.receipt.blockNumber{{!"}"}}}
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.3
       language: wasm/assemblyscript
       entities:
-        - Planet
+        - NamedEntity
       abis:
         - name: {{=_.pascalCase(it.contractName)}}Contract
           file: ./abis/{{=_.pascalCase(it.contractName)}}.json

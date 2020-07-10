@@ -4,3 +4,4 @@ generated/
 build/
 subgraph.yaml
 !templates/*
+abis/

@@ -45,7 +45,7 @@ module.exports = {
   },
   networks: {
     localhost: {
-      live:true
+      live: true,
     },
     rinkeby: {
       url: "https://rinkeby.infura.io/v3/" + process.env.INFURA_TOKEN,
@@ -58,6 +58,6 @@ module.exports = {
   },
   namedAccounts: {
     deployer: 0,
-    users: "from:3",
+    others: "from:3",
   },
 };
