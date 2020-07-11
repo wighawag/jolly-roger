@@ -6,7 +6,13 @@ A template to build a decentralised applicaiton using ethereum, buidler, svelte/
 to make an app out of it, execute the following
 
 ```
-npx init-from wighawag/decentralised-application <your-app> --name "<Your App Name>" --contractName "<your Contract Name>"
+npx init-from wighawag/decentralised-application <your-app-folder>"
+```
+
+or if you want the name to be different than the folder or the contract name to be different too
+
+```
+npx init-from wighawag/decentralised-application <your-app-folder> --name "<Your App Name>" --contractName "<your Contract Name>"
 ```
 
 <!-- {{%}}  -->
