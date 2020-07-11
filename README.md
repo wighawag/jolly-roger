@@ -1,7 +1,7 @@
 <!-- {{% it.template }} --> 
 # decentralised-application
 
-A template to build a decentralised applicaiton using ethereum, buidler, svelte/sapper and thegraph
+A template to build a decentralised applicaiton using ethereum, buidler, svelte and thegraph
 
 to make an app out of it, execute the following
 
