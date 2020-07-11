@@ -20,7 +20,7 @@ npx init-from wighawag/decentralised-application <your-app-folder> --name "<Your
 ## SETUP
 
 ```
-yarn && yarn yarn-install
+yarn
 ```
 
 ## START
