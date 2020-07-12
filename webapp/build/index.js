@@ -253,12 +253,40 @@ async function ipfsApp(exportFolder, routes) {
   const applicationConfig = JSON.parse(
     fs.readFileSync('./application.json').toString()
   );
+  const overrideURL = process.env.APPLICATION_URL;
+  if (overrideURL && overrideURL !== '') {
+    applicationConfig.url = overrideURL;
+  }
   const config = {
     ...applicationConfig,
     pages: routes.map((v) => v.path),
   };
   const title = config.appName + ' - ' + config.appShortDescription;
   const previewURL = config.url + '/' + config.preview;
+
+  if (fs.existsSync('static')) {
+    fs.copySync('static', exportFolder);
+  }
+
+  let ensName = config.ensName;
+  if (ensName && !ensName.endsWith('.eth')) {
+    ensName += '.eth';
+  }
+  if (!ensName && config.url && config.url.endsWith('.eth.link')) {
+    ensName = config.url.slice(0, config.url.length - 5);
+  }
+  if (ensName) {
+    if (ensName.startsWith('https://')) {
+      ensName = ensName.slice(8);
+    }
+    if (ensName.startsWith('http://')) {
+      ensName = ensName.slice(7);
+    }
+    fs.writeFileSync(
+      path.join(exportFolder, 'robots.txt'),
+      'Dwebsite: ' + ensName
+    );
+  }
 
   copySync(exportFolder, config.preview);
 

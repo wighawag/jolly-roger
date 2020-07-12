@@ -5,6 +5,7 @@ const envList = ['THE_GRAPH_HTTP', 'THE_GRAPH_WS'];
  * Environment variables
  * ANALYSE: output a analyse file showing the size of the output
  * CONTRACTS_INFO: development | production | staging
+ * APPLICATION_URL: allow to setup url when needed (like meta tags)
  */
 
 import * as path from 'path';
@@ -55,6 +56,7 @@ for (const envVar of envList) {
   }
   toReplace[`process.env.${envVar}`] = JSON.stringify(process.env[envVar]);
 }
+toReplace[`__DEBUG__`] = production ? 'false' : 'true';
 
 const contractsInfo = process.env.CONTRACTS_INFO || 'development';
 

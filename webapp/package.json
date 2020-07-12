@@ -47,9 +47,9 @@
   "dependencies": {
     "@curi/router": "^2.1.0",
     "@curi/svelte": "^2.0.0-beta.5",
-    "@ethersproject/bignumber": "^5.0.0-beta.139",
-    "@ethersproject/contracts": "^5.0.0-beta.153",
-    "@ethersproject/providers": "^5.0.0-beta.168",
+    "@ethersproject/bignumber": "^5.0.4",
+    "@ethersproject/contracts": "^5.0.1",
+    "@ethersproject/providers": "^5.0.4",
     "@hickory/browser": "^2.1.0",
     "@urql/core": "^1.11.8",
     "a17t": "^0.1.4",

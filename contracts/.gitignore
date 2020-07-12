@@ -1,4 +1,4 @@
-node_modules/*
+node_modules/
 deployments/localhost_*
 
 bin/
@@ -6,7 +6,6 @@ cache/
 artifacts/
 
 yarn-error.log
-tmp_deployments/
 .mnemonic*
 .priv*
 .mythx_credentials

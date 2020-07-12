@@ -7,6 +7,7 @@
     balance,
   } from '../stores/wallet';
   import Button from '../components/basic/Button.svelte';
+  import Link from '@curi/svelte/components/Link.svelte';
 </script>
 
 <h1>Builtin</h1>
@@ -39,3 +40,8 @@
 >
 <Button class="m-1" on:click="{() => wallet.unlock()}">unlock</Button>
 <Button class="m-1" on:click="{() => wallet.logout()}">logout</Button>
+
+
+<p class="m-3 text-3xl"> Links:</p>
+<Link name="Index" class="button bg-red-200 ~positive !normal">Home</Link>
+<Link name="Wallet" class="button ~positive !normal">wallet</Link>

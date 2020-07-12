@@ -5,7 +5,12 @@ describe("{{=_.pascalCase(it.contractName)}}", function () {
   it("should work", async function () {
     await deployments.fixture();
     const {{=_.camelCase(it.contractName)}}Contract = await ethers.getContract("{{=_.pascalCase(it.contractName)}}");
-    expect(true).to.be.a("boolean");
     expect({{=_.camelCase(it.contractName)}}Contract.address).to.be.a("string");
+  });
+
+  it("should fails", async function () {
+    await deployments.fixture();
+    const {{=_.camelCase(it.contractName)}}Contract = await ethers.getContract("{{=_.pascalCase(it.contractName)}}");
+    expect({{=_.camelCase(it.contractName)}}Contract.fails("testing")).to.be.revertedWith("fails");
   });
 });

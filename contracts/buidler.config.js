@@ -44,9 +44,6 @@ module.exports = {
     sources: "src",
   },
   networks: {
-    localhost: {
-      live: true,
-    },
     rinkeby: {
       url: "https://rinkeby.infura.io/v3/" + process.env.INFURA_TOKEN,
       accounts,

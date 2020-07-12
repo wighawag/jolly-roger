@@ -6,16 +6,20 @@ const subscriptionClient = new SubscriptionClient(process.env.THE_GRAPH_WS, {
   reconnect: true,
 });
 
-// TODO devtools only in dev mode
+let exchanges = [];
+if (typeof __DEBUG__ !== 'undefined' && __DEBUG__) {
+  exchanges.push(devtoolsExchange);
+}
+exchanges = exchanges.concat(defaultExchanges);
+exchanges.push(
+  subscriptionExchange({
+    forwardSubscription(operation) {
+      return subscriptionClient.request(operation);
+    },
+  })
+);
+
 export default new Client({
   url: process.env.THE_GRAPH_HTTP,
-  exchanges: [
-    devtoolsExchange,
-    ...defaultExchanges,
-    subscriptionExchange({
-      forwardSubscription(operation) {
-        return subscriptionClient.request(operation);
-      },
-    }),
-  ],
+  exchanges,
 });

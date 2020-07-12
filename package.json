@@ -8,17 +8,15 @@
     "cross-env": "^7.0.2",
     "dotenv-cli": "^3.1.0",
     "npm-run-all": "^4.1.5",
+    "rimraf": "^3.0.2",
+    "wait-on": "^5.1.0",
     "wighawag_newsh": "^0.0.5"
   },
   "workspaces": {
     "packages": [
       "contracts",
       "webapp",
-      "subgraph",
-      "server",
-      "web3w",
-      "web3w-torus",
-      "web3w-walletconnect"
+      "subgraph"
     ],
     "nohoist": [
       "{{=_.paramCase(it.name)}}-subgraph/@graphprotocol/graph-ts",
@@ -42,32 +40,33 @@
     
     "// subgraphs : generate and deploy local subgraph": "",
     "subgraph:setup": "npm --prefix subgraph run local:setup",
-    "subgraph:deploy": "npm --prefix subgraph run local:deploy ../contracts/deployments/localhost_1337",
-    
+    "subgraph:deploy": "wait-on webapp/src/contracts/development.json && npm --prefix subgraph run local:deploy ../contracts/deployments/localhost_1337",
+
     "// contracts : deploy smart contracts on local ethereum node": "",
-    "contracts:deploy": "npm --prefix contracts run local:deploy -- --export ../webapp/src/contracts/development.json",
-    "shell:contracts:deploy": "newsh \"npm run contracts:deploy\"",
+    "contracts:clean": "rimraf contracts/deployments/localhost_1337 && rimraf webapp/src/contracts/development.json",
+    "contracts:dev": "npm --prefix contracts run local:dev -- --export ../webapp/src/contracts/development.json",
+    "shell:contracts:dev": "newsh \"npm run contracts:dev\"",
     "seed": "dotenv -- npm --prefix contracts run local:seed",
-    
+
     "// webapp : run local webapp in dev mode": "",
     "webapp": "dotenv -- npm --prefix webapp run dev",
     "shell:webapp": "newsh \"npm run webapp\"",
-    
+
     "// dev : local development setup": "This setup external service, setup subgraph and deploy it on the local graph-node, deploy the contracts and seed it",
-    "dev": "npm-run-all -l externals:down --parallel webapp externals --sequential subgraph:setup contracts:deploy subgraph:deploy seed",
-    "shell:dev": "npm-run-all -l externals:down --parallel shell:webapp shell:externals --sequential subgraph:setup contracts:deploy subgraph:deploy seed",
-    "shell:dev:no-webapp": "npm-run-all -l externals:down --parallel shell:externals --sequential subgraph:setup contracts:deploy subgraph:deploy seed",
-    
+    "dev": "npm-run-all -l externals:down --parallel webapp externals --sequential subgraph:setup contracts:clean contracts:dev subgraph:deploy seed",
+    "shell:dev": "npm-run-all -l externals:down --parallel shell:webapp shell:externals --sequential subgraph:setup contracts:clean shell:contracts:dev subgraph:deploy seed",
+    "shell:dev:no-webapp": "npm-run-all -l externals:down --parallel shell:externals --sequential subgraph:setup contracts:clean shell:contracts:dev subgraph:deploy seed",
+
     "// STAGING : deploy on staging": "",
     "staging:subgraph:deploy": "dotenv -e .env.staging -e .env -- npm --prefix subgraph run kovan:deploy ../contracts/deployments/kovan",
     "staging:webapp:build": "dotenv -e .env.staging -e .env -- npm --prefix webapp run build",
     "staging:seed": "dotenv -e .env.staging -e .env -- npm --prefix contracts run kovan:run scripts/seed.js",
-    
+
     "// SERVE Webapp ": "",
     "webapp:build": "dotenv -- npm --prefix webapp run build",
     "webapp:serve": "npm --prefix webapp run start --",
     "webapp:build:serve": "run-s webapp:build webapp:serve",
-    
+
     "// PRODUCTION : build on mainnet": "",
     "production:webapp:build": "dotenv -e .env.production -e .env -- npm --prefix webapp run build"
   }

@@ -41,6 +41,7 @@ function route({name, path, component}) {
   };
 }
 
+// IPFS support : redirect on non-slash and /index.html paths
 function generateRoutes(routePaths) {
   let basepath = undefined;
   const pathname = typeof location !== 'undefined' ? location.pathname : '';
@@ -110,36 +111,20 @@ function generateRoutes(routePaths) {
 
 const {routesConfig, basepath} = generateRoutes(routes);
 
-console.log({basepath});
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
     navigator.serviceWorker.register(`${basepath}/sw.js`).then(
       function (registration) {
         // Registration was successful
-        console.log(
-          'ServiceWorker registration successful with scope: ',
-          registration.scope
-        );
       },
       function (err) {
         // registration failed :(
-        console.log('ServiceWorker registration failed: ', err);
       }
     );
   });
 }
 
-const options = {
-  sideEffects: [
-    // TODO only on browser?
-    announce(({response}) => {
-      return `Navigated to ${response.location.pathname}`;
-    }),
-  ],
-};
-
 if (basepath) {
-  console.log({basepath});
   options.history = {base: createBase(basepath)};
 }
 
