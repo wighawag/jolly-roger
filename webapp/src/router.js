@@ -84,7 +84,7 @@ function generateRoutes(routePaths) {
     const result = regex.exec(pathname);
     if (result && result[1]) {
       let match = result[1];
-      console.log({regexStr, match});
+      // console.log({regexStr, match});
       if (match.endsWith('/')) {
         match = match.substr(0, match.length - 1);
       }
@@ -123,6 +123,8 @@ if ('serviceWorker' in navigator) {
     );
   });
 }
+
+const options = {};
 
 if (basepath) {
   options.history = {base: createBase(basepath)};

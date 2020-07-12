@@ -3280,10 +3280,10 @@ bufferutil@^4.0.1:
   dependencies:
     node-gyp-build "~3.7.0"
 
-buidler-deploy@^0.5.0-beta.3:
-  version "0.5.0-beta.3"
-  resolved "https://registry.yarnpkg.com/buidler-deploy/-/buidler-deploy-0.5.0-beta.3.tgz#010f0ac82d13e4fe7e00980a9ee1aa9c55ae8bad"
-  integrity sha512-/rNLKRDCd0m5bwcS6oi+vdqTYA0qPbXrAeU3wcdokwkiaU/JeLQb1GQ9EyFFqZQHyXYaWwdGi7dvjXOoGV8NmQ==
+buidler-deploy@^0.5.0-beta.4:
+  version "0.5.0-beta.4"
+  resolved "https://registry.yarnpkg.com/buidler-deploy/-/buidler-deploy-0.5.0-beta.4.tgz#0753eb698fabc97b846dfac87d599cae8722a36f"
+  integrity sha512-mTY3JGxR35jr91Z0Ju1dJlb24SFe35yhn3tzYcHaDcl0oU8y41wZvtlj5ue5WBqThbS8tRV3uSqnmIbrlGM8Zg==
   dependencies:
     "@ethersproject/abi" "^5.0.1"
     "@ethersproject/abstract-signer" "^5.0.0-beta.144"
@@ -15711,10 +15711,10 @@ web3w-walletconnect@0.0.1:
   resolved "https://registry.yarnpkg.com/web3w-walletconnect/-/web3w-walletconnect-0.0.1.tgz#92f7033376cb4148995e216fe193568b19ed9e3b"
   integrity sha512-UVyFas8mzl5k1MbbTex8MTbCNpnaVbpzsyxxrOl9M5SklTRpIr+lD3m68x58cyZNhBdI/lQ3L/Rg5UUV1BupOg==
 
-web3w@0.1.0:
-  version "0.1.0"
-  resolved "https://registry.yarnpkg.com/web3w/-/web3w-0.1.0.tgz#3188562a91ed5282eda854a6c53776730e498ea8"
-  integrity sha512-rOVULkLVPpo7rXEk/HE3IEfc5cD8XErRcIOw1PomkD/t6hqOOTD/q6sz3r6GJ90parabi+LLxwByITcAmiZBpw==
+web3w@^0.1.1:
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/web3w/-/web3w-0.1.1.tgz#8acb62b3f89a90de65b3d01b6ea15696606beb61"
+  integrity sha512-pt8RGVEKLjSJiLeL7odoWEz5bIcQl40nR1Z1SdUMygkJfohE7v5VTCN0BPDhB/JP+Vjh33t+q0/UAEZ6sd5urw==
 
 webpack-sources@^1.4.0, webpack-sources@^1.4.1:
   version "1.4.3"

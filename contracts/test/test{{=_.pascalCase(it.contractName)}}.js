@@ -13,4 +13,10 @@ describe("{{=_.pascalCase(it.contractName)}}", function () {
     const {{=_.camelCase(it.contractName)}}Contract = await ethers.getContract("{{=_.pascalCase(it.contractName)}}");
     expect({{=_.camelCase(it.contractName)}}Contract.fails("testing")).to.be.revertedWith("fails");
   });
+
+  it("should return 2 as id", async function () {
+    await deployments.fixture();
+    const {{=_.camelCase(it.contractName)}}Contract = await ethers.getContract("{{=_.pascalCase(it.contractName)}}");
+    expect(await {{=_.camelCase(it.contractName)}}Contract.getId()).to.equal(2);
+  });
 });

@@ -8,8 +8,8 @@ import WalletConnectModule from 'web3w-walletconnect';
 const fallbackUrl = 'http://localhost:8545'; // TODO use env
 
 const {wallet, builtin, chain, transactions, balance} = WalletStores({
-  log: console,
-  debug: true,
+  // log: console,
+  // debug: true,
   chainConfigs: contractsInfo,
   options: [
     'builtin',
@@ -21,7 +21,6 @@ const {wallet, builtin, chain, transactions, balance} = WalletStores({
 
 // TODO remove
 if (typeof window !== 'undefined') {
-  console.log('adding to global');
   window.wallet = wallet;
 }
 
