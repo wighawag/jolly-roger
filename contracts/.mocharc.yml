@@ -7,7 +7,7 @@ recursive: true
 reporter: spec
 require: "@nomiclabs/buidler/register"
 slow: 75
-spec: test/**/test*.js # the positional arguments!
+spec: test/**/*test.js # the positional arguments!
 timeout: 20000
 ui: bdd
 watch: false

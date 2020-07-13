@@ -1,4 +1,4 @@
-node_modules/*
+node_modules/
 yarn-error.log
 .newsh.json
 .DS_Store

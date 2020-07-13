@@ -4,6 +4,11 @@ const fs = require('fs-extra');
 const path = require('path');
 const favicons = require('favicons');
 const hasha = require('hasha');
+
+function print(message) {
+  process.stdout.write(message);
+}
+
 /**
  * generate css at exportFolder/_css/global.css using postcss
  * @param {*} exportFolder
@@ -11,6 +16,7 @@ const hasha = require('hasha');
  */
 function globalCSS(exportFolder, src, config) {
   config = config || {};
+  print('bundling css...');
   return new Promise((resolve, reject) => {
     fs.readFile(src, (err, css) => {
       if (err) {
@@ -46,6 +52,8 @@ function globalCSS(exportFolder, src, config) {
           reject(e);
         });
     });
+  }).then(() => {
+    print(' done\n');
   });
 }
 
@@ -74,6 +82,7 @@ function copySync(exportFolder, files) {
 }
 
 function generateFavicons(exportFolder, icon, config) {
+  print('generating favicons...');
   return new Promise((resolve, reject) => {
     favicons(icon, config, async (error, response) => {
       if (error) {
@@ -88,6 +97,8 @@ function generateFavicons(exportFolder, icon, config) {
       }
       resolve(response.html);
     });
+  }).then(() => {
+    print(' done\n');
   });
 }
 
@@ -105,6 +116,7 @@ const makeHtmlAttributes = (attributes) => {
 };
 
 async function generateBasicIndexHTML(exportFolder, {title, meta}) {
+  print('generating html...');
   let template = fs
     .readFileSync(path.resolve(__dirname, 'index.html'))
     .toString();
@@ -154,10 +166,12 @@ async function generateBasicIndexHTML(exportFolder, {title, meta}) {
 
   template = template.slice(0, body) + inject + template.slice(body);
 
+  print(' done\n');
   return template;
 }
 
 async function generatePages(exportFolder, {pages, faviconsOutput, indexHtml}) {
+  print('generating pages...');
   let template = indexHtml;
   const findSrc = 'src="/';
   const reSrc = new RegExp(findSrc, 'g');
@@ -183,7 +197,7 @@ async function generatePages(exportFolder, {pages, faviconsOutput, indexHtml}) {
   for (const page of pages) {
     const folderPath = path.join(exportFolder, page);
     const indexFilepath = path.join(folderPath, 'index.html');
-    console.log({indexFilepath});
+    // console.log({indexFilepath});
     const numSlashes = page.split('/').length - 1;
     let baseHref = '';
     if (page != '') {
@@ -220,6 +234,7 @@ async function generatePages(exportFolder, {pages, faviconsOutput, indexHtml}) {
       }
     }
   }
+  print(' done\n');
 }
 
 function generateCacheURLs(exportFolder, subFolders) {
@@ -235,6 +250,7 @@ function generateCacheURLs(exportFolder, subFolders) {
 }
 
 async function generateServiceWorker(exportFolder, pages) {
+  print('generating service worker...');
   const bundleFiles = generateCacheURLs(exportFolder, ['_css', '_js']);
   let sw = fs.readFileSync(path.resolve(__dirname, 'sw.js')).toString();
   sw = sw.replace(
@@ -247,6 +263,7 @@ async function generateServiceWorker(exportFolder, pages) {
       ']'
   );
   fs.writeFileSync(path.join(exportFolder, 'sw.js'), sw);
+  print(' done\n');
 }
 
 async function ipfsApp(exportFolder, routes) {

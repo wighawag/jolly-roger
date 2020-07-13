@@ -5,7 +5,7 @@ const Handlebars = require("handlebars");
 const args = process.argv.slice(2);
 const pathArg = args[0];
 const chainName = args[1];
-const blockZero = args[2];
+const startBlock = args[2];
 
 if (!pathArg) {
   console.error(
@@ -17,7 +17,7 @@ if (!fs.existsSync(pathArg)) {
 }
 
 const stat = fs.statSync(pathArg);
-let contractInfo;
+let contractsInfo;
 if (stat.isDirectory()) {
   contractsInfo = {
     contracts: {},
@@ -41,9 +41,9 @@ if (stat.isDirectory()) {
 
 const contracts = contractsInfo.contracts;
 
-if (typeof blockZero !== undefined) {
+if (typeof startBlock !== "undefined") {
   for (const contractName of Object.keys(contracts)) {
-    contracts[contractName].receipt.blockNumber = blockZero;
+    contracts[contractName].receipt.blockNumber = startBlock;
   }
 }
 

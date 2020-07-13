@@ -7,7 +7,7 @@
     "build": "graph build",
     "generate": "node scripts/generate.js",
     "local:redeploy": "graph codegen && wait-on http://127.0.0.1:5001/api/v0/version http-get://127.0.0.1:8000 && graph deploy {{=_.paramCase(it.name)}}/{{=_.paramCase(it.name)}} --ipfs http://localhost:5001 --node http://127.0.0.1:8020",
-    "local:deploy": "npm-run-all \"generate -- {1} mainnet 0\" local:redeploy --",
+    "local:deploy": "npm-run-all \"generate -- {1} mainnet\" local:redeploy --",
     "mainnet:redeploy": "dotenv -- cross-var graph deploy --access-token $THEGRAPH_TOKEN <thegraph-account>/{{=_.paramCase(it.name)}} --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/",
     "mainnet:deploy": "npm-run-all \"generate -- {1} mainnet\" mainnet:redeploy --",
     "rinkeby:redeploy": "dotenv -- cross-var graph deploy --access-token $THEGRAPH_TOKEN <thegraph-account>/{{=_.paramCase(it.name)}}-rinkeby --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/ --debug",
