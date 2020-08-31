@@ -9273,7 +9273,7 @@ packages:
   /lodash.toarray/4.4.0:
     dev: true
     resolution:
-      integrity: sha1-JMS/zWsvuji/0FlNsredjptlZWE=
+      integrity: sha1-JMS/zWsvuji/0FlNsRedjptlZWE=
   /lodash.trim/4.5.1:
     dev: true
     resolution:
