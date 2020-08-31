@@ -1,15 +1,13 @@
-node_modules/
-deployments/localhost_*
+coverage*
 
-bin/
 cache/
 artifacts/
 
-yarn-error.log
-.mnemonic*
-.priv*
-.mythx_credentials
+node_modules/
 .env
+contractsInfo.json
+deployments/buidlerevm_*
+deployments/localhost_*
 
 .vscode/*
 !.vscode/settings.json.default

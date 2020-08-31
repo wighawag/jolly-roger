@@ -1,0 +1,44 @@
+{
+  "folders": [
+    {
+      "path": "contracts"
+    },
+    {
+      "path": "subgraph"
+    },
+    {
+      "path": "web"
+    },
+    {
+      "path": "common-lib"
+    }
+  ],
+  "settings": {
+    "todo-tree.filtering.excludeGlobs": ["export"],
+    "editor.formatOnSave": true,
+    "solidity.linter": "solhint",
+    "solidity.enableLocalNodeCompiler": false,
+    "solidity.compileUsingLocalVersion": "contracts/cache/compilers/soljson-v0.6.5+commit.f956cc89.js",
+    "solidity.packageDefaultDependenciesContractsDirectory": "contracts/src",
+    "solidity.packageDefaultDependenciesDirectory": "contracts/node_modules",
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": true
+    },
+    "[json]": {
+      "editor.formatOnSave": false,
+      "editor.codeActionsOnSave": {}
+    }
+  },
+  "extensions": {
+    "recommendations": [
+      "dbaeumer.vscode-eslint",
+      "editorconfig.editorconfig",
+      "esbenp.prettier-vscode",
+      "hbenl.vscode-mocha-test-adapter",
+      "juanblanco.solidity",
+      "gruntfuggly.todo-tree",
+      "svelte.svelte-vscode"
+    ],
+    "unwantedRecommendations": []
+  }
+}

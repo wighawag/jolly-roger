@@ -1,9 +1,0 @@
-{
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
-  "editor.formatOnSave": true,
-  "solidity.linter": "solhint",
-  "solidity.enableLocalNodeCompiler": false,
-  "solidity.compileUsingLocalVersion": "./cache/compilers/soljson-v0.6.5+commit.f956cc89.js",
-  "solidity.packageDefaultDependenciesContractsDirectory": "src",
-  "solidity.packageDefaultDependenciesDirectory": "node_modules"
-}

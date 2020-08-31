@@ -1,0 +1,15 @@
+diff --git a/node_modules/@nomiclabs/buidler/internal/core/typescript-support.js b/node_modules/@nomiclabs/buidler/internal/core/typescript-support.js
+index 4bbf9cd..a6450f3 100644
+--- a/node_modules/@nomiclabs/buidler/internal/core/typescript-support.js
++++ b/node_modules/@nomiclabs/buidler/internal/core/typescript-support.js
+@@ -20,7 +20,9 @@ function getBuidlerNodeModules() {
+ }
+ let cachedIsTypescriptSupported;
+ function isTypescriptSupported() {
+-    if (cachedIsTypescriptSupported === undefined) {
++  if (fs.existsSync("buidler.config.ts")) {
++    cachedIsTypescriptSupported = true;
++  }else if (cachedIsTypescriptSupported === undefined) {
+         const executionMode = execution_mode_1.getExecutionMode();
+         if (executionMode === execution_mode_1.ExecutionMode.EXECUTION_MODE_GLOBAL_INSTALLATION) {
+             cachedIsTypescriptSupported = false;

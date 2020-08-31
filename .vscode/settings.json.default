@@ -1,13 +1,16 @@
 {
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "todo-tree.filtering.excludeGlobs": ["export"],
   "editor.formatOnSave": true,
-  "[json]": {
-    "editor.formatOnSave": false   
-  },
-  "css.lint.unknownAtRules": "ignore",
   "solidity.linter": "solhint",
   "solidity.enableLocalNodeCompiler": false,
-  "solidity.compileUsingLocalVersion": "./contracts/cache/compilers/soljson-v0.6.5+commit.f956cc89.js",
+  "solidity.compileUsingLocalVersion": "contracts/cache/compilers/soljson-v0.6.5+commit.f956cc89.js",
   "solidity.packageDefaultDependenciesContractsDirectory": "contracts/src",
-  "solidity.packageDefaultDependenciesDirectory": "contracts/node_modules"
+  "solidity.packageDefaultDependenciesDirectory": "contracts/node_modules",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true
+  },
+  "[json]": {
+    "editor.formatOnSave": false,
+    "editor.codeActionsOnSave": {}
+  }
 }

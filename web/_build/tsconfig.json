@@ -1,0 +1,10 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "module": "CommonJS",
+    "baseUrl": "..",
+    "paths": {
+      "pages/*": ["./_build/empty.js"]
+    }
+  }
+}

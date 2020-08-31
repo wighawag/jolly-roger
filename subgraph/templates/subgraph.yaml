@@ -5,7 +5,7 @@ schema:
 dataSources:
   - kind: ethereum/contract
     name: {{=_.pascalCase(it.contractName)}}
-    network: mainnet
+    network: {{chainName{{!"}"}}}
     source:
       address: '{{contracts.{{=_.pascalCase(it.contractName)}}.address{{!"}"}}}'
       abi: {{=_.pascalCase(it.contractName)}}Contract

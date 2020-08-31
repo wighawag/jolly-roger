@@ -1,0 +1,51 @@
+{
+  "name": "{{=_.paramCase(it.name)}}-web",
+  "version": "0.0.0",
+  "dependencies": {
+    "@curi/router": "^2.1.1",
+    "@curi/svelte": "^2.0.0-beta.6",
+    "@ethersproject/bignumber": "^5.0.5",
+    "@ethersproject/bytes": "^5.0.3",
+    "@ethersproject/contracts": "^5.0.3",
+    "@ethersproject/providers": "^5.0.6",
+    "@ethersproject/solidity": "^5.0.2",
+    "@hickory/browser": "^2.1.0",
+    "@urql/core": "^1.12.3",
+    "@urql/devtools": "^2.0.2",
+    "graphql": "^15.3.0",
+    "named-logs": "0.0.6",
+    "named-logs-console": "0.0.5",
+    "common-lib": "workspace:common-lib",
+    "svelte": "3.24.1",
+    "svelte-hmr": "0.10.2",
+    "web3w": "^0.1.3",
+    "wonka": "^4.0.14"
+  },
+  "devDependencies": {
+    "@tsconfig/svelte": "^1.0.8",
+    "@types/favicons": "^5.5.0",
+    "@types/fs-extra": "^9.0.1",
+    "@types/node": "^14.6.0",
+    "favicons": "^6.2.0",
+    "fs-extra": "^9.0.1",
+    "ipfs-gateway-emulator": "^4.2.1-ipfs.1",
+    "svelte-check": "^1.0.11",
+    "svelte-preprocess": "^4.0.10",
+    "svite": "^0.6.0",
+    "ts-node": "^9.0.0",
+    "tsconfig-paths": "^3.9.0",
+    "tslib": "^2.0.0",
+    "typescript": "^3.9.7"
+  },
+  "scripts": {
+    "postinstall": "npm run generate",
+    "validate": "svelte-check && tsc --noEmit",
+    "dev": "svite -ts",
+    "build": "svite build -ts && npm run spa2static",
+    "staging:build": "svite build --mode staging -ts && npm run spa2static",
+    "serve": "ipfs-emulator --only -d dist -p 8080",
+    "build:serve": "npm run build && npm run serve",
+    "generate": "ts-node --project _build/tsconfig.json _build/generate.ts",
+    "spa2static": "node _build/fixPages.js && ts-node --project _build/tsconfig.json -r tsconfig-paths/register -r svelte/register _build/spa2static.ts"
+  }
+}

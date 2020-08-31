@@ -1,28 +1,34 @@
 {
   "name": "{{=_.paramCase(it.name)}}-subgraph",
-  "version": "0.1.0",
-  "scripts": {
-    "local:setup": "wait-on http-get://127.0.0.1:8000 && graph create {{=_.paramCase(it.name)}}/{{=_.paramCase(it.name)}} --node http://127.0.0.1:8020",
-    "codegen": "rm -Rf generated && graph codegen",
-    "build": "graph build",
-    "generate": "node scripts/generate.js",
-    "local:redeploy": "graph codegen && wait-on http://127.0.0.1:5001/api/v0/version http-get://127.0.0.1:8000 && graph deploy {{=_.paramCase(it.name)}}/{{=_.paramCase(it.name)}} --ipfs http://localhost:5001 --node http://127.0.0.1:8020",
-    "local:deploy": "npm-run-all \"generate -- {1} mainnet\" local:redeploy --",
-    "mainnet:redeploy": "dotenv -- cross-var graph deploy --access-token $THEGRAPH_TOKEN <thegraph-account>/{{=_.paramCase(it.name)}} --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/",
-    "mainnet:deploy": "npm-run-all \"generate -- {1} mainnet\" mainnet:redeploy --",
-    "rinkeby:redeploy": "dotenv -- cross-var graph deploy --access-token $THEGRAPH_TOKEN <thegraph-account>/{{=_.paramCase(it.name)}}-rinkeby --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/ --debug",
-    "rinkeby:deploy": "npm-run-all \"generate -- {1} rinkeby\" rinkeby:redeploy --",
-    "kovan:redeploy": "dotenv -- cross-var graph deploy --access-token $THEGRAPH_TOKEN <thegraph-account>/{{=_.paramCase(it.name)}}-kovan --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/ --debug",
-    "kovan:deploy": "npm-run-all \"generate -- {1} kovan\" kovan:redeploy --"
-  },
+  "description": "Subgraph (thegraph.com) for {{=_.capitalCase(it.name)}}",
+  "private": true,
   "devDependencies": {
     "@graphprotocol/graph-cli": "^0.18.0",
     "@graphprotocol/graph-ts": "^0.18.0",
+    "chokidar": "^3.4.2",
     "cross-var": "^1.1.0",
     "dotenv-cli": "^3.1.0",
     "fs-extra": "^9.0.0",
     "handlebars": "^4.7.6",
     "npm-run-all": "^4.1.5",
     "wait-on": "^4.0.1"
+  },
+  "scripts": {
+    "local:create:silent": "cross-var graph create $SUBGRAPH_NAME --node http://127.0.0.1:8020 || true",
+    "local:setup": "wait-on http-get://127.0.0.1:8000 && npm run local:create:silent",
+    "codegen": "rm -Rf generated && graph codegen",
+    "build": "graph build",
+    "generate": "node scripts/generate.js",
+    "watch": "node scripts/watch.js",
+    "dev": "npm-run-all \"local:deploy -- {1}\" \"watch -- {1}\" --",
+    "local:redeploy": "graph codegen && wait-on http://127.0.0.1:5001/api/v0/version http-get://127.0.0.1:8000 && npm run local:redeploy:1",
+    "local:redeploy:1": "dotenv -- cross-var graph deploy $SUBGRAPH_NAME --ipfs http://localhost:5001 --node http://127.0.0.1:8020 --debug",
+    "local:deploy": "npm-run-all \"generate -- {1} mainnet\" local:redeploy --",
+    "mainnet:redeploy": "dotenv -- cross-var graph deploy --access-token $THEGRAPH_TOKEN $SUBGRAPH_NAME --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/ --debug",
+    "mainnet:deploy": "npm-run-all \"generate -- {1} mainnet\" mainnet:redeploy --",
+    "staging:redeploy": "dotenv -- cross-var graph deploy --access-token $THEGRAPH_TOKEN $SUBGRAPH_NAME --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/ --debug",
+    "staging:deploy": "npm-run-all \"generate -- {1} rinkeby\" staging:redeploy --",
+    "kovan:redeploy": "dotenv -- cross-var graph deploy --access-token $THEGRAPH_TOKEN $SUBGRAPH_NAME --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/ --debug",
+    "kovan:deploy": "npm-run-all \"generate -- {1} kovan\" kovan:redeploy --"
   }
 }

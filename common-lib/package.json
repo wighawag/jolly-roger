@@ -1,0 +1,26 @@
+{
+  "name": "common-lib",
+  "version": "0.0.1",
+  "main": "./lib/cjs/index.js",
+  "module": "./lib/esm/index.js",
+  "files": [
+    "lib/"
+  ],
+  "devDependencies": {
+    "@ethersproject/bignumber": "^5.0.5",
+    "@ethersproject/bytes": "^5.0.3",
+    "@ethersproject/solidity": "^5.0.2",
+    "typescript": "^3.8.3"
+  },
+  "peerDependencies": {
+    "@ethersproject/bignumber": "^5.0.5",
+    "@ethersproject/bytes": "^5.0.3",
+    "@ethersproject/solidity": "^5.0.2"
+  },
+  "scripts": {
+    "prepare": "npm run build",
+    "dev": "tsc -w -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig-cjs.json"
+  }
+}
+  

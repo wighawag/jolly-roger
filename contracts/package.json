@@ -1,49 +1,62 @@
 {
   "name": "{{=_.paramCase(it.name)}}-contracts",
-  "version": "0.0.1",
-  "description": "smart contracts for {{=_.capitalCase(it.name)}}",
-  "license": "UNLICENSED",
+  "description": "Smart contracts for {{=_.capitalCase(it.name)}}",
   "private": true,
   "devDependencies": {
     "@ethereum-waffle/chai": "^3.0.2",
+    "@ethersproject/bignumber": "^5.0.5",
+    "@ethersproject/bytes": "^5.0.3",
+    "@ethersproject/solidity": "^5.0.2",
+    "@ethersproject/wallet": "^5.0.2",
     "@nomiclabs/buidler": "^1.3.8",
-    "@smartdec/smartcheck": "^2.0.1",
-    "buidler-deploy": "^0.5.0-beta.4",
+    "@types/chai": "^4.2.11",
+    "@types/mocha": "^8.0.2",
+    "@types/node": "^13.11.0",
+    "buidler-deploy": "^0.5.16",
     "buidler-ethers-v5": "^0.2.2",
     "chai": "^4.2.0",
-    "chai-as-promised": "^7.1.1",
     "cross-env": "^7.0.2",
     "dotenv": "^8.2.0",
-    "eslint": "^6.8.0",
-    "eslint-config-mocha": "^0.0.0",
-    "eslint-config-prettier": "^6.10.1",
-    "eslint-plugin-mocha": "^6.3.0",
-    "eslint-plugin-prettier": "^3.1.3",
-    "ethers": "^5.0.5",
-    "mocha": "^7.1.1",
-    "npm-run-all": "^4.1.5",
-    "prettier": "^2.0.4",
-    "prettier-plugin-solidity": "^1.0.0-alpha.48",
-    "solc": "0.5.9",
-    "solhint": "^2.3.1",
-    "solhint-plugin-prettier": "^0.0.4"
+    "ethers": "^5.0.8",
+    "mocha": "^8.1.1",
+    "common-lib": "workspace:common-lib",
+    "patch-package": "^6.2.2",
+    "solidity-coverage": "0.7.4",
+    "ts-node": "^8.8.2",
+    "typescript": "^3.8.3"
   },
   "scripts": {
-    "postinstall": "node ./.setup.js",
-    "format": "prettier --write src/**/*.sol test/**/*.js scripts/**/*.js deploy/**/*.js",
-    "prettier:solidity": "prettier --write src/**/*.sol",
-    "prettier:js": "prettier --write deploy test scripts",
-    "prettier": "run-s prettier:*",
-    "compile": "buidler compile",
-    "smartcheck": "smartcheck -p .",
+    "postinstall": "patch-package",
+    
     "test": "buidler compile && mocha --bail --recursive test",
+    "coverage": "buidler --network coverage coverage",
+    
+    "dev": "buidler node --reset --watch --export contractsInfo.json",
+
+    "lint": "eslint */**/*.{js,ts,tsx} --quiet --fix",
+    
+    "compile": "buidler compile",
+    
     "local:dev": "buidler --network localhost deploy --watch",
     "local:deploy": "buidler --network localhost deploy",
-    "local:run": "cross-env BUIDLER_NETWORK=localhost node",
-    "local:seed": "cross-env BUIDLER_NETWORK=localhost node scripts/seed.js",
-    "rinkeby:deploy": "buidler deploy --network rinkeby",
-    "kovan:deploy": "buidler deploy --network kovan --export ../webapp/src/contracts/staging.json",
-    "goerli:deploy": "buidler deploy --network goerli",
-    "mainnet:deploy": "buidler deploy --network mainnet"
+    "local:run": "cross-env BUIDLER_NETWORK=localhost ts-node --files",
+    "local:seed": "cross-env BUIDLER_NETWORK=localhost ts-node --files scripts/seed.ts",
+    "void:deploy": "buidler deploy",
+    
+    "staging:deploy": "buidler --network staging deploy",
+    "staging:seed": "cross-env BUIDLER_NETWORK=staging ts-node --files scripts/seed.ts",
+    
+    "rinkeby:deploy": "buidler --network rinkeby deploy",
+    "rinkeby:seed": "cross-env BUIDLER_NETWORK=rinkeby ts-node --files scripts/seed.ts",
+    
+    "kovan:deploy": "buidler --network kovan deploy",
+    
+    "goerli:deploy": "buidler --network goerli deploy",
+    
+    "mainnet:deploy": "buidler --network mainnet deploy",
+    
+    "rinkeby:run": "cross-env BUIDLER_NETWORK=rinkeby ts-node --files",
+    
+    "buidler": "buidler"
   }
 }

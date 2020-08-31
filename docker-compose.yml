@@ -25,13 +25,13 @@ services:
     image: ipfs/go-ipfs:v0.4.23
     ports:
       - '5001:5001'
-    environment: 
+    environment:
       IPFS_PATH: /tmp
   postgres:
     image: postgres:9.6.17
     ports:
       - '5432:5432'
-    command: ["postgres", "-cshared_preload_libraries=pg_stat_statements"]
+    command: ['postgres', '-cshared_preload_libraries=pg_stat_statements']
     environment:
       POSTGRES_USER: graph-node
       POSTGRES_PASSWORD: let-me-in
@@ -40,7 +40,7 @@ services:
   ethereum:
     image: trufflesuite/ganache-cli:v6.9.1
     ports:
-      - "8545:8545"
+      - '8545:8545'
     entrypoint:
       - node
       - /app/ganache-core.docker.cli.js
