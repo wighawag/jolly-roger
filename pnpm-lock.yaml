@@ -10710,7 +10710,7 @@ packages:
     engines:
       node: '>=4'
     resolution:
-      integrity: sha512-RVbZPLso8+jFeq1MfNvgXtCred2raz/dKpacfTNxsx6pLEpEomM7gah6VeHSYV3+vo0OAi4MkArtQcWWXuQoyw==
+      integrity: sha512-RVbZPLso8+jFeq1MfNvgXtCRED2raz/dKpacfTNxsx6pLEpEomM7gah6VeHSYV3+vo0OAi4MkArtQcWWXuQoyw==
   /p-cancelable/0.4.1:
     dev: true
     engines:
