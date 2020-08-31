@@ -97,11 +97,11 @@ Note that if you change any of the application.json setting or icon.svg you'll n
 ## full deployment
 
 You need to gather the following environment variables :
-- THEGRAPH_TOKEN=<graph token used to deploy the subgraph on thegraph.come>
-- INFURA_TOKEN=<infura token to talk to a network>
-- IPFS_DEPLOY_PINATA__API_KEY=<pinata api key>
-- IPFS_DEPLOY_PINATA__SECRET_API_KEY=<pinata secret key>
-- MNEMONIC=<mnemonic of the account that will deploy the contract>
+- `THEGRAPH_TOKEN=<graph token used to deploy the subgraph on thegraph.com>`
+- `INFURA_TOKEN=<infura token to talk to a network>`
+- `IPFS_DEPLOY_PINATA__API_KEY=<pinata api key>`
+- `IPFS_DEPLOY_PINATA__SECRET_API_KEY=<pinata secret key>`
+- `MNEMONIC=<mnemonic of the account that will deploy the contract>`
 
 Note that pinata is currently the default ipfs provider setup but ipfs-deploy, the tool used to deploy to ipfs support other providers, see : https://github.com/ipfs-shipyard/ipfs-deploy
 
@@ -110,9 +110,9 @@ For production and staging, you would need to set MENMONIC too in the respective
 You can remove the env if you want to use the same as the one in `.env`
 
 You ll also need to update the following for staging and production :
-- SUBGRAPH_NAME=<thegraph account name>/<subgraph name>
-- VITE_THE_GRAPH_HTTP=https://api.thegraph.com/subgraphs/name/<thegraph account name>/<subgraph name>
-- VITE_THE_GRAPH_WS=wss://api.thegraph.com/subgraphs/name/<thegraph account name>/<subgraph name>
+- `SUBGRAPH_NAME=<thegraph account name>/<subgraph name>`
+- `VITE_THE_GRAPH_HTTP=https://api.thegraph.com/subgraphs/name/<thegraph account name>/<subgraph name>`
+- `VITE_THE_GRAPH_WS=wss://api.thegraph.com/subgraphs/name/<thegraph account name>/<subgraph name>`
 
 you then need to ensure you have a subgraph already created on thegraph.com with that name
 
