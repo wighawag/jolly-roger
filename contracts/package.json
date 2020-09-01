@@ -12,14 +12,14 @@
     "@types/chai": "^4.2.11",
     "@types/mocha": "^8.0.2",
     "@types/node": "^13.11.0",
-    "buidler-deploy": "^0.5.16",
+    "buidler-deploy": "^0.6.0-beta.12",
     "buidler-ethers-v5": "^0.2.2",
     "chai": "^4.2.0",
+    "common-lib": "workspace:common-lib",
     "cross-env": "^7.0.2",
     "dotenv": "^8.2.0",
     "ethers": "^5.0.8",
     "mocha": "^8.1.1",
-    "common-lib": "workspace:common-lib",
     "patch-package": "^6.2.2",
     "solidity-coverage": "0.7.4",
     "ts-node": "^8.8.2",
@@ -27,36 +27,30 @@
   },
   "scripts": {
     "postinstall": "patch-package",
-    
     "test": "buidler compile && mocha --bail --recursive test",
     "coverage": "buidler --network coverage coverage",
-    
     "dev": "buidler node --reset --watch --export contractsInfo.json",
-
     "lint": "eslint */**/*.{js,ts,tsx} --quiet --fix",
-    
     "compile": "buidler compile",
-    
     "local:dev": "buidler --network localhost deploy --watch",
     "local:deploy": "buidler --network localhost deploy",
     "local:run": "cross-env BUIDLER_NETWORK=localhost ts-node --files",
     "local:seed": "cross-env BUIDLER_NETWORK=localhost ts-node --files scripts/seed.ts",
+    "local:export": "buidler --network localhost export",
     "void:deploy": "buidler deploy",
-    
     "staging:deploy": "buidler --network staging deploy",
+    "staging:export": "buidler --network staging export",
     "staging:seed": "cross-env BUIDLER_NETWORK=staging ts-node --files scripts/seed.ts",
-    
     "rinkeby:deploy": "buidler --network rinkeby deploy",
+    "rinkeby:export": "buidler --network rinkeby export",
     "rinkeby:seed": "cross-env BUIDLER_NETWORK=rinkeby ts-node --files scripts/seed.ts",
-    
     "kovan:deploy": "buidler --network kovan deploy",
-    
+    "kovan:export": "buidler --network kovan export",
     "goerli:deploy": "buidler --network goerli deploy",
-    
+    "goerli:export": "buidler --network goerli export",
     "mainnet:deploy": "buidler --network mainnet deploy",
-    
+    "mainnet:export": "buidler --network mainnet export",
     "rinkeby:run": "cross-env BUIDLER_NETWORK=rinkeby ts-node --files",
-    
     "buidler": "buidler"
   }
 }
