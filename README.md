@@ -92,11 +92,10 @@ To export the web app (ipfs ready) execute the following:
 pnpm run production:web:build
 ```
 
-Note that if you change any of the application.json setting or icon.svg you'll need to first regenerate the html via `pnpm run web:generate`
-
 ## full deployment
 
 You need to gather the following environment variables :
+
 - `THEGRAPH_TOKEN=<graph token used to deploy the subgraph on thegraph.com>`
 - `INFURA_TOKEN=<infura token to talk to a network>`
 - `IPFS_DEPLOY_PINATA__API_KEY=<pinata api key>`
@@ -110,6 +109,7 @@ For production and staging, you would need to set MENMONIC too in the respective
 You can remove the env if you want to use the same as the one in `.env`
 
 You ll also need to update the following for staging and production :
+
 - `SUBGRAPH_NAME=<thegraph account name>/<subgraph name>`
 - `VITE_THE_GRAPH_HTTP=https://api.thegraph.com/subgraphs/name/<thegraph account name>/<subgraph name>`
 - `VITE_THE_GRAPH_WS=wss://api.thegraph.com/subgraphs/name/<thegraph account name>/<subgraph name>`
