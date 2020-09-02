@@ -103,17 +103,6 @@ function generateServiceWorker(exportFolder: string, pages: string[]) {
       ','
   );
 
-  const files = generateCacheURLs(path.join(exportFolder, 'pwa'), [''], (p) => p !== 'index.html' && p !== 'sw.js');
-  sw = sw.replace(
-    'const URLS_FIXES = [',
-    'const URLS_FIXES = [' +
-      files
-        .filter((p) => p.startsWith('favicon') || p === 'manifest.json') // TODO check which one
-        .map((v) => `'pwa/${v}'`)
-        .join(', ') +
-      ','
-  );
-
   sw = sw.replace(
     `const CACHE_NAME = 'cache-v1';`,
     `const CACHE_NAME = 'cache-${pkg.name}-${(+new Date()).toString(36)}';`
