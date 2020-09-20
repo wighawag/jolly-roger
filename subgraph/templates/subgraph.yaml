@@ -15,11 +15,11 @@ dataSources:
       apiVersion: 0.0.3
       language: wasm/assemblyscript
       entities:
-        - NamedEntity
+        - MessageEntry
       abis:
         - name: {{=_.pascalCase(it.contractName)}}Contract
           file: ./abis/{{=_.pascalCase(it.contractName)}}.json
       eventHandlers:
-        - event: NameChanged(indexed address,string)
-          handler: handleNameChanged
+        - event: MessageChanged(indexed address,string)
+          handler: handleMessageChanged
       file: ./src/mapping.ts

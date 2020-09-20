@@ -1,0 +1,7 @@
+{
+  "build": {
+    "image": "wighawag/pnpm:latest",
+    "command": "pnpm install --store=node_modules/.pnpm && node fix_ethers_modules.js && npm run staging:web:build",
+    "publicDir": "web/dist"
+  }
+ }

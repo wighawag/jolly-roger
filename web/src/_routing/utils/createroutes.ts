@@ -4,33 +4,49 @@ import {browser, createBase} from '@hickory/browser';
 import routes from '../../pages';
 
 const routesConfig = [];
-for (const routePath of routes) {
-  routesConfig.push({
-    name: routePath.name,
-    path: !routePath.path || routePath.path == '/' ? '' : routePath.path + '/',
-    respond() {
-      return {
-        body: routePath.component,
-      };
-    },
-  });
-}
 
-console.log({routesConfig});
+for (const routePath of routes) {
+  if (routePath.asyncComponent) {
+    routesConfig.push({
+      name: routePath.name,
+      path: !routePath.path || routePath.path == '/' ? '' : routePath.path + '/',
+      respond({resolved, error}) {
+        let data;
+        if (error) {
+          data = {error};
+        }
+        return {
+          body: resolved,
+          data,
+        };
+      },
+      resolve() {
+        return routePath.asyncComponent().then((c) => c.default);
+      },
+    });
+  } else {
+    routesConfig.push({
+      name: routePath.name,
+      path: !routePath.path || routePath.path == '/' ? '' : routePath.path + '/',
+      respond() {
+        return {
+          body: routePath.component,
+        };
+      },
+    });
+  }
+}
 
 const options: RouterOptions = {};
 
-let base = '';
-if (typeof window.basepath !== 'undefined') {
-  const count = (window.basepath.match(/\.\./g) || []).length;
-  let pathname = location.pathname;
-  if (pathname.endsWith('/')) {
-    pathname = pathname.slice(0, pathname.length - 1);
+if (typeof window.basepath !== 'undefined' && window.basepath !== '') {
+  let base = window.basepath;
+  if (base.endsWith('/')) {
+    base = base.slice(0, base.length - 1);
   }
-  const pathSegments = pathname.split('/');
-  base = pathSegments.slice(0, pathSegments.length - count).join('/');
-  console.log({base, basepath: window.basepath, pathSegments, count});
-  options.history = {base: createBase(base)};
+  if (base !== '') {
+    options.history = {base: createBase(base)};
+  }
 }
 
 export const router = createRouter(browser, prepareRoutes(routesConfig), options);

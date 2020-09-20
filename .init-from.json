@@ -1,8 +1,8 @@
 {
-    "variables": [
-        {
-            "name": "contractName",
-            "ref": "name"
-        }
-    ]
+  "variables": [
+      {
+          "name": "contractName",
+          "ref": "name"
+      }
+  ]
 }

@@ -1,27 +1,18 @@
-import {getNamedAccounts, ethers} from '@nomiclabs/buidler';
+import {getUnnamedAccounts, ethers} from '@nomiclabs/buidler';
 
-const names = [
-  'Hetrorlig Oakenbrow',
-  'Dermerlug Brewcloak',
-  'Nalol Blackbraids',
-  'Webir Goldenback',
-  'Dholdrec Chaosgrip',
-  'Siggog Strongjaw',
-  'Krostol Snowtank',
-  'Rumit Dragonarmour',
-  'Nemnad Thunderbrow',
-  'Gagham Grimbelly',
-];
+const messages = ['Hello', '你好', 'سلام', 'здравствуйте', 'Habari', 'Bonjour', 'नमस्ते'];
 
-// TODO move to util
-const waitFor = <T>(p: Promise<{wait: () => Promise<T>}>) => p.then((tx) => tx.wait());
+function waitFor<T>(p: Promise<{wait: () => Promise<T>}>): Promise<T> {
+  return p.then((tx) => tx.wait());
+}
 
 async function main() {
-  for (let i = 0; i < 4; i++) {
-    const {others} = await getNamedAccounts();
-    for (let i = 0; i < 4; i++) {
-      const {{=_.camelCase(it.contractName)}}Contract = await ethers.getContract('{{=_.pascalCase(it.contractName)}}', others[i]);
-      await waitFor({{=_.camelCase(it.contractName)}}Contract.setName(names[i]));
+  const others = await getUnnamedAccounts();
+  for (let i = 0; i < messages.length; i++) {
+    const sender = others[i];
+    if (sender) {
+      const {{=_.camelCase(it.contractName)}}Contract = await ethers.getContract('{{=_.pascalCase(it.contractName)}}', sender);
+      await waitFor({{=_.camelCase(it.contractName)}}Contract.setMessage(messages[i]));
     }
   }
 }

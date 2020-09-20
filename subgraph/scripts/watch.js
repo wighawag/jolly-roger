@@ -9,7 +9,7 @@ const {spawn} = require('child_process');
 const SHELL_PATH = process.env.SHELL || process.env.COMSPEC;
 const EXECUTE_OPTION = process.env.COMSPEC !== undefined && process.env.SHELL === undefined ? '/c' : '-c';
 
-// XXX: Wrapping tos to a promise is a bit wrong abstraction. Maybe RX suits
+// Wrapping tos to a promise is a bit wrong abstraction. Maybe RX suits
 // better?
 function run(cmd, opts) {
   if (!SHELL_PATH) {

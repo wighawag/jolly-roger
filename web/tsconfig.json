@@ -4,6 +4,7 @@
   "exclude": ["node_modules/*", "public/*"],
   "compilerOptions": {
     "module": "esnext",
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "isolatedModules": true
   }
 }

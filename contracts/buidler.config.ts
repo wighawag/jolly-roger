@@ -33,7 +33,7 @@ if (mnemonic) {
 
 const config: BuidlerConfig = {
   solc: {
-    version: '0.6.5',
+    version: '0.7.1',
     optimizer: {
       enabled: true,
       runs: 2000,
@@ -41,7 +41,6 @@ const config: BuidlerConfig = {
   },
   namedAccounts: {
     deployer: 0,
-    others: 'from:3',
   },
   networks: {
     coverage: {

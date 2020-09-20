@@ -12,5 +12,12 @@
   "[json]": {
     "editor.formatOnSave": false,
     "editor.codeActionsOnSave": {}
-  }
+  },
+  // ---------------------------------------------------------------------------------------------------------------------------------------------
+  // The following is required by mocha test explorer vscode plugin: https://marketplace.visualstudio.com/items?itemName=hbenl.vscode-mocha-test-adapter when using pnpm
+  "mochaExplorer.env": {
+    "BUIDLER_CONFIG": "buidler.config.ts"
+  },
+  "mochaExplorer.require": ["ts-node/register/transpile-only"]
+  // ----------------------------------------------------------------------------------------------------------------------------------------------
 }

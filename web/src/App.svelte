@@ -1,11 +1,10 @@
 <script lang="ts">
   import Router from './_routing/router.svelte';
   import CurrentPage from './_routing/currentpage.svelte';
-  import Link from './_routing/curi/Link.svelte';
+  import Navbar from './components/Navbar.svelte';
 </script>
 
 <Router>
+  <Navbar links={['Home', 'Demo', 'Wallet']} />
   <CurrentPage />
-  <Link name="Home">Home</Link>
-  <Link name="Wallet">wallet</Link>
 </Router>

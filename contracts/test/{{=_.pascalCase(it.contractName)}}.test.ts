@@ -1,5 +1,5 @@
 import {expect} from './chai-setup';
-import {ethers, deployments} from '@nomiclabs/buidler';
+import {ethers, deployments, getUnnamedAccounts} from '@nomiclabs/buidler';
 
 describe('{{=_.pascalCase(it.contractName)}}', function () {
   it('should work', async function () {
@@ -14,9 +14,13 @@ describe('{{=_.pascalCase(it.contractName)}}', function () {
     expect({{=_.camelCase(it.contractName)}}Contract.fails('testing')).to.be.revertedWith('fails');
   });
 
-  it('should return 2 as id', async function () {
+  it('setMessage works', async function () {
     await deployments.fixture();
-    const {{=_.camelCase(it.contractName)}}Contract = await ethers.getContract('{{=_.pascalCase(it.contractName)}}');
-    expect(await {{=_.camelCase(it.contractName)}}Contract.getId()).to.equal(2);
+    const others = await getUnnamedAccounts();
+    const {{=_.camelCase(it.contractName)}}Contract = await ethers.getContract('{{=_.pascalCase(it.contractName)}}', others[0]);
+    const testMessage = 'Hello World';
+    await expect({{=_.camelCase(it.contractName)}}Contract.setMessage(testMessage))
+      .to.emit({{=_.camelCase(it.contractName)}}Contract, 'MessageChanged')
+      .withArgs(others[0], testMessage);
   });
 });

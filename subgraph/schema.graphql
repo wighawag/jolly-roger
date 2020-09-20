@@ -1,4 +1,5 @@
-type NamedEntity @entity {
+type MessageEntry @entity {
   id: ID!
-  name: String!
+  message: String!
+  timestamp: BigInt!
 }

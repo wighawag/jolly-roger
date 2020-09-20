@@ -3,4 +3,6 @@
   const response = getResponse();
 </script>
 
-<svelte:component this={$response.body} />
+{#if $response}
+  <svelte:component this={$response.body} />
+{:else}Loading...{/if}

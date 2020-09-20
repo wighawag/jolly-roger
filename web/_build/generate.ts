@@ -1,6 +1,7 @@
 import path from 'path';
 import fs from 'fs-extra';
 import favicons, {FavIconResponse, Configuration} from 'favicons';
+import pkg from '../package.json';
 
 function print(message: string) {
   process.stdout.write(message);
@@ -156,9 +157,9 @@ async function generateApp(publicFolder: string) {
     appleStatusBarStyle: config.appleStatusBarStyle,
     display: config.display,
     scope: '/',
-    start_url: '/', // TODO support (ipfs-gateway-emulator query string) ?homescreen=1'
-    // version: pkg.version, // TODO
-    logging: false, // TODO ?
+    start_url: '/',
+    version: pkg.version,
+    logging: false,
     pixel_art: true,
     path: '/pwa/',
   });

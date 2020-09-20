@@ -49,4 +49,6 @@ services:
       - '${MNEMONIC-minimum symptom minute gloom tragic situate silver mechanic salad amused elite beef}'
       - --hostname
       - '0.0.0.0'
+      # - --blockTime
+      # - '2'
       # - --debug

@@ -1,6 +1,9 @@
-// const {utils, Wallet, BigNumber} = require("ethers");
-import {hexConcat, hexZeroPad} from '@ethersproject/bytes';
+import {hexConcat} from '@ethersproject/bytes';
 import {keccak256} from '@ethersproject/solidity';
 import {BigNumber} from '@ethersproject/bignumber';
 
-export default false;
+export function test(address: string, name: string): BigNumber {
+  return BigNumber.from(
+    hexConcat([keccak256(['address', 'string'], [address, name]), keccak256(['string', 'address'], [name, address])])
+  );
+}

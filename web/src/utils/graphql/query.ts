@@ -22,7 +22,6 @@ export function query<
     }) => void
   ) => () => void;
 } {
-  console.log(args.context);
   const queryResult$ = pipe(
     concat([
       fromValue({fetching: true, stale: false}),

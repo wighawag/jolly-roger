@@ -6,4 +6,5 @@ interface ImportMeta {
 // added at runtime before any other code
 interface Window {
   basepath?: string;
+  relpath?: string;
 }

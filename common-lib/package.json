@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "main": "./lib/cjs/index.js",
   "module": "./lib/esm/index.js",
+  "types": "./lib/esm/index.d.ts",
   "files": [
     "lib/"
   ],
@@ -10,6 +11,7 @@
     "@ethersproject/bignumber": "^5.0.5",
     "@ethersproject/bytes": "^5.0.3",
     "@ethersproject/solidity": "^5.0.2",
+    "npm-run-all": "^4.1.5",
     "typescript": "^3.8.3"
   },
   "peerDependencies": {
@@ -19,8 +21,9 @@
   },
   "scripts": {
     "prepare": "npm run build",
-    "dev": "tsc -w -p tsconfig.json",
+    "watch:esm": "tsc -w --preserveWatchOutput -p tsconfig.json",
+    "watch:cjs": "tsc -w --preserveWatchOutput -p tsconfig-cjs.json",
+    "dev": "run-p watch:esm watch:cjs",
     "build": "tsc -p tsconfig.json && tsc -p tsconfig-cjs.json"
   }
 }
-  

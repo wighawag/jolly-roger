@@ -9,16 +9,16 @@
    xmlns="http://www.w3.org/2000/svg"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="45.465816mm"
-   height="37.451916mm"
-   viewBox="0 0 45.465816 37.451916"
+   width="45.46582mm"
+   height="45.46582mm"
+   viewBox="0 0 45.46582 45.465821"
    version="1.1"
    id="svg5509"
    inkscape:version="0.92.3 (2405546, 2018-03-11)"
    sodipodi:docname="icon.svg"
-   inkscape:export-filename="C:\dev\projects\wighawag\purple-warlock\webapp\preview.png"
-   inkscape:export-xdpi="279.41962"
-   inkscape:export-ydpi="279.41962">
+   inkscape:export-filename="C:\dev\projects\wighawag\{{=_.paramCase(it.name)}}\web\public\images\logo_large.png"
+   inkscape:export-xdpi="572.06927"
+   inkscape:export-ydpi="572.06927">
   <title
      id="title5535">Emo skull and heart</title>
   <defs
@@ -30,9 +30,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="1.0077358"
-     inkscape:cx="-651.89595"
-     inkscape:cy="294.54435"
+     inkscape:zoom="5.7006145"
+     inkscape:cx="17.280015"
+     inkscape:cy="92.582183"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -73,10 +73,10 @@
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(70.631574,-102.75639)">
+     transform="translate(70.631574,-94.742486)">
     <g
        id="g5541"
-       transform="matrix(0.24069288,0,0,0.24069288,-53.631057,106.46117)"
+       transform="matrix(0.24069288,0,0,0.24069288,-53.631057,102.45421)"
        style="stroke-width:4.15467215">
       <path
          inkscape:connector-curvature="0"

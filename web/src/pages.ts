@@ -1,21 +1,25 @@
 import HomePage from './pages/home.svelte';
-import WalletPage from './pages/wallet.svelte';
-import NotFound from './pages/notfound.svelte';
 
+type ComponentModule = {default: unknown};
 export default [
   {
     name: 'Wallet',
     path: 'wallet',
-    component: WalletPage,
+    asyncComponent: (): Promise<ComponentModule> => import('./pages/wallet.svelte'),
   },
   {
     name: 'Home',
     path: '',
-    component: HomePage,
+    component: HomePage, // Home Page is builtin for faster interaction
+  },
+  {
+    name: 'Demo',
+    path: 'demo',
+    asyncComponent: (): Promise<ComponentModule> => import('./pages/demo.svelte'),
   },
   {
     name: 'NotFound',
     path: '.*',
-    component: NotFound,
+    asyncComponent: (): Promise<ComponentModule> => import('./pages/notfound.svelte'),
   },
 ];

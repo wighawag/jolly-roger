@@ -7,7 +7,10 @@ function print(message: string) {
   process.stdout.write(message);
 }
 
-async function generatePages(exportFolder: string, {pages, indexHtml}: {pages: string[]; indexHtml: string}) {
+async function generatePages(
+  exportFolder: string,
+  {pages, indexHtml, useBaseElem}: {pages: string[]; indexHtml: string; useBaseElem: boolean}
+) {
   print('generating pages and rebasing path relative...');
   const template = indexHtml;
   const findSrc = 'src="/';
@@ -16,8 +19,8 @@ async function generatePages(exportFolder: string, {pages, indexHtml}: {pages: s
   const reHref = new RegExp(findHref, 'g');
   const findContent = 'content="/';
   const reContent = new RegExp(findContent, 'g');
-  const findBasepath = 'window.basepath="/';
-  const reBasepath = new RegExp(findBasepath, 'g');
+  const findRelpath = 'window.relpath="/';
+  const reRelpath = new RegExp(findRelpath, 'g');
 
   const assets = fs.readdirSync(path.join(exportFolder, '_assets'));
   const findAssetPaths = '"/_assets';
@@ -47,16 +50,31 @@ async function generatePages(exportFolder: string, {pages, indexHtml}: {pages: s
         baseHref += '../';
       }
     }
+
+    let indexHtml = template;
+
+    let srcBaseHref = baseHref;
+    if (useBaseElem) {
+      if (baseHref !== '') {
+        const baseElem = `
+    <base href="${baseHref}">
+`;
+        const head = indexHtml.indexOf('<head>') + 6;
+        indexHtml = indexHtml.slice(0, head) + baseElem + indexHtml.slice(head);
+      }
+      srcBaseHref = '';
+    }
+
+    indexHtml = indexHtml
+      .replace(reSrc, 'src="' + srcBaseHref)
+      .replace(reSrc, 'src="' + srcBaseHref)
+      .replace(reHref, 'href="' + srcBaseHref)
+      .replace(reContent, 'content="' + srcBaseHref);
+
+    indexHtml = indexHtml.replace(reRelpath, 'window.relpath="' + baseHref);
+
     fs.ensureDirSync(folderPath);
-    fs.writeFileSync(
-      indexFilepath,
-      template
-        .replace(reSrc, 'src="' + baseHref)
-        .replace(reSrc, 'src="' + baseHref)
-        .replace(reHref, 'href="' + baseHref)
-        .replace(reContent, 'content="' + baseHref)
-        .replace(reBasepath, 'window.basepath="' + baseHref)
-    );
+    fs.writeFileSync(indexFilepath, indexHtml);
   }
 
   const findGeneric = '"/';
@@ -118,7 +136,21 @@ const exportFolder = 'dist';
 let indexHtml = fs.readFileSync(path.join(exportFolder, 'index.html')).toString();
 const pagePaths = pages.map((v) => v.path);
 const basePathScript = `
-    <script>window.basepath="/";</script>
+    <script>
+      window.relpath="/";
+      const count = (window.relpath.match(/\.\./g) || []).length;
+      let lPathname = location.pathname;
+      if (lPathname.endsWith('/')) {
+        lPathname = lPathname.slice(0, lPathname.length - 1);
+      }
+      const pathSegments = lPathname.split('/');
+      window.basepath = pathSegments.slice(0, pathSegments.length - count).join('/');
+      if (!window.basepath.endsWith('/')) {
+        window.basepath += '/';
+      }
+      // ensure we save href as they are loaded, so they do not change on page navigation
+      document.querySelectorAll("link[href]").forEach((v) => v.href = v.href);
+    </script>
 `;
 const redirectScript = `
     <script>
@@ -140,7 +172,7 @@ const redirectScript = `
       }
     </script>
 `;
-const head = indexHtml.indexOf('<head>') + 6;
+const head = indexHtml.indexOf('</head>');
 indexHtml = indexHtml.slice(0, head) + `${basePathScript}${redirectScript}` + indexHtml.slice(head);
-generatePages(exportFolder, {pages: pagePaths, indexHtml});
+generatePages(exportFolder, {pages: pagePaths, indexHtml, useBaseElem: false});
 generateServiceWorker(exportFolder, pagePaths);
