@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 const chokidar = require('chokidar');
 
 // from https://github.com/kimmobrunfeldt/chokidar-cli/blob/331243f66c690771fd85591f37badc2d38dfafd5/utils.js
@@ -17,19 +19,22 @@ function run(cmd, opts) {
     throw new Error('$SHELL environment variable is not set.');
   }
 
-  opts = {
-    pipe: true,
-    cwd: undefined,
-    callback(child) {
-      // eslint-disable-line no-unused-vars
-      // Since we return promise, we need to provide
-      // this callback if one wants to access the child
-      // process reference
-      // Called immediately after successful child process
-      // spawn
+  opts = Object.assign(
+    {},
+    {
+      pipe: true,
+      cwd: undefined,
+      callback(child) {
+        // eslint-disable-line no-unused-vars
+        // Since we return promise, we need to provide
+        // this callback if one wants to access the child
+        // process reference
+        // Called immediately after successful child process
+        // spawn
+      },
     },
-    ...opts,
-  };
+    opts
+  );
 
   return new Promise((resolve, reject) => {
     let child;

@@ -1,6 +1,5 @@
 import WalletStores from 'web3w';
 import {TorusModuleLoader} from 'web3w-torus-loader';
-import {PortisModuleLoader} from 'web3w-portis-loader';
 import {WalletConnectModuleLoader} from 'web3w-walletconnect-loader';
 import contractsInfo from '../contracts.json';
 
@@ -18,7 +17,6 @@ const walletStores = WalletStores({
     new TorusModuleLoader({verifier: 'google', fallbackUrl, chainId}),
     new TorusModuleLoader({verifier: 'facebook', fallbackUrl, chainId}),
     new TorusModuleLoader({verifier: 'discord', fallbackUrl, chainId}),
-    new PortisModuleLoader('c6931c16-5c47-4e03-ad80-126af916f557', {fallbackUrl, chainId}),
     new WalletConnectModuleLoader({fallbackUrl, chainId}),
   ],
 });

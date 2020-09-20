@@ -3,13 +3,12 @@ import {BuidlerRuntimeEnvironment, DeployFunction} from '@nomiclabs/buidler/type
 const func: DeployFunction = async function (bre: BuidlerRuntimeEnvironment) {
   const {deployer} = await bre.getNamedAccounts();
   const {deploy} = bre.deployments;
-  const dev = !bre.network.live;
+  const useProxy = !bre.network.live;
 
-  // proxy only in dev mode enabling HCR (Hot Contract Replaement)
-  // try with `yarn dev` which will deploy in `localhost` wiht `buidler --network localhost deploy --watch`
-  // you could also using `buidler node --watch`
-  await deploy('{{=_.pascalCase(it.contractName)}}', {from: deployer, proxy: dev && 'postUpgrade', args: [2], log: true});
+  // proxy only in non-live network (localhost and buidlerevm) enabling HCR (Hot Contract Replaement)
+  // in live network, proxy is disabled and constructor is invoked
+  await deploy('{{=_.pascalCase(it.contractName)}}', {from: deployer, proxy: useProxy && 'postUpgrade', args: [2], log: true});
 
-  return !dev; // will never be executed again on non-dev mode
+  return !useProxy; // when live network, record the script as executed to prevent rexecution
 };
 export default func;

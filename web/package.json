@@ -13,14 +13,13 @@
     "@hickory/browser": "^2.1.0",
     "@urql/core": "^1.12.3",
     "@urql/devtools": "^2.0.2",
-    "common-lib": "workspace:common-lib",
+    "common-lib": "../common-lib",
     "graphql": "^15.3.0",
     "named-logs": "0.0.6",
     "named-logs-console": "0.0.5",
     "svelte": "3.24.1",
     "svelte-hmr": "0.10.2",
-    "web3w": "^0.2.14",
-    "web3w-portis-loader": "^0.1.4",
+    "web3w": "^0.2.23",
     "web3w-torus-loader": "^0.1.3",
     "web3w-walletconnect-loader": "^0.1.5",
     "wonka": "^4.0.14"
@@ -46,7 +45,7 @@
     "typescript": "^3.9.7"
   },
   "scripts": {
-    "postinstall": "npm run generate",
+    "prepare": "node use_ethers_browser_modules.js npm link ../common-lib && npm run generate",
     "validate": "svelte-check && tsc --noEmit",
     "dev": "svite -ts",
     "build": "svite build -ts && npm run spa2static",
