@@ -32,22 +32,11 @@ If you prefer (or do not have access to docker/docker-compose) you can run them 
 
 This app requires [node.js](https://nodejs.org/) (tested on v12+)
 
-### pnpm
-
-This repo use `pnpm` for package management : https://pnpm.js.org
-
-```bash
-npx pnpm add -g pnpm
-```
-
-`pnpm` is mainly used because it has proper mono-repo support which this project relies on.
-You might be able to switch to `yarn` but will most likely have to configure it to fix hoisting issues.
-If you decide to use `yarn` you ll have to remove the script "preinstall" that by default force the use of `pnpm`
 
 ## intall dependencies :
 
 ```bash
-pnpm install
+npm install
 ```
 
 # Development
@@ -55,7 +44,7 @@ pnpm install
 The following command will start everything up.
 
 ```bash
-pnpm run shell:start
+npm run shell:start
 ```
 
 It will bring 5 shells up
@@ -69,13 +58,13 @@ It will bring 5 shells up
 Once docker-compose is running, you can stop the other shells and restart them if needed via
 
 ```bash
-pnpm run shell:dev
+npm run shell:dev
 ```
 
 Alternatively you can call the following first : this will setup the external services only (ipfs, ethereum and graph nodes)
 
 ```bash
-pnpm run shell:setup
+npm run shell:setup
 ```
 
 and then run `pnpm run shell:dev` to bring up the rest in watch mode.
@@ -89,7 +78,7 @@ You can also always run them individually
 To export the web app (ipfs ready) execute the following:
 
 ```bash
-pnpm run production:web:build
+npm run production:web:build
 ```
 
 ## full deployment
@@ -122,13 +111,13 @@ Furthermore, you need to ensure the values in [web/application.json](web/applica
 finally execute the following for staging :
 
 ```
-pnpm run staging
+npm run staging
 ```
 
 for production:
 
 ```
-pnpm run production
+npm run production
 ```
 
 For webapp:build you can also use [fleek](https://fleek.co). The repo provide a `.fleek.json` file already setup
