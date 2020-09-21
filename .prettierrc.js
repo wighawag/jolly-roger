@@ -8,7 +8,6 @@ module.exports = {
   trailingComma: 'es5',
   bracketSpacing: false,
   arrowParens: 'always',
-  pluginSearchDirs: ['./'], // required somehow (pnpm/prettier issue ?)
   overrides: [
     {
       files: '*.sol',

@@ -45,7 +45,7 @@
     "typescript": "^3.9.7"
   },
   "scripts": {
-    "prepare": "node use_ethers_browser_modules.js npm link ../common-lib && npm run generate",
+    "prepare": "node use_ethers_browser_modules.js && npm link ../common-lib && npm run generate",
     "validate": "svelte-check && tsc --noEmit",
     "dev": "svite -ts",
     "build": "svite build -ts && npm run spa2static",

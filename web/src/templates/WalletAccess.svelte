@@ -81,9 +81,6 @@
               on:click={() => wallet.connect(option.id)} />
           {/each}
         </div>
-        <!-- {#each $wallet.options as option}
-          <Button label="Connect to Wallet" on:click={() => wallet.connect(option)}>{option}</Button>
-        {/each} -->
       {/if}
     {:else if $wallet.state === 'Locked'}
       {#if $wallet.unlocking}

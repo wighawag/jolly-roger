@@ -6,17 +6,12 @@
 
   let cancelCallback;
   let stop;
-  let removed = false;
 
   export let component;
 
-  $: navigating = cancelCallback !== undefined;
-
   onMount(() => {
     stop = router.cancel((fn) => {
-      if (!removed) {
-        cancelCallback = fn;
-      }
+      cancelCallback = fn;
     });
   });
 
@@ -27,4 +22,6 @@
   });
 </script>
 
+{#if typeof cancelCallback === "function"}
 <svelte:component this={component} cancel={cancelCallback} />
+{/if}

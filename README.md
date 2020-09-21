@@ -1,5 +1,4 @@
 <!-- {{% it.template }} -->
-
 # decentralised-application
     
 A template to build a decentralised applicaiton using ethereum, buidler, svelte and thegraph
@@ -15,7 +14,6 @@ or if you want the name to be different than the folder or the contract name to 
 ```
 npx init-from wighawag/decentralised-application <your-app-folder> --name "<Your App Name>" --contractName "<your Contract Name>"
 ```
-    
 <!-- {{%}}  -->
 
 # Setup

@@ -10,7 +10,7 @@ export default [
   {
     name: 'Home',
     path: '',
-    component: HomePage, // Home Page is builtin for faster interaction
+    component: HomePage, // Home Page is bundled for faster user interaction
   },
   {
     name: 'Demo',

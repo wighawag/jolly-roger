@@ -21,6 +21,7 @@ const walletStores = WalletStores({
   ],
 });
 
+// USEFUL FOR DEBUGGING:
 if (typeof window !== 'undefined') {
   // console.log('adding walletStores');
   /* eslint-disable @typescript-eslint/no-explicit-any */
