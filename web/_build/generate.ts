@@ -8,7 +8,7 @@ function print(message: string) {
 }
 function generateFavicons(exportFolder: string, icon: string, config: Partial<Configuration>): Promise<string[]> {
   print('generating favicons...');
-  return new Promise<string[]>((resolve, reject) => {
+  function generateFav(resolve, reject) {
     favicons(icon, config, async (error: unknown, response: FavIconResponse) => {
       if (error) {
         return reject(error);
@@ -24,8 +24,29 @@ function generateFavicons(exportFolder: string, icon: string, config: Partial<Co
       }
       resolve(response.html);
     });
+  }
+  let timer;
+  return new Promise<string[]>((resolve, reject) => {
+    timer = setTimeout(() => {
+      console.log('timed out, retrying...');
+      timer = null;
+      generateFav(resolve, reject);
+    }, 30000);
+    generateFav(
+      (r) => {
+        if (timer) {
+          resolve(r);
+        }
+      },
+      (e) => {
+        if (timer) {
+          reject(e);
+        }
+      }
+    );
   }).then((r) => {
     print(' done\n');
+    clearTimeout(timer);
     return r;
   });
 }

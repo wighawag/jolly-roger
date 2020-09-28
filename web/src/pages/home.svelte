@@ -21,13 +21,21 @@
       <div class="space-y-5 sm:flex sm:justify-center sm:space-y-0 sm:space-x-3">
         <Button class="big secondary" href="Demo" label="Try ethereum integration">Demo</Button>
         <Button class="big secondary" href="Wallet" label="Check wallet status">Wallet</Button>
-        <Button class="big secondary" href="https://github.com/wighawag/{{=_.paramCase(it.name)}}" label="get it from github!">
-          Get It
+        <Button
+          blank={true}
+          class="big secondary"
+          href="https://github.com/wighawag/{{=_.paramCase(it.name)}}"
+          label="get it from github!">
+          Github
         </Button>
       </div>
     </div>
   </div>
-  <div class="py-12 dark:bg-black bg-white">
+  <div class="py-4 dark:bg-black bg-white">
+    <!-- <h2 class="text-3xl underline mb-4 text-gray-600 dark:text-gray-400">Create App</h2> -->
+    <code>npx init-from wighawag/{{=_.paramCase(it.name)}} &lt;your-app-folder&gt;</code>
+  </div>
+  <div class="py-4 dark:bg-black bg-white">
     <h2 class="text-3xl underline mb-4 text-gray-600 dark:text-gray-400">Features</h2>
     <div class="max-w-xl mx-auto px-4 sm:px-6 lg:max-w-screen-xl lg:px-8">
       <div class="lg:grid lg:grid-cols-3 lg:gap-8">
@@ -80,7 +88,7 @@
         <Feature title="One command deploy">
           Everything is setup, except for the private ENV variable to deploy the contracts, the subgraph and the web
           app, all at once. It also include <a class="text-blue-600" href="https://fleek.co" target="_blank">fleek</a> config
-          for automatic deployment.
+          for automatic web deployment on ipfs.
         </Feature>
       </div>
     </div>

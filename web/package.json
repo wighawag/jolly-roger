@@ -19,7 +19,7 @@
     "named-logs-console": "0.0.14",
     "svelte": "3.24.1",
     "svelte-hmr": "0.10.2",
-    "web3w": "^0.2.31",
+    "web3w": "^0.2.32",
     "web3w-torus-loader": "^0.2.4",
     "web3w-walletconnect-loader": "^0.2.0",
     "wonka": "^4.0.14"
