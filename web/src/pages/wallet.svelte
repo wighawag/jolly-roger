@@ -46,19 +46,23 @@
 </script>
 
 <WalletAccess>
-  <div class="w-max-content flex justify-center">
-    <Button
-      class="m-4"
+  <div class="flex justify-center flex-wrap">
+    <!-- <Button
+      class="w-max-content m-4"
       label="probe builtin wallet (like metamask)"
       waitOnDisabled={$builtin.probing}
       disabled={$builtin.state === 'Ready' || $builtin.probing}
       on:click={() => builtin.probe()}>
       probe Builtin
+    </Button> -->
+    <Button class="w-max-content m-4" label="connect via builtin wallet" on:click={() => flow.connect('builtin')}>
+      builtin
     </Button>
-    <Button class="m-4" label="connect via builtin wallet" on:click={() => flow.connect('builtin')}>builtin</Button>
-    <Button class="m-4" label="connect via discord" on:click={() => flow.connect('torus-discord')}>discord</Button>
+    <Button class="w-max-content m-4" label="connect via discord" on:click={() => flow.connect('torus-discord')}>
+      discord
+    </Button>
     <Button
-      class="m-4"
+      class="w-max-content m-4"
       label="unlock wallet"
       waitOnDisabled={$wallet.unlocking}
       disabled={$wallet.state !== 'Locked' || $wallet.unlocking}
@@ -66,7 +70,7 @@
       unlock
     </Button>
     <Button
-      class="m-4"
+      class="w-max-content m-4"
       label="disconnect from wallet"
       waitOnDisabled={$wallet.connecting}
       disabled={$wallet.state !== 'Ready' || $wallet.connecting}
@@ -75,11 +79,15 @@
     </Button>
   </div>
 
+  <div class="flex justify-center flex-wrap">
+    {#if $wallet.address}
+      <p>
+        <label for="wallet">Wallet</label>
+        <span id="wallet" class="text-xs sm:text-sm md:text-base">{$wallet.address}</span>
+      </p>
+    {/if}
+  </div>
   <div>
-    <p><label for="wallet">Wallet</label> <span id="wallet">{JSON.stringify($wallet, null, ' ')}</span></p>
-
-    <!-- <p><label for="builtin">Builtin</label> <span id="builtin">{JSON.stringify($builtin, null, ' ')}</span></p> -->
-
     {#if $chain.contracts}
       <h2 class="font-extrabold text-xl">Contracts</h2>
 
@@ -107,15 +115,5 @@
         {/each}
       {/each}
     {/if}
-
-    <!-- <p><label for="chain">Chain</label> <span id="chain">{JSON.stringify($chain, null, '    ')}</span></p> -->
-
-    <p>
-      <label for="transactions">Transactions</label>
-      <span id="transactions">{JSON.stringify($transactions, null, ' ')}</span>
-    </p>
-
-    <!-- <label for="balance">Balance</label>
-  <p id="balance">{JSON.stringify($balance, null, ' ')}</p> -->
   </div>
 </WalletAccess>

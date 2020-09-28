@@ -14,7 +14,6 @@
     }
   ],
   "settings": {
-    "todo-tree.filtering.excludeGlobs": ["export"],
     "editor.formatOnSave": true,
     "editor.defaultFormatter": "dbaeumer.vscode-eslint",
     "[solidity]": {

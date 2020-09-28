@@ -6,7 +6,7 @@
   import Loading from './components/Loading.svelte'
 </script>
 
-<Router {pages} globalQueryStrings={['subgraph', 'debug', 'log']}>
+<Router {pages} globalQueryStrings={['subgraph', 'debug', 'log', 'trace']}>
   <Navbar links={['Home', 'Demo', 'Wallet']} />
   <CurrentPage>
     <Loading/>

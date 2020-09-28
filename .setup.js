@@ -15,7 +15,7 @@ function writeIfNotExists(p, content) {
   }
 }
 
-['{{=_.paramCase(it.name)}}.code-workspace', '.vscode/settings.json', '.env', '.env.production', '.env.staging'].map(
+['{{=_.paramCase(it.name)}}.code-workspace', '.env', '.env.production', '.env.staging'].map(
   copyFromDefault
 );
 
@@ -29,5 +29,15 @@ switch (process.platform) {
 }    
 `
     );
+    break;
+  case 'linux':
+    writeIfNotExists(
+      '.newsh.json',
+      `
+  {
+    "terminalApp": "xterm"
+  }    
+  `
+      );
     break;
 }

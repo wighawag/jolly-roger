@@ -22,7 +22,7 @@
     "svelte": "^3.25.1",
     "typescript": "3.9.7",
     "wait-on": "^5.1.0",
-    "wighawag_newsh": "^0.0.5"
+    "wighawag_newsh": "0.0.6"
   },
   "scripts": {
     "prepare": "node ./.setup.js && npm-recursive-install --skip-root",
@@ -34,6 +34,7 @@
     "test": "run-s contracts:test",
     
     "// externals : Setup external services locally (ethereum node, thegraph)": "",
+    "stop": "run-s externals:down",
     "externals:down": "docker-compose down -v",
     "externals": "dotenv -e .env -e contracts/.env -- docker-compose up",
     "shell:externals": "newsh \"npm run externals\"",
@@ -69,7 +70,9 @@
     "web:generate": "dotenv -- npm --prefix web run generate",
     
     "// STAGING : deploy on staging": "",
+    "staging:web:dev": "dotenv -e .env.staging -e .env -- npm --prefix web run dev",
     "staging:web:build": "run-s web:generate staging:contracts:export common:build staging:web:rebuild",
+    "staging:web:build:serve": "run-s staging:web:build web:serve",
     "staging:web:rebuild": "dotenv -e .env.staging -e .env -- npm --prefix web run build",
     "staging:web:deploy": "dotenv -e .env.staging -e .env -- npm --prefix web run deploy",
     "staging:seed": "dotenv -e .env.staging -e .env -- npm --prefix contracts run staging:seed",
@@ -82,6 +85,7 @@
     
     "// PRODUCTION : build on mainnet": "",
     "production:web:build": "run-s web:generate production:contracts:export common:build production:web:rebuild",
+    "production:web:build:serve": "run-s production:web:build web:serve",
     "production:web:rebuild": "dotenv -e .env.production -e .env -- npm --prefix web run build",
     "production:web:deploy": "dotenv -e .env.production -e .env -- npm --prefix web run deploy",
     "production:contracts:export": "dotenv -e .env.production -e .env -- npm --prefix contracts run mainnet:export -- --export ../web/src/contracts.json",
@@ -94,7 +98,6 @@
     "setup": "npm-run-all -l externals:down --parallel externals",
     "start": "npm-run-all -l externals:down contracts:clean --parallel common:dev web externals subgraph:setup contracts subgraph seed:build",
     "dev": "npm-run-all -l contracts:clean --parallel common:dev web subgraph:setup contracts subgraph seed:build",
-    "shell:setup": "npm-run-all -l externals:down --parallel shell:externals",
     "shell:start": "npm-run-all -l externals:down --parallel shell:common shell:web shell:externals --sequential common:build subgraph:setup contracts:clean shell:contracts shell:subgraph seed",
     "shell:dev": "npm-run-all -l --parallel shell:common shell:web --sequential common:build subgraph:setup contracts:clean shell:contracts shell:subgraph seed"
   }

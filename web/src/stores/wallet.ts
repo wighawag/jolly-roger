@@ -4,9 +4,9 @@ import {WalletConnectModuleLoader} from 'web3w-walletconnect-loader';
 import contractsInfo from '../contracts.json';
 
 const chainId = import.meta.env.VITE_CHAIN_ID;
-let fallbackUrl: string | undefined;
+let nodeUrl: string | undefined;
 if (chainId === '1337' || chainId === '31337') {
-  fallbackUrl = 'http://localhost:8545';
+  nodeUrl = 'http://localhost:8545';
 }
 
 const walletStores = WalletStores({
@@ -14,10 +14,10 @@ const walletStores = WalletStores({
   builtin: {autoProbe: true},
   options: [
     'builtin',
-    new TorusModuleLoader({verifier: 'google', fallbackUrl, chainId}),
-    new TorusModuleLoader({verifier: 'facebook', fallbackUrl, chainId}),
-    new TorusModuleLoader({verifier: 'discord', fallbackUrl, chainId}),
-    new WalletConnectModuleLoader({fallbackUrl, chainId}),
+    new TorusModuleLoader({verifier: 'google', nodeUrl, chainId}),
+    new TorusModuleLoader({verifier: 'facebook', nodeUrl, chainId}),
+    new TorusModuleLoader({verifier: 'discord', nodeUrl, chainId}),
+    new WalletConnectModuleLoader({nodeUrl, chainId, infuraId: 'bc0bdd4eaac640278cdebc3aa91fabe4'}),
   ],
 });
 

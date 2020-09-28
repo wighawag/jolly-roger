@@ -1,7 +1,7 @@
 <script lang="ts">
   import Button from '../components/Button.svelte';
   import Feature from '../components/Feature.svelte';
-  const name = 'Jolly Roger';
+  const name = '{{=_.capitalCase(it.name)}}';
 </script>
 
 <section class="py-8 px-4 text-center">
@@ -21,10 +21,7 @@
       <div class="space-y-5 sm:flex sm:justify-center sm:space-y-0 sm:space-x-3">
         <Button class="big secondary" href="Demo" label="Try ethereum integration">Demo</Button>
         <Button class="big secondary" href="Wallet" label="Check wallet status">Wallet</Button>
-        <Button
-          class="big secondary"
-          href="https://github.com/wighawag/decentralised-application"
-          label="get it from github!">
+        <Button class="big secondary" href="https://github.com/wighawag/{{=_.paramCase(it.name)}}" label="get it from github!">
           Get It
         </Button>
       </div>
@@ -35,32 +32,55 @@
     <div class="max-w-xl mx-auto px-4 sm:px-6 lg:max-w-screen-xl lg:px-8">
       <div class="lg:grid lg:grid-cols-3 lg:gap-8">
         <Feature title="All Included">
-          This template include setup for smart contracts, subgraph and frontend. All is setup as a monorepo with a
-          shared common library.
+          This template include setup for smart contracts, subgraph (contract api) and frontend. All is setup as a
+          monorepo with a shared common library.
+        </Feature>
+        <Feature title="PWA ready: 100% Lighthouse score">
+          The web app is fully PWA compliant, with offline caching, etc... The javascript code necessary to launch the
+          app is less than 50kB (15kB compressed), including the home page content. The rest is loaded on demand.
+        </Feature>
+        <Feature title="Great Dev experience">
+          <a class="text-blue-600" href="https://buidler.dev" target="_blank">buidler</a> for contracts, <a
+            class="text-blue-600"
+            href="https://github.com/wighawag/buidler-deploy"
+            target="_blank">buidler-deploy</a> for contract deployment, <a
+            class="text-blue-600"
+            href="https://thegraph.com"
+            target="_blank">The Graph</a> for contract api, <a
+            class="text-blue-600"
+            href="https://getwaffle.io/"
+            target="_blank">waffle</a> for chai matchers, <a
+            class="text-blue-600"
+            href="https://svelte.dev"
+            target="_blank">svelte</a> for frontend, <a
+            class="text-blue-600"
+            href="https://github.com/vitejs/vite"
+            target="_blank">vite</a> for HMR (Hot Module Replacement) and production build.
         </Feature>
         <Feature title="Everything Hot Reload">
           On contract changes, contract get to keep their address and code get updated automatically. On frontend
           changes, module get replaced using blazing fast <a
             class="text-blue-600"
-            href="https://github.com/vitejs/vite">vite</a> es module hot reload. On subgraph changes, the graph get updated
-          and rexecuted.
-        </Feature>
-        <Feature title="PWA ready: 100% Lighthouse score">
-          The web app is fully PWA compliant, with offline caching, etc... The javascript code necessary to launch the
-          app is only 15kB. The rest is loaded on demand.
+            href="https://github.com/vitejs/vite"
+            target="_blank">vite</a> es module hot reload. On subgraph changes, the graph get updated and reexecuted.
         </Feature>
         <Feature title="Fully IPFS Ready">
-          Fully IPFS ready. The web app works on both IPFS's hash based url and ENS/DNS url (not an easy feat by the
-          way). PWA works on IPFS too with scoped service workers.
+          Fully IPFS ready with proper url routing. The web app works on both IPFS urls and ENS/DNS urls. PWA works on
+          IPFS too with scoped service workers.
         </Feature>
-        <Feature title="All in Typescript">The whole app including contracts test is written in typescript.</Feature>
-        <Feature title="Great Dev experience">
-          buidler for contracts, buidler-deploy for contract deployment, thegraph for contract caching, waffle for chai
-          matchers
+        <Feature title="All in Typescript">The whole app including contracts tests, is written in typescript.</Feature>
+        <Feature title="Code Splitting and Tree Shaking">
+          By using vite and ES modules, the frontend benefit from code splitting an dynamic imports as well as tree
+          shaking.
+        </Feature>
+        <Feature title="VSCode Setup">
+          The repo is setup as a vscode workspace with recommended plugins. Execute tests from the editor. Auto format,
+          etc...
         </Feature>
         <Feature title="One command deploy">
           Everything is setup, except for the private ENV variable to deploy the contracts, the subgraph and the web
-          app, all at once.
+          app, all at once. It also include <a class="text-blue-600" href="https://fleek.co" target="_blank">fleek</a> config
+          for automatic deployment.
         </Feature>
       </div>
     </div>

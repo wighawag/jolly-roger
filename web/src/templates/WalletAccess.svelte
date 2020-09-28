@@ -6,60 +6,57 @@
 
   import {wallet, builtin, chain, transactions, balance, flow} from '../stores/wallet';
 
+  const chainNames = {
+    '1': 'mainnet',
+    '3': 'ropsten',
+    '4': 'rinkeby',
+    '5': 'goerli',
+    '42': 'kovan',
+    '1337': 'localhost chain',
+    '31337': 'localhost chain',
+  };
+  const chainId = import.meta.env.VITE_CHAIN_ID;
+  const chainName = (() => {
+    const name = chainNames[chainId];
+    if (name) {
+      return name;
+    }
+    return `chain with id ${chainId}`;
+  })();
+
   const base: string = window.basepath || '/';
 
   $: executionError = $flow.executionError as any;
 
   let options: {img: string; id: string; name: string}[] = [];
-  $: options = $wallet.options.map((v) => {
-    return {
-      img: ((v) => {
-        if (v === 'builtin') {
-          if ($builtin.state === 'Ready') {
-            if ($builtin.vendor === 'Metamask') {
-              return 'images/metamask.svg';
-            } else if ($builtin.vendor === 'Opera') {
-              return 'images/opera.svg';
+  $: builtinNeedInstalation = $wallet.options.filter((v) => v === 'builtin' && !$builtin.available).length > 0;
+  $: options = $wallet.options
+    .filter((v) => v !== 'builtin' || $builtin.available)
+    .map((v) => {
+      return {
+        img: ((v) => {
+          if (v === 'builtin') {
+            if ($builtin.state === 'Ready') {
+              if ($builtin.vendor === 'Metamask') {
+                return 'images/metamask.svg';
+              } else if ($builtin.vendor === 'Opera') {
+                return 'images/opera.svg';
+              }
             }
+            return 'images/web3-default.png';
+          } else {
+            if (v.startsWith('torus-')) {
+              const verifier = v.slice(6);
+              return `images/torus/${verifier}.svg`;
+            }
+            return `images/${v}.svg`;
           }
-          return 'images/web3-default.png';
-        } else {
-          if (v.startsWith('torus-')) {
-            const verifier = v.slice(6);
-            return `images/torus/${verifier}.svg`;
-          }
-          return `images/${v}.svg`;
-        }
-      })(v),
-      id: v,
-      name: v,
-    };
-  });
-
-  let flashQueue: {message: string; title: string; acknowledge: () => void}[] = [];
-  $: if ($chain.error && $chain.notSupported) {
-    flashQueue.push({
-      title: 'Wrong Chain',
-      message: 'Please switch to the mainnet',
-      acknowledge: chain.acknowledgeError,
+        })(v),
+        id: v,
+        name: v,
+      };
     });
-    flashQueue = flashQueue;
-  }
-  function acknowledgeFlash() {
-    const flash = flashQueue.shift();
-    if (flash) {
-      flash.acknowledge();
-    }
-    flashQueue = flashQueue;
-  }
 </script>
-
-{#if flashQueue && flashQueue.length > 0}
-  <Toast on:close={acknowledgeFlash}>
-    <strong class="font-bold">{flashQueue[0].title}</strong>
-    <span class="block sm:inline">{flashQueue[0].message}</span>
-  </Toast>
-{/if}
 
 <slot />
 
@@ -71,8 +68,10 @@
       {:else if $wallet.connecting}
         Connecting to wallet...
       {:else}
-        <p>You need to connect your wallet.</p>
-        <div class="flex items-cemter pb-3">
+        <div class="text-center">
+          <p>You need to connect your wallet.</p>
+        </div>
+        <div class="flex flex-wrap justify-center pb-3">
           {#each options as option}
             <img
               class="cursor-pointer p-2 m-2 border-2 h-12 w-12 object-contain"
@@ -81,6 +80,17 @@
               on:click={() => wallet.connect(option.id)} />
           {/each}
         </div>
+        {#if builtinNeedInstalation}
+          <div class="text-center">OR</div>
+          <div class="flex justify-center">
+            <Button blank={true} href="https://metamask.io/download.html" class="m-4 w-max-content">
+              <img
+                class="cursor-pointer p-0 mx-2 h-10 w-10 object-contain"
+                alt={`Download Metamask}`}
+                src={`${base}images/metamask.svg`} /> Download metamask
+            </Button>
+          </div>
+        {/if}
       {/if}
     {:else if $wallet.state === 'Locked'}
       {#if $wallet.unlocking}
@@ -91,7 +101,7 @@
     {:else if $chain.state === 'Idle'}
       {#if $chain.connecting}Connecting...{/if}
     {:else if $chain.state === 'Connected'}
-      {#if $chain.loadingData}Loading contracts...{:else if $chain.notSupported}Please switch to mainnet{/if}
+      {#if $chain.loadingData}Loading contracts...{:else if $chain.notSupported}Please switch to {chainName}{/if}
     {:else if $wallet.pendingUserConfirmation}
       Please accept transaction...
     {:else if executionError}

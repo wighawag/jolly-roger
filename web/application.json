@@ -1,10 +1,10 @@
 {
   "appName": "{{=_.capitalCase(it.name)}}",
   "appShortName": "{{=_.capitalCase(it.name)}}",
-  "appDescription": "An app created from a template",
-  "appShortDescription": "An app created from a template",
+  "appDescription": "A Production Ready Template for Decentralised Applications.",
+  "appShortDescription": "Template for Decentralised Applications.",
   "developerName": "Nobody",
-  "developerURL": "https://{{=_.paramCase(it.name)}}.eth.link",
+  "developerURL": "",
   "url": "https://{{=_.paramCase(it.name)}}.eth.link",
   "ensName": "{{=_.paramCase(it.name)}}.eth",
   "background": "#1f253a",
