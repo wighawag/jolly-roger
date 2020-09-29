@@ -83,7 +83,11 @@
         {#if builtinNeedInstalation}
           <div class="text-center">OR</div>
           <div class="flex justify-center">
-            <Button blank={true} href="https://metamask.io/download.html" class="m-4 w-max-content">
+            <Button
+              label="Download Metamask"
+              blank={true}
+              href="https://metamask.io/download.html"
+              class="m-4 w-max-content">
               <img
                 class="cursor-pointer p-0 mx-2 h-10 w-10 object-contain"
                 alt={`Download Metamask}`}
