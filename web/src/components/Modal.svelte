@@ -3,9 +3,10 @@
   export let globalCloseButton: boolean = false;
   export let closeButton: boolean = false;
   export let title: string;
+  export let cancelable: boolean = true;
 
   const dispatch = createEventDispatcher();
-  const close = () => dispatch('close');
+  const close = () => cancelable && dispatch('close');
 
   let modal;
 

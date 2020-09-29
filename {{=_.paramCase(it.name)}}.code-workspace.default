@@ -4,13 +4,13 @@
       "path": "contracts"
     },
     {
+      "path": "common-lib"
+    },
+    {
       "path": "subgraph"
     },
     {
       "path": "web"
-    },
-    {
-      "path": "common-lib"
     },
     {
       "path": "."

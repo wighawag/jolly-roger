@@ -2,7 +2,7 @@
   import WalletAccess from '../templates/WalletAccess.svelte';
   import Button from '../components/Button.svelte';
   import Blockie from '../components/Blockie.svelte';
-  import {test} from 'common-lib';
+  import {test} from '{{=_.paramCase(it.name)}}-common';
   import {logs} from 'named-logs';
   import messages from '../stores/messages';
   import {wallet, flow, chain} from '../stores/wallet';

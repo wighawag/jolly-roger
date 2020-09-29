@@ -1,6 +1,6 @@
 {
   "name": "{{=_.paramCase(it.name)}}-web",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "dependencies": {
     "@curi/interactions": "^2.0.2",
     "@curi/router": "^2.1.1",
@@ -13,7 +13,7 @@
     "@hickory/browser": "^2.1.0",
     "@urql/core": "^1.12.3",
     "@urql/devtools": "^2.0.2",
-    "common-lib": "../common-lib",
+    "{{=_.paramCase(it.name)}}-common": "../common-lib",
     "graphql": "^15.3.0",
     "named-logs": "0.0.13",
     "named-logs-console": "0.0.14",

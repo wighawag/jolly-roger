@@ -1,6 +1,7 @@
 {
   "name": "{{=_.paramCase(it.name)}}-contracts",
   "description": "Smart contracts for {{=_.capitalCase(it.name)}}",
+  "version": "0.0.1",
   "private": true,
   "devDependencies": {
     "@ethereum-waffle/chai": "^3.0.2",
@@ -15,7 +16,7 @@
     "buidler-deploy": "^0.6.0-beta.26",
     "buidler-ethers-v5": "^0.2.2",
     "chai": "^4.2.0",
-    "common-lib": "../common-lib",
+    "{{=_.paramCase(it.name)}}-common": "../common-lib",
     "cross-env": "^7.0.2",
     "dotenv": "^8.2.0",
     "ethers": "^5.0.8",

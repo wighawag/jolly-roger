@@ -41,3 +41,22 @@ switch (process.platform) {
       );
     break;
 }
+
+
+const execSync = require('child_process').execSync
+function npmInstall (dir) {
+  console.log(`INSTALLING ${dir}...`)
+  let exitCode = 0;
+  try {
+    execSync('npm install', { cwd: dir, stdio: 'inherit'})
+  } catch (err) {
+    exitCode = err.status
+  }
+  if (exitCode) {
+    process.exit(exitCode);
+  }
+}
+npmInstall('common-lib');
+npmInstall('contracts');
+npmInstall('subgraph');
+npmInstall('web');

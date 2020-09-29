@@ -1,6 +1,6 @@
 import {expect} from './chai-setup';
 import {getUnnamedAccounts} from '@nomiclabs/buidler';
-import {test} from 'common-lib';
+import {test} from '{{=_.paramCase(it.name)}}-common';
 
 describe('CommonLib', function () {
   it('test common lib', async function () {

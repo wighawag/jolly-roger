@@ -1,5 +1,5 @@
 {
-  "name": "common-lib",
+  "name": "{{=_.paramCase(it.name)}}-common",
   "description": "common library used by other modules",
   "version": "0.0.1",
   "main": "./lib/cjs/index.js",

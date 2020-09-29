@@ -1,7 +1,7 @@
 <script lang="ts">
   import Button from '../components/Button.svelte';
   import WalletAccess from '../templates/WalletAccess.svelte';
-  import {wallet, builtin, chain, transactions, flow} from '../stores/wallet';
+  import {wallet, builtin, chain, flow} from '../stores/wallet';
   import type {Contract} from '@ethersproject/contracts';
 
   let contractInterfaces:
@@ -55,10 +55,18 @@
       on:click={() => builtin.probe()}>
       probe Builtin
     </Button> -->
-    <Button class="w-max-content m-4" label="connect via builtin wallet" on:click={() => flow.connect('builtin')}>
+    <Button
+      class="w-max-content m-4"
+      label="connect via builtin wallet"
+      disabled={!$builtin.available || $wallet.connecting}
+      on:click={() => flow.connect('builtin')}>
       builtin
     </Button>
-    <Button class="w-max-content m-4" label="connect via discord" on:click={() => flow.connect('torus-discord')}>
+    <Button
+      class="w-max-content m-4"
+      label="connect via discord"
+      disabled={$wallet.connecting}
+      on:click={() => flow.connect('torus-discord')}>
       discord
     </Button>
     <Button

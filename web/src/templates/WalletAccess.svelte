@@ -61,7 +61,7 @@
 <slot />
 
 {#if $flow.inProgress}
-  <Modal {title} on:close={() => flow.cancel()} closeButton={false}>
+  <Modal {title} cancelable={!$wallet.connecting} on:close={() => flow.cancel()} closeButton={false}>
     {#if $wallet.state === 'Idle'}
       {#if $wallet.loadingModule}
         Loading module: {$wallet.selected}
