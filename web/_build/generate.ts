@@ -146,7 +146,7 @@ async function generateApp(publicFolder: string) {
     config.url = overrideURL;
   }
   const title = config.appName + ' - ' + config.appShortDescription;
-  const previewURL = config.url + '/' + config.preview;
+  const previewURL = config.url + '/' + (config.preview || 'preview.png');
 
   let ensName = config.ensName;
   if (ensName && !ensName.endsWith('.eth')) {
