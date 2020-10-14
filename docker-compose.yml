@@ -1,7 +1,7 @@
 version: '3'
 services:
   graph-node:
-    image: graphprotocol/graph-node:v0.18.0
+    image: graphprotocol/graph-node:integer
     ports:
       - '8000:8000'
       - '8001:8001'
@@ -19,7 +19,7 @@ services:
       postgres_db: graph-node
       ipfs: 'ipfs:5001'
       ethereum: 'mainnet:http://ethereum:8545'
-      # RUST_LOG: info
+      # RUST_LOG: trace
       # RUST_BACKTRACE: full
   ipfs:
     image: ipfs/go-ipfs:v0.4.23
@@ -37,7 +37,13 @@ services:
       POSTGRES_PASSWORD: let-me-in
       POSTGRES_DB: graph-node
       PGDATA: /tmp
-  ethereum:
+  # ethereum: # GETH
+  #   image: ethereum/client-go:v1.9.22
+  #   ports:
+  #     - "8545:8545"
+  #     - "30303:30303"
+  #   command: --dev --nousb --ws --ws.addr "0.0.0.0" --ws.origins "*" --http --http.vhosts "*" --http.addr "0.0.0.0" --http.corsdomain "*" --miner.gasprice 1000000000 --dev.period 5
+  ethereum: # GANACHE
     image: trufflesuite/ganache-cli:v6.9.1
     ports:
       - '8545:8545'
@@ -49,6 +55,6 @@ services:
       - '${MNEMONIC-minimum symptom minute gloom tragic situate silver mechanic salad amused elite beef}'
       - --hostname
       - '0.0.0.0'
-      # - --blockTime
-      # - '2'
+      - --blockTime
+      - '5'
       # - --debug

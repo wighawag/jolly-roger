@@ -258,6 +258,7 @@ async function generateApp(publicFolder: string) {
     ],
   });
 
+  print('caching...');
   for (const source of sources) {
     try {
       fs.utimesSync(source, now, now);
@@ -266,6 +267,12 @@ async function generateApp(publicFolder: string) {
 
   fs.writeFileSync(CACHE_FILE, Date.now().toString());
   fs.utimesSync(CACHE_FILE, now, now);
+  print('done\n');
 }
 
-generateApp('public');
+(async () => {
+  await generateApp('public');
+  console.log("DONE");
+  process.exit(0);
+})()
+

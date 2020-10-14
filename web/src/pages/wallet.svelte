@@ -1,7 +1,7 @@
 <script lang="ts">
   import Button from '../components/Button.svelte';
   import WalletAccess from '../templates/WalletAccess.svelte';
-  import {wallet, builtin, chain, flow} from '../stores/wallet';
+  import {wallet, builtin, chain, flow, transactions} from '../stores/wallet';
   import type {Contract} from '@ethersproject/contracts';
 
   let contractInterfaces:
@@ -11,11 +11,11 @@
         functions: {
           name: string;
           inputs: {name: string; elemId: string}[];
-          call: () => Promise<unknown>;
+          call: () => Promise<any>;
         }[];
       }[]
     | undefined;
-  $: contractInterfaces =
+  $: (contractInterfaces as any) = // TODO investigate
     $chain.contracts &&
     Object.keys($chain.contracts)
       .filter((n: string) => !n.endsWith('_Implementation') && !n.endsWith('_Proxy'))
@@ -59,14 +59,14 @@
       class="w-max-content m-4"
       label="connect via builtin wallet"
       disabled={!$builtin.available || $wallet.connecting}
-      on:click={() => flow.connect('builtin')}>
+      on:click={() => wallet.connect('builtin')}>
       builtin
     </Button>
     <Button
       class="w-max-content m-4"
       label="connect via discord"
       disabled={$wallet.connecting}
-      on:click={() => flow.connect('torus-discord')}>
+      on:click={() => wallet.connect('torus-discord')}>
       discord
     </Button>
     <Button
@@ -107,7 +107,10 @@
             {#each func.inputs as input}
               <span class="">
                 <label for={input.elemId}>{input.name}:</label>
-                <input class="border-pink-600 border-2" id={input.elemId} />
+                <input
+                  class="border-pink-600 border-2 appearance-none bg-transparent w-full text-gray-700 dark:text-gray-300
+                    mr-3 py-1 px-2 leading-tight focus:outline-none"
+                  id={input.elemId} />
               </span>
             {/each}
             <span>)</span>
@@ -121,6 +124,14 @@
             </Button>
           </form>
         {/each}
+      {/each}
+    {/if}
+  </div>
+  <div>
+    {#if $wallet.address && $chain.chainId}
+      <h2 class="font-extrabold text-xl">Transactions</h2>
+      {#each $transactions as tx}
+        <h3 class="ml-1 font-semibold text-lg">{tx.contractName}.{tx.method}({tx.args})</h3>
       {/each}
     {/if}
   </div>
