@@ -1,7 +1,7 @@
 import {writable} from 'svelte/store';
 import {query} from './query';
 
-type QueryState<T> = {
+export type QueryState<T> = {
   state: 'Idle' | 'Fetching' | 'Ready';
   error: unknown;
   polling: boolean;

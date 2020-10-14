@@ -25,24 +25,20 @@
   },
   "scripts": {
     "prepare": "node ./.setup.js",
-    
     "lint": "eslint \"**/*.{js,ts}\"",
     "lint:fix": "eslint --fix \"**/*.{js,ts}\"",
     "format": "prettier --write \"**/*.{ts,js,svelte,sol}\"",
-    
     "test": "run-s contracts:test",
-    
     "// externals : Setup external services locally (ethereum node, thegraph)": "",
     "stop": "run-s externals:down",
     "externals:down": "docker-compose down -v",
-    "externals": "dotenv -e .env -e contracts/.env -- docker-compose up",
+    "docker-compose": "dotenv -e .env -e contracts/.env -- docker-compose up",
+    "externals": "run-p docker-compose contracts:fundingFromGethCoinbase",
     "shell:externals": "newsh \"npm run externals\"",
-    
     "// common lib: ensure it is compiled": "",
     "common:dev": "npm --prefix common-lib run dev",
     "shell:common": "newsh \"npm run common:dev\"",
     "common:build": "npm --prefix common-lib run build",
-    
     "// contracts : deploy smart contracts on local ethereum node": "",
     "contracts:test": "npm --prefix contracts test",
     "contracts:clean": "rimraf contracts/deployments/localhost && rimraf web/src/contracts.json",
@@ -50,15 +46,14 @@
     "shell:contracts": "newsh \"npm run contracts\"",
     "contracts:deploy": "dotenv -e .env -e contracts/.env -- npm --prefix contracts run local:deploy -- --export ../web/src/contracts.json",
     "contracts:export": "dotenv -e .env -e contracts/.env -- npm --prefix contracts run local:export -- --export ../web/src/contracts.json",
+    "contracts:fundingFromGethCoinbase": "dotenv -e .env -e contracts/.env -- npm --prefix contracts run local:run scripts/fundingFromGethCoinbase.ts",
     "seed": "wait-on web/src/contracts.json && dotenv -e .env -e contracts/.env -- npm --prefix contracts run local:seed",
     "seed:build": "run-s common:build seed",
-    
     "// subgraphs : generate and deploy local subgraph": "",
     "subgraph": "wait-on web/src/contracts.json && dotenv -- npm --prefix subgraph run dev ../contracts/deployments/localhost",
     "shell:subgraph": "newsh \"npm run subgraph\"",
     "subgraph:setup": "dotenv -- npm --prefix subgraph run local:setup",
     "subgraph:deploy": "wait-on web/src/contracts.json && dotenv -- npm --prefix subgraph run local:deploy ../contracts/deployments/localhost",
-    
     "// web : build and serve the web app": "",
     "web": "dotenv -- npm --prefix web run dev",
     "shell:web": "newsh \"npm run web\"",
@@ -67,7 +62,6 @@
     "web:serve": "dotenv -- npm --prefix web run serve --",
     "web:build:serve": "run-s web:build web:serve",
     "web:generate": "dotenv -- npm --prefix web run generate",
-    
     "// STAGING : deploy on staging": "",
     "staging:web:dev": "dotenv -e .env.staging -e .env -- npm --prefix web run dev",
     "staging:web:build": "run-s web:generate staging:contracts:export common:build staging:web:rebuild",
@@ -81,7 +75,6 @@
     "staging:web": "run-s staging:web:build staging:web:deploy",
     "staging": "run-s staging:contracts staging:subgraph web:generate common:build staging:web:rebuild staging:web:deploy",
     "staging:reset": "rimraf contracts/deployments/staging && run-s staging:contracts staging:subgraph web:generate common:build staging:web:rebuild staging:web:deploy",
-    
     "// PRODUCTION : build on mainnet": "",
     "production:web:build": "run-s web:generate production:contracts:export common:build production:web:rebuild",
     "production:web:build:serve": "run-s production:web:build web:serve",
@@ -92,7 +85,6 @@
     "production:subgraph": "dotenv -e .env.production -e .env -- npm --prefix subgraph run mainnet:deploy ../contracts/deployments/mainnet",
     "production:web": "run-s production:web:build production:web:deploy",
     "production": "run-s production:contracts production:subgraph web:generate common:build production:web:rebuild production:web:deploy",
-    
     "// START : local development setup": "This setup external service, setup subgraph and deploy it on the local graph-node, deploy the contracts and seed it",
     "setup": "npm-run-all -l externals:down --parallel externals",
     "start": "npm-run-all -l externals:down contracts:clean --parallel common:dev web externals subgraph:setup contracts subgraph seed:build",
