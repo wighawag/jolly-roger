@@ -7,4 +7,5 @@ interface ImportMeta {
 interface Window {
   basepath?: string;
   relpath?: string;
+  onFailingResource?: () => void;
 }

@@ -2,6 +2,7 @@ import path from 'path';
 import fs from 'fs-extra';
 import pages from './pages';
 import pkg from '../package.json';
+import namehash from 'eth-ens-namehash';
 
 function print(message: string) {
   process.stdout.write(message);
@@ -135,6 +136,7 @@ function generateServiceWorker(exportFolder: string, pages: string[]) {
 const exportFolder = 'dist';
 let indexHtml = fs.readFileSync(path.join(exportFolder, 'index.html')).toString();
 const pagePaths = pages.map((v) => v.path);
+
 const basePathScript = `
     <script>
       window.relpath="/";
@@ -148,19 +150,96 @@ const basePathScript = `
       if (!window.basepath.endsWith('/')) {
         window.basepath += '/';
       }
-      // ensure we save href as they are loaded, so they do not change on page navigation
-      document.querySelectorAll("link[href]").forEach((v) => v.href = v.href);
     </script>
 `;
+
+let redirectEthLink = '';
+let config;
+try {
+  config = JSON.parse(fs.readFileSync('./application.json').toString());
+} catch(e) {}
+if (config && config.ensName && config.ethLinkErrorRedirect) {
+  indexHtml = indexHtml.replace(/(\=\"\/_assets\/.*\")/g, '$1 onerror="window.onFailingResource()"');
+  const handleEthLink = `
+      function loadAlert() {
+        return new Promise((resolve) => {
+          const script = document.createElement('script');
+          script.type = 'text/javascript';
+          script.src = window.basepath + "scripts/asteroid-alert.js";
+          script.onload = script.onreadystatechange = function () {
+            resolve(window.$alert);
+          };
+          script.onerror = function () {
+            resolve((msg) => new Promise((resolve) => {window.alert(msg); resolve();}));
+          };
+          document.head.appendChild(script);
+        });
+      }
+      if(location.hostname.endsWith('eth.link') && location.search.indexOf("noipfsredirect=true") === -1) {
+        window.onFailingResource = () => {
+          redirectToIPFS().then((url) => {
+            loadAlert().then((alert) => alert("The ENS 'eth.link' service is having caching issues causing the website to misbehave.\\nThis usually happen when the website is updated to a new ipfs hash and eth.link is catching up.\\nWe will redirect you to an ipfs gateway in the mean time:\\nSorry for the inconvenience."))
+            .then(() => location.assign(url + location.pathname + location.search + location.hash)) 
+          });
+        };
+      } else {
+        window.onFailingResource = () => {console.error("resource failed to load");};
+      }
+`;
+  if (config.ethLinkErrorRedirect === 'hash') {
+    const hash = namehash.hash(config.ensName).slice(2);
+    // NOTE: This assumes the default public resolver is used
+    redirectEthLink = `
+      function redirectToIPFS() {
+        return fetch("https://mainnet.infura.io/v3/bc0bdd4eaac640278cdebc3aa91fabe4", {method: "POST", body: JSON.stringify({jsonrpc: "2.0", id: "3", method: "eth_call", params:[{to:"0x4976fb03c32e5b8cfe2b6ccb31c09ba78ebaba41", data:"0xbc1c58d1${hash}"}, "latest"]})}).then(v=>v.json()).then((json) => {
+          const result = json.result;
+          const hash = result && result.slice(130, 134).toLowerCase() === 'e301' && result.slice(134, 206);
+          if (hash) {
+            const a = 'abcdefghijklmnopqrstuvwxyz234567';
+            const h = new Uint8Array(hash.match(/.{1,2}/g).map((byte) => parseInt(byte, 16)));
+            const l = 36;
+            let b = 0;
+            let v = 0;
+            let o = '';
+            for (let i = 0; i < l; i++) {
+              v = (v << 8) | h[i];
+              b += 8;
+              while (b >= 5) {
+                o += a[(v >>> (b - 5)) & 31];
+                b -= 5;
+              }
+            }
+            if (b > 0) {
+              o += a[(v << (5 - b)) & 31];
+            }
+            const url = 'https://b' + o + '.ipfs.dweb.link';
+            return url;
+          }
+        }).catch((e) => console.error(e));
+      }
+      ${handleEthLink}
+`;
+  } else if (config.ethLinkErrorRedirect === 'ipns') {
+    redirectEthLink = `
+    function redirectToIPFS() {
+      return new Promise((resolve) => {
+        const url = 'https://ipfs.io/ipns/${config.ensName}';
+        resolve(url);
+      });
+    }
+    ${handleEthLink}
+`;
+  }
+}
 const redirectScript = `
     <script>
       let newLocation = location.href;
-      const pathname = location.pathname;
       if (newLocation.startsWith('http:')) {
-        if (!(location.hostname === 'localhost' || (newLocation.endsWith('.link') && location.host.split('.').length > 3))) {
+        if (!(location.hostname === 'localhost' || location.hostname.startsWith('192.') || location.hostname.endsWith('test.eth.link') || (newLocation.endsWith('.eth.link') && location.host.split('.').length > 3))) {
           newLocation = 'https' + newLocation.slice(4);
         }
       }
+      const pathname = location.pathname;
       if (pathname.endsWith('index.html')) {
         newLocation = newLocation.slice(0, newLocation.length - 10);
       } else if (!pathname.endsWith('/')) {
@@ -169,10 +248,25 @@ const redirectScript = `
       if (newLocation !== location.href) {
         console.log("replace : " + location.href + " -> " + newLocation);
         location.replace(newLocation);
-      }
+      } else {${redirectEthLink{{!"}"}}}
     </script>
 `;
-const head = indexHtml.indexOf('</head>');
-indexHtml = indexHtml.slice(0, head) + `${basePathScript}${redirectScript}` + indexHtml.slice(head);
-generatePages(exportFolder, {pages: pagePaths, indexHtml, useBaseElem: false});
+
+const linkReloadScript = `
+    <script>
+      // ensure we save href as they are loaded, so they do not change on page navigation
+      document.querySelectorAll("link[href]").forEach((v) => v.href = v.href);
+    </script>
+`;
+
+const headStart = indexHtml.indexOf('<head>') + 6;
+indexHtml = indexHtml.slice(0, headStart) + `${basePathScript}${redirectScript}` + indexHtml.slice(headStart);
+const headEnd = indexHtml.indexOf('</head>');
+indexHtml = indexHtml.slice(0, headEnd) + `${linkReloadScript}` + indexHtml.slice(headEnd);
+
+generatePages(exportFolder, {
+  pages: pagePaths,
+  indexHtml,
+  useBaseElem: false,
+});
 generateServiceWorker(exportFolder, pagePaths);
