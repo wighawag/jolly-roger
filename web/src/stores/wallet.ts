@@ -19,7 +19,10 @@ const walletStores = WalletStores({
     autoDelete: false,
     finality,
   },
-  localStoragePrefix: window.basepath && window.basepath.startsWith('/ipfs/') ? window.basepath.slice(6) : undefined, // ensure local storage is not shared across web3w apps on ipfs gateway
+  localStoragePrefix:
+    window.basepath && (window.basepath.startsWith('/ipfs/') || window.basepath.startsWith('/ipns/'))
+      ? window.basepath.slice(6)
+      : undefined, // ensure local storage is not conflicting across web3w-based apps on ipfs gateways
   options: [
     'builtin',
     new TorusModuleLoader({verifier: 'google', nodeUrl, chainId}),
@@ -39,7 +42,7 @@ if (typeof window !== 'undefined') {
 
 export const {wallet, transactions, builtin, chain, balance, flow} = walletStores;
 
-function notify(tx) {
+function notifyFailure(tx) {
   notifications.queue({
     id: tx.hash,
     delay: 0,
@@ -50,11 +53,24 @@ function notify(tx) {
   });
 }
 
+function notifyCancelled(tx) {
+  notifications.queue({
+    id: tx.hash,
+    delay: 3,
+    title: 'Transaction Cancelled',
+    text: 'The Transaction Has Been Replaced',
+    type: 'info',
+    onAcknowledge: () => transactions.acknowledge(tx.hash, 'cancelled'),
+  });
+}
+
 transactions.subscribe(($transactions) => {
   for (const tx of $transactions.concat()) {
     if (tx.confirmations > 0 && !tx.acknowledged) {
       if (tx.status === 'failure') {
-        notify(tx);
+        notifyFailure(tx);
+      } else if (tx.status === 'cancelled') {
+        notifyCancelled(tx);
       } else {
         // auto acknowledge
         transactions.acknowledge(tx.hash, tx.status);

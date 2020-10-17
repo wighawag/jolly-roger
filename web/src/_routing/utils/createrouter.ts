@@ -64,7 +64,12 @@ export function createRouter(
           };
         },
         resolve() {
-          return routePath.asyncComponent().then((c) => c.default);
+          return routePath
+            .asyncComponent()
+            .then((c) => c.default)
+            .catch(() => {
+              window.onFailingResource && window.onFailingResource();
+            });
         },
       });
     } else {
