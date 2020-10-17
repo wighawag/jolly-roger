@@ -157,7 +157,7 @@ let redirectEthLink = '';
 let config;
 try {
   config = JSON.parse(fs.readFileSync('./application.json').toString());
-} catch(e) {}
+} catch (e) {}
 if (config && config.ensName && config.ethLinkErrorRedirect) {
   indexHtml = indexHtml.replace(/(\=\"\/_assets\/.*\")/g, '$1 onerror="window.onFailingResource()"');
   const handleEthLink = `
