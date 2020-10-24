@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.7.1;
 
-import "buidler-deploy/solc_0.7/proxy/Proxied.sol";
-import "@nomiclabs/buidler/console.sol";
+import "hardhat-deploy/solc_0.7/proxy/Proxied.sol";
+import "hardhat/console.sol";
 
 contract {{=_.pascalCase(it.contractName)}} is Proxied {
     // -----------------------------------------
@@ -24,7 +24,7 @@ contract {{=_.pascalCase(it.contractName)}} is Proxied {
     function postUpgrade(uint256 id) public proxied {}
 
     constructor(uint256 id) {
-        postUpgrade(id); // the proxied modifier from `buidler-deploy` ensure postUpgrade effect can only be used once when the contract is deployed without proxy
+        postUpgrade(id); // the proxied modifier from `hardhat-deploy` ensure postUpgrade effect can only be used once when the contract is deployed without proxy
     }
 
     // -----------------------------------------

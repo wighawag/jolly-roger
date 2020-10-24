@@ -40,7 +40,7 @@
     // ---------------------------------------------------------------------------------------------------------------------------------------------
     // The following is required by mocha test explorer vscode plugin: https://marketplace.visualstudio.com/items?itemName=hbenl.vscode-mocha-test-adapter
     "mochaExplorer.env": {
-      "BUIDLER_CONFIG": "buidler.config.ts"
+      "HARDHAT_CONFIG": "hardhat.config.ts"
     },
     "mochaExplorer.require": ["ts-node/register/transpile-only"]
     // ----------------------------------------------------------------------------------------------------------------------------------------------

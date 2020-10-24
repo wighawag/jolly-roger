@@ -1,4 +1,4 @@
-import {getUnnamedAccounts, ethers} from '@nomiclabs/buidler';
+import {getUnnamedAccounts, ethers} from 'hardhat';
 
 const messages = ['Hello', '你好', 'سلام', 'здравствуйте', 'Habari', 'Bonjour', 'नमस्ते'];
 

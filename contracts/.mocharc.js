@@ -6,7 +6,7 @@ module.exports = {
   extension: ['ts'],
   recursive: true,
   reporter: 'spec',
-  require: ['ts-node/register', '@nomiclabs/buidler/register'],
+  require: ['ts-node/register', 'hardhat/register'],
   slow: 75,
   spec: 'test/**/*.test.ts',
   timeout: 20000,

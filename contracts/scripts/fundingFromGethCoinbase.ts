@@ -1,5 +1,5 @@
 // script used to fund account from a geth coinbase account (geth --dev)
-import {ethers} from '@nomiclabs/buidler';
+import {ethers} from 'hardhat';
 import {BigNumber} from '@ethersproject/bignumber';
 import {JsonRpcProvider} from '@ethersproject/providers';
 
