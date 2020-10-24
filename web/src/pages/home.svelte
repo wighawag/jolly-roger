@@ -48,29 +48,24 @@
           app is less than 50kB (15kB compressed), including the home page content. The rest is loaded on demand.
         </Feature>
         <Feature title="Great Dev experience">
-          <a class="text-blue-600" href="https://buidler.dev" target="_blank">buidler</a> for contracts, <a
-            class="text-blue-600"
-            href="https://github.com/wighawag/buidler-deploy"
-            target="_blank">buidler-deploy</a> for contract deployment, <a
-            class="text-blue-600"
-            href="https://thegraph.com"
-            target="_blank">The Graph</a> for contract api, <a
-            class="text-blue-600"
-            href="https://getwaffle.io/"
-            target="_blank">waffle</a> for chai matchers, <a
-            class="text-blue-600"
-            href="https://svelte.dev"
-            target="_blank">svelte</a> for frontend, <a
-            class="text-blue-600"
-            href="https://github.com/vitejs/vite"
-            target="_blank">vite</a> for HMR (Hot Module Replacement) and production build.
+          <a class="text-blue-600" href="https://hardhat.org" target="_blank">Hardhat</a>
+          for contracts,
+          <a class="text-blue-600" href="https://github.com/wighawag/hardhat-deploy" target="_blank">hardhat-deploy</a>
+          for contract deployment,
+          <a class="text-blue-600" href="https://thegraph.com" target="_blank">The Graph</a>
+          for contract api,
+          <a class="text-blue-600" href="https://getwaffle.io/" target="_blank">waffle</a>
+          for chai matchers,
+          <a class="text-blue-600" href="https://svelte.dev" target="_blank">svelte</a>
+          for frontend,
+          <a class="text-blue-600" href="https://github.com/vitejs/vite" target="_blank">vite</a>
+          for HMR (Hot Module Replacement) and production build.
         </Feature>
         <Feature title="Everything Hot Reload">
           On contract changes, contract get to keep their address and code get updated automatically. On frontend
-          changes, module get replaced using blazing fast <a
-            class="text-blue-600"
-            href="https://github.com/vitejs/vite"
-            target="_blank">vite</a> es module hot reload. On subgraph changes, the graph get updated and reexecuted.
+          changes, module get replaced using blazing fast
+          <a class="text-blue-600" href="https://github.com/vitejs/vite" target="_blank">vite</a>
+          es module hot reload. On subgraph changes, the graph get updated and reexecuted.
         </Feature>
         <Feature title="Fully IPFS Ready">
           Fully IPFS ready with proper url routing. The web app works on both IPFS urls and ENS/DNS urls. PWA works on
@@ -87,8 +82,9 @@
         </Feature>
         <Feature title="One command deploy">
           Everything is setup, except for the private ENV variable to deploy the contracts, the subgraph and the web
-          app, all at once. It also include <a class="text-blue-600" href="https://fleek.co" target="_blank">fleek</a> config
-          for automatic web deployment on ipfs.
+          app, all at once. It also include
+          <a class="text-blue-600" href="https://fleek.co" target="_blank">fleek</a>
+          config for automatic web deployment on ipfs.
         </Feature>
       </div>
     </div>

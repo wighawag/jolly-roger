@@ -6,7 +6,7 @@ artifacts/
 node_modules/
 .env
 contractsInfo.json
-deployments/buidlerevm/
+deployments/harhdat/
 deployments/localhost/
 
 .vscode/*
