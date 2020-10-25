@@ -4,7 +4,6 @@
   "version": "0.0.1",
   "private": true,
   "devDependencies": {
-    "@ethereum-waffle/chai": "^3.0.2",
     "@ethersproject/bignumber": "^5.0.5",
     "@ethersproject/bytes": "^5.0.3",
     "@ethersproject/solidity": "^5.0.2",
@@ -13,6 +12,7 @@
     "@types/mocha": "^8.0.2",
     "@types/node": "^14.10.2",
     "chai": "^4.2.0",
+    "chai-ethers": "0.0.1",
     "cross-env": "^7.0.2",
     "dotenv": "^8.2.0",
     "ethers": "^5.0.8",
