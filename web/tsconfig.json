@@ -4,6 +4,7 @@
   "exclude": ["node_modules/*", "public/*"],
   "compilerOptions": {
     "module": "esnext",
-    "types": ["svelte", "vite/dist/importMeta"]
+    "types": ["svelte", "vite/dist/importMeta"],
+    "resolveJsonModule": true
   }
 }
