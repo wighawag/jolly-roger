@@ -44,7 +44,7 @@ services:
   #     - "30303:30303"
   #   command: --dev --nousb --ws --ws.addr "0.0.0.0" --ws.origins "*" --http --http.vhosts "*" --http.addr "0.0.0.0" --http.corsdomain "*" --miner.gasprice 1000000000 --dev.period 5
   ethereum: # GANACHE
-    image: trufflesuite/ganache-cli:v6.9.1
+    image: trufflesuite/ganache-cli:v6.12.0
     ports:
       - '8545:8545'
     entrypoint:
@@ -52,7 +52,7 @@ services:
       - /app/ganache-core.docker.cli.js
       - --deterministic
       - --mnemonic
-      - '${MNEMONIC-minimum symptom minute gloom tragic situate silver mechanic salad amused elite beef}'
+      - '${MNEMONIC-test test test test test test test test test test test junk}'
       - --hostname
       - '0.0.0.0'
       - --blockTime
