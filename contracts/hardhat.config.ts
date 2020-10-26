@@ -1,12 +1,11 @@
-import 'dotenv';
-import {Wallet} from '@ethersproject/wallet';
+import 'dotenv/config';
 import {HardhatUserConfig} from 'hardhat/config';
 import 'hardhat-deploy';
 import 'hardhat-deploy-ethers';
 
-let mnemonic = process.env.MNEMONIC;
+const mnemonic = process.env.MNEMONIC;
 if (!mnemonic) {
-  mnemonic = Wallet.createRandom().mnemonic.phrase;
+  throw new Error('Mnemonic is required');
 }
 const accounts = {
   mnemonic,
