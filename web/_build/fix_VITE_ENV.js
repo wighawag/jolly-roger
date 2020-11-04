@@ -21,6 +21,7 @@ for (const file of files) {
     );
     if (newContent != content) {
       console.log(`replaced {}.${envName} with "${process.env[envName]}"`);
+      content = newContent;
     }
   }
   fs.writeFileSync(filepath, content);
