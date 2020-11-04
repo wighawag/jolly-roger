@@ -6,6 +6,7 @@
   "devDependencies": {
     "@ethersproject/bignumber": "^5.0.5",
     "@ethersproject/bytes": "^5.0.3",
+    "@ethersproject/providers": "^5.0.14",
     "@ethersproject/solidity": "^5.0.2",
     "@ethersproject/wallet": "^5.0.2",
     "@types/chai": "^4.2.11",
@@ -17,15 +18,14 @@
     "dotenv": "^8.2.0",
     "ethers": "^5.0.8",
     "hardhat": "^2.0.1",
-    "hardhat-deploy": "^0.7.0-beta.18",
+    "hardhat-deploy": "^0.7.0-beta.20",
     "hardhat-deploy-ethers": "^0.3.0-beta.5",
-    "{{=_.paramCase(it.name)}}-common": "../common-lib",
+    "{{=_.paramCase(it.name)}}-common": "workspace:*",
     "mocha": "^8.1.1",
     "ts-node": "^9.0.0",
     "typescript": "^3.8.3"
   },
   "scripts": {
-    "prepare": "npm link ../common-lib",
     "test": "cross-env HARDHAT_DEPLOY_FIXTURE=true HARDHAT_COMPILE=true mocha --bail --recursive test",
     "coverage": "cross-env HARDHAT_DEPLOY_FIXTURE=true hardhat --network coverage coverage",
     "dev": "hardhat node --reset --watch --export contractsInfo.json",

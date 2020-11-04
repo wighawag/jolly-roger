@@ -18,32 +18,28 @@
   ],
   "settings": {
     "editor.formatOnSave": true,
-    "editor.defaultFormatter": "dbaeumer.vscode-eslint",
-    "[solidity]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
-    },
-    "[svelte]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.codeActionsOnSave": {
+      "source.fixAll": true
     },
     "solidity.linter": "solhint",
     "solidity.enableLocalNodeCompiler": false,
-    "solidity.compileUsingRemoteVersion": "0.7.1+commit.f4a555be.Emscripten.clang",
-    "solidity.packageDefaultDependenciesContractsDirectory": "contracts/src",
-    "solidity.packageDefaultDependenciesDirectory": "contracts/node_modules",
-    "editor.codeActionsOnSave": {
-      "source.fixAll.eslint": true
-    },
-    "[json]": {
-      "editor.formatOnSave": false,
-      "editor.codeActionsOnSave": {}
-    },
+    "solidity.compileUsingRemoteVersion": "v0.7.1+commit.f4a555be",
+    "solidity.packageDefaultDependenciesContractsDirectory": "",
+    "solidity.enabledAsYouTypeCompilationErrorCheck": true,
+    "solidity.validationDelay": 1500,
+    "solidity.packageDefaultDependenciesDirectory": "node_modules",
     // ---------------------------------------------------------------------------------------------------------------------------------------------
     // The following is required by mocha test explorer vscode plugin: https://marketplace.visualstudio.com/items?itemName=hbenl.vscode-mocha-test-adapter
     "mochaExplorer.env": {
       "HARDHAT_CONFIG": "hardhat.config.ts",
-      "HARDHAT_COMPILE": "true"
+      "HARDHAT_COMPILE": "true",
+      "MNEMONIC": "test test test test test test test test test test test junk"
     },
-    "mochaExplorer.require": ["ts-node/register/transpile-only"]
+    "mochaExplorer.require": ["ts-node/register/transpile-only"],
+    "eslint.alwaysShowStatus": true,
+    "prettier.prettierPath": "_npm/node_modules/prettier",
+    "prettier.configPath": ".prettierrc.js"
     // ----------------------------------------------------------------------------------------------------------------------------------------------
   },
   "extensions": {

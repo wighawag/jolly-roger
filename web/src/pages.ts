@@ -5,7 +5,8 @@ export default [
   {
     name: 'Wallet',
     path: 'wallet',
-    asyncComponent: (): Promise<ComponentModule> => import('./pages/wallet.svelte'),
+    asyncComponent: (): Promise<ComponentModule> =>
+      import('./pages/wallet.svelte'),
   },
   {
     name: 'Home',
@@ -15,11 +16,13 @@ export default [
   {
     name: 'Demo',
     path: 'demo',
-    asyncComponent: (): Promise<ComponentModule> => import('./pages/demo.svelte'),
+    asyncComponent: (): Promise<ComponentModule> =>
+      import('./pages/demo.svelte'),
   },
   {
     name: 'NotFound',
     path: '.*',
-    asyncComponent: (): Promise<ComponentModule> => import('./pages/notfound.svelte'),
+    asyncComponent: (): Promise<ComponentModule> =>
+      import('./pages/notfound.svelte'),
   },
 ];

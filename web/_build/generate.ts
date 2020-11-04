@@ -6,24 +6,32 @@ import pkg from '../package.json';
 function print(message: string) {
   process.stdout.write(message);
 }
-function generateFavicons(exportFolder: string, icon: string, config: Partial<Configuration>): Promise<string[]> {
+function generateFavicons(
+  exportFolder: string,
+  icon: string,
+  config: Partial<Configuration>
+): Promise<string[]> {
   print('generating favicons...');
   function generateFav(resolve, reject) {
-    favicons(icon, config, async (error: unknown, response: FavIconResponse) => {
-      if (error) {
-        return reject(error);
-      }
-      for (const image of response.images) {
-        // console.log(`copying ${image.name}...`);
-        fs.writeFileSync(`${exportFolder}/${image.name}`, image.contents);
-      }
+    favicons(
+      icon,
+      config,
+      async (error: unknown, response: FavIconResponse) => {
+        if (error) {
+          return reject(error);
+        }
+        for (const image of response.images) {
+          // console.log(`copying ${image.name}...`);
+          fs.writeFileSync(`${exportFolder}/${image.name}`, image.contents);
+        }
 
-      for (const file of response.files) {
-        // console.log(`copying ${file.name}...`);
-        fs.writeFileSync(`${exportFolder}/${file.name}`, file.contents);
+        for (const file of response.files) {
+          // console.log(`copying ${file.name}...`);
+          fs.writeFileSync(`${exportFolder}/${file.name}`, file.contents);
+        }
+        resolve(response.html);
       }
-      resolve(response.html);
-    });
+    );
   }
   let timer;
   return new Promise<string[]>((resolve, reject) => {
@@ -58,12 +66,19 @@ const makeHtmlAttributes = (attributes: {[key: string]: string}) => {
 
   const keys = Object.keys(attributes);
   // eslint-disable-next-line no-param-reassign
-  return keys.reduce((result, key) => (result += ` ${key}="${attributes[key]}"`), '');
+  return keys.reduce(
+    (result, key) => (result += ` ${key}="${attributes[key]}"`),
+    ''
+  );
 };
 
 async function generateBasicIndexHTML(
   folder: string,
-  {title, meta, faviconsOutput}: {title: string; meta: {[key: string]: string}[]; faviconsOutput: string[]}
+  {
+    title,
+    meta,
+    faviconsOutput,
+  }: {title: string; meta: {[key: string]: string}[]; faviconsOutput: string[]}
 ) {
   print('generating html...');
   let template = fs.readFileSync('index.template.html').toString();
@@ -162,7 +177,10 @@ async function generateApp(publicFolder: string) {
     if (ensName.startsWith('http://')) {
       ensName = ensName.slice(7);
     }
-    fs.writeFileSync(path.join(publicFolder, 'robots.txt'), 'Dwebsite: ' + ensName);
+    fs.writeFileSync(
+      path.join(publicFolder, 'robots.txt'),
+      'Dwebsite: ' + ensName
+    );
   }
 
   const faviconFolder = path.join(publicFolder, 'pwa');
@@ -201,10 +219,15 @@ async function generateApp(publicFolder: string) {
         if (found) {
           fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, '  '));
         } else {
-          console.error(`maskable icon file ("${maskableIconPath}") not found in manifest`);
+          console.error(
+            `maskable icon file ("${maskableIconPath}") not found in manifest`
+          );
         }
       } catch (e) {
-        console.error(`failed to setup maskable icon file ("${maskableIconPath}")`, e);
+        console.error(
+          `failed to setup maskable icon file ("${maskableIconPath}")`,
+          e
+        );
       }
     } else {
       console.warn(`maskable icon file ("${maskableIconPath}") does not exist`);
@@ -272,7 +295,6 @@ async function generateApp(publicFolder: string) {
 
 (async () => {
   await generateApp('public');
-  console.log("DONE");
+  console.log('DONE');
   process.exit(0);
-})()
-
+})();

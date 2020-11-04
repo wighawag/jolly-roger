@@ -1,4 +1,5 @@
 export/
+export/
 web/dist
 web/public/pwa
 contracts/deployments
@@ -10,5 +11,4 @@ subgraph/abis
 subgraph/build
 subgraph/generated
 common-lib/lib
-*.yaml
-*.json
+package.json

@@ -1,7 +1,7 @@
 {
   "build": {
-    "image": "node:12",
-    "command": "npm install --ignore-scripts && npm run prepare && cd web && npm run prepare && cd .. && npm run staging:web:build",
+    "image": "wighawag/pnpm:latest",
+    "command": "pnpm i --store=node_modules/.pnpm && pnpm run --filter {{=_.paramCase(it.name)}}-web ethers-module && pnpm run staging:web:build && pnpm run --filter {{=_.paramCase(it.name)}}-web fix_VITE_ENV",
     "publicDir": "web/dist"
   }
- }
+}

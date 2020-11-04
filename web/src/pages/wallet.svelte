@@ -18,7 +18,9 @@
   $: (contractInterfaces as any) = // TODO investigate
     $chain.contracts &&
     Object.keys($chain.contracts)
-      .filter((n: string) => !n.endsWith('_Implementation') && !n.endsWith('_Proxy'))
+      .filter(
+        (n: string) => !n.endsWith('_Implementation') && !n.endsWith('_Proxy')
+      )
       .map((n) => ({contract: $chain.contracts[n], name: n}))
       .map(({contract, name}) => ({
         contract: contract,
@@ -36,7 +38,10 @@
               call: () => {
                 const args = [];
                 for (const input of inputs) {
-                  args.push((document.getElementById(input.elemId) as HTMLInputElement).value);
+                  args.push(
+                    (document.getElementById(input.elemId) as HTMLInputElement)
+                      .value
+                  );
                 }
                 return wallet.contracts[name].functions[f.format()](...args);
               },
@@ -91,7 +96,9 @@
     {#if $wallet.address}
       <p>
         <label for="wallet">Wallet</label>
-        <span id="wallet" class="text-xs sm:text-sm md:text-base">{$wallet.address}</span>
+        <span
+          id="wallet"
+          class="text-xs sm:text-sm md:text-base">{$wallet.address}</span>
       </p>
     {/if}
   </div>
@@ -131,7 +138,9 @@
     {#if $wallet.address && $chain.chainId}
       <h2 class="font-extrabold text-xl">Transactions</h2>
       {#each $transactions as tx}
-        <h3 class="ml-1 font-semibold text-lg">{tx.contractName}.{tx.method}({tx.args})</h3>
+        <h3 class="ml-1 font-semibold text-lg">
+          {tx.contractName}.{tx.method}({tx.args})
+        </h3>
       {/each}
     {/if}
   </div>

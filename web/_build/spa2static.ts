@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-escape */
 import path from 'path';
 import fs from 'fs-extra';
 import pages from './pages';
@@ -10,7 +11,11 @@ function print(message: string) {
 
 async function generatePages(
   exportFolder: string,
-  {pages, indexHtml, useBaseElem}: {pages: string[]; indexHtml: string; useBaseElem: boolean}
+  {
+    pages,
+    indexHtml,
+    useBaseElem,
+  }: {pages: string[]; indexHtml: string; useBaseElem: boolean}
 ) {
   print('generating pages and rebasing path relative...');
   const template = indexHtml;
@@ -31,7 +36,10 @@ async function generatePages(
       const assetPath = path.join(exportFolder, '_assets', asset);
       fs.writeFileSync(
         assetPath,
-        fs.readFileSync(assetPath).toString().replace(reAssetPaths, 'window.basepath+"_assets')
+        fs
+          .readFileSync(assetPath)
+          .toString()
+          .replace(reAssetPaths, 'window.basepath+"_assets')
       );
     }
   }
@@ -80,18 +88,30 @@ async function generatePages(
 
   const findGeneric = '"/';
   const reGeneric = new RegExp(findGeneric, 'g');
-  for (const filename of ['yandex-browser-manifest.json', 'manifest.webapp', 'manifest.json', 'browserconfig.xml']) {
+  for (const filename of [
+    'yandex-browser-manifest.json',
+    'manifest.webapp',
+    'manifest.json',
+    'browserconfig.xml',
+  ]) {
     if (filename) {
       const filepath = path.join(exportFolder, filename);
       if (fs.existsSync(filepath)) {
-        fs.writeFileSync(filepath, fs.readFileSync(filepath).toString().replace(reGeneric, '"./'));
+        fs.writeFileSync(
+          filepath,
+          fs.readFileSync(filepath).toString().replace(reGeneric, '"./')
+        );
       }
     }
   }
   print(' done\n');
 }
 
-function generateCacheURLs(exportFolder: string, subFolders: string[], filter?: (p: string) => boolean) {
+function generateCacheURLs(
+  exportFolder: string,
+  subFolders: string[],
+  filter?: (p: string) => boolean
+) {
   if (!filter) {
     filter = () => true;
   }
@@ -109,7 +129,11 @@ function generateCacheURLs(exportFolder: string, subFolders: string[], filter?: 
 
 function generateServiceWorker(exportFolder: string, pages: string[]) {
   print('generating service worker...');
-  const precache = generateCacheURLs(exportFolder, ['_assets'], (p) => p !== 'index.html' && p !== 'sw.js');
+  const precache = generateCacheURLs(
+    exportFolder,
+    ['_assets'],
+    (p) => p !== 'index.html' && p !== 'sw.js'
+  );
   let sw = fs.readFileSync(path.join(exportFolder, 'sw.js')).toString();
   sw = sw.replace(
     'const URLS_TO_PRE_CACHE = [',
@@ -134,7 +158,9 @@ function generateServiceWorker(exportFolder: string, pages: string[]) {
 }
 
 const exportFolder = 'dist';
-let indexHtml = fs.readFileSync(path.join(exportFolder, 'index.html')).toString();
+let indexHtml = fs
+  .readFileSync(path.join(exportFolder, 'index.html'))
+  .toString();
 const pagePaths = pages.map((v) => v.path);
 
 const basePathScript = `
@@ -159,7 +185,10 @@ try {
   config = JSON.parse(fs.readFileSync('./application.json').toString());
 } catch (e) {}
 if (config && config.ensName && config.ethLinkErrorRedirect) {
-  indexHtml = indexHtml.replace(/(\=\"\/_assets\/.*\")/g, '$1 onerror="window.onFailingResource()"');
+  indexHtml = indexHtml.replace(
+    /(="\/_assets\/.*")/g,
+    '$1 onerror="window.onFailingResource()"'
+  );
   const handleEthLink = `
       function loadAlert() {
         return new Promise((resolve) => {
@@ -179,7 +208,7 @@ if (config && config.ensName && config.ethLinkErrorRedirect) {
         window.onFailingResource = () => {
           redirectToIPFS().then((url) => {
             loadAlert().then((alert) => alert("The ENS 'eth.link' service is having caching issues causing the website to misbehave.\\nThis usually happen when the website is updated to a new ipfs hash and eth.link is catching up.\\nWe will redirect you to an ipfs gateway in the mean time:\\nSorry for the inconvenience."))
-            .then(() => location.assign(url + location.pathname + location.search + location.hash)) 
+            .then(() => location.assign(url + location.pathname + location.search + location.hash))
           });
         };
       } else {
@@ -260,9 +289,15 @@ const linkReloadScript = `
 `;
 
 const headStart = indexHtml.indexOf('<head>') + 6;
-indexHtml = indexHtml.slice(0, headStart) + `${basePathScript}${redirectScript}` + indexHtml.slice(headStart);
+indexHtml =
+  indexHtml.slice(0, headStart) +
+  `${basePathScript}${redirectScript}` +
+  indexHtml.slice(headStart);
 const headEnd = indexHtml.indexOf('</head>');
-indexHtml = indexHtml.slice(0, headEnd) + `${linkReloadScript}` + indexHtml.slice(headEnd);
+indexHtml =
+  indexHtml.slice(0, headEnd) +
+  `${linkReloadScript}` +
+  indexHtml.slice(headEnd);
 
 generatePages(exportFolder, {
   pages: pagePaths,

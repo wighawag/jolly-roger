@@ -15,7 +15,7 @@
     "@urql/core": "^1.12.3",
     "@urql/devtools": "^2.0.2",
     "graphql": "^15.3.0",
-    "{{=_.paramCase(it.name)}}-common": "../common-lib",
+    "{{=_.paramCase(it.name)}}-common": "workspace:*",
     "named-logs": "0.0.13",
     "named-logs-console": "0.0.14",
     "svelte": "3.24.1",
@@ -45,10 +45,13 @@
     "ts-node": "^9.0.0",
     "tsconfig-paths": "^3.9.0",
     "tslib": "^2.0.0",
-    "typescript": "^3.9.7"
+    "typescript": "^3.9.7",
+    "vite": "^1.0.0-rc.8"
   },
   "scripts": {
-    "prepare": "npm link ../common-lib && node use_ethers_browser_modules.js && npm run generate",
+    "ethers-module": "node use_ethers_browser_modules.js",
+    "fix_VITE_ENV": "node _build/fix_VITE_ENV.js",
+    "prepare": "node use_ethers_browser_modules.js && npm run generate",
     "validate": "svelte-check && tsc --noEmit",
     "dev": "svite -ts",
     "build": "svite build -ts && npm run spa2static",

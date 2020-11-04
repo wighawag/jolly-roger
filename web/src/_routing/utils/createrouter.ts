@@ -1,16 +1,25 @@
-import {prepareRoutes, createRouter as curi_createRouter, RouterOptions} from '@curi/router';
+import {
+  prepareRoutes,
+  createRouter as curi_createRouter,
+  RouterOptions,
+} from '@curi/router';
 import {browser, createBase} from '@hickory/browser';
 import type {CuriRouter} from '@curi/types';
 
 type ComponentModule = {default: unknown};
 
-function parseQueryNoArray(onlyKeys?: string[]): (queryString: string) => Record<string, string> {
+function parseQueryNoArray(
+  onlyKeys?: string[]
+): (queryString: string) => Record<string, string> {
   return (queryString: string): Record<string, string> => {
     if (!queryString) {
       return {};
     }
     const query = {};
-    const pairs = (queryString[0] === '?' ? queryString.substr(1) : queryString).split('&');
+    const pairs = (queryString[0] === '?'
+      ? queryString.substr(1)
+      : queryString
+    ).split('&');
     for (let i = 0; i < pairs.length; i++) {
       const pair = pairs[i].split('=');
       const key = decodeURIComponent(pair[0]);
@@ -22,7 +31,9 @@ function parseQueryNoArray(onlyKeys?: string[]): (queryString: string) => Record
   };
 }
 
-function queryStringifyNoArray(prefix?: string): (query: Record<string, string>) => string {
+function queryStringifyNoArray(
+  prefix?: string
+): (query: Record<string, string>) => string {
   return (query: Record<string, string>): string => {
     if (!query) {
       return '';
@@ -52,7 +63,8 @@ export function createRouter(
     if (routePath.asyncComponent) {
       routesConfig.push({
         name: routePath.name,
-        path: !routePath.path || routePath.path == '/' ? '' : routePath.path + '/',
+        path:
+          !routePath.path || routePath.path == '/' ? '' : routePath.path + '/',
         respond({resolved, error}) {
           let data;
           if (error) {
@@ -75,7 +87,8 @@ export function createRouter(
     } else {
       routesConfig.push({
         name: routePath.name,
-        path: !routePath.path || routePath.path == '/' ? '' : routePath.path + '/',
+        path:
+          !routePath.path || routePath.path == '/' ? '' : routePath.path + '/',
         respond() {
           return {
             body: routePath.component,

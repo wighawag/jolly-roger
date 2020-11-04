@@ -22,6 +22,6 @@
   });
 </script>
 
-{#if typeof cancelCallback === "function"}
-<svelte:component this={component} cancel={cancelCallback} />
+{#if typeof cancelCallback === 'function'}
+  <svelte:component this={component} cancel={cancelCallback} />
 {/if}

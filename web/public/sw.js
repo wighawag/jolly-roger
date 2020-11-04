@@ -31,7 +31,11 @@ if (DEV) {
 
 const regexesOnlineOnly = [];
 
-const regexesCacheFirst = [self.location.origin, 'https://rsms.me/inter/', 'cdn'];
+const regexesCacheFirst = [
+  self.location.origin,
+  'https://rsms.me/inter/',
+  'cdn',
+];
 
 const regexesCacheOnly = [];
 

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 const $confirm = (text, buttonColor) => {
   return new Promise((resolve) => {
     var as_background = document.createElement('div');
@@ -49,7 +50,7 @@ const $confirm = (text, buttonColor) => {
       transform: translate(-50%, -50%);
       width: 300px;
       border: 0px solid;
-      border-radius: 5px; 
+      border-radius: 5px;
       padding: 20px;
       user-select: none;
       -ms-user-select: none;
@@ -62,11 +63,11 @@ const $confirm = (text, buttonColor) => {
       width: 100%;
       height: 100%;
       top: 0;
-      left: 0; 
-  
+      left: 0;
+
       background-color: rgba(0, 0, 0, 0.425);
       font-family: 'Heebo', sans-serif;
-      z-index: 100000;  
+      z-index: 100000;
   }
   .as-textnode{
       max-height: 500px;
@@ -137,13 +138,17 @@ const $confirm = (text, buttonColor) => {
     });
 
     function asOkay() {
-      let as_style_alertConfirm = document.getElementById('as_style_alertConfirm');
+      let as_style_alertConfirm = document.getElementById(
+        'as_style_alertConfirm'
+      );
       as_style_alertConfirm.remove();
       as_background.remove();
     }
 
     function asCancel() {
-      let as_style_alertConfirm = document.getElementById('as_style_alertConfirm');
+      let as_style_alertConfirm = document.getElementById(
+        'as_style_alertConfirm'
+      );
       as_style_alertConfirm.remove();
       as_background.remove();
     }
@@ -173,10 +178,10 @@ function $toast(text, bgclr) {
       left: 50%;
       color: #fff;
       transform: translateX(-50%);
-  
+
       animation-name: fadeinout;
       animation-duration: 2500ms;
-  
+
       word-wrap: break-word;
       line-height: 1.4;
       letter-spacing: .4px;
@@ -186,7 +191,7 @@ function $toast(text, bgclr) {
       -webkit-user-select: none;
       -webkit-touch-callout: none;
   }
-  
+
   @keyframes fadeinout{
       10%{bottom: 15%;  opacity: 100%}
       20%{bottom: 15%; opacity: 100%}
@@ -249,7 +254,7 @@ function $alert(text, buttonColor) {
       transform: translate(-50%, -50%);
       width: 300px;
       border: 0px solid;
-      border-radius: 5px; 
+      border-radius: 5px;
       padding: 20px;
       user-select: none;
       -ms-user-select: none;
@@ -262,11 +267,11 @@ function $alert(text, buttonColor) {
       width: 100%;
       height: 100%;
       top: 0;
-      left: 0; 
-  
+      left: 0;
+
       background-color: rgba(0, 0, 0, 0.425);
       font-family: 'Heebo', sans-serif;
-      z-index: 100000;  
+      z-index: 100000;
   }
   .as-textnode{
       max-height: 500px;

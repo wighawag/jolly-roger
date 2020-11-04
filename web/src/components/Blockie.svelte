@@ -22,7 +22,8 @@
       randseed[i] = 0;
     }
     for (let i = 0; i < seed.length; i++) {
-      randseed[i % 4] = (randseed[i % 4] << 5) - randseed[i % 4] + seed.charCodeAt(i);
+      randseed[i % 4] =
+        (randseed[i % 4] << 5) - randseed[i % 4] + seed.charCodeAt(i);
     }
   }
 
@@ -104,7 +105,11 @@
   }
 
   function update() {
-    if (lastOptions && lastOptions.address === address && lastOptions.scale === scale) {
+    if (
+      lastOptions &&
+      lastOptions.address === address &&
+      lastOptions.scale === scale
+    ) {
       return;
     }
     lastOptions = {
@@ -112,7 +117,10 @@
       scale,
     };
 
-    seedrand((address && address.toLowerCase()) || '0x0000000000000000000000000000000000000000');
+    seedrand(
+      (address && address.toLowerCase()) ||
+        '0x0000000000000000000000000000000000000000'
+    );
     const color = createColor();
     const bgcolor = createColor();
     const spotcolor = createColor();

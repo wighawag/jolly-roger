@@ -34,12 +34,14 @@
       index += tabbable.length + (evt.shiftKey ? -1 : 1);
       index %= tabbable.length;
 
-      (tabbable[index] as HTMLElement).focus && (tabbable[index] as HTMLElement).focus();
+      (tabbable[index] as HTMLElement).focus &&
+        (tabbable[index] as HTMLElement).focus();
       evt.preventDefault();
     }
   }
 
-  const previously_focused = typeof document !== 'undefined' && document.activeElement;
+  const previously_focused =
+    typeof document !== 'undefined' && document.activeElement;
 
   if (previously_focused) {
     onDestroy(() => {
@@ -53,8 +55,11 @@
 
 <svelte:window on:keydown={handle_keydown} />
 
-<div class="modal opacity-80 fixed w-full h-full top-0 left-0 flex items-center justify-center">
-  <div on:click={close} class="modal-overlay absolute w-full h-full bg-gray-900 opacity-50" />
+<div
+  class="modal opacity-80 fixed w-full h-full top-0 left-0 flex items-center justify-center">
+  <div
+    on:click={close}
+    class="modal-overlay absolute w-full h-full bg-gray-900 opacity-50" />
 
   <div
     class="modal-container dark:bg-black dark:border-2 dark:border-gray-800 bg-white w-11/12 md:max-w-md mx-auto rounded
