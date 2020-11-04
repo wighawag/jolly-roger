@@ -56,14 +56,14 @@
 <svelte:window on:keydown={handle_keydown} />
 
 <div
-  class="modal opacity-80 fixed w-full h-full top-0 left-0 flex items-center justify-center">
+  class="modal z-50 opacity-80 fixed w-full h-full top-0 left-0 flex items-center justify-center">
   <div
     on:click={close}
-    class="modal-overlay absolute w-full h-full bg-gray-900 opacity-50" />
+    class="z-50 modal-overlay absolute w-full h-full bg-gray-900 opacity-50" />
 
   <div
-    class="modal-container dark:bg-black dark:border-2 dark:border-gray-800 bg-white w-11/12 md:max-w-md mx-auto rounded
-      shadow-lg z-50 overflow-y-auto">
+    class="z-50 modal-container dark:bg-black dark:border-2 dark:border-gray-800 bg-white w-11/12 md:max-w-md mx-auto rounded
+    shadow-lg overflow-y-auto">
     {#if globalCloseButton}
       <div
         on:click={close}
