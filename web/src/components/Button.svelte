@@ -184,7 +184,13 @@
 
 {#if href}
   {#if handlePageLink}
-    <a aria-label={label} title={label} href={url} {disabled} class={classes} on:click={handlePageLink}>
+    <a
+      aria-label={label}
+      title={label}
+      href={url}
+      {disabled}
+      class={classes}
+      on:click={handlePageLink}>
       <slot>Name</slot>
     </a>
   {:else}

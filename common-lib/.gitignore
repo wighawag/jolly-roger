@@ -1,2 +1,4 @@
 node_modules/
 lib/
+.vscode/*
+!.vscode/settings.json.default

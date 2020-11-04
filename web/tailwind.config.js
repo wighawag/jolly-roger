@@ -4,7 +4,12 @@ const tailwindUI = require('@tailwindcss/ui');
 
 module.exports = {
   purge: process.env.NODE_ENV === 'production' && {
-    content: ['./src/**/*.svelte', './src/**/*.html', './src/**/*.css', './index.html'],
+    content: [
+      './src/**/*.svelte',
+      './src/**/*.html',
+      './src/**/*.css',
+      './index.html',
+    ],
     options: {
       whitelistPatterns: [/svelte-/],
       defaultExtractor: (content) => {
@@ -77,9 +82,9 @@ module.exports = {
       variants.forEach((variant) => {
         addVariant(variant.name, ({modifySelectors, separator}) => {
           modifySelectors(({className}) => {
-            return `${variant.parent ? `${variant.parent} ` : ''}.${e(`${variant.name}${separator}${className}`)}${
-              variant.rule ? `:${variant.rule}` : ''
-            }`;
+            return `${variant.parent ? `${variant.parent} ` : ''}.${e(
+              `${variant.name}${separator}${className}`
+            )}${variant.rule ? `:${variant.rule}` : ''}`;
           });
         });
       });

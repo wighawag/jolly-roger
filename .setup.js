@@ -15,9 +15,16 @@ function writeIfNotExists(p, content) {
   }
 }
 
-['{{=_.paramCase(it.name)}}.code-workspace', '.env', '.env.production', '.env.staging'].map(
-  copyFromDefault
-);
+[
+  '{{=_.paramCase(it.name)}}.code-workspace',
+  '.env',
+  '.env.production',
+  '.env.staging',
+  'contracts/.vscode/settings.json',
+  'common-lib/.vscode/settings.json',
+  'subgraph/.vscode/settings.json',
+  'web/.vscode/settings.json',
+].map(copyFromDefault);
 
 switch (process.platform) {
   case 'win32':
@@ -26,7 +33,7 @@ switch (process.platform) {
       `
 {
   "terminalApp": "cmd"
-}    
+}
 `
     );
     break;
@@ -36,27 +43,23 @@ switch (process.platform) {
       `
   {
     "terminalApp": "xterm"
-  }    
+  }
   `
-      );
+    );
     break;
 }
 
-
-const execSync = require('child_process').execSync
-function npmInstall (dir) {
-  console.log(`INSTALLING ${dir}...`)
+const execSync = require('child_process').execSync;
+function npmInstall(dir) {
+  console.log(`INSTALLING ${dir}...`);
   let exitCode = 0;
   try {
-    execSync('npm install', { cwd: dir, stdio: 'inherit'})
+    execSync('npm install', {cwd: dir, stdio: 'inherit'});
   } catch (err) {
-    exitCode = err.status
+    exitCode = err.status;
   }
   if (exitCode) {
     process.exit(exitCode);
   }
 }
-npmInstall('common-lib');
-npmInstall('contracts');
-npmInstall('subgraph');
-npmInstall('web');
+npmInstall('_npm');

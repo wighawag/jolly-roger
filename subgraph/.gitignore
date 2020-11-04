@@ -5,3 +5,5 @@ build/
 subgraph.yaml
 !templates/*
 abis/
+.vscode/*
+!.vscode/settings.json.default

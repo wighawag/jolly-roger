@@ -20,7 +20,9 @@ const walletStores = WalletStores({
     finality,
   },
   localStoragePrefix:
-    window.basepath && (window.basepath.startsWith('/ipfs/') || window.basepath.startsWith('/ipns/'))
+    window.basepath &&
+    (window.basepath.startsWith('/ipfs/') ||
+      window.basepath.startsWith('/ipns/'))
       ? window.basepath.slice(6)
       : undefined, // ensure local storage is not conflicting across web3w-based apps on ipfs gateways
   options: [
@@ -28,7 +30,11 @@ const walletStores = WalletStores({
     new TorusModuleLoader({verifier: 'google', nodeUrl, chainId}),
     new TorusModuleLoader({verifier: 'facebook', nodeUrl, chainId}),
     new TorusModuleLoader({verifier: 'discord', nodeUrl, chainId}),
-    new WalletConnectModuleLoader({nodeUrl, chainId, infuraId: 'bc0bdd4eaac640278cdebc3aa91fabe4'}),
+    new WalletConnectModuleLoader({
+      nodeUrl,
+      chainId,
+      infuraId: 'bc0bdd4eaac640278cdebc3aa91fabe4',
+    }),
   ],
 });
 
@@ -40,7 +46,14 @@ if (typeof window !== 'undefined') {
   /* eslint-enable @typescript-eslint/no-explicit-any */
 }
 
-export const {wallet, transactions, builtin, chain, balance, flow} = walletStores;
+export const {
+  wallet,
+  transactions,
+  builtin,
+  chain,
+  balance,
+  flow,
+} = walletStores;
 
 function notifyFailure(tx) {
   notifications.queue({

@@ -3,9 +3,9 @@ import {HardhatUserConfig} from 'hardhat/config';
 import 'hardhat-deploy';
 import 'hardhat-deploy-ethers';
 
-const mnemonic = process.env.MNEMONIC;
+let mnemonic = process.env.MNEMONIC;
 if (!mnemonic) {
-  throw new Error('Mnemonic is required');
+  mnemonic = 'test test test test test test test test test test test junk';
 }
 const accounts = {
   mnemonic,

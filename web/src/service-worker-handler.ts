@@ -22,7 +22,10 @@ if ('serviceWorker' in navigator) {
         registration.addEventListener('updatefound', () => {
           const worker = registration.installing;
           worker.addEventListener('statechange', () => {
-            if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+            if (
+              worker.state === 'installed' &&
+              navigator.serviceWorker.controller
+            ) {
               console.log('[Service Worker] Update found');
               updateAvailable.set(true);
             }

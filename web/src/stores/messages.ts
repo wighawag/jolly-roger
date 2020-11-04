@@ -18,7 +18,7 @@ query {
     timestamp
   }
 }`,
-  {path: 'messageEntries'} // allow to access messages directly
+  {transform: 'messageEntries'} // allow to access messages directly
 );
 
 export const messages: Readable<QueryState<Messages>> & {
@@ -34,11 +34,15 @@ export const messages: Readable<QueryState<Messages>> & {
       if (!tx.finalized && tx.args) {
         // based on args : so need to ensure args are available
         if (tx.status !== 'failure') {
-          const foundIndex = newData.findIndex((v) => v.id.toLowerCase() === tx.from.toLowerCase());
+          const foundIndex = newData.findIndex(
+            (v) => v.id.toLowerCase() === tx.from.toLowerCase()
+          );
           if (foundIndex >= 0) {
             newData[foundIndex].message = tx.args[0] as string;
             newData[foundIndex].pending = tx.confirmations < 1;
-            newData[foundIndex].timestamp = Math.floor(Date.now() / 1000).toString();
+            newData[foundIndex].timestamp = Math.floor(
+              Date.now() / 1000
+            ).toString();
           } else {
             newData.unshift({
               id: tx.from.toLowerCase(),
@@ -50,7 +54,9 @@ export const messages: Readable<QueryState<Messages>> & {
         }
       }
     }
-    newData = newData.sort((a, b) => parseInt(b.timestamp) - parseInt(a.timestamp));
+    newData = newData.sort(
+      (a, b) => parseInt(b.timestamp) - parseInt(a.timestamp)
+    );
     return {
       state: $query.state,
       error: $query.error,
