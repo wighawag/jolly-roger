@@ -24,6 +24,11 @@
     "wait-on": "^5.1.0",
     "wighawag_newsh": "0.0.6"
   },
+  "pnpm": {
+    "overrides": {
+      "@ethersproject/sha2": "^5.0.6"
+    }
+  },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "prepare": "node ./.setup.js",
