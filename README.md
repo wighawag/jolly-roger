@@ -44,11 +44,11 @@ Once the app is fetched from git (via degit or via github template), it comes wi
 
 You ll probably want to rename it. To do so, execute the following command:
 
-If you do not specify a name, it will use the current folder
-
 ```bash
-pnpm run set-name [<new name>]
+pnpm set-name [<new name>]
 ```
+
+If you do not specify a name, it will use the current folder
 
 Note that if you decide to change your name latter, you ll have to execute `pnpm install` again.
 
@@ -63,7 +63,7 @@ pnpm install
 The following command will start everything up.
 
 ```bash
-pnpm run shell:start
+pnpm shell:start
 ```
 
 This will run each processes in their own terminal window/tap. Note that you might need confiugration based on your system.
@@ -85,13 +85,13 @@ This command will bring 5 shells up
 Once docker-compose is running, you can stop the other shells and restart them if needed via
 
 ```bash
-pnpm run shell:dev
+pnpm shell:dev
 ```
 
 Alternatively you can call the following first : this will setup the external services only (ipfs, ethereum and graph nodes)
 
 ```bash
-pnpm run setup
+pnpm setup
 ```
 
 and then run `pnpm run shell:dev` to bring up the rest in watch mode.
@@ -109,7 +109,7 @@ Basically the `shell:` version will execute each parallel processes in a new ter
 To export the web app (ipfs ready) execute the following:
 
 ```bash
-pnpm run production:web:build
+pnpm production:web:build
 ```
 
 ## full deployment
@@ -141,13 +141,13 @@ Furthermore, you need to ensure the values in [web/application.json](web/applica
 finally execute the following for staging :
 
 ```
-pnpm run staging
+pnpm staging
 ```
 
 for production:
 
 ```
-pnpm run production
+pnpm production
 ```
 
 For `webapp:build` you can also use [fleek](https://fleek.co) so that building and ipfs deployment is done automatically. The repo provide a `.fleek.json` file already setup for staging.
