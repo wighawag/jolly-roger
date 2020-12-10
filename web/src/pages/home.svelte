@@ -41,7 +41,7 @@
   </div>
   <div class="py-4 dark:bg-black bg-white">
     <!-- <h2 class="text-3xl underline mb-4 text-gray-600 dark:text-gray-400">Create App</h2> -->
-    <code>npx init-from wighawag/jolly-roger &lt;your-app-folder&gt;</code>
+    <code>npx degit wighawag/jolly-roger &lt;your-app-folder&gt;</code>
   </div>
   <div class="py-4 dark:bg-black bg-white">
     <h2 class="text-3xl underline mb-4 text-gray-600 dark:text-gray-400">

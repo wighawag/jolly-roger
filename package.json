@@ -31,8 +31,8 @@
     }
   },
   "scripts": {
-    "preinstall": "npx only-allow pnpm && npx change-name --only-dot-name jolly-roger",
-    "change-name": "change-name",
+    "preinstall": "npx only-allow pnpm",
+    "set-name": "npx change-name jolly-roger",
     "prepare": "node ./.setup.js",
 
     "lint": "eslint \"**/*.{js,ts}\" && solhint contracts/src/**/*.sol",

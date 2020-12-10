@@ -1,6 +1,20 @@
-<!--   -->
+<!--- -------------------------------------------- -->
+# Jolly  Roger
 
-# Setup
+This is a template to build a decentralised applicaiton using ethereum, hardhat, svelte and thegraph
+
+to make an app out of it, execute the following
+
+```
+npx degit wighawag/jolly-roger <your-app-folder>
+```
+
+-------------------------
+<br/>
+<br/>
+<!--- -------------------------------------------- -->
+
+# App Setup
 
 ## requirements :
 
