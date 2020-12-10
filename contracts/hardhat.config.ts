@@ -22,7 +22,7 @@ const config: HardhatUserConfig = {
       accounts: accounts(),
     },
     localhost: {
-      url: node_url('local'),
+      url: node_url('localhost'),
       accounts: accounts(),
     },
     mainnet: {
