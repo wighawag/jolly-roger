@@ -9,6 +9,12 @@ function print(message: string) {
   process.stdout.write(message);
 }
 
+function insertTopOfHead(indexHtml: string, content: string): string {
+  const head = indexHtml.indexOf('<head>') + 6;
+  indexHtml = indexHtml.slice(0, head) + content + indexHtml.slice(head);
+  return indexHtml;
+}
+
 async function generatePages(
   exportFolder: string,
   {
@@ -68,8 +74,7 @@ async function generatePages(
         const baseElem = `
     <base href="${baseHref}">
 `;
-        const head = indexHtml.indexOf('<head>') + 6;
-        indexHtml = indexHtml.slice(0, head) + baseElem + indexHtml.slice(head);
+        indexHtml = insertTopOfHead(indexHtml, baseElem);
       }
       srcBaseHref = '';
     }
@@ -81,6 +86,20 @@ async function generatePages(
       .replace(reContent, 'content="' + srcBaseHref);
 
     indexHtml = indexHtml.replace(reRelpath, 'window.relpath="' + baseHref);
+
+    const debugScripts = `
+    <script>
+      (function () {
+        if (!!/\\?_d_eruda/.test(window.location) || !!/&_d_eruda/.test(window.location)) {
+          var src = '${srcBaseHref}scripts/eruda.js';
+          window._debug = true;
+          document.write('<scr' + 'ipt src="' + src + '"></scr' + 'ipt>');
+          document.write('<scr' + 'ipt>eruda.init();</scr' + 'ipt>');
+        }
+      })();
+    </script>
+`;
+    indexHtml = insertTopOfHead(indexHtml, debugScripts);
 
     fs.ensureDirSync(folderPath);
     fs.writeFileSync(indexFilepath, indexHtml);

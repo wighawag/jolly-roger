@@ -32,8 +32,9 @@ contract {{=_.pascalCase(it.contractName)}} is Proxied {
     // -----------------------------------------
 
     function setMessage(string calldata message) external {
-        _messages[msg.sender] = message;
-        emit MessageChanged(msg.sender, message);
+        string memory actualMessage = string(abi.encodePacked("", message));
+        _messages[msg.sender] = actualMessage;
+        emit MessageChanged(msg.sender, actualMessage);
     }
 
     function fails(string calldata message) external {

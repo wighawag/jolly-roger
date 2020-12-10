@@ -7,7 +7,7 @@
   import Notifications from './components/Notifications.svelte';
 </script>
 
-<Router {pages} globalQueryStrings={['subgraph', 'debug', 'log', 'trace']}>
+<Router {pages} globalQueryStrings={['subgraph', 'debug', 'log', 'trace', '_d_eruda']}>
   <Notifications />
   <Navbar links={['Home', 'Demo', 'Wallet']} />
   <CurrentPage>
