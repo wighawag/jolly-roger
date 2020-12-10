@@ -9,6 +9,8 @@ to make an app out of it, execute the following
 npx degit wighawag/jolly-roger <your-app-folder>
 ```
 
+Alternatively create a repo from this template [here](https://github.com/wighawag/jolly-roger/generate)
+
 -------------------------
 <br/>
 <br/>
