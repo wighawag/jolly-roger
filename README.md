@@ -38,6 +38,18 @@ If you decide to use `yarn` you ll have to remove the script "preinstall" that b
 
 If you prefer (or do not have access to docker/docker-compose) you can run them independently.
 
+## setting name:
+
+Once the app is fetched from git (via degit or via github template), it comes with the name `jolly-roger`.
+
+You ll probably want to rename it. To do so, execute the following command:
+
+If you do not specify a name, it will use the current folder
+
+```bash
+pnpm run set-name [<new name>]
+```
+
 ## intall dependencies :
 
 ```bash
