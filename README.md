@@ -50,6 +50,8 @@ If you do not specify a name, it will use the current folder
 pnpm run set-name [<new name>]
 ```
 
+Note that if you decide to change your name latter, you ll have to execute `pnpm install` again.
+
 ## intall dependencies :
 
 ```bash
