@@ -120,12 +120,12 @@ importers:
       '@curi/interactions': 2.0.3
       '@curi/router': 2.1.2
       '@curi/svelte': 2.0.0-beta.6_@curi+router@2.1.2
-      '@ethersproject/abi': 5.0.8
-      '@ethersproject/bignumber': 5.0.10
-      '@ethersproject/bytes': 5.0.6
-      '@ethersproject/contracts': 5.0.7
-      '@ethersproject/providers': 5.0.15
-      '@ethersproject/solidity': 5.0.6
+      '@ethersproject/abi': 5.0.9
+      '@ethersproject/bignumber': 5.0.12
+      '@ethersproject/bytes': 5.0.8
+      '@ethersproject/contracts': 5.0.8
+      '@ethersproject/providers': 5.0.17
+      '@ethersproject/solidity': 5.0.7
       '@hickory/browser': 2.1.0
       '@urql/core': 1.13.1_graphql@15.4.0
       '@urql/devtools': 2.0.2_@urql+core@1.13.1+graphql@15.4.0
@@ -135,7 +135,7 @@ importers:
       named-logs-console: 0.0.14
       svelte: 3.24.1
       svelte-hmr: 0.10.2_svelte@3.24.1
-      web3w: 0.2.38_05dfc60a248ce24be7a6317263d6c452
+      web3w: 0.2.38_58b2699bbf6564faba4228423b2c7644
       web3w-torus-loader: 0.2.4
       web3w-walletconnect-loader: 0.2.0
       wonka: 4.0.14
@@ -165,12 +165,12 @@ importers:
       '@curi/interactions': ^2.0.2
       '@curi/router': ^2.1.1
       '@curi/svelte': ^2.0.0-beta.6
-      '@ethersproject/abi': ^5.0.8
-      '@ethersproject/bignumber': ^5.0.10
-      '@ethersproject/bytes': ^5.0.6
-      '@ethersproject/contracts': ^5.0.7
-      '@ethersproject/providers': ^5.0.15
-      '@ethersproject/solidity': ^5.0.6
+      '@ethersproject/abi': ^5.0.9
+      '@ethersproject/bignumber': ^5.0.12
+      '@ethersproject/bytes': ^5.0.8
+      '@ethersproject/contracts': ^5.0.8
+      '@ethersproject/providers': ^5.0.17
+      '@ethersproject/solidity': ^5.0.7
       '@hickory/browser': ^2.1.0
       '@tailwindcss/ui': ^0.5.0
       '@tsconfig/svelte': ^1.0.8
@@ -315,32 +315,17 @@ packages:
     dev: true
     resolution:
       integrity: sha512-Cqktk+hSIckwP/W8O47Eef60VwmoSC/L3lY0+dIBhQPCNn9E4V7rwmm2aFrNRRDJfFlGuZ1khkQUOc3oBX+niw==
-  /@ethersproject/abi/5.0.8:
-    dependencies:
-      '@ethersproject/address': 5.0.7
-      '@ethersproject/bignumber': 5.0.10
-      '@ethersproject/bytes': 5.0.6
-      '@ethersproject/constants': 5.0.6
-      '@ethersproject/hash': 5.0.7
-      '@ethersproject/keccak256': 5.0.5
-      '@ethersproject/logger': 5.0.7
-      '@ethersproject/properties': 5.0.5
-      '@ethersproject/strings': 5.0.6
-    dev: false
-    resolution:
-      integrity: sha512-QiWzNybzepEmFfwxqEOoUm9i8G5fBuxMiiMcyUwXqywKtktbhNHpUbfOapMkEvPB8VgefzaUf1vHDSqC2Dc8Eg==
   /@ethersproject/abi/5.0.9:
     dependencies:
       '@ethersproject/address': 5.0.8
       '@ethersproject/bignumber': 5.0.12
       '@ethersproject/bytes': 5.0.8
       '@ethersproject/constants': 5.0.7
-      '@ethersproject/hash': 5.0.8
+      '@ethersproject/hash': 5.0.9
       '@ethersproject/keccak256': 5.0.6
       '@ethersproject/logger': 5.0.8
       '@ethersproject/properties': 5.0.6
       '@ethersproject/strings': 5.0.7
-    dev: true
     resolution:
       integrity: sha512-ily2OufA2DTrxkiHQw5GqbkMSnNKuwZBqKsajtT0ERhZy1r9w2CpW1bmtRMIGzaqQxCdn/GEoFogexk72cBBZQ==
   /@ethersproject/abstract-provider/5.0.5:
@@ -355,18 +340,6 @@ packages:
     dev: true
     resolution:
       integrity: sha512-i/CjElAkzV7vQBAeoz+IpjGfcFYEP9eD7j3fzZ0fzTq03DO7PPnR+xkEZ1IoDXGwDS+55aLM1xvLDwB/Lx6IOQ==
-  /@ethersproject/abstract-provider/5.0.6:
-    dependencies:
-      '@ethersproject/bignumber': 5.0.10
-      '@ethersproject/bytes': 5.0.6
-      '@ethersproject/logger': 5.0.7
-      '@ethersproject/networks': 5.0.5
-      '@ethersproject/properties': 5.0.5
-      '@ethersproject/transactions': 5.0.7
-      '@ethersproject/web': 5.0.10
-    dev: false
-    resolution:
-      integrity: sha512-3GJjD+wM8J160XFiTMkDu1UFV9uA1OdbMUI0aYy1CFepxYGSh9vY12bsbiYiTJLXQ86usvSBK6OA9U7IqmKZVw==
   /@ethersproject/abstract-provider/5.0.7:
     dependencies:
       '@ethersproject/bignumber': 5.0.12
@@ -376,7 +349,6 @@ packages:
       '@ethersproject/properties': 5.0.6
       '@ethersproject/transactions': 5.0.8
       '@ethersproject/web': 5.0.11
-    dev: true
     resolution:
       integrity: sha512-NF16JGn6M0zZP5ZS8KtDL2Rh7yHxZbUjBIHLNHMm/0X0BephhjUWy8jqs/Zks6kDJRzNthgmPVy41Ec0RYWPYA==
   /@ethersproject/abstract-signer/5.0.7:
@@ -389,16 +361,6 @@ packages:
     dev: true
     resolution:
       integrity: sha512-8W8gy/QutEL60EoMEpvxZ8MFAEWs/JvH5nmZ6xeLXoZvmBCasGmxqHdYjo2cxg0nevkPkq9SeenSsBBZSCx+SQ==
-  /@ethersproject/abstract-signer/5.0.8:
-    dependencies:
-      '@ethersproject/abstract-provider': 5.0.6
-      '@ethersproject/bignumber': 5.0.10
-      '@ethersproject/bytes': 5.0.6
-      '@ethersproject/logger': 5.0.7
-      '@ethersproject/properties': 5.0.5
-    dev: false
-    resolution:
-      integrity: sha512-Q5ZJtxs5txKBfTbdXRI4n6Nn4EJlKg3zA22S4Eg+P3hIZ+cXoLoK9CnA1GeKMRHJiDBqECnWqeQl+yyGR7D+jg==
   /@ethersproject/abstract-signer/5.0.9:
     dependencies:
       '@ethersproject/abstract-provider': 5.0.7
@@ -406,7 +368,6 @@ packages:
       '@ethersproject/bytes': 5.0.8
       '@ethersproject/logger': 5.0.8
       '@ethersproject/properties': 5.0.6
-    dev: true
     resolution:
       integrity: sha512-CM5UNmXQaA03MyYARFDDRjHWBxujO41tVle7glf5kHcQsDDULgqSVpkliLJMtPzZjOKFeCVZBHybTZDEZg5zzg==
   /@ethersproject/address/5.0.5:
@@ -420,16 +381,6 @@ packages:
     dev: true
     resolution:
       integrity: sha512-DpkQ6rwk9jTefrRsJzEm6nhRiJd9pvhn1xN0rw5N/jswXG5r7BLk/GVA0mMAVWAsYfvi2xSc5L41FMox43RYEA==
-  /@ethersproject/address/5.0.7:
-    dependencies:
-      '@ethersproject/bignumber': 5.0.10
-      '@ethersproject/bytes': 5.0.6
-      '@ethersproject/keccak256': 5.0.5
-      '@ethersproject/logger': 5.0.7
-      '@ethersproject/rlp': 5.0.5
-    dev: false
-    resolution:
-      integrity: sha512-+63DiYG+2og6rFNvQmLlLw8i5LtyT65n+jtHd06Ic81rLHc+JUKRpeZFhBa+gqh9f+P8V0xtKR5NI/EHXOfgSw==
   /@ethersproject/address/5.0.8:
     dependencies:
       '@ethersproject/bignumber': 5.0.12
@@ -437,7 +388,6 @@ packages:
       '@ethersproject/keccak256': 5.0.6
       '@ethersproject/logger': 5.0.8
       '@ethersproject/rlp': 5.0.6
-    dev: true
     resolution:
       integrity: sha512-V87DHiZMZR6hmFYmoGaHex0D53UEbZpW75uj8AqPbjYUmi65RB4N2LPRcJXuWuN2R0Y2CxkvW6ArijWychr5FA==
   /@ethersproject/base64/5.0.4:
@@ -446,16 +396,9 @@ packages:
     dev: true
     resolution:
       integrity: sha512-4KRykQ7BQMeOXfvio1YITwHjxwBzh92UoXIdzxDE1p53CK28bbHPdsPNYo0wl0El7lJAMpT2SOdL0hhbWRnyIA==
-  /@ethersproject/base64/5.0.5:
-    dependencies:
-      '@ethersproject/bytes': 5.0.6
-    dev: false
-    resolution:
-      integrity: sha512-4GJ9InM+zDDiiejPG/TrNGXVgD8D4BClEfJ3w45+ufyFA7QDT3gkAy+SdmmQCGAEBB+79MmXMLFq7TNtDM2DaA==
   /@ethersproject/base64/5.0.6:
     dependencies:
       '@ethersproject/bytes': 5.0.8
-    dev: true
     resolution:
       integrity: sha512-HwrGn8YMiUf7bcdVvB4NJ+eWT0BtEFpDtrYxVXEbR7p/XBSJjwiR7DEggIiRvxbualMKg+EZijQWJ3az2li0uw==
   /@ethersproject/basex/5.0.4:
@@ -465,34 +408,17 @@ packages:
     dev: true
     resolution:
       integrity: sha512-ixIr/kKiAoSzOnSc777AGIOAhKai5Ivqr4HO/Gz+YG+xkfv6kqD6AW4ga9vM20Wwb0QBhh3LoRWTu4V1K+x9Ew==
-  /@ethersproject/basex/5.0.5:
-    dependencies:
-      '@ethersproject/bytes': 5.0.6
-      '@ethersproject/properties': 5.0.5
-    dev: false
-    resolution:
-      integrity: sha512-Echs7nWq1K/HqDaxnT0nJ2Qe5uXH5v/L6AdKVlH+FQ0FrRAMl0XgWoWECsYo9lt16/Pk4wiMksLvVEW8djluEg==
   /@ethersproject/basex/5.0.6:
     dependencies:
       '@ethersproject/bytes': 5.0.8
       '@ethersproject/properties': 5.0.6
-    dev: true
     resolution:
       integrity: sha512-Y/8dowRxBF3bsKkqEp7XN4kcFFQ0o5xxP1YyopfqkXejaOEGiD7ToQdQ0pIZpAJ5GreW56oFOTDDSO6ZcUCNYg==
-  /@ethersproject/bignumber/5.0.10:
-    dependencies:
-      '@ethersproject/bytes': 5.0.6
-      '@ethersproject/logger': 5.0.7
-      bn.js: 4.11.9
-    dev: false
-    resolution:
-      integrity: sha512-1b3bMe+PCjx6xI5IINzaWtNZEKtwq2guVrhuwRqQmHEsAgKDK+UMckXYsu0CwMwRsQoeq+sNuCWd64pCxkBqMw==
   /@ethersproject/bignumber/5.0.12:
     dependencies:
       '@ethersproject/bytes': 5.0.8
       '@ethersproject/logger': 5.0.8
       bn.js: 4.11.9
-    dev: true
     resolution:
       integrity: sha512-mbFZjwthx6vFlHG9owXP/C5QkNvsA+xHpDCkPPPdG2n1dS9AmZAL5DI0InNLid60rQWL3MXpEl19tFmtL7Q9jw==
   /@ethersproject/bignumber/5.0.8:
@@ -509,16 +435,9 @@ packages:
     dev: true
     resolution:
       integrity: sha512-IEj9HpZB+ACS6cZ+QQMTqmu/cnUK2fYNE6ms/PVxjoBjoxc6HCraLpam1KuRvreMy0i523PLmjN8OYeikRdcUQ==
-  /@ethersproject/bytes/5.0.6:
-    dependencies:
-      '@ethersproject/logger': 5.0.7
-    dev: false
-    resolution:
-      integrity: sha512-axEmVeVy5IS0Sg46fNk4mygMm96uGd/15b6zmMu53w0NpHmOC/GYfpqMBHYxavjFYN+LUL7vVwgpbIFYGO2QHA==
   /@ethersproject/bytes/5.0.8:
     dependencies:
       '@ethersproject/logger': 5.0.8
-    dev: true
     resolution:
       integrity: sha512-O+sJNVGzzuy51g+EMK8BegomqNIg+C2RO6vOt0XP6ac4o4saiq69FnjlsrNslaiMFVO7qcEHBsWJ9hx1tj1lMw==
   /@ethersproject/constants/5.0.5:
@@ -527,16 +446,9 @@ packages:
     dev: true
     resolution:
       integrity: sha512-foaQVmxp2+ik9FrLUCtVrLZCj4M3Ibgkqvh+Xw/vFRSerkjVSYePApaVE5essxhoSlF1U9oXfWY09QI2AXtgKA==
-  /@ethersproject/constants/5.0.6:
-    dependencies:
-      '@ethersproject/bignumber': 5.0.10
-    dev: false
-    resolution:
-      integrity: sha512-ioBMaUsVb2+C8UVAHUpfrrkNtFEcAYNaZSf79Lw7VhjFRY5f1ImWGqSZhJb4/wKxaw0RIYLW7ZriDgcx2YMwWA==
   /@ethersproject/constants/5.0.7:
     dependencies:
       '@ethersproject/bignumber': 5.0.12
-    dev: true
     resolution:
       integrity: sha512-cbQK1UpE4hamB52Eg6DLhJoXeQ1plSzekh5Ujir1xdREdwdsZPPXKczkrWqBBR0KyywJZHN/o/hj0w8j7scSGg==
   /@ethersproject/contracts/5.0.5:
@@ -553,20 +465,6 @@ packages:
     dev: true
     resolution:
       integrity: sha512-tFI255lFbmbqMkgnuyhDWHl3yWqttPlReplYuVvDCT/SuvBjLR4ad2uipBlh1fh5X1ipK9ettAoV4S0HKim4Kw==
-  /@ethersproject/contracts/5.0.7:
-    dependencies:
-      '@ethersproject/abi': 5.0.8
-      '@ethersproject/abstract-provider': 5.0.6
-      '@ethersproject/abstract-signer': 5.0.8
-      '@ethersproject/address': 5.0.7
-      '@ethersproject/bignumber': 5.0.10
-      '@ethersproject/bytes': 5.0.6
-      '@ethersproject/constants': 5.0.6
-      '@ethersproject/logger': 5.0.7
-      '@ethersproject/properties': 5.0.5
-    dev: false
-    resolution:
-      integrity: sha512-JFk+2yckhQQg6poCS2FQHtUnPpwE+U3MuoMV6pAyYXLidrQ7h2OU4nqJ/evO0Lo42oUtVc4vWn+1Nv5dDF8kKg==
   /@ethersproject/contracts/5.0.8:
     dependencies:
       '@ethersproject/abi': 5.0.9
@@ -578,7 +476,6 @@ packages:
       '@ethersproject/constants': 5.0.7
       '@ethersproject/logger': 5.0.8
       '@ethersproject/properties': 5.0.6
-    dev: true
     resolution:
       integrity: sha512-PecBL4vnsrpuks2lzzkRsOts8csJy338HNDKDIivbFmx92BVzh3ohOOv3XsoYPSXIHQvobF959W+aSk3RCZL/g==
   /@ethersproject/hash/5.0.6:
@@ -594,20 +491,7 @@ packages:
     dev: true
     resolution:
       integrity: sha512-Gvh57v6BWhwnud6l7tMfQm32PRQ2DYx2WaAAQmAxAfYvmzUkpQCBstnGeNMXIL8/2wdkvcB2u+WZRWaZtsFuUQ==
-  /@ethersproject/hash/5.0.7:
-    dependencies:
-      '@ethersproject/abstract-signer': 5.0.8
-      '@ethersproject/address': 5.0.7
-      '@ethersproject/bignumber': 5.0.10
-      '@ethersproject/bytes': 5.0.6
-      '@ethersproject/keccak256': 5.0.5
-      '@ethersproject/logger': 5.0.7
-      '@ethersproject/properties': 5.0.5
-      '@ethersproject/strings': 5.0.6
-    dev: false
-    resolution:
-      integrity: sha512-vYuRJRTAGHcYqQFAxxCgDpJtJv4aGC5TQm5NDZat/55BeLGLmH90ftJG1ldv7MhzGRxBPJtpqSHzJDizB6VKoA==
-  /@ethersproject/hash/5.0.8:
+  /@ethersproject/hash/5.0.9:
     dependencies:
       '@ethersproject/abstract-signer': 5.0.9
       '@ethersproject/address': 5.0.8
@@ -617,9 +501,8 @@ packages:
       '@ethersproject/logger': 5.0.8
       '@ethersproject/properties': 5.0.6
       '@ethersproject/strings': 5.0.7
-    dev: true
     resolution:
-      integrity: sha512-Qay01tcFyFreYjSMt82rOQGMfQDmLm1sj3iNNO1BhrVf840xgBZuJ7gBATERzAjTuTCHUHw9BuGwxErJUS95yg==
+      integrity: sha512-e8/i2ZDeGSgCxXT0vocL54+pMbw5oX5fNjb2E3bAIvdkh5kH29M7zz1jHu1QDZnptIuvCZepIbhUH8lxKE2/SQ==
   /@ethersproject/hdnode/5.0.5:
     dependencies:
       '@ethersproject/abstract-signer': 5.0.7
@@ -662,30 +545,17 @@ packages:
     dev: true
     resolution:
       integrity: sha512-GNpiOUm9PGUxFNqOxYKDQBM0u68bG9XC9iOulEQ8I0tOx/4qUpgVzvgXL6ugxr0RY554Gz/NQsVqknqPzUcxpQ==
-  /@ethersproject/keccak256/5.0.5:
-    dependencies:
-      '@ethersproject/bytes': 5.0.6
-      js-sha3: 0.5.7
-    dev: false
-    resolution:
-      integrity: sha512-9hXXp113jW5yPf27krofmnZ26u5SXsmuvrMTUuXyVdIDIJDLGorVyB2bBiWwENVok92E4WDnfAZHG+A+E6TCMQ==
   /@ethersproject/keccak256/5.0.6:
     dependencies:
       '@ethersproject/bytes': 5.0.8
       js-sha3: 0.5.7
-    dev: true
     resolution:
       integrity: sha512-eJ4Id/i2rwrf5JXEA7a12bG1phuxjj47mPZgDUbttuNBodhSuZF2nEO5QdpaRjmlphQ8Kt9PNqY/z7lhtJptZg==
   /@ethersproject/logger/5.0.6:
     dev: true
     resolution:
       integrity: sha512-FrX0Vnb3JZ1md/7GIZfmJ06XOAA8r3q9Uqt9O5orr4ZiksnbpXKlyDzQtlZ5Yv18RS8CAUbiKH9vwidJg1BPmQ==
-  /@ethersproject/logger/5.0.7:
-    dev: false
-    resolution:
-      integrity: sha512-1wl+kDTPdDptpQdrkTmImubygUf0mVeo0I/p8d21qdzT16h/GnoJWt7q6Kt0xvTfcI7Jv4kryskxI2xV++w5Hg==
   /@ethersproject/logger/5.0.8:
-    dev: true
     resolution:
       integrity: sha512-SkJCTaVTnaZ3/ieLF5pVftxGEFX56pTH+f2Slrpv7cU0TNpUZNib84QQdukd++sWUp/S7j5t5NW+WegbXd4U/A==
   /@ethersproject/networks/5.0.4:
@@ -694,16 +564,9 @@ packages:
     dev: true
     resolution:
       integrity: sha512-/wHDTRms5mpJ09BoDrbNdFWINzONe05wZRgohCXvEv39rrH/Gd/yAnct8wC0RsW3tmFOgjgQxuBvypIxuUynTw==
-  /@ethersproject/networks/5.0.5:
-    dependencies:
-      '@ethersproject/logger': 5.0.7
-    dev: false
-    resolution:
-      integrity: sha512-DEcGEoRPtpbM+no9JmpwdCVVQELqYhP42BKArLsqps6nIEqOInWnjfpXfEss+nTrBp3zDrL4KNfOe7mS96C/mQ==
   /@ethersproject/networks/5.0.6:
     dependencies:
       '@ethersproject/logger': 5.0.8
-    dev: true
     resolution:
       integrity: sha512-2Cg1N5109zzFOBfkyuPj+FfF7ioqAsRffmybJ2lrsiB5skphIAE72XNSCs4fqktlf+rwSh/5o/UXRjXxvSktZw==
   /@ethersproject/pbkdf2/5.0.4:
@@ -719,16 +582,9 @@ packages:
     dev: true
     resolution:
       integrity: sha512-UdyX3GqBxFt15B0uSESdDNmhvEbK3ACdDXl2soshoPcneXuTswHDeA0LoPlnaZzhbgk4p6jqb4GMms5C26Qu6A==
-  /@ethersproject/properties/5.0.5:
-    dependencies:
-      '@ethersproject/logger': 5.0.7
-    dev: false
-    resolution:
-      integrity: sha512-2HwajwTUwlrOsiLVyyxiS4oP0a4xBNi1i90/kDJESmtlDmf2DkrY6qjBssa9YnWoEH34N/ZpLFVndimIrlo8kg==
   /@ethersproject/properties/5.0.6:
     dependencies:
       '@ethersproject/logger': 5.0.8
-    dev: true
     resolution:
       integrity: sha512-a9DUMizYhJ0TbtuDkO9iYlb2CDlpSKqGPDr+amvlZhRspQ6jbl5Eq8jfu4SCcGlcfaTbguJmqGnyOGn1EFt6xA==
   /@ethersproject/providers/5.0.14:
@@ -755,30 +611,6 @@ packages:
     dev: true
     resolution:
       integrity: sha512-K9QRRkkHWyprm3g4L8U9aPx5uyivznL4RYemkN2shCQumyGqFJ5SO+OtQrgebVm0JpGwFAUGugnhRUh49sjErw==
-  /@ethersproject/providers/5.0.15:
-    dependencies:
-      '@ethersproject/abstract-provider': 5.0.6
-      '@ethersproject/abstract-signer': 5.0.8
-      '@ethersproject/address': 5.0.7
-      '@ethersproject/basex': 5.0.5
-      '@ethersproject/bignumber': 5.0.10
-      '@ethersproject/bytes': 5.0.6
-      '@ethersproject/constants': 5.0.6
-      '@ethersproject/hash': 5.0.7
-      '@ethersproject/logger': 5.0.7
-      '@ethersproject/networks': 5.0.5
-      '@ethersproject/properties': 5.0.5
-      '@ethersproject/random': 5.0.5
-      '@ethersproject/rlp': 5.0.5
-      '@ethersproject/sha2': 5.0.5
-      '@ethersproject/strings': 5.0.6
-      '@ethersproject/transactions': 5.0.7
-      '@ethersproject/web': 5.0.10
-      bech32: 1.1.4
-      ws: 7.2.3
-    dev: false
-    resolution:
-      integrity: sha512-9SrJkIQiqq9tDHQhUG6rKG0YApra0ByVINSJq8A33JvBhYlyYsFXofdy8S2FzzZRXwNAo90f44q+Pfi9stiB6A==
   /@ethersproject/providers/5.0.17:
     dependencies:
       '@ethersproject/abstract-provider': 5.0.7
@@ -788,7 +620,7 @@ packages:
       '@ethersproject/bignumber': 5.0.12
       '@ethersproject/bytes': 5.0.8
       '@ethersproject/constants': 5.0.7
-      '@ethersproject/hash': 5.0.8
+      '@ethersproject/hash': 5.0.9
       '@ethersproject/logger': 5.0.8
       '@ethersproject/networks': 5.0.6
       '@ethersproject/properties': 5.0.6
@@ -800,7 +632,6 @@ packages:
       '@ethersproject/web': 5.0.11
       bech32: 1.1.4
       ws: 7.2.3
-    dev: true
     resolution:
       integrity: sha512-bJnvs5X7ttU5x2ekGJYG7R3Z+spZawLFfR0IDsbaMDLiCwZOyrgk+VTBU7amSFLT0WUhWFv8WwSUB+AryCQG1Q==
   /@ethersproject/random/5.0.4:
@@ -810,18 +641,10 @@ packages:
     dev: true
     resolution:
       integrity: sha512-AIZJhqs6Ba4/+U3lOjt3QZbP6b/kuuGLJUYFUonAgWmkTHwqsCwYnFvnHKQSUuHbXHvErp7WFXFlztx+yMn3kQ==
-  /@ethersproject/random/5.0.5:
-    dependencies:
-      '@ethersproject/bytes': 5.0.6
-      '@ethersproject/logger': 5.0.7
-    dev: false
-    resolution:
-      integrity: sha512-MZU+W03FVEKeiKb9w/guTMiBa17Wub6mTNeVLQk8Nte/7onXt8iRgdPGoXquXhyM6lqL8PsxeunFYYa6azr0rA==
   /@ethersproject/random/5.0.6:
     dependencies:
       '@ethersproject/bytes': 5.0.8
       '@ethersproject/logger': 5.0.8
-    dev: true
     resolution:
       integrity: sha512-8nsVNaZvZ9OD5NXfzE4mmz8IH/1DYJbAR95xpRxZkIuNmfn6QlMp49ccJYZWGhs6m0Zj2+FXjx3pzXfYlo9/dA==
   /@ethersproject/rlp/5.0.4:
@@ -831,18 +654,10 @@ packages:
     dev: true
     resolution:
       integrity: sha512-5qrrZad7VTjofxSsm7Zg/7Dr4ZOln4S2CqiDdOuTv6MBKnXj0CiBojXyuDy52M8O3wxH0CyE924hXWTDV1PQWQ==
-  /@ethersproject/rlp/5.0.5:
-    dependencies:
-      '@ethersproject/bytes': 5.0.6
-      '@ethersproject/logger': 5.0.7
-    dev: false
-    resolution:
-      integrity: sha512-RAUhk5+VH2UquTawgf7eK1i4Qbbzt0Ky6M27Q9JniRx0SBqmTkbKx/iXRZN/0x9vqQJhT596Z3vVevhqSa+GPQ==
   /@ethersproject/rlp/5.0.6:
     dependencies:
       '@ethersproject/bytes': 5.0.8
       '@ethersproject/logger': 5.0.8
-    dev: true
     resolution:
       integrity: sha512-M223MTaydfmQSsvqAl0FJZDYFlSqt6cgbhnssLDwqCKYegAHE16vrFyo+eiOapYlt32XAIJm0BXlqSunULzZuQ==
   /@ethersproject/sha2/5.0.4:
@@ -853,20 +668,11 @@ packages:
     dev: true
     resolution:
       integrity: sha512-0yFhf1mspxAfWdXXoPtK94adUeu1R7/FzAa+DfEiZTc76sz/vHXf0LSIazoR3znYKFny6haBxME+usbvvEcF3A==
-  /@ethersproject/sha2/5.0.5:
-    dependencies:
-      '@ethersproject/bytes': 5.0.6
-      '@ethersproject/logger': 5.0.7
-      hash.js: 1.1.3
-    dev: false
-    resolution:
-      integrity: sha512-DbBlEtWc6ssQbbN61Jc5XOYcXPkkPr3lPAj+v4kqZ5MIJN2mHk8B9+oCoArp/uDqFXuJlpSze19p/kdSDOljKQ==
   /@ethersproject/sha2/5.0.6:
     dependencies:
       '@ethersproject/bytes': 5.0.8
       '@ethersproject/logger': 5.0.8
       hash.js: 1.1.3
-    dev: true
     resolution:
       integrity: sha512-30gypDLkfkP5gE3llqi0jEuRV8m4/nvzeqmqMxiihZ7veFQHqDaGpyFeHzFim+qGeH9fq0lgYjavLvwW69+Fkw==
   /@ethersproject/signing-key/5.0.5:
@@ -878,22 +684,12 @@ packages:
     dev: true
     resolution:
       integrity: sha512-Z1wY7JC1HVO4CvQWY2TyTTuAr8xK3bJijZw1a9G92JEmKdv1j255R/0YLBBcFTl2J65LUjtXynNJ2GbArPGi5g==
-  /@ethersproject/signing-key/5.0.6:
-    dependencies:
-      '@ethersproject/bytes': 5.0.6
-      '@ethersproject/logger': 5.0.7
-      '@ethersproject/properties': 5.0.5
-      elliptic: 6.5.3
-    dev: false
-    resolution:
-      integrity: sha512-KjyePQsh+L6BwmPWD5JoXCrRGjNfYSD5YeXQhy6YWQeMAfG0+WMG7U2SKzl+DWM+8/Ymat3s6o3U2GLXhGrcMg==
   /@ethersproject/signing-key/5.0.7:
     dependencies:
       '@ethersproject/bytes': 5.0.8
       '@ethersproject/logger': 5.0.8
       '@ethersproject/properties': 5.0.6
       elliptic: 6.5.3
-    dev: true
     resolution:
       integrity: sha512-JYndnhFPKH0daPcIjyhi+GMcw3srIHkQ40hGRe6DA0CdGrpMfgyfSYDQ2D8HL2lgR+Xm4SHfEB0qba6+sCyrvg==
   /@ethersproject/solidity/5.0.5:
@@ -906,16 +702,16 @@ packages:
     dev: true
     resolution:
       integrity: sha512-DMFQ0ouXmNVoKWbGEUFGi8Urli4SJip9jXafQyFHWPRr5oJUqDVkNfwcyC37k+mhBG93k7qrYXCH2xJnGEOxHg==
-  /@ethersproject/solidity/5.0.6:
+  /@ethersproject/solidity/5.0.7:
     dependencies:
-      '@ethersproject/bignumber': 5.0.10
-      '@ethersproject/bytes': 5.0.6
-      '@ethersproject/keccak256': 5.0.5
-      '@ethersproject/sha2': 5.0.5
-      '@ethersproject/strings': 5.0.6
+      '@ethersproject/bignumber': 5.0.12
+      '@ethersproject/bytes': 5.0.8
+      '@ethersproject/keccak256': 5.0.6
+      '@ethersproject/sha2': 5.0.6
+      '@ethersproject/strings': 5.0.7
     dev: false
     resolution:
-      integrity: sha512-77bse7hVwv79QDRFg+rtahg1pcpIx6JKoRlctZOP+ePd0pSSP4/0uJMsJ9bL+CLOLtQEAd/bgvxs9OUbe7DQtw==
+      integrity: sha512-dUevKUZ06p/VMLP/+cz4QUV+lA17NixucDJfm0ioWF0B3R0Lf+6wqwPchcqiAXlxkNFGIax7WNLgGMh4CkQ8iw==
   /@ethersproject/strings/5.0.5:
     dependencies:
       '@ethersproject/bytes': 5.0.5
@@ -924,20 +720,11 @@ packages:
     dev: true
     resolution:
       integrity: sha512-JED6WaIV00xM/gvj8vSnd+0VWtDYdidTmavFRCTQakqfz+4tDo6Jz5LHgG+dd45h7ah7ykCHW0C7ZXWEDROCXQ==
-  /@ethersproject/strings/5.0.6:
-    dependencies:
-      '@ethersproject/bytes': 5.0.6
-      '@ethersproject/constants': 5.0.6
-      '@ethersproject/logger': 5.0.7
-    dev: false
-    resolution:
-      integrity: sha512-eJf0TKk/X2MvR3OSaOsS4XhKkWTi4p7YrZp2P1DaiTP+xsxizMYI1Ds5VUB4DH4RIseUe4Sbf6eN2dfG+fhW2w==
   /@ethersproject/strings/5.0.7:
     dependencies:
       '@ethersproject/bytes': 5.0.8
       '@ethersproject/constants': 5.0.7
       '@ethersproject/logger': 5.0.8
-    dev: true
     resolution:
       integrity: sha512-a+6T80LvmXGMOOWQTZHtGGQEg1z4v8rm8oX70KNs55YtPXI/5J3LBbVf5pyqCKSlmiBw5IaepPvs5XGalRUSZQ==
   /@ethersproject/transactions/5.0.6:
@@ -954,20 +741,6 @@ packages:
     dev: true
     resolution:
       integrity: sha512-htsFhOD+NMBxx676A8ehSuwVV49iqpSB+CkjPZ02tpNew0K6p8g0CZ46Z1ZP946gIHAU80xQ0NACHYrjIUaCFA==
-  /@ethersproject/transactions/5.0.7:
-    dependencies:
-      '@ethersproject/address': 5.0.7
-      '@ethersproject/bignumber': 5.0.10
-      '@ethersproject/bytes': 5.0.6
-      '@ethersproject/constants': 5.0.6
-      '@ethersproject/keccak256': 5.0.5
-      '@ethersproject/logger': 5.0.7
-      '@ethersproject/properties': 5.0.5
-      '@ethersproject/rlp': 5.0.5
-      '@ethersproject/signing-key': 5.0.6
-    dev: false
-    resolution:
-      integrity: sha512-U7dyBMQ73lHUoAnp3fdcfhgvJwcow88b0/q7Fl6Id21/Ll7Dxe7qrWjR6pH6XTKV+h2a74o/pJS7CxNiwahaHw==
   /@ethersproject/transactions/5.0.8:
     dependencies:
       '@ethersproject/address': 5.0.8
@@ -979,7 +752,6 @@ packages:
       '@ethersproject/properties': 5.0.6
       '@ethersproject/rlp': 5.0.6
       '@ethersproject/signing-key': 5.0.7
-    dev: true
     resolution:
       integrity: sha512-i7NtOXVzUe+YSU6QufzlRrI2WzHaTmULAKHJv4duIZMLqzehCBXGA9lTpFgFdqGYcQJ7vOtNFC2BB2mSjmuXqg==
   /@ethersproject/units/5.0.6:
@@ -1010,16 +782,6 @@ packages:
     dev: true
     resolution:
       integrity: sha512-n2GX1+2Tc0qV8dguUcLkjNugINKvZY7u/5fEsn0skW9rz5+jHTR5IKMV6jSfXA+WjQT8UCNMvkI3CNcdhaPbTQ==
-  /@ethersproject/web/5.0.10:
-    dependencies:
-      '@ethersproject/base64': 5.0.5
-      '@ethersproject/bytes': 5.0.6
-      '@ethersproject/logger': 5.0.7
-      '@ethersproject/properties': 5.0.5
-      '@ethersproject/strings': 5.0.6
-    dev: false
-    resolution:
-      integrity: sha512-j49TbzUJBggILUuZahNXG59ugktjfCJyJfNhmC068DwIG0k+ygYK2BV1CWP3uuh7H2DHZ6LMLC+IsWWKb8MDlA==
   /@ethersproject/web/5.0.11:
     dependencies:
       '@ethersproject/base64': 5.0.6
@@ -1027,7 +789,6 @@ packages:
       '@ethersproject/logger': 5.0.8
       '@ethersproject/properties': 5.0.6
       '@ethersproject/strings': 5.0.7
-    dev: true
     resolution:
       integrity: sha512-x03ihbPoN1S8Gsh9WSwxkYxUIumLi02ZEKJku1C43sxBfe+mdprWyvujzYlpuoRNfWRgNhdRDKMP8JbG6MwNGA==
   /@ethersproject/web/5.0.9:
@@ -13425,12 +13186,12 @@ packages:
     dev: false
     resolution:
       integrity: sha512-tF2mdo910sA14WuvumoekFCyfO5gsvbkzuvaRtW7QUCT3E4YAzGVr6PWTrUdA+Y6pCIfYkKUMLZcYTPFSyacCg==
-  /web3w/0.2.38_05dfc60a248ce24be7a6317263d6c452:
+  /web3w/0.2.38_58b2699bbf6564faba4228423b2c7644:
     dependencies:
-      '@ethersproject/abi': 5.0.8
-      '@ethersproject/bignumber': 5.0.10
-      '@ethersproject/contracts': 5.0.7
-      '@ethersproject/providers': 5.0.15
+      '@ethersproject/abi': 5.0.9
+      '@ethersproject/bignumber': 5.0.12
+      '@ethersproject/contracts': 5.0.8
+      '@ethersproject/providers': 5.0.17
       named-logs: 0.0.13
     dev: false
     peerDependencies:
