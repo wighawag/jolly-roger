@@ -1,6 +1,6 @@
 {
-  "name": "{{=_.paramCase(it.name)}}-contracts",
-  "description": "Smart contracts for {{=_.capitalCase(it.name)}}",
+  "name": "jolly-roger-contracts",
+  "description": "Smart contracts for Jolly Roger",
   "version": "0.0.1",
   "private": true,
   "devDependencies": {
@@ -17,10 +17,10 @@
     "cross-env": "^7.0.2",
     "dotenv": "^8.2.0",
     "ethers": "^5.0.8",
-    "hardhat": "^2.0.1",
-    "hardhat-deploy": "^0.7.0-beta.20",
-    "hardhat-deploy-ethers": "^0.3.0-beta.5",
-    "{{=_.paramCase(it.name)}}-common": "workspace:*",
+    "hardhat": "^2.0.4",
+    "hardhat-deploy": "^0.7.0-beta.35",
+    "hardhat-deploy-ethers": "^0.3.0-beta.7",
+    "jolly-roger-common": "workspace:*",
     "mocha": "^8.1.1",
     "ts-node": "^9.0.0",
     "typescript": "^3.8.3"

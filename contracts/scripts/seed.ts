@@ -19,11 +19,11 @@ async function main() {
   for (let i = 0; i < messages.length; i++) {
     const sender = others[i];
     if (sender) {
-      const {{=_.camelCase(it.contractName)}}Contract = await ethers.getContract(
-        '{{=_.pascalCase(it.contractName)}}',
+      const greetingsRegistryContract = await ethers.getContract(
+        'GreetingsRegistry',
         sender
       );
-      await waitFor({{=_.camelCase(it.contractName)}}Contract.setMessage(messages[i]));
+      await waitFor(greetingsRegistryContract.setMessage(messages[i]));
     }
   }
 }

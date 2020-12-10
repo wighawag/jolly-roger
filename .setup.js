@@ -16,13 +16,14 @@ function writeIfNotExists(p, content) {
 }
 
 [
-  '{{=_.paramCase(it.name)}}.code-workspace',
+  'jolly-roger.code-workspace',
   '.env',
   '.env.production',
   '.env.staging',
   'contracts/.vscode/settings.json',
   'common-lib/.vscode/settings.json',
   'subgraph/.vscode/settings.json',
+  'subgraph/.env',
   'web/.vscode/settings.json',
 ].map(copyFromDefault);
 

@@ -1,4 +1,5 @@
-import {HardhatRuntimeEnvironment, DeployFunction} from 'hardhat/types';
+import {HardhatRuntimeEnvironment} from 'hardhat/types';
+import {DeployFunction} from 'hardhat-deploy/types';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const {deployer} = await hre.getNamedAccounts();
@@ -7,7 +8,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // proxy only in non-live network (localhost and hardhat network) enabling HCR (Hot Contract Replacement)
   // in live network, proxy is disabled and constructor is invoked
-  await deploy('{{=_.pascalCase(it.contractName)}}', {
+  await deploy('GreetingsRegistry', {
     from: deployer,
     proxy: useProxy && 'postUpgrade',
     args: [2],
@@ -17,5 +18,5 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   return !useProxy; // when live network, record the script as executed to prevent rexecution
 };
 export default func;
-func.id = 'deploy_{{=_.snakeCase(it.contractName)}}'; // id required to prevent reexecution
-func.tags = ['{{=_.pascalCase(it.contractName)}}'];
+func.id = 'deploy_greetings_registry'; // id required to prevent reexecution
+func.tags = ['GreetingsRegistry'];

@@ -4,7 +4,7 @@ pragma solidity 0.7.1;
 import "hardhat-deploy/solc_0.7/proxy/Proxied.sol";
 import "hardhat/console.sol";
 
-contract {{=_.pascalCase(it.contractName)}} is Proxied {
+contract GreetingsRegistry is Proxied {
     // -----------------------------------------
     // Events
     // -----------------------------------------
@@ -32,8 +32,9 @@ contract {{=_.pascalCase(it.contractName)}} is Proxied {
     // -----------------------------------------
 
     function setMessage(string calldata message) external {
-        _messages[msg.sender] = message;
-        emit MessageChanged(msg.sender, message);
+        string memory actualMessage = string(abi.encodePacked("", message));
+        _messages[msg.sender] = actualMessage;
+        emit MessageChanged(msg.sender, actualMessage);
     }
 
     function fails(string calldata message) external {

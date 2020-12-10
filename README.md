@@ -1,22 +1,20 @@
-<!-- {{% it.template }} -->
-# jolly-roger
+<!--- -------------------------------------------- -->
+# Jolly  Roger
 
-A template to build a decentralised applicaiton using ethereum, hardhat, svelte and thegraph
+This is a template to build a decentralised applicaiton using ethereum, hardhat, svelte and thegraph
 
 to make an app out of it, execute the following
 
 ```
-npx init-from wighawag/jolly-roger <your-app-folder>
+npx degit wighawag/jolly-roger <your-app-folder>
 ```
 
-or if you want the name to be different than the folder or the contract name to be different too
+-------------------------
+<br/>
+<br/>
+<!--- -------------------------------------------- -->
 
-```
-npx init-from wighawag/jolly-roger <your-app-folder> --name "<Your App Name>" --contractName "<your Contract Name>"
-```
-<!-- {{%}}  -->
-
-# Setup
+# App Setup
 
 ## requirements :
 
@@ -39,6 +37,20 @@ If you decide to use `yarn` you ll have to remove the script "preinstall" that b
 `docker` and `docker-compose` are used to setup the external services (an ethereum node, an ipfs node and a [subgraph](https://thegraph.com) node)
 
 If you prefer (or do not have access to docker/docker-compose) you can run them independently.
+
+## setting name:
+
+Once the app is fetched from git (via degit or via github template), it comes with the name `jolly-roger`.
+
+You ll probably want to rename it. To do so, execute the following command:
+
+If you do not specify a name, it will use the current folder
+
+```bash
+pnpm run set-name [<new name>]
+```
+
+Note that if you decide to change your name latter, you ll have to execute `pnpm install` again.
 
 ## intall dependencies :
 

@@ -1,15 +1,8 @@
 import 'dotenv/config';
-import {HardhatUserConfig} from 'hardhat/config';
+import {HardhatUserConfig} from 'hardhat/types';
 import 'hardhat-deploy';
 import 'hardhat-deploy-ethers';
-
-let mnemonic = process.env.MNEMONIC;
-if (!mnemonic) {
-  mnemonic = 'test test test test test test test test test test test junk';
-}
-const accounts = {
-  mnemonic,
-};
+import {node_url, accounts} from './utils/network';
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -25,39 +18,39 @@ const config: HardhatUserConfig = {
     deployer: 0,
   },
   networks: {
-    coverage: {
-      url: 'http://localhost:5458',
-    },
     hardhat: {
-      accounts,
+      accounts: accounts(),
     },
     localhost: {
-      url: 'http://localhost:8545',
-      accounts,
-    },
-    staging: {
-      url: 'https://rinkeby.infura.io/v3/' + process.env.INFURA_TOKEN,
-      accounts,
-    },
-    rinkeby: {
-      url: 'https://rinkeby.infura.io/v3/' + process.env.INFURA_TOKEN,
-      accounts,
-    },
-    kovan: {
-      url: 'https://kovan.infura.io/v3/' + process.env.INFURA_TOKEN,
-      accounts,
-    },
-    goerli: {
-      url: 'https://goerli.infura.io/v3/' + process.env.INFURA_TOKEN,
-      accounts,
+      url: node_url('localhost'),
+      accounts: accounts(),
     },
     mainnet: {
-      url: 'https://mainnet.infura.io/v3/' + process.env.INFURA_TOKEN,
-      accounts,
+      url: node_url('mainnet'),
+      accounts: accounts('mainnet'),
+    },
+    rinkeby: {
+      url: node_url('rinkeby'),
+      accounts: accounts('rinkeby'),
+    },
+    kovan: {
+      url: node_url('kovan'),
+      accounts: accounts('kovan'),
+    },
+    goerli: {
+      url: node_url('goerli'),
+      accounts: accounts('goerli'),
+    },
+    staging: {
+      url: node_url('rinkeby'),
+      accounts: accounts('rinkeby'),
     },
   },
   paths: {
     sources: 'src',
+  },
+  mocha: {
+    timeout: 0,
   },
 };
 
