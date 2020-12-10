@@ -33,7 +33,7 @@ export const messages: Readable<QueryState<Messages>> & {
     for (const tx of $transactions) {
       if (!tx.finalized && tx.args) {
         // based on args : so need to ensure args are available
-        if (tx.status !== 'failure') {
+        if (tx.status != 'cancelled' && tx.status !== 'failure') {
           const foundIndex = newData.findIndex(
             (v) => v.id.toLowerCase() === tx.from.toLowerCase()
           );
