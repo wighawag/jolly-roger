@@ -1,6 +1,6 @@
 import {expect} from './chai-setup';
 import {getUnnamedAccounts} from 'hardhat';
-import {test} from '{{=_.paramCase(it.name)}}-common';
+import {test} from 'jolly-roger-common';
 
 describe('CommonLib', function () {
   it('test common lib', async function () {

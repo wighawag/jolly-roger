@@ -16,7 +16,7 @@ function writeIfNotExists(p, content) {
 }
 
 [
-  '{{=_.paramCase(it.name)}}.code-workspace',
+  'jolly-roger.code-workspace',
   '.env',
   '.env.production',
   '.env.staging',

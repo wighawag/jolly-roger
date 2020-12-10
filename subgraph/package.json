@@ -1,6 +1,6 @@
 {
-  "name": "{{=_.paramCase(it.name)}}-subgraph",
-  "description": "Subgraph (thegraph.com) for {{=_.capitalCase(it.name)}}",
+  "name": "jolly-roger-subgraph",
+  "description": "Subgraph (thegraph.com) for Jolly Roger",
   "private": true,
   "version": "0.0.1",
   "devDependencies": {

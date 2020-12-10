@@ -9,7 +9,7 @@ export function node_url(networkName: string): string {
 
   let uri = process.env.ETH_NODE_URI;
   if (uri) {
-    uri = uri.replace('{{networkName{{!"}"}}}', networkName);
+    uri = uri.replace('{{networkName}}', networkName);
   }
   if (!uri || uri === '') {
     if (networkName === 'localhost') {

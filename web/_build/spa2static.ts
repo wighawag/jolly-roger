@@ -296,7 +296,7 @@ const redirectScript = `
       if (newLocation !== location.href) {
         console.log("replace : " + location.href + " -> " + newLocation);
         location.replace(newLocation);
-      } else {${redirectEthLink{{!"}"}}}
+      } else {${redirectEthLink}}
     </script>
 `;
 

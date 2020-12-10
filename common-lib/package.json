@@ -1,5 +1,5 @@
 {
-  "name": "{{=_.paramCase(it.name)}}-common",
+  "name": "jolly-roger-common",
   "description": "common library used by other modules",
   "version": "0.0.1",
   "main": "./lib/cjs/index.js",

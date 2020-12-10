@@ -1,15 +1,15 @@
 specVersion: 0.0.2
-description: {{=_.capitalCase(it.name)}}
+description: Jolly Roger
 schema:
   file: ./schema.graphql
 dataSources:
   - kind: ethereum/contract
-    name: {{=_.pascalCase(it.contractName)}}
-    network: {{chainName{{!"}"}}}
+    name: GreetingsRegistry
+    network: {{chainName}}
     source:
-      address: '{{contracts.{{=_.pascalCase(it.contractName)}}.address{{!"}"}}}'
-      abi: {{=_.pascalCase(it.contractName)}}Contract
-      startBlock: {{contracts.{{=_.pascalCase(it.contractName)}}.receipt.blockNumber{{!"}"}}}
+      address: '{{contracts.GreetingsRegistry.address}}'
+      abi: GreetingsRegistryContract
+      startBlock: {{contracts.GreetingsRegistry.receipt.blockNumber}}
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.3
@@ -17,8 +17,8 @@ dataSources:
       entities:
         - MessageEntry
       abis:
-        - name: {{=_.pascalCase(it.contractName)}}Contract
-          file: ./abis/{{=_.pascalCase(it.contractName)}}.json
+        - name: GreetingsRegistryContract
+          file: ./abis/GreetingsRegistry.json
       eventHandlers:
         - event: MessageChanged(indexed address,string)
           handler: handleMessageChanged

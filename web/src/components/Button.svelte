@@ -213,7 +213,7 @@
   <button
     on:click={() => {
       dispatch('click');
-    {{!"}"}}}
+    }}
     aria-label={label}
     title={label}
     type="button"

@@ -4,7 +4,7 @@ pragma solidity 0.7.1;
 import "hardhat-deploy/solc_0.7/proxy/Proxied.sol";
 import "hardhat/console.sol";
 
-contract {{=_.pascalCase(it.contractName)}} is Proxied {
+contract GreetingsRegistry is Proxied {
     // -----------------------------------------
     // Events
     // -----------------------------------------

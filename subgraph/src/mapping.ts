@@ -1,5 +1,5 @@
 /* eslint-disable prefer-const */
-import {MessageChanged} from '../generated/{{=_.pascalCase(it.contractName)}}/{{=_.pascalCase(it.contractName)}}Contract';
+import {MessageChanged} from '../generated/GreetingsRegistry/GreetingsRegistryContract';
 import {MessageEntry} from '../generated/schema';
 // import {log} from '@graphprotocol/graph-ts';
 

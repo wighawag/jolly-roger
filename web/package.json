@@ -1,5 +1,5 @@
 {
-  "name": "{{=_.paramCase(it.name)}}-web",
+  "name": "jolly-roger-web",
   "version": "0.0.1",
   "dependencies": {
     "@curi/interactions": "^2.0.2",
@@ -15,7 +15,7 @@
     "@urql/core": "^1.12.3",
     "@urql/devtools": "^2.0.2",
     "graphql": "^15.3.0",
-    "{{=_.paramCase(it.name)}}-common": "workspace:*",
+    "jolly-roger-common": "workspace:*",
     "named-logs": "0.0.13",
     "named-logs-console": "0.0.14",
     "svelte": "3.24.1",
@@ -59,6 +59,6 @@
     "build:serve": "npm run build && npm run serve",
     "generate": "ts-node --project _build/tsconfig.json _build/generate.ts",
     "spa2static": "node _build/fixPages.js && ts-node --project _build/tsconfig.json -r tsconfig-paths/register -r svelte/register _build/spa2static.ts",
-    "deploy": "ipfs-deploy -p pinata -s {{=_.paramCase(it.name)}} dist"
+    "deploy": "ipfs-deploy -p pinata -s jolly-roger dist"
   }
 }
