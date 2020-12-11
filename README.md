@@ -86,7 +86,7 @@ pnpm shell:dev
 Alternatively you can call the following first : this will setup the external services only (ipfs, ethereum and graph nodes)
 
 ```bash
-pnpm setup
+pnpm externals
 ```
 
 and then run `pnpm shell:dev` to bring up the rest in watch mode.
