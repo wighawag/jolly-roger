@@ -31,8 +31,7 @@
     }
   },
   "scripts": {
-    "preinstall": "npx only-allow pnpm",
-    "setup": "npx change-name jolly-roger && pnpm i",
+    "preinstall": "npx only-allow pnpm && npx change-name jolly-roger && pnpm i",
     "set-name": "npx change-name jolly-roger",
     "prepare": "node ./.setup.js",
 
