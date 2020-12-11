@@ -38,24 +38,19 @@ If you decide to use `yarn` you ll have to remove the script "preinstall" that b
 
 If you prefer (or do not have access to docker/docker-compose) you can run them independently.
 
-## setting name:
-
-Once the app is fetched from git (via degit or via github template), it comes with the name `jolly-roger`.
-
-You ll probably want to rename it. To do so, execute the following command:
-
-If you do not specify a name, it will use the current folder
-
-```bash
-pnpm run set-name [<new name>]
-```
-
-Note that if you decide to change your name latter, you ll have to execute `pnpm install` again.
 
 ## intall dependencies :
 
 ```bash
-pnpm install
+pnpm setup
+```
+
+This will set the app name (and change the files to reflect that) and then call `pnpm install`
+
+You can also manually set the name yourself :
+
+```bash
+pnpm set-name [<new name>] && pnpm install
 ```
 
 # Development
@@ -63,7 +58,7 @@ pnpm install
 The following command will start everything up.
 
 ```bash
-pnpm run shell:start
+pnpm shell:start
 ```
 
 This will run each processes in their own terminal window/tap. Note that you might need confiugration based on your system.
@@ -85,20 +80,20 @@ This command will bring 5 shells up
 Once docker-compose is running, you can stop the other shells and restart them if needed via
 
 ```bash
-pnpm run shell:dev
+pnpm shell:dev
 ```
 
 Alternatively you can call the following first : this will setup the external services only (ipfs, ethereum and graph nodes)
 
 ```bash
-pnpm run setup
+pnpm setup
 ```
 
-and then run `pnpm run shell:dev` to bring up the rest in watch mode.
+and then run `pnpm shell:dev` to bring up the rest in watch mode.
 
 You can also always run them individually
 
-You can also run them all in one process : `pnpm run start` (no separate terminal window/tab) but this means all the log output is in the same window.
+You can also run them all in one process : `pnpm start` (no separate terminal window/tab) but this means all the log output is in the same window.
 
 Basically the `shell:` version will execute each parallel processes in a new terminal window/tab while the non-shell version will execute all in one process sharing the same log output.
 
@@ -109,7 +104,7 @@ Basically the `shell:` version will execute each parallel processes in a new ter
 To export the web app (ipfs ready) execute the following:
 
 ```bash
-pnpm run production:web:build
+pnpm production:web:build
 ```
 
 ## full deployment
@@ -141,13 +136,13 @@ Furthermore, you need to ensure the values in [web/application.json](web/applica
 finally execute the following for staging :
 
 ```
-pnpm run staging
+pnpm staging
 ```
 
 for production:
 
 ```
-pnpm run production
+pnpm production
 ```
 
 For `webapp:build` you can also use [fleek](https://fleek.co) so that building and ipfs deployment is done automatically. The repo provide a `.fleek.json` file already setup for staging.
