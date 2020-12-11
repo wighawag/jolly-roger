@@ -32,6 +32,7 @@
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
+    "setup": "npx change-name jolly-roger && pnpm i",
     "set-name": "npx change-name jolly-roger",
     "prepare": "node ./.setup.js",
 
@@ -45,8 +46,8 @@
     "stop": "run-s externals:down",
     "externals:down": "docker-compose down -v",
     "docker-compose": "dotenv -e .env -e contracts/.env -- docker-compose up",
-    "externals": "run-p docker-compose contracts:fundingFromGethCoinbase",
-    "shell:externals": "newsh \"npm run externals\"",
+    "externals:up": "run-p docker-compose contracts:fundingFromGethCoinbase",
+    "shell:externals:up": "newsh \"npm run externals:up\"",
 
     "// common lib: ensure it is compiled": "",
     "common:dev": "npm --prefix common-lib run dev",
@@ -105,10 +106,10 @@
     "production": "run-s production:contracts production:subgraph web:generate common:build production:web:rebuild production:web:deploy",
 
     "// START : local development setup": "This setup external service, setup subgraph and deploy it on the local graph-node, deploy the contracts and seed it",
-    "setup": "npm-run-all -l externals:down --parallel externals",
-    "start": "npm-run-all -l externals:down contracts:clean --parallel common:dev web externals subgraph:setup contracts subgraph seed:build",
+    "externals": "npm-run-all -l externals:down --parallel externals:up",
+    "start": "npm-run-all -l externals:down contracts:clean --parallel common:dev web externals:up subgraph:setup contracts subgraph seed:build",
     "dev": "npm-run-all -l contracts:clean --parallel common:dev web subgraph:setup contracts subgraph seed:build",
-    "shell:start": "npm-run-all -l externals:down --parallel shell:common shell:web shell:externals --sequential common:build subgraph:setup contracts:clean shell:contracts shell:subgraph seed",
+    "shell:start": "npm-run-all -l externals:down --parallel shell:common shell:web shell:externals:up --sequential common:build subgraph:setup contracts:clean shell:contracts shell:subgraph seed",
     "shell:dev": "npm-run-all -l --parallel shell:common shell:web --sequential common:build subgraph:setup contracts:clean shell:contracts shell:subgraph seed"
   }
 }
