@@ -39,7 +39,8 @@
     "mochaExplorer.require": ["ts-node/register/transpile-only"],
     "eslint.alwaysShowStatus": true,
     "prettier.prettierPath": "_npm/node_modules/prettier",
-    "prettier.configPath": ".prettierrc.js"
+    "prettier.configPath": ".prettierrc.js",
+    "prettier.ignorePath": ".prettierignore"
     // ----------------------------------------------------------------------------------------------------------------------------------------------
   },
   "extensions": {
