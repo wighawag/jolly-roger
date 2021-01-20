@@ -62,7 +62,7 @@
     "lint": "eslint \"./**/*.{js,ts}\"",
     "lint:fix": "eslint --fix \"./**/*.{js,ts}\"",
     "format": "prettier --write \"./**/*.{ts,js,svelte}\"",
-    "start": "snowpack dev",
+    "dev": "snowpack dev",
     "build": "snowpack build",
     "test": "web-test-runner \"src/**/*.test.ts\"",
     "serve": "ipfs-emulator --only -d build -p 8080",
