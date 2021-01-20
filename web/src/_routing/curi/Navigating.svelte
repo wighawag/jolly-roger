@@ -1,16 +1,18 @@
 <script lang="ts">
-  import {onMount, onDestroy} from 'svelte';
+  import {onMount, onDestroy, SvelteComponent} from 'svelte';
   import {getRouter} from '@curi/svelte';
 
   let router = getRouter();
 
-  let cancelCallback;
-  let stop;
+  type NavigationObserver = (cancel?: () => void) => void;
 
-  export let component;
+  let cancelCallback: NavigationObserver;
+  let stop: () => void;
+
+  export let component: unknown;
 
   onMount(() => {
-    stop = router.cancel((fn) => {
+    stop = router.cancel((fn: NavigationObserver) => {
       cancelCallback = fn;
     });
   });

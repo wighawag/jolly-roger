@@ -8,9 +8,9 @@
   export let params = {};
   export let state: any = null;
 
-  export let href: string = undefined;
+  export let href: string | undefined = undefined;
   export let blank: boolean = false;
-  export let type: string = undefined;
+  export let type: string | undefined = undefined;
   export let label: string;
 
   export let big: boolean = false;
@@ -28,7 +28,7 @@
 
   const dispatch = createEventDispatcher();
 
-  let sizeClasses;
+  let sizeClasses: string;
   $: {
     sizeClasses = `
             ${customPadding || 'px-4 py-2'}
@@ -50,12 +50,12 @@
     }
   }
 
-  let colorClasses;
-  let hoverClasses;
-  let focusClasses;
-  let activeClasses;
-  let activatedClasses;
-  let disabledClasses;
+  let colorClasses: string;
+  let hoverClasses: string;
+  let focusClasses: string;
+  let activeClasses: string;
+  let activatedClasses: string;
+  let disabledClasses: string;
   $: {
     hoverClasses = 'hover:-translate-y-px ';
     focusClasses = 'focus:-translate-y-px ';
@@ -151,7 +151,7 @@
     `;
 
   let router = getRouter();
-  let canNavigate = (event, target) => {
+  let canNavigate = (event: MouseEvent, target: Element) => {
     return (
       !event.defaultPrevented &&
       !target &&
@@ -160,9 +160,9 @@
     );
   };
 
-  let url;
-  let target;
-  let handlePageLink;
+  let url: string;
+  let target: Element;
+  let handlePageLink: (e: MouseEvent) => void;
   $: {
     if (href && !href.startsWith('http')) {
       const split1 = href.split('#');

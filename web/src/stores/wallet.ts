@@ -60,7 +60,7 @@ export const {
   flow,
 } = walletStores;
 
-function notifyFailure(tx) {
+function notifyFailure(tx: {hash: string}) {
   notifications.queue({
     id: tx.hash,
     delay: 0,
@@ -71,7 +71,7 @@ function notifyFailure(tx) {
   });
 }
 
-function notifyCancelled(tx) {
+function notifyCancelled(tx: {hash: string}) {
   notifications.queue({
     id: tx.hash,
     delay: 3,

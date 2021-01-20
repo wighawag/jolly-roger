@@ -10,9 +10,9 @@
   let lastOptions: {
     address: string;
     scale: number;
-  } = undefined;
+  } | undefined = undefined;
 
-  let canvas;
+  let canvas: HTMLCanvasElement;
 
   // The random number is a js implementation of the Xorshift PRNG
   const randseed = new Array(4); // Xorshift: [x, y, z, w] 32 bit values
@@ -51,7 +51,7 @@
     return color;
   }
 
-  function createImageData(size): number[] {
+  function createImageData(size: number): number[] {
     const width = size; // Only support square icons for now
     const height = size;
 
@@ -78,7 +78,7 @@
     return data;
   }
 
-  function setCanvas(canvas, imageData, color, scale, bgcolor, spotcolor) {
+  function setCanvas(canvas: HTMLCanvasElement, imageData: number[], color: string, scale: number, bgcolor: string, spotcolor: string) {
     const width = Math.sqrt(imageData.length);
     const size = width * scale;
 
@@ -86,21 +86,25 @@
     canvas.height = size;
 
     const cc = canvas.getContext('2d');
-    cc.fillStyle = bgcolor;
-    cc.fillRect(0, 0, canvas.width, canvas.height);
-    cc.fillStyle = color;
+    if (cc) {
+      cc.fillStyle = bgcolor;
+      cc.fillRect(0, 0, canvas.width, canvas.height);
+      cc.fillStyle = color;
 
-    for (let i = 0; i < imageData.length; i++) {
-      // if data is 2, choose spot color, if 1 choose foreground
-      cc.fillStyle = imageData[i] === 1 ? color : spotcolor;
+      for (let i = 0; i < imageData.length; i++) {
+        // if data is 2, choose spot color, if 1 choose foreground
+        cc.fillStyle = imageData[i] === 1 ? color : spotcolor;
 
-      // if data is 0, leave the background
-      if (imageData[i]) {
-        const row = Math.floor(i / width);
-        const col = i % width;
+        // if data is 0, leave the background
+        if (imageData[i]) {
+          const row = Math.floor(i / width);
+          const col = i % width;
 
-        cc.fillRect(col * scale, row * scale, scale, scale);
+          cc.fillRect(col * scale, row * scale, scale, scale);
+        }
       }
+    } else {
+      console.error(`could not create 2d context for Blockie canvas`);
     }
   }
 

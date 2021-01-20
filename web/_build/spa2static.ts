@@ -1,7 +1,7 @@
 /* eslint-disable no-useless-escape */
 import path from 'path';
 import fs from 'fs-extra';
-import pages from './pages';
+import pageList from './pageList';
 import pkg from '../package.json';
 import namehash from 'eth-ens-namehash';
 
@@ -180,7 +180,7 @@ const exportFolder = 'dist';
 let indexHtml = fs
   .readFileSync(path.join(exportFolder, 'index.html'))
   .toString();
-const pagePaths = pages.map((v) => v.path);
+const pagePaths = pageList.map((v) => v.path);
 
 const basePathScript = `
     <script>

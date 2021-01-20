@@ -37,7 +37,7 @@ export function queryStore<T>(
     set($data);
   }
 
-  function onResult(result) {
+  function onResult(result: any) { // TODO remove any ?
     if (result.fetching) {
       _set({state: 'Fetching'});
     }

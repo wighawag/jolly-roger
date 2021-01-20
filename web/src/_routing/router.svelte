@@ -7,7 +7,7 @@
     component?: any;
     asyncComponent?: () => Promise<ComponentModule>;
   }[];
-  export let globalQueryStrings: string[] = undefined;
+  export let globalQueryStrings: string[] = [];
   import Router from './curi/Router.svelte';
   import {createRouter} from './utils/createrouter';
   const router = createRouter(pages, globalQueryStrings);

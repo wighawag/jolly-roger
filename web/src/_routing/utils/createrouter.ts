@@ -15,7 +15,7 @@ function parseQueryNoArray(
     if (!queryString) {
       return {};
     }
-    const query = {};
+    const query: Record<string, string> = {};
     const pairs = (queryString[0] === '?'
       ? queryString.substr(1)
       : queryString
@@ -60,12 +60,13 @@ export function createRouter(
   const routesConfig = [];
 
   for (const routePath of pages) {
-    if (routePath.asyncComponent) {
+    const asyncComponent = routePath.asyncComponent;
+    if (asyncComponent) {
       routesConfig.push({
         name: routePath.name,
         path:
           !routePath.path || routePath.path == '/' ? '' : routePath.path + '/',
-        respond({resolved, error}) {
+        respond({resolved, error}: {resolved: string, error: unknown}) {
           let data;
           if (error) {
             data = {error};
@@ -76,8 +77,7 @@ export function createRouter(
           };
         },
         resolve() {
-          return routePath
-            .asyncComponent()
+          return asyncComponent()
             .then((c) => c.default)
             .catch(() => {
               window.onFailingResource && window.onFailingResource();
@@ -116,7 +116,11 @@ export function createRouter(
       base = base.slice(0, base.length - 1);
     }
     if (base !== '') {
-      options.history.base = createBase(base);
+      if (options.history) {
+        options.history.base = createBase(base);
+      } else {
+        options.history = {base: createBase(base)};
+      }
     }
   }
   return curi_createRouter(browser, prepareRoutes(routesConfig), options);

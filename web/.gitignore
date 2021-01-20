@@ -2,7 +2,7 @@ node_modules/
 dist
 dist-ssr
 
-_build/pages.ts
+_build/pageList.ts
 
 src/contracts.json
 

@@ -2,7 +2,7 @@ import {logs} from 'named-logs-console';
 import {updateAvailable} from './stores/appUpdates';
 
 const log = logs('sw.js');
-function updateLoggingForWorker(worker) {
+function updateLoggingForWorker(worker: ServiceWorker | null) {
   if (worker) {
     worker.postMessage({type: 'debug', level: log.level, enabled: log.enabled});
   }
@@ -21,15 +21,17 @@ if ('serviceWorker' in navigator) {
         updateLoggingForWorker(registration.active);
         registration.addEventListener('updatefound', () => {
           const worker = registration.installing;
-          worker.addEventListener('statechange', () => {
-            if (
-              worker.state === 'installed' &&
-              navigator.serviceWorker.controller
-            ) {
-              console.log('[Service Worker] Update found');
-              updateAvailable.set(true);
-            }
-          });
+          if (worker) {
+            worker.addEventListener('statechange', () => {
+              if (
+                worker.state === 'installed' &&
+                navigator.serviceWorker.controller
+              ) {
+                console.log('[Service Worker] Update found');
+                updateAvailable.set(true);
+              }
+            });
+          }
         });
       })
       .catch((e) => {

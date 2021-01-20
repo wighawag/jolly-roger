@@ -48,7 +48,7 @@ export function query<
 
   return {
     subscribe(onValue) {
-      return pipe(queryResult$, subscribe(onValue)).unsubscribe;
+      return pipe(queryResult$ as any, subscribe(onValue)).unsubscribe; // TODO remove any
     },
   };
 }

@@ -8,7 +8,7 @@
   const dispatch = createEventDispatcher();
   const close = () => cancelable && dispatch('close');
 
-  let modal;
+  let modal: Element;
 
   function handle_keydown(evt: KeyboardEvent | undefined) {
     evt = evt || (window.event as KeyboardEvent);
@@ -28,7 +28,10 @@
       const nodes = modal.querySelectorAll('*');
       const tabbable = Array.from(nodes).filter((n: any) => n.tabIndex >= 0);
 
-      let index = tabbable.indexOf(document.activeElement);
+      let index = -1;
+      if (document.activeElement) {
+        index = tabbable.indexOf(document.activeElement);
+      }
       if (index === -1 && evt.shiftKey) index = 0;
 
       index += tabbable.length + (evt.shiftKey ? -1 : 1);
