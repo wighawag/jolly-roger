@@ -1,6 +1,10 @@
 import {derived, Readable} from 'svelte/store';
-import type { TransactionStore } from 'web3w';
-import type { Invalidator, Subscriber, Unsubscriber } from 'web3w/dist/esm/utils/internals';
+import type {TransactionStore} from 'web3w';
+import type {
+  Invalidator,
+  Subscriber,
+  Unsubscriber,
+} from 'web3w/dist/esm/utils/internals';
 import {QueryState, QueryStore, queryStore} from '../lib/graphql';
 import {transactions} from './wallet';
 
@@ -12,7 +16,12 @@ type Messages = {
 }[];
 
 // TODO web3w needs to export the type
-type TransactionStatus = 'pending' | 'cancelled' | 'success' | 'failure' | 'mined';
+type TransactionStatus =
+  | 'pending'
+  | 'cancelled'
+  | 'success'
+  | 'failure'
+  | 'mined';
 type TransactionRecord = {
   hash: string;
   from: string;
@@ -31,22 +40,29 @@ type TransactionRecord = {
   contractName?: string;
   method?: string;
   args?: unknown[];
-  eventsABI?: any; // TODO
+  eventsABI?: unknown; // TODO
   metadata?: unknown;
   lastCheck?: number;
   blockHash?: string;
   blockNumber?: number;
-  events?: any[]; // TODO
-}
+  events?: unknown[]; // TODO
+};
 
 class MessagesStore implements QueryStore<Messages> {
-
   private store: Readable<QueryState<Messages>>;
-  constructor(private query: QueryStore<Messages>, private transactions: TransactionStore) {
-    this.store = derived([this.query, this.transactions], (values) => this.update(values)); // lambda ensure update is not bound and can be hot swapped on HMR
+  constructor(
+    private query: QueryStore<Messages>,
+    private transactions: TransactionStore
+  ) {
+    this.store = derived([this.query, this.transactions], (values) =>
+      this.update(values)
+    ); // lambda ensure update is not bound and can be hot swapped on HMR
   }
 
-  update([$query, $transactions]: [QueryState<Messages>, TransactionRecord[]]): QueryState<Messages> {
+  update([$query, $transactions]: [
+    QueryState<Messages>,
+    TransactionRecord[]
+  ]): QueryState<Messages> {
     if (!$query.data) {
       return $query;
     } else {
@@ -98,7 +114,10 @@ class MessagesStore implements QueryStore<Messages> {
     return this.query.acknowledgeError();
   }
 
-  subscribe(run: Subscriber<QueryState<Messages>>, invalidate?: Invalidator<QueryState<Messages>> | undefined): Unsubscriber {
+  subscribe(
+    run: Subscriber<QueryState<Messages>>,
+    invalidate?: Invalidator<QueryState<Messages>> | undefined
+  ): Unsubscriber {
     return this.store.subscribe(run, invalidate);
   }
 }

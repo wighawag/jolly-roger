@@ -66,7 +66,7 @@ export function createRouter(
         name: routePath.name,
         path:
           !routePath.path || routePath.path == '/' ? '' : routePath.path + '/',
-        respond({resolved, error}: {resolved: string, error: unknown}) {
+        respond({resolved, error}: {resolved: string; error: unknown}) {
           let data;
           if (error) {
             data = {error};

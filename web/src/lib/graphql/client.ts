@@ -16,7 +16,9 @@ try {
 } catch (e) {}
 
 if (!url) {
-  console.error(`no url specific either at build time or runtim (through query params) for subgraph`)
+  console.error(
+    `no url specific either at build time or runtim (through query params) for subgraph`
+  );
 }
 
 const client = new Client({
@@ -24,4 +26,4 @@ const client = new Client({
   exchanges,
 });
 
-export default client
+export default client;

@@ -26,7 +26,10 @@
           label="Try ethereum integration">
           Demo
         </NavButton>
-        <NavButton class="big secondary" href="wallet" label="Check wallet status">
+        <NavButton
+          class="big secondary"
+          href="wallet"
+          label="Check wallet status">
           Wallet
         </NavButton>
         <NavButton
@@ -64,32 +67,38 @@
           <a
             class="text-blue-600"
             href="https://hardhat.org"
-            target="_blank" rel="noopener">Hardhat</a>
+            target="_blank"
+            rel="noopener">Hardhat</a>
           for contracts,
           <a
             class="text-blue-600"
             href="https://github.com/wighawag/hardhat-deploy"
-            target="_blank" rel="noopener">hardhat-deploy</a>
+            target="_blank"
+            rel="noopener">hardhat-deploy</a>
           for contract deployment,
           <a
             class="text-blue-600"
             href="https://thegraph.com"
-            target="_blank" rel="noopener">The Graph</a>
+            target="_blank"
+            rel="noopener">The Graph</a>
           for contract api,
           <a
             class="text-blue-600"
             href="https://getwaffle.io/"
-            target="_blank" rel="noopener">waffle</a>
+            target="_blank"
+            rel="noopener">waffle</a>
           for chai matchers,
           <a
             class="text-blue-600"
             href="https://svelte.dev"
-            target="_blank" rel="noopener">svelte</a>
+            target="_blank"
+            rel="noopener">svelte</a>
           for frontend,
           <a
             class="text-blue-600"
             href="https://github.com/vitejs/vite"
-            target="_blank" rel="noopener">vite</a>
+            target="_blank"
+            rel="noopener">vite</a>
           for HMR (Hot Module Replacement) and production build.
         </Feature>
         <Feature title="Everything Hot Reload">
@@ -99,7 +108,8 @@
           <a
             class="text-blue-600"
             href="https://github.com/vitejs/vite"
-            target="_blank" rel="noopener">vite</a>
+            target="_blank"
+            rel="noopener">vite</a>
           es module hot reload. On subgraph changes, the graph get updated and
           reexecuted.
         </Feature>
@@ -125,11 +135,11 @@
           <a
             class="text-blue-600"
             href="https://fleek.co"
-            target="_blank" rel="noopener">fleek</a>
+            target="_blank"
+            rel="noopener">fleek</a>
           config for automatic web deployment on ipfs.
         </Feature>
       </div>
     </div>
   </div>
 </section>
-

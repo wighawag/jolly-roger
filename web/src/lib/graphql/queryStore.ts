@@ -1,6 +1,6 @@
 import type {Readable} from 'svelte/store';
 import {writable} from 'svelte/store';
-import {query} from './query';
+import {query, InternalQueryState} from './query';
 
 export type QueryState<T> = {
   state: 'Idle' | 'Fetching' | 'Ready';
@@ -39,7 +39,8 @@ export function queryStore<T>(
     set($data);
   }
 
-  function onResult(result: any) { // TODO remove any ?
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function onResult(result: InternalQueryState<any>) {
     if (result.fetching) {
       _set({state: 'Fetching'});
     }
@@ -47,7 +48,8 @@ export function queryStore<T>(
     if (result.error) {
       _set({error: result.error});
     } else if (result.data) {
-      let data = result.data;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let data: any = result.data;
       if (typeof options?.transform === 'string') {
         if (data[options.transform]) {
           data = data[options.transform];

@@ -7,10 +7,12 @@
   export let address: string;
   export let scale: number = 4;
 
-  let lastOptions: {
-    address: string;
-    scale: number;
-  } | undefined = undefined;
+  let lastOptions:
+    | {
+        address: string;
+        scale: number;
+      }
+    | undefined = undefined;
 
   let canvas: HTMLCanvasElement;
 
@@ -78,7 +80,14 @@
     return data;
   }
 
-  function setCanvas(canvas: HTMLCanvasElement, imageData: number[], color: string, scale: number, bgcolor: string, spotcolor: string) {
+  function setCanvas(
+    canvas: HTMLCanvasElement,
+    imageData: number[],
+    color: string,
+    scale: number,
+    bgcolor: string,
+    spotcolor: string
+  ) {
     const width = Math.sqrt(imageData.length);
     const size = width * scale;
 

@@ -3,6 +3,15 @@ import type {OperationContext} from '@urql/core';
 import {pipe, fromValue, concat, scan, map, subscribe} from 'wonka';
 import client from './client';
 import {initialState} from './constants';
+import type {sourceT} from 'wonka/dist/types/src/Wonka_types.gen';
+
+export type InternalQueryState<T> = {
+  fetching: boolean;
+  stale: boolean;
+  data: T;
+  error: unknown;
+  extensions: Record<string, unknown>;
+};
 
 export function query<
   Data extends Record<string, unknown>,
@@ -12,15 +21,7 @@ export function query<
   variables?: Variables;
   context?: Partial<OperationContext>;
 }): {
-  subscribe: (
-    value: (value: {
-      fetching: boolean;
-      stale: boolean;
-      data: Data;
-      error: unknown;
-      extensions: Record<string, unknown>;
-    }) => void
-  ) => () => void;
+  subscribe: (value: (value: InternalQueryState<Data>) => void) => () => void;
 } {
   const queryResult$ = pipe(
     concat([
@@ -48,7 +49,10 @@ export function query<
 
   return {
     subscribe(onValue) {
-      return pipe(queryResult$ as any, subscribe(onValue)).unsubscribe; // TODO remove any
+      return pipe(
+        queryResult$ as sourceT<InternalQueryState<Data>>,
+        subscribe(onValue)
+      ).unsubscribe;
     },
   };
 }

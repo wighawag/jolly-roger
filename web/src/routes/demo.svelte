@@ -13,8 +13,7 @@
 
   messages.fetch();
 
-  let message: string = "";
-
+  let message: string = '';
 </script>
 
 <style>
