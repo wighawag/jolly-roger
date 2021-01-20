@@ -1,9 +1,7 @@
 <script lang="ts">
   import WalletAccess from '../templates/WalletAccess.svelte';
-  import Button from '../components/Button.svelte';
+  import NavButton from '../components/navigation/NavButton.svelte';
   import Blockie from '../components/Blockie.svelte';
-  import {test} from 'jolly-roger-common';
-  import {logs} from 'named-logs';
   import {messages} from '../stores/messages';
   import {wallet, flow, chain} from '../stores/wallet';
 
@@ -13,16 +11,10 @@
     );
   }
 
-  const console = logs('app:home');
-
   messages.fetch();
 
-  let message: string = undefined;
+  let message: string = "";
 
-  console.log(
-    'CommonLib',
-    test('0x0000000000000000000000000000000000000001', 'hello')
-  );
 </script>
 
 <style>
@@ -129,11 +121,12 @@
   {#if $wallet.state === 'Ready'}
     <form class="mt-5 w-full max-w-sm">
       <div class="flex items-center">
-        <Button
+        <NavButton
+          label="Disconnect"
           disabled={$wallet.unlocking || $chain.connecting}
           on:click={() => wallet.disconnect()}>
           Disconnect
-        </Button>
+        </NavButton>
       </div>
     </form>
   {/if}

@@ -1,3 +1,4 @@
+import type {Readable} from 'svelte/store';
 import {writable} from 'svelte/store';
 import {query} from './query';
 
@@ -9,6 +10,12 @@ export type QueryState<T> = {
   data?: T;
 };
 
+export type QueryStore<T> = Readable<QueryState<T>> & {
+  fetch: () => QueryStore<T> | void;
+  cancel: (options?: {clear?: boolean}) => void;
+  acknowledgeError: () => void;
+};
+
 export function queryStore<T>(
   queryString: string,
   options: {
@@ -16,12 +23,7 @@ export function queryStore<T>(
     once?: boolean;
     transform?: string | ((v: unknown) => T);
   } = {}
-): {
-  subscribe: typeof subscribe;
-  fetch: typeof fetch;
-  cancel: typeof cancel;
-  acknowledgeError: typeof acknowledgeError;
-} {
+): QueryStore<T> {
   let stopCurrentQuery: () => void;
 
   const $data: QueryState<T> = {

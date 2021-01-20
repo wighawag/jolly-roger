@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <!-- GENERATED -->
-    <link rel="preconnect" href="https://rsms.me" />
-    <link rel="dns-prefetch" href="https://rsms.me" />
-    <link rel="stylesheet" href="https://rsms.me/inter/inter.css" media="print" onload="this.media='all'" />
+    {{> APPLICATION}}
+    <title>{{title}}</title>
+    <!--SCRIPTS-->
+    <link rel="stylesheet" href="/dist/global.css" />
   </head>
-  <body class="antialiased bg-white text-gray-900 dark:bg-black dark:text-gray-50">
-    <script type="module" src="/src/index.ts"></script>
-    <noscript> Please enable javascript or use a web browser that can run it.</noscript>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <script type="module" src="/dist/index.js"></script>
   </body>
 </html>

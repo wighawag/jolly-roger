@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Button from '../components/Button.svelte';
+  import NavButton from '../components/navigation/NavButton.svelte';
   import WalletAccess from '../templates/WalletAccess.svelte';
   import {wallet, builtin, chain, flow, transactions} from '../stores/wallet';
   import type {Contract} from '@ethersproject/contracts';
@@ -52,44 +52,44 @@
 
 <WalletAccess>
   <div class="flex justify-center flex-wrap">
-    <!-- <Button
+    <!-- <NavButton
       class="w-max-content m-4"
       label="probe builtin wallet (like metamask)"
       waitOnDisabled={$builtin.probing}
       disabled={$builtin.state === 'Ready' || $builtin.probing}
       on:click={() => builtin.probe()}>
       probe Builtin
-    </Button> -->
-    <Button
+    </NavButton> -->
+    <NavButton
       class="w-max-content m-4"
       label="connect via builtin wallet"
       disabled={!$builtin.available || $wallet.connecting}
       on:click={() => wallet.connect('builtin')}>
       builtin
-    </Button>
-    <Button
+    </NavButton>
+    <NavButton
       class="w-max-content m-4"
       label="connect via discord"
       disabled={$wallet.connecting}
       on:click={() => wallet.connect('torus-discord')}>
       discord
-    </Button>
-    <Button
+    </NavButton>
+    <NavButton
       class="w-max-content m-4"
       label="unlock wallet"
       waitOnDisabled={$wallet.unlocking}
       disabled={$wallet.state !== 'Locked' || $wallet.unlocking}
       on:click={() => wallet.unlock()}>
       unlock
-    </Button>
-    <Button
+    </NavButton>
+    <NavButton
       class="w-max-content m-4"
       label="disconnect from wallet"
       waitOnDisabled={$wallet.connecting}
       disabled={$wallet.state !== 'Ready' || $wallet.connecting}
       on:click={() => wallet.disconnect()}>
       disconnect
-    </Button>
+    </NavButton>
   </div>
 
   <div class="flex justify-center flex-wrap">
@@ -121,14 +121,14 @@
               </span>
             {/each}
             <span>)</span>
-            <Button
+            <NavButton
               secondary={true}
               class="w-max-content inline-block"
               id={func.name}
               label={func.name}
               on:click={() => func.call()}>
               Submit
-            </Button>
+            </NavButton>
           </form>
         {/each}
       {/each}

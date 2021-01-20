@@ -1,7 +1,7 @@
 // /!\ Warning /!\
 // Variables auto updated by build:
 const URLS_TO_PRE_CACHE = [];
-const CACHE_NAME = 'cache-v1';
+const CACHE_NAME = 'cache-name';
 const DEV = true;
 //////////////////////////////////////////////////////////////////////////////
 
@@ -126,6 +126,7 @@ const onlineOnly = {
 self.addEventListener('fetch', (event) => {
   let request = event.request;
   event.respondWith(
+    // TODO remove query param from matching, query param are used as config (why not use hashes then ?) const normalizedUrl = normalizeUrl(event.request.url);
     caches.match(request).then((cache) => {
       // The order matters !
       const patterns = [onlineFirst, onlineOnly, cacheFirst, cacheOnly];

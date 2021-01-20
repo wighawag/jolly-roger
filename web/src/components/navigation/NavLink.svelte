@@ -3,7 +3,7 @@
   export let params: any = {};
   export let partial: boolean = false;
 
-  import Link from '../_routing/curi/Link.svelte';
+  import Link from '../../lib/routing/curi/Link.svelte';
   import {getRouter, getResponse} from '@curi/svelte';
   import {active as activeInteraction} from '@curi/interactions';
 

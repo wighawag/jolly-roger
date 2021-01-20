@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Button from '../components/Button.svelte';
+  import NavButton from '../components/navigation/NavButton.svelte';
   import Feature from '../components/Feature.svelte';
   const name = 'Jolly Roger';
 </script>
@@ -20,22 +20,22 @@
     <div class="max-w-md mx-auto mt-5 space-y-3 md:mt-8 md:space-y-5">
       <div
         class="space-y-5 sm:flex sm:justify-center sm:space-y-0 sm:space-x-3">
-        <Button
+        <NavButton
           class="big secondary"
-          href="Demo"
+          href="demo"
           label="Try ethereum integration">
           Demo
-        </Button>
-        <Button class="big secondary" href="Wallet" label="Check wallet status">
+        </NavButton>
+        <NavButton class="big secondary" href="wallet" label="Check wallet status">
           Wallet
-        </Button>
-        <Button
+        </NavButton>
+        <NavButton
           blank={true}
           class="big secondary"
           href="https://github.com/wighawag/jolly-roger"
           label="get it from github!">
           Github
-        </Button>
+        </NavButton>
       </div>
     </div>
   </div>
@@ -64,32 +64,32 @@
           <a
             class="text-blue-600"
             href="https://hardhat.org"
-            target="_blank">Hardhat</a>
+            target="_blank" rel="noopener">Hardhat</a>
           for contracts,
           <a
             class="text-blue-600"
             href="https://github.com/wighawag/hardhat-deploy"
-            target="_blank">hardhat-deploy</a>
+            target="_blank" rel="noopener">hardhat-deploy</a>
           for contract deployment,
           <a
             class="text-blue-600"
             href="https://thegraph.com"
-            target="_blank">The Graph</a>
+            target="_blank" rel="noopener">The Graph</a>
           for contract api,
           <a
             class="text-blue-600"
             href="https://getwaffle.io/"
-            target="_blank">waffle</a>
+            target="_blank" rel="noopener">waffle</a>
           for chai matchers,
           <a
             class="text-blue-600"
             href="https://svelte.dev"
-            target="_blank">svelte</a>
+            target="_blank" rel="noopener">svelte</a>
           for frontend,
           <a
             class="text-blue-600"
             href="https://github.com/vitejs/vite"
-            target="_blank">vite</a>
+            target="_blank" rel="noopener">vite</a>
           for HMR (Hot Module Replacement) and production build.
         </Feature>
         <Feature title="Everything Hot Reload">
@@ -99,7 +99,7 @@
           <a
             class="text-blue-600"
             href="https://github.com/vitejs/vite"
-            target="_blank">vite</a>
+            target="_blank" rel="noopener">vite</a>
           es module hot reload. On subgraph changes, the graph get updated and
           reexecuted.
         </Feature>
@@ -125,7 +125,7 @@
           <a
             class="text-blue-600"
             href="https://fleek.co"
-            target="_blank">fleek</a>
+            target="_blank" rel="noopener">fleek</a>
           config for automatic web deployment on ipfs.
         </Feature>
       </div>
