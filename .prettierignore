@@ -1,5 +1,5 @@
-export/
-web/dist
+web/build
+web/public/pwa
 web/public/pwa
 contracts/deployments
 contracts/artifacts

@@ -4,6 +4,8 @@
   import Blockie from '../components/Blockie.svelte';
   import {messages} from '../stores/messages';
   import {wallet, flow, chain} from '../stores/wallet';
+  import {logs} from 'named-logs';
+  import {test} from 'jolly-roger-common';
 
   async function setMessage() {
     await flow.execute((contracts) =>
@@ -12,8 +14,14 @@
   }
 
   messages.fetch();
-
   let message: string = '';
+
+  const console = logs('app:home');
+  console.log('testing...');
+  window.console.log(
+    'CommonLib',
+    test('0x0000000000000000000000000000000000000001', 'hello')
+  );
 </script>
 
 <style>

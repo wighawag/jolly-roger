@@ -1,5 +1,5 @@
 <script lang="ts">
-  export let title: string;
+  export let title: string = '';
   import NavButton from '../components/navigation/NavButton.svelte';
   import Toast from '../components/notification/Toast.svelte';
   import Modal from '../components/Modal.svelte';

@@ -132,6 +132,7 @@ importers:
       '@urql/core': 1.16.1_graphql@15.4.0
       '@urql/devtools': 2.0.2_@urql+core@1.16.1+graphql@15.4.0
       graphql: 15.4.0
+      jolly-roger-common: 'link:../common-lib'
       named-logs: 0.0.13
       named-logs-console: 0.0.14
       svelte: 3.31.2
@@ -209,6 +210,7 @@ importers:
       graphql: ^15.3.0
       ipfs-deploy: ^8.0.1
       ipfs-gateway-emulator: ^4.2.1-ipfs.1
+      jolly-roger-common: 'workspace:*'
       named-logs: 0.0.13
       named-logs-console: 0.0.14
       npm-run-all: ^4.1.5
@@ -10259,6 +10261,7 @@ packages:
     resolution:
       integrity: sha1-5cyaTIJ45GZP/twBx9qEhCsEAXU=
   /promisify-es6/1.0.3:
+    bundledDependencies: []
     deprecated: Unmaintained
     dev: true
     resolution:
