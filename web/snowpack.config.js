@@ -1,11 +1,18 @@
 const {folder} = require('snowpack-plugin-folder2routes');
 const {filterFiles} = require('snowpack-plugin-hmr-inject');
+const {resolve} = require('path');
+
+const mount = {
+  public: {url: '/', static: true},
+  src: {url: '/dist'},
+};
+mount[resolve(__dirname, '../common-lib')] = '/dist/jolly-roger-common';
 
 /** @type {import("snowpack").SnowpackUserConfig } */
 module.exports = {
-  mount: {
-    public: {url: '/', static: true},
-    src: {url: '/dist'},
+  mount,
+  alias: {
+    'jolly-roger-common': '../common-lib/src',
   },
   plugins: [
     '@snowpack/plugin-svelte',

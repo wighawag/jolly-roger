@@ -17,3 +17,5 @@
 - [ ] remove dark mode or setup so user can switch
 - [ ] typechain or type generator for contracts
 - [ ] typechain or type generator for frontend (web3w) contracts
+
+- [ ] convention on sub folder communication (pass arg to script)
