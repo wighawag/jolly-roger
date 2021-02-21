@@ -19,3 +19,5 @@
 - [ ] typechain or type generator for frontend (web3w) contracts
 
 - [ ] convention on sub folder communication (pass arg to script)
+- [ ] update deps, check with conquest
+- [ ] tailwind css update (check conquest)
