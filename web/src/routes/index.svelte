@@ -27,12 +27,6 @@
           Demo
         </NavButton>
         <NavButton
-          class="big secondary"
-          href="wallet"
-          label="Check wallet status">
-          Wallet
-        </NavButton>
-        <NavButton
           blank={true}
           class="big secondary"
           href="https://github.com/wighawag/jolly-roger"

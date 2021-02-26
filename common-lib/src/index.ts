@@ -13,11 +13,3 @@ export function test(address: string, name: string): BigNumber {
   // return n.div(n);
   // return BigNumber.from(2);
 }
-
-// HMR Code Snippet Example
-if (import.meta.hot) {
-  import.meta.hot.accept(({module}) => {
-    // Accept the module, apply it into your application.
-    console.log(module);
-  });
-}
