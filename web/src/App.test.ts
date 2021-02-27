@@ -3,9 +3,11 @@ import {expect} from 'chai';
 import App from './App.svelte';
 
 describe('<App>', () => {
-  it('renders learn svelte link', () => {
+  it('renders "npx degit wighawag/jolly-roger your-app-folder"', () => {
     const {getByText} = render(App);
-    const linkElement = getByText(/learn svelte/i); // TODO
+    const linkElement = getByText(
+      /npx degit wighawag\/jolly-roger your-app-folder/i
+    );
     expect(document.body.contains(linkElement));
   });
 });

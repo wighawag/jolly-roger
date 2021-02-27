@@ -81,6 +81,8 @@
       <div>Error: {$messages.error}</div>
     {:else if $messages.state === 'Fetching'}
       <div>Loading Messages...</div>
+    {:else if !$messages.data}
+      <div>Error: Could Not Get Messages</div>
     {:else}
       {#each $messages.data as message, index}
         <!-- <Blockie address={name.id} /> -->

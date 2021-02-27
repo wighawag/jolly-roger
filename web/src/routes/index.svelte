@@ -14,11 +14,6 @@
   function select(e: MouseEvent) {
     _select(e.currentTarget as HTMLElement);
   }
-
-  // function selectYourApp(e: {currentTarget: HTMLElement}) {
-  //   const elem = document.getElementById('jolly-roger-command') as HTMLElement;
-  //   _select(elem);
-  // }
 </script>
 
 <section class="py-8 px-4 text-center">
@@ -54,17 +49,8 @@
     </div>
   </div>
   <div class="py-4 dark:bg-black bg-white">
-    <!-- <h2 class="text-3xl underline mb-4 text-gray-600 dark:text-gray-400">Create App</h2> -->
     <code id="jolly-roger-command" on:click={select}>npx degit
       wighawag/jolly-roger your-app-folder</code>
-    <!-- <input
-        id="your-app"
-        on:click={(e) => e.stopPropagation()}
-        on:focus={(e) => e.stopPropagation()}
-        on:select={selectYourApp}
-        type="text"
-        value="your-app-folder" /> -->
-    <!-- </code> -->
   </div>
   <div class="py-4 dark:bg-black bg-white">
     <h2 class="text-3xl underline mb-4 text-gray-600 dark:text-gray-400">
