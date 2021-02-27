@@ -18,7 +18,7 @@
   // function selectYourApp(e: {currentTarget: HTMLElement}) {
   //   const elem = document.getElementById('jolly-roger-command') as HTMLElement;
   //   _select(elem);
-  }
+  // }
 </script>
 
 <section class="py-8 px-4 text-center">
