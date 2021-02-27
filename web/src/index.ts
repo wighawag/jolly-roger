@@ -1,8 +1,8 @@
-import {hookup} from 'named-logs-console';
+import {init} from './init';
 import './service-worker-handler';
 import App from './App.svelte';
-hookup();
 
+init();
 const app = new App({
   target: document.body,
 });

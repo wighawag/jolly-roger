@@ -148,6 +148,7 @@ importers:
       '@ethersproject/contracts': 5.0.9
       '@ethersproject/providers': 5.0.19
       '@ethersproject/solidity': 5.0.8
+      '@ethersproject/wallet': 5.0.10
       '@hickory/browser': 2.1.0
       '@urql/core': 1.16.1_graphql@15.4.0
       '@urql/devtools': 2.0.2_@urql+core@1.16.1+graphql@15.4.0
@@ -156,11 +157,12 @@ importers:
       named-logs: 0.0.13
       named-logs-console: 0.0.14
       svelte: 3.31.2
-      web3w: 0.2.39_f8c5c6c5a36736b4270727584b5e3a18
+      web3w: 0.2.42_f8c5c6c5a36736b4270727584b5e3a18
       web3w-torus-loader: 0.2.4
       web3w-walletconnect-loader: 0.2.0
       wonka: 4.0.15
     devDependencies:
+      '@curi/types': 2.0.2
       '@snowpack/plugin-dotenv': 2.0.5
       '@snowpack/plugin-postcss': 1.1.0_postcss-cli@8.3.1+postcss@8.2.4
       '@snowpack/plugin-svelte': 3.5.2_a36d02c4e5aa7819d629bb09e38fdf83
@@ -185,26 +187,30 @@ importers:
       npm-run-all: 4.1.5
       postcss: 8.2.4
       postcss-cli: 8.3.1_postcss@8.2.4
-      prepare-for-web: 0.1.0
+      prepare-for-web: 0.1.3
       prettier: 2.2.1
       prettier-plugin-svelte: 2.1.0_prettier@2.2.1+svelte@3.31.2
       snowpack: 3.0.11
-      snowpack-plugin-folder2routes: 0.1.0
-      snowpack-plugin-hmr-inject: 0.1.2
-      snowpack-plugin-ipfs: 0.1.2
+      snowpack-plugin-folder2routes: 0.1.1
+      snowpack-plugin-hmr-inject: 0.1.5
+      snowpack-plugin-ipfs: 0.1.5
+      snowpack-plugin-window-modules: 0.1.2
       svelte-preprocess: 4.6.1_a36d02c4e5aa7819d629bb09e38fdf83
       tailwindcss: 2.0.2_d337930ac9ab3cde8278bf6b015e1ea7
+      tailwindcss-question-mark: 0.1.0
       typescript: 4.1.3
     specifiers:
       '@curi/interactions': ^2.0.2
       '@curi/router': ^2.1.1
       '@curi/svelte': ^2.0.0-beta.6
+      '@curi/types': ^2.0.2
       '@ethersproject/abi': ^5.0.9
       '@ethersproject/bignumber': ^5.0.12
       '@ethersproject/bytes': ^5.0.8
       '@ethersproject/contracts': ^5.0.8
       '@ethersproject/providers': ^5.0.17
       '@ethersproject/solidity': ^5.0.7
+      '@ethersproject/wallet': ^5.0.7
       '@hickory/browser': ^2.1.0
       '@snowpack/plugin-dotenv': ^2.0.5
       '@snowpack/plugin-postcss': ^1.1.0
@@ -236,18 +242,20 @@ importers:
       npm-run-all: ^4.1.5
       postcss: ^8.2.4
       postcss-cli: ^8.3.1
-      prepare-for-web: ^0.1.0
+      prepare-for-web: ^0.1.2
       prettier: ^2.2.1
       prettier-plugin-svelte: ^2.1.0
       snowpack: ^3.0.1
-      snowpack-plugin-folder2routes: ^0.1.0
-      snowpack-plugin-hmr-inject: ^0.1.2
-      snowpack-plugin-ipfs: ^0.1.2
+      snowpack-plugin-folder2routes: ^0.1.1
+      snowpack-plugin-hmr-inject: ^0.1.5
+      snowpack-plugin-ipfs: ^0.1.5
+      snowpack-plugin-window-modules: ^0.1.2
       svelte: ^3.24.0
       svelte-preprocess: ^4.0.8
       tailwindcss: ^2.0.2
+      tailwindcss-question-mark: ^0.1.0
       typescript: ^4.0.0
-      web3w: ^0.2.38
+      web3w: ^0.2.42
       web3w-torus-loader: ^0.2.4
       web3w-walletconnect-loader: ^0.2.0
       wonka: ^4.0.14
@@ -315,7 +323,6 @@ packages:
     dependencies:
       '@hickory/root': 2.1.0
       path-to-regexp: 2.4.0
-    dev: false
     resolution:
       integrity: sha512-e8VCWOCrmGvfakQTAapldCodAX2aMT9cgj41gboH064O5XJ69wQsZspqHNYxb/iKfdNhe0Wg83T5SW/3TTNcVg==
   /@eslint/eslintrc/0.3.0:
@@ -535,7 +542,6 @@ packages:
       '@ethersproject/strings': 5.0.9
       '@ethersproject/transactions': 5.0.10
       '@ethersproject/wordlists': 5.0.8
-    dev: true
     resolution:
       integrity: sha512-Mscpjd7BBjxYSWghaNMwV0xrBBkOoCq6YEPRm9MgE24CiBlzzbfEB5DGq6hiZqhQaxPkdCUtKKqZi3nt9hx43g==
   /@ethersproject/json-wallets/5.0.10:
@@ -553,7 +559,6 @@ packages:
       '@ethersproject/transactions': 5.0.10
       aes-js: 3.0.0
       scrypt-js: 3.0.1
-    dev: true
     resolution:
       integrity: sha512-Ux36u+d7Dm0M5AQ+mWuHdvfGPMN8K1aaLQgwzrsD4ELTWlwRuHuQbmn7/GqeOpbfaV6POLwdYcBk2TXjlGp/IQ==
   /@ethersproject/keccak256/5.0.7:
@@ -588,7 +593,6 @@ packages:
     dependencies:
       '@ethersproject/bytes': 5.0.10
       '@ethersproject/sha2': 5.0.7
-    dev: true
     resolution:
       integrity: sha512-0SNLNixPMqnosH6pyc4yPiUu/C9/Jbu+f6I8GJW9U2qNpMBddmRJviwseoha5Zw1V+Aw0Z/yvYyzIIE8yPXqLA==
   /@ethersproject/properties/5.0.7:
@@ -663,7 +667,6 @@ packages:
       '@ethersproject/logger': 5.0.9
       '@ethersproject/properties': 5.0.8
       elliptic: 6.5.3
-    dev: true
     resolution:
       integrity: sha512-YKxQM45eDa6WAD+s3QZPdm1uW1MutzVuyoepdRRVmMJ8qkk7iOiIhUkZwqKLNxKzEJijt/82ycuOREc9WBNAKg==
   /@ethersproject/solidity/5.0.8:
@@ -740,7 +743,6 @@ packages:
       '@ethersproject/signing-key': 5.0.8
       '@ethersproject/transactions': 5.0.9
       '@ethersproject/wordlists': 5.0.8
-    dev: true
     resolution:
       integrity: sha512-5siYr38NhqZKH6DUr6u4PdhgOKur8Q6sw+JID2TitEUmW0tOl8f6rpxAe77tw6SJT60D2UcvgsyLtl32+Nl+ig==
   /@ethersproject/web/5.0.12:
@@ -768,7 +770,6 @@ packages:
       '@ethersproject/logger': 5.0.9
       '@ethersproject/properties': 5.0.8
       '@ethersproject/strings': 5.0.9
-    dev: true
     resolution:
       integrity: sha512-px2mloc1wAcdTbzv0ZotTx+Uh/dfnDO22D9Rx8xr7+/PUwAhZQjoJ9t7Hn72nsaN83rWBXsLvFcIRZju4GIaEQ==
   /@fullhuman/postcss-purgecss/3.1.3:
@@ -869,13 +870,11 @@ packages:
     resolution:
       integrity: sha512-fBzR0yWLFDLHcl6at+PaaXfC0c114DCYw+dwLzbvLLsGbEwWzQJaE4PGn1osR8teyWoqH6P2RYWVd95ua7lUuQ==
   /@hickory/location-utils/2.1.0:
-    dev: false
     resolution:
       integrity: sha512-+PKHZ9fEbNAnnUzwk6RynvoQcW3/v8aw6jz1MHnSrdGM0lngiWrDQf1G78YFCIvcEm/FqAphmg7Nl8Cz7vaV6w==
   /@hickory/root/2.1.0:
     dependencies:
       '@hickory/location-utils': 2.1.0
-    dev: false
     resolution:
       integrity: sha512-vRy4yadZp7mP47K8hpFpNKg3Ocxsmv+ezO9l4F7+GcscpD1JJiNLCnUNVuw+XIqUjuNvcyBoH8ToiEJCxWvvdA==
   /@jest/types/26.6.2:
@@ -2446,7 +2445,6 @@ packages:
     resolution:
       integrity: sha512-TFi4HBKSGfIKsK5YCkKaaFG2m4PEDyViZmEwof3MTIgzimHLto6muaHVpbrljdIvIrFZzEq/p4nafOeLcYegrg==
   /aes-js/3.0.0:
-    dev: true
     resolution:
       integrity: sha1-4h3xCtbCBTKVvLuNq0Cwnb6ofk0=
   /agent-base/5.1.1:
@@ -5252,7 +5250,6 @@ packages:
       inherits: 2.0.4
       minimalistic-assert: 1.0.1
       minimalistic-crypto-utils: 1.0.1
-    dev: true
     resolution:
       integrity: sha512-IMqzv5wNQf+E6aHeIqATs0tOLeOTwj1QKbRcS3jBbYkl5oLAserA8yJTT7/VyHUYG91PRmPyeQDObKLPpeS4dw==
   /elliptic/6.5.4:
@@ -10844,7 +10841,6 @@ packages:
     resolution:
       integrity: sha512-n43JRhlUKUAlibEJhPeir1ncUID16QnEjNpwzNdO3Lm4ywrBpBZ5oLD0I6br9evr1Y9JTqwRtAh7JLoOzAQdVA==
   /path-to-regexp/2.4.0:
-    dev: false
     resolution:
       integrity: sha512-G6zHoVqC6GGTQkZwF4lkuEyMbVOjoBKAEybQUypI1WTkqinCOrq2x6U2+phkJ1XsEMTy4LjtwPI7HW+NVrRR2w==
   /path-to-regexp/6.2.0:
@@ -11191,7 +11187,7 @@ packages:
       node: '>= 0.8.0'
     resolution:
       integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==
-  /prepare-for-web/0.1.0:
+  /prepare-for-web/0.1.3:
     dependencies:
       favicons: 6.2.0
       fs-extra: 9.1.0
@@ -11200,7 +11196,7 @@ packages:
     dev: true
     hasBin: true
     resolution:
-      integrity: sha512-aRXvzA2GGU0DL3gHpHowxeqgGdvgMWmgVxJb+nq7ThTRTpUNRhu5p2M0XJtXtPUGRLUdoU+/Ez+t7uwmA0+XEg==
+      integrity: sha512-U9eyoTdK8XGMWwOycd6kYAh3xAldDE2857elgrpps4E6IE8OtvGQYXtouTebMD+mWyQWdKFaDa07h72/D7FDJg==
   /prepend-http/1.0.4:
     dev: true
     engines:
@@ -12159,7 +12155,6 @@ packages:
     resolution:
       integrity: sha512-4KsaGcPnuhtCZQCxFxN3GVYIhKFPTdLd8PLC552XwbMndtD0cjRFAhDuuydXQ0h08ZfPgzqe6EKHozpuH74iDw==
   /scrypt-js/3.0.1:
-    dev: true
     resolution:
       integrity: sha512-cdwTTnqPu0Hyvf5in5asVdZocVDTNRmR7XEcJuIzMjJeSHybHl7vpB66AzwTaIg6CLSbtjcxc8fqcySfnTkccA==
   /secp256k1/3.8.0:
@@ -12480,7 +12475,7 @@ packages:
     dev: true
     resolution:
       integrity: sha512-LAOh4z89bGQvl9pFfNF8V146i7o7/CqFPbqzYgP+yYzDIDeS9HaNFtXABamRW+AQzEVODcvE79ljJ+8a9YSdMg==
-  /snowpack-plugin-folder2routes/0.1.0:
+  /snowpack-plugin-folder2routes/0.1.1:
     dependencies:
       fs-extra: 9.1.0
       handlebars: 4.7.6
@@ -12488,21 +12483,29 @@ packages:
       slash: 3.0.0
     dev: true
     resolution:
-      integrity: sha512-nfwF4P9mAH/hAHB3S7+K6KuX3uOuBNL/E+PqhlLwR8zaNA6MhIt8l3qT0bQNg2nHy6NaFnwwwZEk7ClBsV0syA==
-  /snowpack-plugin-hmr-inject/0.1.2:
+      integrity: sha512-/hmyQk2fQOjqILYH0nkOHLxTnYGuqYk+l2AMRfkYrGYxz7FB2aqhLj11WEi/sIpMSeqBK5KE+GSaQaeQ8GnwEA==
+  /snowpack-plugin-hmr-inject/0.1.5:
     dependencies:
+      fs-extra: 9.1.0
       minimatch: 3.0.4
     dev: true
     resolution:
-      integrity: sha512-tveiK9EuSzyQe8Rop41gnlBlg3z8iG1/Ne75JmMFEvVWod4zIkYagSdkEZbpL4sr9gaDGuGI1gMk2JMmwx9wTQ==
-  /snowpack-plugin-ipfs/0.1.2:
+      integrity: sha512-/c30BXcQPYTznajJ3osHpsYh1/JdERhgnoaXKIp3vy06buFVj1xqD62ClB80G1KflNeUsHjVsAyd4cPQqx9Ebg==
+  /snowpack-plugin-ipfs/0.1.5:
     dependencies:
       eth-ens-namehash: 2.0.8
       fs-extra: 9.1.0
       slash: 3.0.0
     dev: true
     resolution:
-      integrity: sha512-kh9TGnLZUWBN1Y4scbOiw4gVE8TsddfzNP90WnKyES5IrtiHkm2iYMA+Xbc3cGnBbyLs2NjzZw3UEEhI1fI2yw==
+      integrity: sha512-UTuQ0Nb0jgiEBeZziTz/Mgt/GJAYcvUbuvLrdO92w0K9KQ9pUqAKx2ecVO9ZaYz3Q62iZOv/aBVfX2d1vHTKzw==
+  /snowpack-plugin-window-modules/0.1.2:
+    dependencies:
+      fs-extra: 9.1.0
+      minimatch: 3.0.4
+    dev: true
+    resolution:
+      integrity: sha512-DAokwFopLRw9mUwnfa6zx0Kvsxk9SfUpgqF9dQ1BeoWJFfPpZv7DlsT/u/BqVTauWT6bDT/qN33sdfbdVFdRKg==
   /snowpack/3.0.11:
     dependencies:
       esbuild: 0.8.33
@@ -13125,6 +13128,10 @@ packages:
       node: '>=10.0.0'
     resolution:
       integrity: sha512-rxZevLGTUzWna/qBLObOe16kB2RTnnbhciwgPbMMlazz1yZGVEgnZK762xyVdVznhqxrfCeBMmMkgOOaPwjH7g==
+  /tailwindcss-question-mark/0.1.0:
+    dev: true
+    resolution:
+      integrity: sha512-LMmAM9nT8CaaBt6XmLMuCTbPDAjatgGX1BUoMNGGUNBVIEf5DJfHYQ72E8NLwYNVgiad4dUxXRrcWECx5x3rrA==
   /tailwindcss/2.0.2_d337930ac9ab3cde8278bf6b015e1ea7:
     dependencies:
       '@fullhuman/postcss-purgecss': 3.1.3
@@ -14302,7 +14309,7 @@ packages:
     dev: false
     resolution:
       integrity: sha512-tF2mdo910sA14WuvumoekFCyfO5gsvbkzuvaRtW7QUCT3E4YAzGVr6PWTrUdA+Y6pCIfYkKUMLZcYTPFSyacCg==
-  /web3w/0.2.39_f8c5c6c5a36736b4270727584b5e3a18:
+  /web3w/0.2.42_f8c5c6c5a36736b4270727584b5e3a18:
     dependencies:
       '@ethersproject/abi': 5.0.10
       '@ethersproject/bignumber': 5.0.13
@@ -14316,7 +14323,7 @@ packages:
       '@ethersproject/contracts': ^5.0.0
       '@ethersproject/providers': ^5.0.0
     resolution:
-      integrity: sha512-NCOM45TIKARc6Uag2lm6VvbXf2wGdutTM7oXDsEmuxYjV/M/Y7/eog77t+rsqi9382ViKUSWnfBqa2AibFYt5Q==
+      integrity: sha512-teyyETbwlpmOjT1ymHeUbzdL/lsiB6Zmd3MlBinyuxh79Y2GkgzOPMDT0S7/ityO1LTvcViZsuImiuSQKAdu0w==
   /webidl-conversions/6.1.0:
     dev: true
     engines:

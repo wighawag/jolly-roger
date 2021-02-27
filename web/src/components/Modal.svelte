@@ -2,7 +2,7 @@
   import {createEventDispatcher, onDestroy} from 'svelte';
   export let globalCloseButton: boolean = false;
   export let closeButton: boolean = false;
-  export let title: string;
+  export let title: string = '';
   export let cancelable: boolean = true;
 
   const dispatch = createEventDispatcher();
@@ -58,20 +58,19 @@
 
 <svelte:window on:keydown={handle_keydown} />
 
+<!-- container -->
 <div
-  class="modal z-50 opacity-80 fixed w-full h-full top-0 left-0 flex items-center justify-center">
-  <div
-    on:click={close}
-    class="z-50 modal-overlay absolute w-full h-full bg-gray-900 opacity-50" />
+  class="z-50 fixed w-full h-full top-0 left-0 flex items-center justify-center">
+  <!-- clickable dark overlay -->
+  <div on:click={close} class="absolute w-full h-full bg-gray-900 opacity-80" />
 
+  <!--modal-->
   <div
-    class="z-50 modal-container dark:bg-black dark:border-2 dark:border-gray-800 bg-white w-11/12 md:max-w-md mx-auto rounded
-    shadow-lg overflow-y-auto">
+    class="absolute border-2 w-11/12 md:max-w-md mx-auto overflow-y-auto max-h-screen dark:bg-black dark:border-2 dark:border-gray-800 bg-white">
     {#if globalCloseButton}
       <div
         on:click={close}
-        class="modal-close absolute top-0 right-0 cursor-pointer flex flex-col items-center mt-4 mr-4 text-white text-sm
-          z-50">
+        class="modal-close absolute top-0 right-0 cursor-pointer flex flex-col items-center mt-4 mr-4 text-sm">
         <svg
           class="fill-current text-white"
           xmlns="http://www.w3.org/2000/svg"
@@ -87,7 +86,7 @@
 
     <!-- Add margin if you want to see some of the overlay behind the modal-->
     <div class="modal-content py-4 text-left px-6" bind:this={modal}>
-      <div class="flex justify-between items-center pb-3">
+      <div class="flex justify-between items-center">
         <!--Title-->
         {#if title}
           <p class="text-2xl font-bold">{title}</p>

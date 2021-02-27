@@ -1,5 +1,6 @@
 <script lang="ts">
   export let title: string = '';
+  import {chainName} from '../config';
   import NavButton from '../components/navigation/NavButton.svelte';
   import Toast from '../components/notification/Toast.svelte';
   import Modal from '../components/Modal.svelte';
@@ -11,25 +12,8 @@
     transactions,
     balance,
     flow,
+    fallback,
   } from '../stores/wallet';
-
-  const chainNames: {[chainId: string]: string} = {
-    '1': 'mainnet',
-    '3': 'ropsten',
-    '4': 'rinkeby',
-    '5': 'goerli',
-    '42': 'kovan',
-    '1337': 'localhost chain',
-    '31337': 'localhost chain',
-  };
-  const chainId: string = import.meta.env.SNOWPACK_PUBLIC_CHAIN_ID;
-  const chainName = (() => {
-    const name = chainNames[chainId];
-    if (name) {
-      return name;
-    }
-    return `chain with id ${chainId}`;
-  })();
 
   const base: string = window.basepath || '/';
 
@@ -68,6 +52,36 @@
 </script>
 
 <slot />
+
+{#if $chain.state === 'Idle' && !$chain.connecting && $fallback.state === 'Idle' && !$fallback.connecting}
+  <div
+    class="w-full flex items-center justify-center fixed top-0 pointer-events-none"
+    style="z-index: 5;">
+    <p
+      class="w-64 text-center rounded-bl-xl rounded-br-xl text-gray-200 bg-pink-600 p-1">
+      Please Connect.
+    </p>
+  </div>
+{:else if $chain.state === 'Idle' && !$chain.connecting && $fallback.error}
+  <div
+    class="w-full flex items-center justify-center fixed top-0 pointer-events-none"
+    style="z-index: 5;">
+    <p
+      class="w-64 text-center rounded-bl-xl rounded-br-xl text-gray-200 bg-pink-600 p-1">
+      Network Issues, Please Connect.
+    </p>
+  </div>
+{:else if $chain.notSupported}
+  <div
+    class="w-full flex items-center justify-center fixed top-0 pointer-events-none"
+    style="z-index: 5;">
+    <p
+      class="w-64 text-center rounded-bl-xl rounded-br-xl text-gray-200 bg-pink-600 p-1">
+      Wrong network, use
+      {chainName}
+    </p>
+  </div>
+{/if}
 
 {#if $flow.inProgress}
   <Modal

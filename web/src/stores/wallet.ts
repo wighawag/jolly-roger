@@ -3,19 +3,8 @@ import {TorusModuleLoader} from 'web3w-torus-loader';
 import {WalletConnectModuleLoader} from 'web3w-walletconnect-loader';
 import contractsInfo from '../contracts.json';
 import {notifications} from './notifications';
-
-const chainId = import.meta.env.SNOWPACK_PUBLIC_CHAIN_ID;
-let nodeUrl: string | undefined;
-let finality = 12;
-if (chainId === '1337' || chainId === '31337') {
-  const localEthNode = import.meta.env.SNOWPACK_PUBLIC_ETH_NODE_URI_LOCALHOST;
-  if (localEthNode && localEthNode !== '') {
-    nodeUrl = localEthNode;
-  } else {
-    nodeUrl = 'http://localhost:8545';
-  }
-  finality = 2;
-}
+import {finality, nodeUrl, chainId} from '../config';
+import {isCorrected, correctTime} from './time';
 
 const walletStores = WalletStores({
   chainConfigs: contractsInfo,
@@ -24,6 +13,7 @@ const walletStores = WalletStores({
     autoDelete: false,
     finality,
   },
+  autoSelectPrevious: true,
   localStoragePrefix:
     window.basepath &&
     (window.basepath.startsWith('/ipfs/') ||
@@ -41,15 +31,8 @@ const walletStores = WalletStores({
       infuraId: 'bc0bdd4eaac640278cdebc3aa91fabe4',
     }),
   ],
+  fallbackNode: nodeUrl, // TODO use query string to specify it // TODO settings
 });
-
-// USEFUL FOR DEBUGGING:
-if (typeof window !== 'undefined') {
-  // console.log('adding walletStores');
-  /* eslint-disable @typescript-eslint/no-explicit-any */
-  (window as any).walletStores = walletStores;
-  /* eslint-enable @typescript-eslint/no-explicit-any */
-}
 
 export const {
   wallet,
@@ -58,6 +41,7 @@ export const {
   chain,
   balance,
   flow,
+  fallback,
 } = walletStores;
 
 function notifyFailure(tx: {hash: string}) {
@@ -92,6 +76,28 @@ transactions.subscribe(($transactions) => {
       } else {
         // auto acknowledge
         transactions.acknowledge(tx.hash, tx.status);
+      }
+    }
+  }
+});
+
+chain.subscribe(async (v) => {
+  if (!isCorrected()) {
+    if (v.state === 'Connected' || v.state === 'Ready') {
+      const latestBlock = await wallet.provider?.getBlock('latest');
+      if (latestBlock) {
+        correctTime(latestBlock.timestamp);
+      }
+    }
+  }
+});
+
+fallback.subscribe(async (v) => {
+  if (!isCorrected()) {
+    if (v.state === 'Connected' || v.state === 'Ready') {
+      const latestBlock = await wallet.provider?.getBlock('latest');
+      if (latestBlock) {
+        correctTime(latestBlock.timestamp);
       }
     }
   }
