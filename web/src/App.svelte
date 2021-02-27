@@ -16,7 +16,8 @@
   {routes}
   globalQueryStrings={['subgraph', 'debug', 'log', 'trace', '_d_eruda']}>
   <Notifications />
-  <NavBar links={[{name: 'index', title: 'Home'}, 'demo']} />
+  <NavBar
+    links={[{name: 'index', title: 'Home'}, {name: 'demo', title: 'Demo'}]} />
   <!-- 'test1/test11', 'test1/test11/page', 'test2', 'test2/page', 'test3/page' -->
   <CurrentPage>
     <Loading />
