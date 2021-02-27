@@ -8,6 +8,12 @@
   // import NoInstallPrompt from './components/NoInstallPrompt.svelte';
   import NewVersionNotification from './components/NewVersionNotification.svelte';
   import Install from './components/Install.svelte';
+  import {onMount} from 'svelte';
+
+  onMount(() => {
+    document.body.classList.add('dark:bg-black');
+    document.body.classList.add('bg-white');
+  });
 </script>
 
 <Install />

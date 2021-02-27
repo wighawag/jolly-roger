@@ -25,34 +25,38 @@
       style="width:256px;height:256px;"
       width="256px"
       height="256px" />
-    <h2 class="text-5xl mb-2 font-heading">{name}</h2>
+    <h2 class="text-5xl mb-2 font-heading text-black dark:text-white">
+      {name}
+    </h2>
     <p class="m-6 text-gray-500 dark:text-gray-400 text-xl">
       Production-Ready Template To Build Decentralised Applications
     </p>
-    <div class="max-w-md mx-auto mt-5 space-y-3 md:mt-8 md:space-y-5">
+    <div class="max-w-md mx-auto pt-1 mt-5 space-y-3 md:mt-8 md:space-y-5">
       <div
         class="space-y-5 sm:flex sm:justify-center sm:space-y-0 sm:space-x-3">
         <NavButton
-          class="big secondary"
-          href="demo"
-          label="Try ethereum integration">
-          Demo
-        </NavButton>
-        <NavButton
           blank={true}
           class="big secondary"
-          href="https://github.com/wighawag/jolly-roger"
+          href="https://github.com/wighawag/jolly-roger/generate"
           label="get it from github!">
-          Github
+          Get Started on Github
         </NavButton>
       </div>
     </div>
+
+    <div class="pt-3 pb-4 dark:bg-black bg-white">
+      <h1 class="dark:text-gray-500 text-gray-500 m-4 font-semibold">
+        Or Execute:
+      </h1>
+      <code
+        id="jolly-roger-command"
+        on:click={select}
+        class="mb-5 text-pink-600 font-black">npx degit wighawag/jolly-roger
+        your-app-folder</code>
+    </div>
   </div>
-  <div class="py-4 dark:bg-black bg-white">
-    <code id="jolly-roger-command" on:click={select}>npx degit
-      wighawag/jolly-roger your-app-folder</code>
-  </div>
-  <div class="py-4 dark:bg-black bg-white">
+
+  <div class="pt-8 pb-4 dark:bg-black bg-white">
     <h2 class="text-3xl underline mb-4 text-gray-600 dark:text-gray-400">
       Features
     </h2>
