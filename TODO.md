@@ -1,8 +1,6 @@
-- [ ] remove web3w from vite.config.js
 - [ ] improve features description
 - [ ] test: dev mode, build mode, staging, smart contract changes, graph changes, frontend changes, css changes, common-lib changes
 - [ ] center demo
-- [ ] wallet page css
 - [ ] center wallet access message
 - [ ] show errors ?
 
@@ -19,5 +17,3 @@
 - [ ] typechain or type generator for frontend (web3w) contracts
 
 - [ ] convention on sub folder communication (pass arg to script)
-- [ ] update deps, check with conquest
-- [ ] tailwind css update (check conquest)
