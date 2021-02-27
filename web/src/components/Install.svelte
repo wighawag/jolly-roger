@@ -23,6 +23,9 @@
     show = false;
     setVisited();
   }
+  function skip() {
+    show = false;
+  }
   function install() {
     show = false;
     setVisited();
@@ -39,12 +42,13 @@
   onMount(() => {
     window.addEventListener('beforeinstallprompt', beforeinstallprompt);
   });
+  const base: string = window.basepath || '/';
 </script>
 
 <!-- this fails typing, so instead we use onMount-->
 <!-- <svelte:window on:beforeinstallprompt={beforeinstallprompt} /> -->
 
-<svelte:window on:click={decline} on:scroll={trigger} />
+<svelte:window on:click={skip} on:scroll={trigger} />
 
 {#if deferredPrompt && show}
   <div
@@ -70,7 +74,7 @@
           <div class="flex-shrink-0 pt-0.5">
             <img
               class="h-10 w-10 rounded-full"
-              src="/maskable_icon_512x512.png"
+              src={`${base}maskable_icon_512x512.png`}
               alt="Jolly Roger" />
           </div>
           <div class="ml-3 w-0 flex-1">
