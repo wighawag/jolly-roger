@@ -1,6 +1,6 @@
 import type {Readable} from 'svelte/store';
 import {writable} from 'svelte/store';
-import {query, InternalQueryState} from './query';
+import type {InternalQueryState, EndPoint} from './endpoint';
 
 export type QueryState<T> = {
   state: 'Idle' | 'Fetching' | 'Ready';
@@ -17,6 +17,7 @@ export type QueryStore<T> = Readable<QueryState<T>> & {
 };
 
 export function queryStore<T>(
+  endpoint: EndPoint,
   queryString: string,
   options: {
     variables?: Record<string, unknown>;
@@ -81,14 +82,16 @@ export function queryStore<T>(
       return;
     }
 
-    stopCurrentQuery = query({
-      query: queryString,
-      variables: options.variables,
-      context: {
-        pollInterval: options.once ? undefined : 2000,
-        requestPolicy: 'cache-and-network', // required as cache-first will not try to get new data
-      },
-    }).subscribe(onResult);
+    stopCurrentQuery = endpoint
+      .query({
+        query: queryString,
+        variables: options.variables,
+        context: {
+          pollInterval: options.once ? undefined : 2000,
+          requestPolicy: 'cache-and-network', // required as cache-first will not try to get new data
+        },
+      })
+      .subscribe(onResult);
 
     return store;
   }
