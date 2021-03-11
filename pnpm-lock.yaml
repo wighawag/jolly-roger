@@ -167,7 +167,7 @@ importers:
       '@snowpack/plugin-postcss': 1.1.0_postcss-cli@8.3.1+postcss@8.2.4
       '@snowpack/plugin-svelte': 3.5.2_a36d02c4e5aa7819d629bb09e38fdf83
       '@snowpack/plugin-typescript': 1.2.1_typescript@4.1.3
-      '@snowpack/web-test-runner-plugin': 0.2.1_c05a8cd4e701f8a9467b3ab0943c10ee
+      '@snowpack/web-test-runner-plugin': 0.2.1_0a1e571acd3619d48a88f09c71459dc7
       '@testing-library/svelte': 3.0.3_svelte@3.31.2
       '@types/chai': 4.2.14
       '@types/mocha': 8.2.0
@@ -190,11 +190,12 @@ importers:
       prepare-for-web: 0.1.3
       prettier: 2.2.1
       prettier-plugin-svelte: 2.1.0_prettier@2.2.1+svelte@3.31.2
-      snowpack: 3.0.11
+      snowpack: 3.0.13
       snowpack-plugin-folder2routes: 0.1.1
       snowpack-plugin-hmr-inject: 0.1.5
       snowpack-plugin-ipfs: 0.1.5
       snowpack-plugin-window-modules: 0.1.2
+      svelte-hmr: 0.12.9_svelte@3.31.2
       svelte-preprocess: 4.6.1_a36d02c4e5aa7819d629bb09e38fdf83
       tailwindcss: 2.0.2_d337930ac9ab3cde8278bf6b015e1ea7
       tailwindcss-question-mark: 0.1.0
@@ -245,12 +246,13 @@ importers:
       prepare-for-web: ^0.1.2
       prettier: ^2.2.1
       prettier-plugin-svelte: ^2.1.0
-      snowpack: ^3.0.1
+      snowpack: ^3.0.13
       snowpack-plugin-folder2routes: ^0.1.1
       snowpack-plugin-hmr-inject: ^0.1.5
       snowpack-plugin-ipfs: ^0.1.5
       snowpack-plugin-window-modules: ^0.1.2
       svelte: ^3.24.0
+      svelte-hmr: ^0.12.9
       svelte-preprocess: ^4.0.8
       tailwindcss: ^2.0.2
       tailwindcss-question-mark: ^0.1.0
@@ -1523,10 +1525,10 @@ packages:
       typescript: '*'
     resolution:
       integrity: sha512-wU+JNaMVkqGsqTaUY7TnEMhGt/3URTgA9dpMCtZX6wn/ceA7Gwlmue/sOLynf0OTNLygHPvjiQECQYkEi3LTtg==
-  /@snowpack/web-test-runner-plugin/0.2.1_c05a8cd4e701f8a9467b3ab0943c10ee:
+  /@snowpack/web-test-runner-plugin/0.2.1_0a1e571acd3619d48a88f09c71459dc7:
     dependencies:
       '@web/test-runner': 0.12.5
-      snowpack: 3.0.11
+      snowpack: 3.0.13
     dev: true
     peerDependencies:
       '@web/test-runner': '>=0.10.0 <1.0.0'
@@ -3469,6 +3471,12 @@ packages:
   /bech32/1.1.4:
     resolution:
       integrity: sha512-s0IrSOzLlbvX7yp4WBfPITzpAU8sqQcpsmwXDiKwrG4r491vwCO/XpejasRNl0piBMe/DvP4Tz0mIS/X1DPJBQ==
+  /big-integer/1.6.48:
+    dev: true
+    engines:
+      node: '>=0.6'
+    resolution:
+      integrity: sha512-j51egjPa7/i+RdiRuJbPdJ2FIUYYPhvYLjzoYbcMMm62ooO6F94fETG4MTs46zPAF9Brs04OajboA/qTGuz78w==
   /bignumber.js/2.4.0:
     dev: true
     resolution:
@@ -3617,6 +3625,12 @@ packages:
       node: '>=8'
     resolution:
       integrity: sha512-eB4uT9RGzg2odpER62bBwSLvUeGC+WbRjjyyFhGsKnc8wp/m0+hQsMUvUe3H2V0D5vw0nBdO1hCJoZo5mKeuIQ==
+  /bplist-parser/0.1.1:
+    dependencies:
+      big-integer: 1.6.48
+    dev: true
+    resolution:
+      integrity: sha1-1g1dzCDLptx+HymbNdPh+V2vuuY=
   /brace-expansion/1.1.11:
     dependencies:
       balanced-match: 1.0.0
@@ -4902,6 +4916,16 @@ packages:
       node: '>=0.10.0'
     resolution:
       integrity: sha512-FJ3UgI4gIl+PHZm53knsuSFpE+nESMr7M4v9QcgB7S63Kj/6WqMiFQJpBBYz1Pt+66bZpP3Q7Lye0Oo9MPKEdg==
+  /default-browser-id/2.0.0:
+    dependencies:
+      bplist-parser: 0.1.1
+      pify: 2.3.0
+      untildify: 2.1.0
+    dev: true
+    engines:
+      node: '>=4'
+    resolution:
+      integrity: sha1-AezONxpx6F8VoXF354YwR+c9vn0=
   /defaults/1.0.3:
     dependencies:
       clone: 1.0.4
@@ -5428,12 +5452,12 @@ packages:
     dev: true
     resolution:
       integrity: sha512-NJ6Yn3FuDinBaBRWl/q5X/s4koRHBrgKAu+yGI6JCBeiu3qrcbJhwT2GeR/EXVfylRk8dpQVJoLEFhK+Mu31NA==
-  /esbuild/0.8.33:
+  /esbuild/0.8.57:
     dev: true
     hasBin: true
     requiresBuild: true
     resolution:
-      integrity: sha512-2ms/P6Y9zJfopR9dKo2vHzhXKfGSNlquVVoVOF8YnhjuzZVrvManMVBPadBsR/t7jzIkRnwqvxrs7d4f3C3eyg==
+      integrity: sha512-j02SFrUwFTRUqiY0Kjplwjm1psuzO1d6AjaXKuOR9hrY0HuPsT6sV42B6myW34h1q4CRy+Y3g4RU/cGJeI/nNA==
   /escalade/3.1.1:
     dev: true
     engines:
@@ -6652,6 +6676,15 @@ packages:
       - darwin
     resolution:
       integrity: sha512-YR47Eg4hChJGAB1O3yEAOkGO+rlzutoICGqGo9EZ4lKWokzZRSyIW1QmTzqjtw8MJdj9srP869CuWw/hyzSiBw==
+  /fsevents/2.3.2:
+    dev: true
+    engines:
+      node: ^8.16.0 || ^10.6.0 || >=11.0.0
+    optional: true
+    os:
+      - darwin
+    resolution:
+      integrity: sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==
   /function-bind/1.1.1:
     dev: true
     resolution:
@@ -7030,6 +7063,20 @@ packages:
       uglify-js: 3.12.5
     resolution:
       integrity: sha512-1f2BACcBfiwAfStCKZNrUCgqNZkGsAT7UM3kkYtXuLo0KnaVfjKOyf7PRzB6++aK9STyT1Pd2ZCPe3EGOXleXA==
+  /handlebars/4.7.7:
+    dependencies:
+      minimist: 1.2.5
+      neo-async: 2.6.2
+      source-map: 0.6.1
+      wordwrap: 1.0.0
+    dev: true
+    engines:
+      node: '>=0.4.7'
+    hasBin: true
+    optionalDependencies:
+      uglify-js: 3.13.0
+    resolution:
+      integrity: sha512-aAcXm5OAfE/8IXkcZvCepKU3VzW1/39Fb5ZuqMtgI/hT8X2YgoMvBY5dLhq/cpOvw7Lk1nK/UF71aLG/ZnVYRA==
   /har-schema/2.0.0:
     dev: true
     engines:
@@ -9818,7 +9865,7 @@ packages:
   /mkdirp-promise/5.0.1:
     dependencies:
       mkdirp: 1.0.4
-    deprecated: 'This package is broken and no longer maintained. ''mkdirp'' itself supports promises now, please switch to that.'
+    deprecated: "This package is broken and no longer maintained. 'mkdirp' itself supports promises now, please switch to that."
     dev: true
     engines:
       node: '>=4'
@@ -10490,6 +10537,15 @@ packages:
       node: '>=8'
     resolution:
       integrity: sha512-f2wt9DCBKKjlFbjzGb8MOAW8LH8F0mrs1zc7KTjAJ9PZNQbfenzWbNP1VZJvw6ICMG9r14Ah6yfwPn7T7i646A==
+  /open/7.4.2:
+    dependencies:
+      is-docker: 2.1.1
+      is-wsl: 2.2.0
+    dev: true
+    engines:
+      node: '>=8'
+    resolution:
+      integrity: sha512-MVHddDVweXZF3awtlAS+6pgKLlm/JgxZ90+/NBurBoQctVOOB/zDdVjcyPzQ+0laDGbsWgrRkflI65sQeOgT9Q==
   /opencollective-postinstall/2.0.3:
     dev: true
     hasBin: true
@@ -11978,6 +12034,13 @@ packages:
     dev: true
     resolution:
       integrity: sha512-rArEXAgsBG4UgRGcynxWIWKFvh/XZCcS8UJdHhwy91zwAvCZIbcs+vAbflgBnNjYMs/i/i+/Ux6IZhML1yPvxg==
+  /resolve/1.20.0:
+    dependencies:
+      is-core-module: 2.2.0
+      path-parse: 1.0.6
+    dev: true
+    resolution:
+      integrity: sha512-wENBPt4ySzg4ybFQW2TT1zMQucPK95HSh/nq2CFTZVOGut2+pQvSsgtda4d26YrYcr067wjbmzOG8byDPBX63A==
   /responselike/1.0.2:
     dependencies:
       lowercase-keys: 1.0.1
@@ -12078,6 +12141,15 @@ packages:
       fsevents: 2.1.3
     resolution:
       integrity: sha512-V3ojEeyGeSdrMSuhP3diBb06P+qV4gKQeanbDv+Qh/BZbhdZ7kHV0xAt8Yjk4GFshq/WjO7R4c7DFM20AwTFVQ==
+  /rollup/2.41.0:
+    dev: true
+    engines:
+      node: '>=10.0.0'
+    hasBin: true
+    optionalDependencies:
+      fsevents: 2.3.2
+    resolution:
+      integrity: sha512-Gk76XHTggulWPH95q8V62bw6uqDH6UGvbD6LOa3QUyhuMF3eOuaeDHR7SLm1T9faitkpNrqzUAVYx47klcMnlA==
   /rsa-pem-to-jwk/1.1.3:
     dependencies:
       object-assign: 2.1.1
@@ -12478,7 +12550,7 @@ packages:
   /snowpack-plugin-folder2routes/0.1.1:
     dependencies:
       fs-extra: 9.1.0
-      handlebars: 4.7.6
+      handlebars: 4.7.7
       pascal-case: 3.1.2
       slash: 3.0.0
     dev: true
@@ -12506,19 +12578,21 @@ packages:
     dev: true
     resolution:
       integrity: sha512-DAokwFopLRw9mUwnfa6zx0Kvsxk9SfUpgqF9dQ1BeoWJFfPpZv7DlsT/u/BqVTauWT6bDT/qN33sdfbdVFdRKg==
-  /snowpack/3.0.11:
+  /snowpack/3.0.13:
     dependencies:
-      esbuild: 0.8.33
-      open: 7.3.1
-      rollup: 2.37.1
+      default-browser-id: 2.0.0
+      esbuild: 0.8.57
+      open: 7.4.2
+      resolve: 1.20.0
+      rollup: 2.41.0
     dev: true
     engines:
       node: '>=10.19.0'
     hasBin: true
     optionalDependencies:
-      fsevents: 2.3.1
+      fsevents: 2.3.2
     resolution:
-      integrity: sha512-lBxgkvWTgdg0szE31JUt01wQkA9Lnmm+6lxqeV9rxDfflpx7ASnldVHFvu7Se70QJmPTQB0UJjfKI+xmYGwiiQ==
+      integrity: sha512-USTcpfJ68rbuFvUygw+3n9qS1CC/tGsr/JNVc6FNk0ZRfGBE4OmB+Mmk5nWtdxi546GeCr/GvveJenYLen/WpA==
   /solc/0.7.3_debug@4.3.1:
     dependencies:
       command-exists: 1.2.9
@@ -13007,6 +13081,14 @@ packages:
       svelte: '>=3.19.0'
     resolution:
       integrity: sha512-hyggTjuA6E/jWYltj8Q9B9sSumOqopBurwFcqwys4LUp7cCE0H0UC6uYyfvQlEdCCQokON/5E8bmHBOBDUUU9A==
+  /svelte-hmr/0.12.9_svelte@3.31.2:
+    dependencies:
+      svelte: 3.31.2
+    dev: true
+    peerDependencies:
+      svelte: '>=3.19.0'
+    resolution:
+      integrity: sha512-SGE7Odznj4dqZtUVIWcoPCvZ9gHImxVIIjrz+O3DDSi0j4OaSLim6MRF4UdhlBKeW3glSRc+tXNSKYvM5x+Dyw==
   /svelte-preprocess/4.6.1_a36d02c4e5aa7819d629bb09e38fdf83:
     dependencies:
       '@types/pug': 2.0.4
@@ -13717,6 +13799,28 @@ packages:
     optional: true
     resolution:
       integrity: sha512-SgpgScL4T7Hj/w/GexjnBHi3Ien9WS1Rpfg5y91WXMj9SY997ZCQU76mH4TpLwwfmMvoOU8wiaRkIf6NaH3mtg==
+  /uglify-js/3.13.0:
+    dev: true
+    engines:
+      node: '>=0.8.0'
+    hasBin: true
+    optional: true
+    resolution:
+      integrity: sha512-TWYSWa9T2pPN4DIJYbU9oAjQx+5qdV5RUDxwARg8fmJZrD/V27Zj0JngW5xg1DFz42G0uDYl2XhzF6alSzD62w==
+  /uint8arrays/1.1.0:
+    dependencies:
+      multibase: 3.1.2
+      web-encoding: 1.1.0
+    dev: true
+    resolution:
+      integrity: sha512-cLdlZ6jnFczsKf5IH1gPHTtcHtPGho5r4CvctohmQjw8K7Q3gFdfIGHxSTdTaCKrL4w09SsPRJTqRS0drYeszA==
+  /uint8arrays/2.1.2:
+    dependencies:
+      multibase: 3.1.2
+      web-encoding: 1.1.0
+    dev: true
+    resolution:
+      integrity: sha512-/VcLZbPMs/dk23u22IZlPWycfBxntpwrvISHQs93/OdRlUTnQw9Uzmzaoq7DgJAZl1SlP/kw+NhbjFAEED42rQ==
   /ultron/1.1.1:
     dev: true
     resolution:
@@ -13776,6 +13880,14 @@ packages:
       node: '>= 0.8'
     resolution:
       integrity: sha1-sr9O6FFKrmFltIF4KdIbLvSZBOw=
+  /untildify/2.1.0:
+    dependencies:
+      os-homedir: 1.0.2
+    dev: true
+    engines:
+      node: '>=0.10.0'
+    resolution:
+      integrity: sha1-F+soB5h/dpUunASF/DEdBqgmouA=
   /update-notifier/4.1.3:
     dependencies:
       boxen: 4.2.0
@@ -14794,8 +14906,8 @@ packages:
       node: '>=10'
     resolution:
       integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==
-  github.com/AssemblyScript/assemblyscript/36040d5b5312f19a025782b5e36663823494c2f3:
-    dependencies:
+  ? github.com/AssemblyScript/assemblyscript/36040d5b5312f19a025782b5e36663823494c2f3
+  : dependencies:
       '@protobufjs/utf8': 1.1.0
       binaryen: 77.0.0-nightly.20190407
       glob: 7.1.6
