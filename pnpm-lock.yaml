@@ -9865,7 +9865,7 @@ packages:
   /mkdirp-promise/5.0.1:
     dependencies:
       mkdirp: 1.0.4
-    deprecated: "This package is broken and no longer maintained. 'mkdirp' itself supports promises now, please switch to that."
+    deprecated: 'This package is broken and no longer maintained. ''mkdirp'' itself supports promises now, please switch to that.'
     dev: true
     engines:
       node: '>=4'
@@ -13807,20 +13807,6 @@ packages:
     optional: true
     resolution:
       integrity: sha512-TWYSWa9T2pPN4DIJYbU9oAjQx+5qdV5RUDxwARg8fmJZrD/V27Zj0JngW5xg1DFz42G0uDYl2XhzF6alSzD62w==
-  /uint8arrays/1.1.0:
-    dependencies:
-      multibase: 3.1.2
-      web-encoding: 1.1.0
-    dev: true
-    resolution:
-      integrity: sha512-cLdlZ6jnFczsKf5IH1gPHTtcHtPGho5r4CvctohmQjw8K7Q3gFdfIGHxSTdTaCKrL4w09SsPRJTqRS0drYeszA==
-  /uint8arrays/2.1.2:
-    dependencies:
-      multibase: 3.1.2
-      web-encoding: 1.1.0
-    dev: true
-    resolution:
-      integrity: sha512-/VcLZbPMs/dk23u22IZlPWycfBxntpwrvISHQs93/OdRlUTnQw9Uzmzaoq7DgJAZl1SlP/kw+NhbjFAEED42rQ==
   /ultron/1.1.1:
     dev: true
     resolution:
@@ -14906,8 +14892,8 @@ packages:
       node: '>=10'
     resolution:
       integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==
-  ? github.com/AssemblyScript/assemblyscript/36040d5b5312f19a025782b5e36663823494c2f3
-  : dependencies:
+  github.com/AssemblyScript/assemblyscript/36040d5b5312f19a025782b5e36663823494c2f3:
+    dependencies:
       '@protobufjs/utf8': 1.1.0
       binaryen: 77.0.0-nightly.20190407
       glob: 7.1.6
