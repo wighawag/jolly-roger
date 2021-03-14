@@ -1,5 +1,6 @@
 <!--- -------------------------------------------- -->
-# Jolly  Roger
+
+# Jolly Roger
 
 This is a template to build a decentralised applicaiton using ethereum, hardhat, svelte and thegraph
 
@@ -9,9 +10,22 @@ to make an app out of it, execute the following
 npx degit wighawag/jolly-roger <your-app-folder>
 ```
 
-Alternatively create a repo from this template [here](https://github.com/wighawag/jolly-roger/generate)
+There also more template available in branches:
 
--------------------------
+## Lite version (without subgraph, no dependency on any backend):
+
+```
+npx degit wighawag/jolly-roger#lite <your-app-folder>
+```
+
+## NFT version (it includes eip-721-subgraph and a basic "my nfts" page):
+
+```
+npx degit wighawag/jolly-roger#erc721 <your-app-folder>
+```
+
+---
+
 <br/>
 <br/>
 <!--- -------------------------------------------- -->
@@ -39,7 +53,6 @@ If you decide to use `yarn` you ll have to remove the script "preinstall" that b
 `docker` and `docker-compose` are used to setup the external services (an ethereum node, an ipfs node and a [subgraph](https://thegraph.com) node)
 
 If you prefer (or do not have access to docker/docker-compose) you can run them independently.
-
 
 ## intall dependencies :
 
@@ -128,8 +141,8 @@ You can remove the env if you want to use the same as the one in `.env`
 You'll also need to update the following for staging and production :
 
 - `SUBGRAPH_NAME=<thegraph account name>/<subgraph name>`
-- `VITE_CHAIN_ID=<id of the chain where contracts lives>`
-- `VITE_THE_GRAPH_HTTP=https://api.thegraph.com/subgraphs/name/<thegraph account name>/<subgraph name>`
+- `SNOWPACK_PUBLIC_CHAIN_ID=<id of the chain where contracts lives>`
+- `SNOWPACK_PUBLIC_THE_GRAPH_HTTP=https://api.thegraph.com/subgraphs/name/<thegraph account name>/<subgraph name>`
 
 you then need to ensure you have a subgraph already created on thegraph.com with that name: https://thegraph.com/explorer/dashboard
 
@@ -149,4 +162,4 @@ pnpm production
 
 For `webapp:build` you can also use [fleek](https://fleek.co) so that building and ipfs deployment is done automatically. The repo provide a `.fleek.json` file already setup for staging.
 
-The only thing needed is setting up the environment variables (VITE_THE_GRAPH_HTTP, VITE_CHAIN_ID). You can either set them in fleek dashboard or set them in `.fleek.json`
+The only thing needed is setting up the environment variables (SNOWPACK_PUBLIC_THE_GRAPH_HTTP, SNOWPACK_PUBLIC_CHAIN_ID). You can either set them in fleek dashboard or set them in `.fleek.json`

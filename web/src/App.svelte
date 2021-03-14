@@ -1,15 +1,29 @@
 <script lang="ts">
-  import {Router, CurrentPage} from './_routing';
-  import pages from './pages';
-  import Navbar from './components/Navbar.svelte';
-  import Navigating from './_routing/curi/Navigating.svelte';
+  import {Router, CurrentPage} from './lib/routing';
+  import routes from './routes/_.routes';
+  import NavBar from './components/navigation/NavBar.svelte';
+  import Navigating from './lib/routing/curi/Navigating.svelte';
   import Loading from './components/Loading.svelte';
-  import Notifications from './components/Notifications.svelte';
+  import Notifications from './components/notification/Notifications.svelte';
+  import NoInstallPrompt from './components/NoInstallPrompt.svelte';
+  import NewVersionNotification from './components/NewVersionNotification.svelte';
+  // import Install from './components/Install.svelte';
+  import {onMount} from 'svelte';
+
+  onMount(() => {
+    document.body.classList.add('dark:bg-black');
+    document.body.classList.add('bg-white');
+  });
 </script>
 
-<Router {pages} globalQueryStrings={['subgraph', 'debug', 'log', 'trace', '_d_eruda']}>
+<NoInstallPrompt />
+<NewVersionNotification />
+<Router
+  {routes}
+  globalQueryStrings={['subgraph', 'debug', 'log', 'trace', '_d_eruda']}>
   <Notifications />
-  <Navbar links={['Home', 'Demo', 'Wallet']} />
+  <NavBar
+    links={[{name: 'index', title: 'Home'}, {name: 'demo', title: 'Demo'}]} />
   <CurrentPage>
     <Loading />
     Loading...

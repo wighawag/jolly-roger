@@ -3,14 +3,20 @@
   "appShortName": "Jolly Roger",
   "appDescription": "A Production Ready Template for Decentralised Applications.",
   "appShortDescription": "Template for Decentralised Applications.",
-  "developerName": "Nobody",
+  "developerName": "You",
   "developerURL": "",
   "url": "https://jolly-roger.eth.link",
   "ensName": "jolly-roger.eth",
-  "background": "#1f253a",
-  "theme_color": "#1f253a",
+  "background": "#000000",
+  "theme_color": "#000000",
   "appleStatusBarStyle": "black-translucent",
   "display": "fullscreen",
   "icon": "icon.svg",
-  "maskable_icon": "android-chrome-512x512.png"
+  "maskable_icons": [
+    {
+      "src": "maskable_icon_512x512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
 }

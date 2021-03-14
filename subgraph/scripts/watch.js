@@ -27,8 +27,8 @@ function run(cmd, opts) {
     {
       pipe: true,
       cwd: undefined,
+      // eslint-disable-next-line no-unused-vars
       callback(child) {
-        // eslint-disable-line no-unused-vars
         // Since we return promise, we need to provide
         // this callback if one wants to access the child
         // process reference

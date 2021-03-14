@@ -1,7 +1,8 @@
 <script lang="ts">
-  export let title: string = undefined;
-  import Button from '../components/Button.svelte';
-  import Toast from '../components/Toast.svelte';
+  export let title: string = '';
+  import {chainName} from '../config';
+  import NavButton from '../components/navigation/NavButton.svelte';
+  import Toast from '../components/notification/Toast.svelte';
   import Modal from '../components/Modal.svelte';
 
   import {
@@ -11,25 +12,8 @@
     transactions,
     balance,
     flow,
+    fallback,
   } from '../stores/wallet';
-
-  const chainNames = {
-    '1': 'mainnet',
-    '3': 'ropsten',
-    '4': 'rinkeby',
-    '5': 'goerli',
-    '42': 'kovan',
-    '1337': 'localhost chain',
-    '31337': 'localhost chain',
-  };
-  const chainId = import.meta.env.VITE_CHAIN_ID;
-  const chainName = (() => {
-    const name = chainNames[chainId];
-    if (name) {
-      return name;
-    }
-    return `chain with id ${chainId}`;
-  })();
 
   const base: string = window.basepath || '/';
 
@@ -69,6 +53,38 @@
 
 <slot />
 
+{#if $chain.state === 'Idle' && !$chain.connecting && $fallback.state === 'Idle' && !$fallback.connecting}
+  <!-- Not Used Here: No need of node connection -->
+  <!-- <div
+    class="w-full flex items-center justify-center fixed top-0 pointer-events-none"
+    style="z-index: 5;">
+    <p
+      class="w-64 text-center rounded-bl-xl rounded-br-xl text-gray-200 bg-pink-600 p-1">
+      Please Connect.
+    </p>
+  </div> -->
+{:else if $chain.state === 'Idle' && !$chain.connecting && $fallback.error}
+  <!-- Not Used Here: No need of node connection, we should check thegraph connection instead -->
+  <!-- <div
+    class="w-full flex items-center justify-center fixed top-0 pointer-events-none"
+    style="z-index: 5;">
+    <p
+      class="w-64 text-center rounded-bl-xl rounded-br-xl text-gray-200 bg-pink-600 p-1">
+      Network Issues, Please Connect.
+    </p>
+  </div> -->
+{:else if $chain.notSupported}
+  <div
+    class="w-full flex items-center justify-center fixed top-0 pointer-events-none"
+    style="z-index: 5;">
+    <p
+      class="w-64 text-center rounded-bl-xl rounded-br-xl text-gray-200 bg-pink-600 p-1">
+      Wrong network, use
+      {chainName}
+    </p>
+  </div>
+{/if}
+
 {#if $flow.inProgress}
   <Modal
     {title}
@@ -97,7 +113,7 @@
         {#if builtinNeedInstalation}
           <div class="text-center">OR</div>
           <div class="flex justify-center">
-            <Button
+            <NavButton
               label="Download Metamask"
               blank={true}
               href="https://metamask.io/download.html"
@@ -107,7 +123,7 @@
                 alt={`Download Metamask}`}
                 src={`${base}images/metamask.svg`} />
               Download metamask
-            </Button>
+            </NavButton>
           </div>
         {/if}
       {/if}
@@ -115,9 +131,9 @@
       {#if $wallet.unlocking}
         Please accept the application to access your wallet.
       {:else}
-        <Button label="Unlock Wallet" on:click={() => wallet.unlock()}>
+        <NavButton label="Unlock Wallet" on:click={() => wallet.unlock()}>
           Unlock
-        </Button>
+        </NavButton>
       {/if}
     {:else if $chain.state === 'Idle'}
       {#if $chain.connecting}Connecting...{/if}
@@ -133,7 +149,7 @@
       {:else if executionError.message}
         {executionError.message}
       {:else}Error: {executionError}{/if}
-      <Button label="Retry" on:click={() => flow.retry()}>Retry</Button>
+      <NavButton label="Retry" on:click={() => flow.retry()}>Retry</NavButton>
     {/if}
   </Modal>
 {/if}

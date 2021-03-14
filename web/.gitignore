@@ -1,14 +1,19 @@
-node_modules/
-dist
-dist-ssr
+.env*
+!*.default
 
-_build/pages.ts
+.snowpack
+build/
+
+node_modules/
 
 src/contracts.json
 
 .vscode/*
 !.vscode/settings.json.default
 
-index.html
+public/index.html
 public/pwa/
 public/robots.txt
+
+.yalc/
+yalc.lock

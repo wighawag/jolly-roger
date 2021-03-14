@@ -1,7 +1,7 @@
 {
   "build": {
     "image": "wighawag/pnpm:latest",
-    "command": "pnpm i --store=node_modules/.pnpm && pnpm run staging:web:build && pnpm run --filter jolly-roger-web fix_VITE_ENV",
-    "publicDir": "web/dist"
+    "command": "pnpm i --store=node_modules/.pnpm && pnpm run staging:web:build",
+    "publicDir": "web/build"
   }
 }

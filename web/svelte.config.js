@@ -1,22 +1,9 @@
-/* eslint-disable @typescript-eslint/no-var-requires */
-const sveltePreprocess = require('svelte-preprocess');
+const autoPreprocess = require('svelte-preprocess');
+
 module.exports = {
-  preprocess: sveltePreprocess({
+  preprocess: autoPreprocess({
     defaults: {
       script: 'typescript',
-      style: 'postcss',
     },
-    typescript: true,
-    postcss: true,
-    // disable preprocessors not in use
-    babel: false,
-    coffeescript: false,
-    globalStyle: false,
-    less: false,
-    pug: false,
-    replace: false,
-    sass: false,
-    scss: false,
-    stylus: false,
   }),
 };

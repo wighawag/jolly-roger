@@ -1,5 +1,5 @@
 <script lang="ts">
-  export let cancel: () => void = undefined;
+  export let cancel: () => void = () => {};
   cancel;
 </script>
 

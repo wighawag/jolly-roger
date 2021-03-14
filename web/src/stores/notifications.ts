@@ -10,7 +10,7 @@ type Notification = {
 };
 
 type CurrentNotification = {
-  current: Notification;
+  current?: Notification;
 };
 
 const createStore = () => {
@@ -24,7 +24,7 @@ const createStore = () => {
 
   const {subscribe, set} = writable<CurrentNotification>(data);
 
-  function setCurrent(current: Notification) {
+  function setCurrent(current: Notification | undefined) {
     data.current = current;
     set(data);
     if (current && current.delay) {
