@@ -5,9 +5,9 @@
   import Navigating from './lib/routing/curi/Navigating.svelte';
   import Loading from './components/Loading.svelte';
   import Notifications from './components/notification/Notifications.svelte';
-  // import NoInstallPrompt from './components/NoInstallPrompt.svelte';
+  import NoInstallPrompt from './components/NoInstallPrompt.svelte';
   import NewVersionNotification from './components/NewVersionNotification.svelte';
-  import Install from './components/Install.svelte';
+  // import Install from './components/Install.svelte';
   import {onMount} from 'svelte';
 
   onMount(() => {
@@ -16,7 +16,7 @@
   });
 </script>
 
-<Install />
+<NoInstallPrompt />
 <NewVersionNotification />
 <Router
   {routes}

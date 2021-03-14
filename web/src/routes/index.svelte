@@ -37,22 +37,36 @@
         <NavButton
           blank={true}
           class="big secondary"
-          href="https://github.com/wighawag/jolly-roger/generate"
-          label="get it from github!">
-          Get Started on Github
+          href="demo"
+          label="Try the Demo!">
+          Demo
+        </NavButton>
+        <NavButton
+          blank={true}
+          class="big secondary"
+          href="https://github.com/wighawag/jolly-roger"
+          label="Check it out on github!">
+          Github
         </NavButton>
       </div>
     </div>
 
     <div class="pt-3 pb-4 dark:bg-black bg-white">
       <h1 class="dark:text-gray-500 text-gray-500 m-4 font-semibold">
-        Or Execute:
+        Use it:
       </h1>
       <code
         id="jolly-roger-command"
         on:click={select}
         class="mb-5 text-pink-600 font-black">npx degit wighawag/jolly-roger
         your-app-folder</code>
+      <p class="mt-6">
+        Find out more on
+        <a
+          class="underline"
+          href="https://github.com/wighawag/jolly-roger#readme"
+          target="_blank">github</a>
+      </p>
     </div>
   </div>
 
