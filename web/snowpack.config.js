@@ -23,6 +23,7 @@ module.exports = {
       'snowpack-plugin-hmr-inject',
       {filter: filterFiles({includes: ['src/stores/*']})},
     ],
+    'snowpack-plugin-window-modules',
     'snowpack-plugin-folder2routes',
     [
       'snowpack-plugin-ipfs',
