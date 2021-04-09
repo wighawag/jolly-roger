@@ -66,7 +66,7 @@ importers:
       ethers: ^5.1.0
       fs-extra: ^9.0.1
       hardhat: ^2.0.10
-      hardhat-deploy: ^0.7.2
+      hardhat-deploy: ^0.7.3
       hardhat-gas-reporter: ^1.0.4
       mocha: ^8.1.1
       prettier: ^2.0.5
@@ -97,7 +97,7 @@ importers:
       ethers: 5.1.0
       fs-extra: 9.1.0
       hardhat: 2.1.2
-      hardhat-deploy: 0.7.2_hardhat@2.1.2
+      hardhat-deploy: 0.7.3_hardhat@2.1.2
       hardhat-gas-reporter: 1.0.4_hardhat@2.1.2
       mocha: 8.3.2
       prettier: 2.2.1
@@ -377,6 +377,7 @@ packages:
       - bufferutil
       - utf-8-validate
     dev: true
+    optional: true
 
   /@ethersproject/hash/5.1.0:
     resolution: {integrity: sha512-fNwry20yLLPpnRRwm3fBL+2ksgO+KMadxM44WJmRIoTKzy4269+rbq9KFoe2LTqq2CXJM2CE70beGaNrpuqflQ==}
@@ -1029,6 +1030,7 @@ packages:
     dependencies:
       invariant: 2.2.4
     dev: true
+    optional: true
 
   /@ledgerhq/devices/5.48.0:
     resolution: {integrity: sha512-qIaL0K5Gh9kfePvptB8GGKEHGUAZuJHYmy9eDmIk6RZbgiYJ5njP/u5zQgKxijZArBgssdK/dtxEH4ueTiqkkA==}
@@ -1038,10 +1040,12 @@ packages:
       rxjs: 6.6.7
       semver: 7.3.5
     dev: true
+    optional: true
 
   /@ledgerhq/errors/5.48.0:
     resolution: {integrity: sha512-817t7M0hi7j0xY6uuG0F3kjbkaEP9hHlxfDBpb3EWkTvkg5SgHaDmvHYTjUoE1HhaPypHLjEii7URx2boOfQVA==}
     dev: true
+    optional: true
 
   /@ledgerhq/hw-app-eth/5.27.2:
     resolution: {integrity: sha512-llNdrE894cCN8j6yxJEUniciyLVcLmu5N0UmIJLOObztG+5rOF4bX54h4SreTWK+E10Z0CzHSeyE5Lz/tVcqqQ==}
@@ -1052,6 +1056,7 @@ packages:
       bignumber.js: 9.0.1
       rlp: 2.2.6
     dev: true
+    optional: true
 
   /@ledgerhq/hw-transport-node-hid-noevents/5.48.0:
     resolution: {integrity: sha512-cM7Vl5gaXDXvTSPLwTsrps1cqUb8WzYn9an6Tm1mxfncImFgJh8NmrN62W5rBenQpdu8wAl3Epsxl/h1kEfAiw==}
@@ -1087,6 +1092,7 @@ packages:
       '@ledgerhq/logs': 5.48.0
       u2f-api: 0.2.7
     dev: true
+    optional: true
 
   /@ledgerhq/hw-transport/5.26.0:
     resolution: {integrity: sha512-NFeJOJmyEfAX8uuIBTpocWHcz630sqPcXbu864Q+OCBm4EK5UOKV1h/pX7e0xgNIKY8zhJ/O4p4cIZp9tnXLHQ==}
@@ -1095,6 +1101,7 @@ packages:
       '@ledgerhq/errors': 5.48.0
       events: 3.3.0
     dev: true
+    optional: true
 
   /@ledgerhq/hw-transport/5.48.0:
     resolution: {integrity: sha512-fyy55GDu/UU3fxWqltF7+1PabqMzKxyiWvd1Z89DB+8ZZuz3cq0iN7ey9p4zat2YpIFonVIxKJqyYZZelzsGQA==}
@@ -1108,6 +1115,7 @@ packages:
   /@ledgerhq/logs/5.48.0:
     resolution: {integrity: sha512-ItOEw1BDsN7q43/uku44izA9y5f6va79KrO5SeYNcojAa3gLn6u02ADLzdHJtuvGEf9DBwCTRPlJmlT7kIaFPQ==}
     dev: true
+    optional: true
 
   /@nodelib/fs.scandir/2.1.4:
     resolution: {integrity: sha512-33g3pMJk3bg5nXbL/+CY6I2eJDzZAni49PfJnL5fghPTggPvBd/pFNSgJsdAgWptuFu7qq/ERvOYFlhvsLTCKA==}
@@ -5320,6 +5328,7 @@ packages:
     resolution: {integrity: sha512-mQw+2fkQbALzQ7V0MY0IqdnXNOeTtP4r0lN9z7AAawCXgqea7bDii20AYrIBrFd/Hx0M2Ocz6S111CaFkUcb0Q==}
     engines: {node: '>=0.8.x'}
     dev: true
+    optional: true
 
   /evp_bytestokey/1.0.3:
     resolution: {integrity: sha512-/f2Go4TognH/KvCISP7OUsHn85hT9nUkxxA9BEWxFn+Oj9o8ZNLm/40hdlgSLyuOimsrTKLUMEorQexp/aPQeA==}
@@ -6248,8 +6257,8 @@ packages:
       hardhat: 2.1.2
     dev: true
 
-  /hardhat-deploy/0.7.2_hardhat@2.1.2:
-    resolution: {integrity: sha512-o5F/B2NkSu0cjkPjblu7sIwYzrFG/sEnA58dzJ9d/0RUaHZ9gezaL1X9Q85Nbo4wRXn+8ElM0RptKAOtQc6ITA==}
+  /hardhat-deploy/0.7.3_hardhat@2.1.2:
+    resolution: {integrity: sha512-cJL1CHUgj4rDgARQ8AqAcP5pFcw2AL0wjbG2OQvPZ1i4d5ZNNzlNc0gOi2e1Po0HZhgEr+m9W9EsSyZRGz5VrA==}
     peerDependencies:
       hardhat: ^2.0.0
     dependencies:
@@ -6259,7 +6268,6 @@ packages:
       '@ethersproject/bignumber': 5.1.0
       '@ethersproject/bytes': 5.1.0
       '@ethersproject/contracts': 5.1.0
-      '@ethersproject/hardware-wallets': 5.1.0
       '@ethersproject/providers': 5.1.0
       '@ethersproject/solidity': 5.1.0
       '@ethersproject/transactions': 5.1.0
@@ -6275,6 +6283,8 @@ packages:
       match-all: 1.2.6
       murmur-128: 0.2.1
       qs: 6.10.1
+    optionalDependencies:
+      '@ethersproject/hardware-wallets': 5.1.0
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -12674,6 +12684,7 @@ packages:
   /u2f-api/0.2.7:
     resolution: {integrity: sha512-fqLNg8vpvLOD5J/z4B6wpPg4Lvowz1nJ9xdHcCzdUPKcFE/qNCceV2gNZxSJd5vhAZemHr/K/hbzVA0zxB5mkg==}
     dev: true
+    optional: true
 
   /uglify-js/3.13.3:
     resolution: {integrity: sha512-otIc7O9LyxpUcQoXzj2hL4LPWKklO6LJWoJUzNa8A17Xgi4fOeDC8FBDOLHnC/Slo1CQgsZMcM6as0M76BZaig==}
