@@ -4,7 +4,8 @@
   import Blockie from '$lib/components/Blockie.svelte';
   import {messages} from '$lib/stores/messages';
   import {wallet, flow, chain} from '$lib/stores/wallet';
-  import {onMount} from 'svelte';
+  import {onDestroy, onMount} from 'svelte';
+  import {combine} from 'jolly-roger-common';
 
   let message = '';
   async function setMessage() {
@@ -12,8 +13,14 @@
   }
 
   onMount(() => {
+    console.log("mount demo", {combine: combine(wallet.address || "0x0000000000000000000000000000000000000000", "hi").toString()})
     messages.fetch();
   });
+
+  onDestroy(() => {
+    console.log("destroy demo", {combine: combine(wallet.address || "0x0000000000000000000000000000000000000000", "hi").toString()})
+    messages.cancel();
+  })
 </script>
 
 <symbol id="icon-spinner6" viewBox="0 0 32 32">

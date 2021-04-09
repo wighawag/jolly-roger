@@ -37,6 +37,7 @@
     "hardhat": "^2.0.10",
     "hardhat-deploy": "^0.7.4",
     "hardhat-gas-reporter": "^1.0.4",
+    "jolly-roger-common": "workspace:*",
     "mocha": "^8.1.1",
     "prettier": "^2.0.5",
     "prettier-plugin-solidity": "^1.0.0-alpha.57",
