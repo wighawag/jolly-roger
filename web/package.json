@@ -9,8 +9,10 @@
   "dependencies": {
     "@ethersproject/abi": "^5.1.0",
     "@ethersproject/bignumber": "^5.1.0",
+    "@ethersproject/bytes": "^5.1.0",
     "@ethersproject/contracts": "^5.1.0",
     "@ethersproject/providers": "^5.1.0",
+    "@ethersproject/solidity": "^5.1.0",
     "@urql/core": "1.16.2",
     "@urql/devtools": "^2.0.3",
     "graphql": "^15.5.0",

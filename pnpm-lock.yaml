@@ -140,8 +140,10 @@ importers:
     specifiers:
       '@ethersproject/abi': ^5.1.0
       '@ethersproject/bignumber': ^5.1.0
+      '@ethersproject/bytes': ^5.1.0
       '@ethersproject/contracts': ^5.1.0
       '@ethersproject/providers': ^5.1.0
+      '@ethersproject/solidity': ^5.1.0
       '@sveltejs/adapter-node': next
       '@sveltejs/adapter-static': ^1.0.0-next.4
       '@sveltejs/kit': next
@@ -181,8 +183,10 @@ importers:
     dependencies:
       '@ethersproject/abi': 5.1.0
       '@ethersproject/bignumber': 5.1.0
+      '@ethersproject/bytes': 5.1.0
       '@ethersproject/contracts': 5.1.0
       '@ethersproject/providers': 5.1.0
+      '@ethersproject/solidity': 5.1.0
       '@urql/core': 1.16.2_graphql@15.5.0
       '@urql/devtools': 2.0.3_@urql+core@1.16.2+graphql@15.5.0
       graphql: 15.5.0
@@ -503,7 +507,6 @@ packages:
       '@ethersproject/keccak256': 5.1.0
       '@ethersproject/sha2': 5.1.0
       '@ethersproject/strings': 5.1.0
-    dev: true
 
   /@ethersproject/strings/5.1.0:
     resolution: {integrity: sha512-perBZy0RrmmL0ejiFGUOlBVjMsUceqLut3OBP3zP96LhiJWWbS8u1NqQVgN4/Gyrbziuda66DxiQocXhsvx+Sw==}
