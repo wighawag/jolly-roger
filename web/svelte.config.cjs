@@ -27,6 +27,7 @@ module.exports = {
         noExternal: Object.keys(pkg.dependencies || {}),
       },
       optimizeDeps: {
+        // Note: 'bn.js', 'bech32', 'hash.js' where needed to be added as dev dependency for vite to find them (pnpm is stricter and make sub dependency not visible on the node_modules folder)
         include: ['bn.js', 'bech32', 'hash.js', 'graphql'],
       },
     },
