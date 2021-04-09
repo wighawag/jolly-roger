@@ -1,0 +1,21 @@
+# docker-compose emulating the system used by fleek
+version: '3.7'
+services:
+  verdaccio:
+    container_name: verdaccio
+    image: verdaccio/verdaccio
+    ports:
+      - "4873:4873"
+
+  app:
+    depends_on:
+      - verdaccio
+    image: node:14
+    # command: sh -c 'npm set registry http://verdaccio:4873 && pnpm i --store=node_modules/.pnpm && pnpm run staging:web:build'
+    working_dir: /workspace
+
+# curl -sL https://unpkg.com/@pnpm/self-installer | sudo node
+# git clone https://github.com/wighawag/jolly-roger.git
+# cd jolly-roger/
+# git checkout svelte-kit
+# npm set registry http://verdaccio:4873 && pnpm i --store=node_modules/.pnpm && pnpm run staging:web:build

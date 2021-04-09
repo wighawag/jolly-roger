@@ -1,7 +1,7 @@
 {
   "build": {
-    "image": "wighawag/pnpm:latest",
-    "command": "pnpm i --store=node_modules/.pnpm && pnpm run staging:web:build",
+    "image": "node:14",
+    "command": "curl -sL https://unpkg.com/@pnpm/self-installer | node && pnpm i --store=node_modules/.pnpm && pnpm run staging:web:build",
     "publicDir": "web/build"
   }
 }
