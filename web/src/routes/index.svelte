@@ -85,15 +85,13 @@
           for contract deployment,
           <a class="text-blue-600" href="https://thegraph.com" target="_blank" rel="noopener">The Graph</a>
           for contract api,
-          <a class="text-blue-600" href="https://svelte.dev" target="_blank" rel="noopener">svelte</a>
-          for frontend,
-          <a class="text-blue-600" href="https://snowpack.dev" target="_blank" rel="noopener">Snowpack</a>
-          for HMR (Hot Module Replacement) and production build.
+          <a class="text-blue-600" href="https://svelte.dev" target="_blank" rel="noopener">svelte + Svelte Kit</a>
+          for frontend with HMR (Hot Module Replacement) and production build.
         </Feature>
         <Feature title="Everything Hot Reload">
           On contract changes, contract get to keep their address and code get updated automatically. On frontend
           changes, module get replaced using blazing fast
-          <a class="text-blue-600" href="https://snowpack.dev" target="_blank" rel="noopener">Snowpack</a>
+          <a class="text-blue-600" href="https://vite.dev" target="_blank" rel="noopener">Vite</a>
           es module hot reload. On subgraph changes, the graph get updated and reexecuted.
         </Feature>
         <Feature title="Fully IPFS Ready">
@@ -102,7 +100,7 @@
         </Feature>
         <Feature title="All in Typescript">The whole app including contracts tests, is written in typescript.</Feature>
         <Feature title="Code Splitting and Tree Shaking">
-          By using Snowpack and ES modules, the frontend benefit from code splitting an dynamic imports as well as tree
+          By using Svelte Kit (and so Vite) and ES modules, the frontend benefit from code splitting an dynamic imports as well as tree
           shaking.
         </Feature>
         <Feature title="VSCode Setup">
