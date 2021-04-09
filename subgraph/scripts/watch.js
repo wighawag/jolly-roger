@@ -70,6 +70,7 @@ function run(cmd, opts) {
 
 const args = process.argv.slice(2);
 const contractsPath = args[0];
+const chainName = args[1];
 
 function setup(command) {
   let running = false;
@@ -95,7 +96,7 @@ function setup(command) {
 }
 chokidar
   .watch(['src', 'templates'], {ignoreInitial: true})
-  .on('all', setup(`npm run local:deploy ${contractsPath}`));
+  .on('all', setup(`npm run deploy ${contractsPath} ${chainName}`));
 chokidar
   .watch(['schema.graphql'], {ignoreInitial: true})
   .on('all', setup(`npm run codegen`));

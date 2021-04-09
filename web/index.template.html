@@ -2,12 +2,10 @@
 <html lang="en">
   <head>
     {{> APPLICATION}}
-    <title>{{title}}</title>
     <!--SCRIPTS-->
-    <link rel="stylesheet" href="/dist/global.css" />
+    %svelte.head%
   </head>
-  <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
-    <script type="module" src="/dist/index.js"></script>
+  <body class="bg-white dark:bg-black">
+    <div id="svelte">%svelte.body%</div>
   </body>
 </html>

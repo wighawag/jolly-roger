@@ -1,5 +1,5 @@
-packages:	
-  - 'contracts'	
-  - 'web'	
-  - 'subgraph'	
-  - 'common-lib' 
+packages:
+  - 'contracts'
+  - 'web'
+  - 'subgraph'
+  - 'common-lib'

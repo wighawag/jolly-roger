@@ -5,11 +5,7 @@ type DataType<T> = Record<string, unknown> & {data?: T};
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
 function _recurseSet(target: any, obj: any) {
   for (const key of Object.keys(obj)) {
-    if (
-      target[key] &&
-      typeof target[key] === 'object' &&
-      typeof obj[key] === 'object'
-    ) {
+    if (target[key] && typeof target[key] === 'object' && typeof obj[key] === 'object') {
       _recurseSet(target[key], obj[key]);
     } else {
       target[key] = obj[key];
@@ -17,17 +13,13 @@ function _recurseSet(target: any, obj: any) {
   }
 }
 
-export class BaseStore<T extends Record<string, unknown>>
-  implements Readable<T> {
+export class BaseStore<T extends Record<string, unknown>> implements Readable<T> {
   protected store: Writable<T>;
   constructor(protected readonly $store: T) {
     this.store = writable(this.$store);
   }
 
-  subscribe(
-    run: (value: T) => void,
-    invalidate?: (value?: T) => void
-  ): () => void {
+  subscribe(run: (value: T) => void, invalidate?: (value?: T) => void): () => void {
     return this.store.subscribe(run, invalidate);
   }
 

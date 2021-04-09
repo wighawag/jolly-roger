@@ -1,5 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export function getParamsFromURL(str?: string): Record<string, string> {
+  if (typeof window === 'undefined') {
+    return {};
+  }
   const url = str || window.location.href;
   const obj: Record<string, string> = {};
   const hash = url.lastIndexOf('#');
@@ -23,6 +26,9 @@ export function getParamsFromURL(str?: string): Record<string, string> {
 }
 
 export function getParamsFromURLHash(str?: string): Record<string, string> {
+  if (typeof window === 'undefined') {
+    return {};
+  }
   const url = str || window.location.hash;
   const obj: Record<string, string> = {};
   const hash = url.lastIndexOf('#');
@@ -40,6 +46,9 @@ export function getParamsFromURLHash(str?: string): Record<string, string> {
 }
 
 export function rebuildLocationHash(hashParams: Record<string, string>): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
   let reconstructedHash = '';
   Object.entries(hashParams).forEach((param) => {
     if (reconstructedHash === '') {
@@ -76,9 +85,7 @@ async function chrome76Detection(): Promise<boolean> {
 }
 
 function isNewChrome(): boolean {
-  const pieces = navigator.userAgent.match(
-    /Chrom(?:e|ium)\/([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)/
-  );
+  const pieces = navigator.userAgent.match(/Chrom(?:e|ium)\/([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)/);
   if (pieces === null || pieces.length !== 5) {
     return false;
   }
@@ -128,10 +135,7 @@ export function isPrivateWindow(): Promise<boolean | null> {
         navigator.userAgent.includes('msie')
       ) {
         // Edge or IE
-        if (
-          !window.indexedDB &&
-          (window.PointerEvent || window.MSPointerEvent)
-        ) {
+        if (!window.indexedDB && (window.PointerEvent || window.MSPointerEvent)) {
           resolve(true);
         }
         resolve(false);
@@ -141,9 +145,7 @@ export function isPrivateWindow(): Promise<boolean | null> {
           resolve(chrome76Detection());
         }
 
-        const fs =
-          (window as any).RequestFileSystem ||
-          (window as any).webkitRequestFileSystem;
+        const fs = (window as any).RequestFileSystem || (window as any).webkitRequestFileSystem;
         if (!fs) {
           resolve(null);
         } else {

@@ -1,7 +1,4 @@
-node_modules/
+.env
 .newsh.json
-.env*
-!.env*.default
+node_modules
 jolly-roger.code-workspace
-.vscode/*
-!.vscode/settings.json.default

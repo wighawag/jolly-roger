@@ -7,10 +7,10 @@
       "path": "common-lib"
     },
     {
-      "path": "subgraph"
+      "path": "web"
     },
     {
-      "path": "web"
+      "path": "subgraph"
     },
     {
       "path": "."
@@ -24,7 +24,7 @@
     },
     "solidity.linter": "solhint",
     "solidity.enableLocalNodeCompiler": false,
-    "solidity.compileUsingRemoteVersion": "v0.7.1+commit.f4a555be",
+    "solidity.compileUsingRemoteVersion": "v0.7.6+commit.7338295f",
     "solidity.packageDefaultDependenciesContractsDirectory": "",
     "solidity.enabledAsYouTypeCompilationErrorCheck": true,
     "solidity.validationDelay": 1500,
@@ -38,7 +38,7 @@
     },
     "mochaExplorer.require": ["ts-node/register/transpile-only"],
     "eslint.alwaysShowStatus": true,
-    "prettier.prettierPath": "_npm/node_modules/prettier",
+    "prettier.prettierPath": "_prettier-vscode-fix/node_modules/prettier",
     "prettier.configPath": ".prettierrc.js",
     "prettier.ignorePath": ".prettierignore"
     // ----------------------------------------------------------------------------------------------------------------------------------------------

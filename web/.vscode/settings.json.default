@@ -1,5 +1,28 @@
 {
-  "prettier.prettierPath": "../_npm/node_modules/prettier",
-  "prettier.configPath": "../.prettierrc.js",
-  "prettier.ignorePath": "../.prettierignore"
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": {
+    "source.fixAll": true
+  },
+  "eslint.run": "onSave",
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact",
+    "html",
+    "vue",
+    "markdown",
+    "svelte"
+  ],
+  "eslint.probe": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact",
+    "html",
+    "vue",
+    "markdown",
+    "svelte"
+  ]
 }

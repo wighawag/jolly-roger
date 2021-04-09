@@ -44,7 +44,7 @@ This repo use `pnpm` for package management : https://pnpm.js.org
 npx pnpm add -g pnpm
 ```
 
-`pnpm` is mainly used because it has proper mono-repo support which this project relies on.
+`pnpm` is used because it has the best mono-repo support which this project relies on.
 You might be able to switch to `yarn` but will most likely have to configure it to fix hoisting issues.
 If you decide to use `yarn` you ll have to remove the script "preinstall" that by default force the use of `pnpm`
 
@@ -73,7 +73,7 @@ pnpm set-name [<new name>] && pnpm install
 The following command will start everything up.
 
 ```bash
-pnpm shell:start
+pnpm start
 ```
 
 This will run each processes in their own terminal window/tap. Note that you might need confiugration based on your system.
@@ -95,7 +95,7 @@ This command will bring 5 shells up
 Once docker-compose is running, you can stop the other shells and restart them if needed via
 
 ```bash
-pnpm shell:dev
+pnpm dev
 ```
 
 Alternatively you can call the following first : this will setup the external services only (ipfs, ethereum and graph nodes)
@@ -104,13 +104,9 @@ Alternatively you can call the following first : this will setup the external se
 pnpm externals
 ```
 
-and then run `pnpm shell:dev` to bring up the rest in watch mode.
+and then run `pnpm dev` to bring up the rest in watch mode.
 
 You can also always run them individually
-
-You can also run them all in one process : `pnpm start` (no separate terminal window/tab) but this means all the log output is in the same window.
-
-Basically the `shell:` version will execute each parallel processes in a new terminal window/tab while the non-shell version will execute all in one process sharing the same log output.
 
 # production
 
@@ -141,8 +137,8 @@ You can remove the env if you want to use the same as the one in `.env`
 You'll also need to update the following for staging and production :
 
 - `SUBGRAPH_NAME=<thegraph account name>/<subgraph name>`
-- `SNOWPACK_PUBLIC_CHAIN_ID=<id of the chain where contracts lives>`
-- `SNOWPACK_PUBLIC_THE_GRAPH_HTTP=https://api.thegraph.com/subgraphs/name/<thegraph account name>/<subgraph name>`
+- `VITE_CHAIN_ID=<id of the chain where contracts lives>`
+- `VITE_THE_GRAPH_HTTP=https://api.thegraph.com/subgraphs/name/<thegraph account name>/<subgraph name>`
 
 you then need to ensure you have a subgraph already created on thegraph.com with that name: https://thegraph.com/explorer/dashboard
 
@@ -162,4 +158,4 @@ pnpm production
 
 For `webapp:build` you can also use [fleek](https://fleek.co) so that building and ipfs deployment is done automatically. The repo provide a `.fleek.json` file already setup for staging.
 
-The only thing needed is setting up the environment variables (SNOWPACK_PUBLIC_THE_GRAPH_HTTP, SNOWPACK_PUBLIC_CHAIN_ID). You can either set them in fleek dashboard or set them in `.fleek.json`
+The only thing needed is setting up the environment variables (VITE_THE_GRAPH_HTTP, VITE_CHAIN_ID). You can either set them in fleek dashboard or set them in `.fleek.json`

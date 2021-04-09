@@ -31,9 +31,7 @@ export class EndPoint {
     } catch (e) {}
 
     if (!url) {
-      console.error(
-        `no url specific either at build time or runtim (through query params) for subgraph`
-      );
+      console.error(`no url specific either at build time or runtim (through query params) for subgraph`);
     }
 
     this.client = new Client({
@@ -42,17 +40,12 @@ export class EndPoint {
     });
   }
 
-  mutate<
-    Data = unknown,
-    Variables extends Record<string, unknown> = Record<string, unknown>
-  >(args: {
+  mutate<Data = unknown, Variables extends Record<string, unknown> = Record<string, unknown>>(args: {
     query: DocumentNode | string;
     variables?: Variables;
     context?: Partial<OperationContext>;
   }): Promise<OperationResult<Data>> {
-    return this.client
-      .mutation(args.query, args.variables, args.context)
-      .toPromise();
+    return this.client.mutation(args.query, args.variables, args.context).toPromise();
   }
 
   query<
@@ -91,10 +84,7 @@ export class EndPoint {
 
     return {
       subscribe(onValue) {
-        return pipe(
-          queryResult$ as sourceT<InternalQueryState<Data>>,
-          subscribe(onValue)
-        ).unsubscribe;
+        return pipe(queryResult$ as sourceT<InternalQueryState<Data>>, subscribe(onValue)).unsubscribe;
       },
     };
   }

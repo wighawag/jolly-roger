@@ -1,31 +1,46 @@
 #!/usr/bin/env node
 const fs = require('fs');
-function copyFromDefault(p) {
-  if (!fs.existsSync(p)) {
-    const defaultFile = `${p}.default`;
-    if (fs.existsSync(defaultFile)) {
-      fs.copyFileSync(`${p}.default`, p);
+
+let anyChanges = false;
+function copyUnlessExists(from, to) {
+  if (!fs.existsSync(to)) {
+    if (fs.existsSync(from)) {
+      anyChanges = true;
+      fs.copyFileSync(from, to);
     }
   }
 }
 
 function writeIfNotExists(p, content) {
   if (!fs.existsSync(p)) {
+    anyChanges = true;
     fs.writeFileSync(p, content);
   }
 }
 
-[
-  'jolly-roger.code-workspace',
-  '.env',
-  '.env.production',
-  '.env.staging',
-  'contracts/.vscode/settings.json',
-  'common-lib/.vscode/settings.json',
-  'subgraph/.vscode/settings.json',
-  'subgraph/.env',
-  'web/.vscode/settings.json',
-].map(copyFromDefault);
+function copyFromDefault(p) {
+  copyUnlessExists(`${p}.default`, p);
+}
+
+function copyPrettierFixVSCodeSettings(p) {
+  if (fs.existsSync('_prettier-vscode-fix/vscode-settings.json')) {
+    if (!fs.existsSync(`${p}/.vscode`)) {
+      fs.mkdirSync(`${p}/.vscode`);
+    }
+  }
+  copyUnlessExists(
+    '_prettier-vscode-fix/vscode-settings.json',
+    `${p}/.vscode/settings.json`
+  );
+}
+
+['jolly-roger.code-workspace', '.env', '.env.production', '.env.staging'].map(
+  copyFromDefault
+);
+
+['common-lib', 'contracts', 'subgraph', 'web'].map(
+  copyPrettierFixVSCodeSettings
+);
 
 switch (process.platform) {
   case 'win32':
@@ -50,6 +65,10 @@ switch (process.platform) {
     break;
 }
 
+if (anyChanges) {
+  console.log('setting up defaults...');
+}
+
 const execSync = require('child_process').execSync;
 function npmInstall(dir) {
   console.log(`INSTALLING ${dir}...`);
@@ -63,4 +82,4 @@ function npmInstall(dir) {
     process.exit(exitCode);
   }
 }
-npmInstall('_npm');
+npmInstall('_prettier-vscode-fix');
