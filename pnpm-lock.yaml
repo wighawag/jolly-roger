@@ -66,7 +66,7 @@ importers:
       ethers: ^5.1.0
       fs-extra: ^9.0.1
       hardhat: ^2.0.10
-      hardhat-deploy: ^0.7.3
+      hardhat-deploy: ^0.7.4
       hardhat-gas-reporter: ^1.0.4
       mocha: ^8.1.1
       prettier: ^2.0.5
@@ -97,7 +97,7 @@ importers:
       ethers: 5.1.0
       fs-extra: 9.1.0
       hardhat: 2.1.2
-      hardhat-deploy: 0.7.3_hardhat@2.1.2
+      hardhat-deploy: 0.7.4_hardhat@2.1.2
       hardhat-gas-reporter: 1.0.4_hardhat@2.1.2
       mocha: 8.3.2
       prettier: 2.2.1
@@ -5217,12 +5217,6 @@ packages:
     resolution: {integrity: sha512-yt0HxZ3PPiOVsyo9b74bQ07mSKyNeoVHzyakCBFJzSC8WhMUYomvq/naaJNks+wWJ1jv8JYTxO5vaw8wLnmZxw==}
     dev: true
 
-  /events/3.3.0:
-    resolution: {integrity: sha512-mQw+2fkQbALzQ7V0MY0IqdnXNOeTtP4r0lN9z7AAawCXgqea7bDii20AYrIBrFd/Hx0M2Ocz6S111CaFkUcb0Q==}
-    engines: {node: '>=0.8.x'}
-    dev: true
-    optional: true
-
   /evp_bytestokey/1.0.3:
     resolution: {integrity: sha512-/f2Go4TognH/KvCISP7OUsHn85hT9nUkxxA9BEWxFn+Oj9o8ZNLm/40hdlgSLyuOimsrTKLUMEorQexp/aPQeA==}
     dependencies:
@@ -6150,9 +6144,10 @@ packages:
       hardhat: 2.1.2
     dev: true
 
-  /hardhat-deploy/0.7.3_hardhat@2.1.2:
-    resolution: {integrity: sha512-cJL1CHUgj4rDgARQ8AqAcP5pFcw2AL0wjbG2OQvPZ1i4d5ZNNzlNc0gOi2e1Po0HZhgEr+m9W9EsSyZRGz5VrA==}
+  /hardhat-deploy/0.7.4_hardhat@2.1.2:
+    resolution: {integrity: sha512-i5Fdb+S7XpBSY+/j0HA09fxp7JPNO55vMfVmbvwx4y4w/TmDSxp74s/71JKGuwxVPZ8ke/gkWTsYjI1b56Zdgw==}
     peerDependencies:
+      '@ethersproject/hardware-wallets': ^5.0.14
       hardhat: ^2.0.0
     dependencies:
       '@ethersproject/abi': 5.1.0
@@ -6176,8 +6171,6 @@ packages:
       match-all: 1.2.6
       murmur-128: 0.2.1
       qs: 6.10.1
-    optionalDependencies:
-      '@ethersproject/hardware-wallets': 5.1.0
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -9053,11 +9046,6 @@ packages:
     resolution: {integrity: sha512-I5cX7HbnLpQW8VsNu3dAh6g631I1cRsdlN8y/j/NQ4yyKA0Iecp4FZ5a2AYNQbzohMwLTDXW+EW6eeH6wAppSA==}
     dev: false
 
-  /nan/2.13.2:
-    resolution: {integrity: sha512-TghvYc72wlMGMVMluVo9WRJc0mB8KxxF/gZ4YYFy7V2ZQX9l7rgbPg7vjS9mt6U5HXODVFVI2bOduCzwOMv/lw==}
-    dev: true
-    optional: true
-
   /nan/2.14.2:
     resolution: {integrity: sha512-M2ufzIiINKCuDfBSAUr1vWQ+vuVcA9kqx8JJUsbQi6yf1uGRyb7HfpdfUr5qLXf3B/t8dPvcjhKMmlfnP47EzQ==}
     dev: true
@@ -10189,29 +10177,6 @@ packages:
       source-map: 0.6.1
     dev: true
 
-  /prebuild-install/5.3.6:
-    resolution: {integrity: sha512-s8Aai8++QQGi4sSbs/M1Qku62PFK49Jm1CbgXklGz4nmHveDq0wzJkg7Na5QbnO1uNH8K7iqx2EQ/mV0MZEmOg==}
-    engines: {node: '>=6'}
-    hasBin: true
-    dependencies:
-      detect-libc: 1.0.3
-      expand-template: 2.0.3
-      github-from-package: 0.0.0
-      minimist: 1.2.5
-      mkdirp-classic: 0.5.3
-      napi-build-utils: 1.0.2
-      node-abi: 2.21.0
-      noop-logger: 0.1.1
-      npmlog: 4.1.2
-      pump: 3.0.0
-      rc: 1.2.8
-      simple-get: 3.1.0
-      tar-fs: 2.1.1
-      tunnel-agent: 0.6.0
-      which-pm-runs: 1.0.0
-    dev: true
-    optional: true
-
   /prebuild-install/6.1.1:
     resolution: {integrity: sha512-M+cKwofFlHa5VpTWub7GLg5RLcunYIcLqtY5pKcls/u7xaAb8FrXZ520qY8rkpYy5xw90tYCyMO0MP5ggzR3Sw==}
     engines: {node: '>=6'}
@@ -10351,6 +10316,7 @@ packages:
     resolution: {integrity: sha512-N9iVG+CGJsI4b4ZGazjwLnxErD2d9Pe4DPvvXSxYA9tFNu8ymXME4Qs5HIQ0LMJpNM7zj+m0NlNnNeqFpKzqnA==}
     deprecated: Unmaintained
     dev: true
+    bundledDependencies: []
 
   /protocol-buffers-schema/3.5.1:
     resolution: {integrity: sha512-YVCvdhxWNDP8/nJDyXLuM+UFsuPk4+1PB7WGPVDzm3HTHbzFLxQYeW2iZpS4mmnXrQJGBzt230t/BbEb7PrQaw==}
@@ -12549,11 +12515,6 @@ packages:
     engines: {node: '>=10'}
     dev: true
 
-  /u2f-api/0.2.7:
-    resolution: {integrity: sha512-fqLNg8vpvLOD5J/z4B6wpPg4Lvowz1nJ9xdHcCzdUPKcFE/qNCceV2gNZxSJd5vhAZemHr/K/hbzVA0zxB5mkg==}
-    dev: true
-    optional: true
-
   /uglify-js/3.13.3:
     resolution: {integrity: sha512-otIc7O9LyxpUcQoXzj2hL4LPWKklO6LJWoJUzNa8A17Xgi4fOeDC8FBDOLHnC/Slo1CQgsZMcM6as0M76BZaig==}
     engines: {node: '>=0.8.0'}
@@ -12699,17 +12660,6 @@ packages:
       bindings: 1.5.0
       nan: 2.14.2
     dev: true
-
-  /usb/1.6.5:
-    resolution: {integrity: sha512-gLVrerQce+F+TSkWgzXACV07nOw+uBlv0gT3svsqTWWxNDe3ESQBIhss3qonIDArMvWPJp6z3I4hXEDYTmPlHQ==}
-    engines: {node: '>=6'}
-    requiresBuild: true
-    dependencies:
-      bindings: 1.5.0
-      nan: 2.13.2
-      prebuild-install: 5.3.6
-    dev: true
-    optional: true
 
   /utf-8-validate/5.0.4:
     resolution: {integrity: sha512-MEF05cPSq3AwJ2C7B7sHAA6i53vONoZbMGX8My5auEVm6W+dJ2Jd/TZPyGJ5CH42V2XtbI5FD28HeHeqlPzZ3Q==}
@@ -13171,11 +13121,6 @@ packages:
   /which-module/2.0.0:
     resolution: {integrity: sha1-2e8H3Od7mQK4o6j6SzHD4/fm6Ho=}
     dev: true
-
-  /which-pm-runs/1.0.0:
-    resolution: {integrity: sha1-Zws6+8VS4LVd9rd4DKdGFfI60cs=}
-    dev: true
-    optional: true
 
   /which-typed-array/1.1.4:
     resolution: {integrity: sha512-49E0SpUe90cjpoc7BOJwyPHRqSAd12c10Qm2amdEZrJPCY2NDxaW01zHITrem+rnETY3dwrbH3UUrUwagfCYDA==}
