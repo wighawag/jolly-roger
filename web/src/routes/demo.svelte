@@ -18,7 +18,7 @@
   });
 
   onDestroy(() => {
-    console.log("destroy demo", {combine: combine(wallet.address || "0x0000000000000000000000000000000000000000", "hi").toString()})
+    // console.log("destroy demo", {combine: combine(wallet.address || "0x0000000000000000000000000000000000000000", "hi").toString()})
     messages.cancel();
   })
 </script>
