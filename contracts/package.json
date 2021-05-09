@@ -13,9 +13,6 @@
     "hardhat",
     "solidity"
   ],
-  "resolutions": {
-    "websocket": "1.0.32"
-  },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "npm:hardhat-deploy-ethers",
     "@openzeppelin/contracts": "^3.4.1",

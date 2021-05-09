@@ -17,21 +17,21 @@
   },
   "scripts": {
     "prepare": "node .setup.js",
-    
+
     "codegen": "rimraf generated && graph codegen",
     "build": "graph build",
     "generate": "node scripts/generate.js",
     "watch": "node scripts/watch.js",
     "dev": "npm-run-all \"deploy -- {1} {2}\" \"watch -- {1} {2}\" --",
-    
+
     "create:silent": "dotenv -- cross-var graph create $SUBGRAPH_NAME --node http://$GRAPH_NODE_API || true",
     "setup": "dotenv -- cross-var wait-on http-get://$GRAPH_NODE_GRAPHQL && npm run create:silent",
 
     "redeploy": "dotenv -- graph codegen && dotenv -- cross-var graph deploy $SUBGRAPH_NAME --ipfs $IPFS_URL --node http://$GRAPH_NODE_API --debug",
-    "wait:deploy": "dotenv -- cross-var wait-on $IPFS_URL/api/v0/version http-get://$GRAPH_NODE_GRAPHQL && run-s redeploy", 
-    "deploy": "npm-run-all \"generate -- {1} {2}\" wait:deploy --",
-    
+    "wait:deploy": "dotenv -- cross-var wait-on $IPFS_URL/api/v0/version http-get://$GRAPH_NODE_GRAPHQL && run-s redeploy",
+    "deploy": "npm-run-all \"generate -- {1} {2}\" codegen wait:deploy --",
+
     "hosted:redeploy": "dotenv -- cross-var graph deploy --access-token $THEGRAPH_TOKEN $SUBGRAPH_NAME --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/",
-    "hosted:deploy": "npm-run-all \"generate -- {1} {2}\" hosted:redeploy --"
+    "hosted:deploy": "npm-run-all \"generate -- {1} {2}\" codegen hosted:redeploy --"
   }
 }
