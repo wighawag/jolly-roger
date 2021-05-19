@@ -9,7 +9,7 @@
     "chokidar": "^3.5.1",
     "cross-var": "^1.1.0",
     "dotenv-cli": "^4.0.0",
-    "fs-extra": "^9.1.0",
+    "fs-extra": "^10.0.0",
     "handlebars": "^4.7.7",
     "npm-run-all": "^4.1.5",
     "rimraf": "^3.0.2",
@@ -17,21 +17,17 @@
   },
   "scripts": {
     "prepare": "node .setup.js",
-
     "codegen": "rimraf generated && graph codegen",
     "build": "graph build",
     "generate": "node scripts/generate.js",
     "watch": "node scripts/watch.js",
     "dev": "npm-run-all \"deploy -- {1}\" \"watch -- {1}\" --",
-
     "create:silent": "dotenv -- cross-var graph create $SUBGRAPH_NAME --node http://$GRAPH_NODE_API || true",
     "setup": "dotenv -- cross-var wait-on http-get://$GRAPH_NODE_GRAPHQL && npm run create:silent",
-
     "redeploy": "dotenv -- graph codegen && dotenv -- cross-var graph deploy --ipfs $IPFS_URL --node http://$GRAPH_NODE_API $SUBGRAPH_NAME",
     "wait:deploy": "dotenv -- cross-var wait-on $IPFS_URL/api/v0/version http-get://$GRAPH_NODE_GRAPHQL && run-s redeploy",
     "deploy": "npm-run-all \"generate -- {1}\" codegen wait:deploy --",
-
-    "hosted:redeploy": "echo \"deploying $SUBGRAPH_NAME ...\" && dotenv -- cross-var graph deploy --access-token $THEGRAPH_TOKEN --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/ $SUBGRAPH_NAME" ,
+    "hosted:redeploy": "echo \"deploying $SUBGRAPH_NAME ...\" && dotenv -- cross-var graph deploy --access-token $THEGRAPH_TOKEN --ipfs https://api.thegraph.com/ipfs/ --node https://api.thegraph.com/deploy/ $SUBGRAPH_NAME",
     "hosted:deploy": "npm-run-all \"generate -- {1}\" codegen hosted:redeploy --"
   }
 }
