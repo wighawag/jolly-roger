@@ -9,10 +9,7 @@ const {spawn} = require('child_process');
 // We assume that Windows provides COMSPEC env variable
 // and other platforms provide SHELL env variable
 const SHELL_PATH = process.env.SHELL || process.env.COMSPEC;
-const EXECUTE_OPTION =
-  process.env.COMSPEC !== undefined && process.env.SHELL === undefined
-    ? '/c'
-    : '-c';
+const EXECUTE_OPTION = process.env.COMSPEC !== undefined && process.env.SHELL === undefined ? '/c' : '-c';
 
 // Wrapping tos to a promise is a bit wrong abstraction. Maybe RX suits
 // better?
@@ -70,7 +67,6 @@ function run(cmd, opts) {
 
 const args = process.argv.slice(2);
 const contractsPath = args[0];
-const chainName = args[1];
 
 function setup(command) {
   let running = false;
@@ -94,9 +90,5 @@ function setup(command) {
     running = false;
   };
 }
-chokidar
-  .watch(['src', 'templates'], {ignoreInitial: true})
-  .on('all', setup(`npm run deploy ${contractsPath} ${chainName}`));
-chokidar
-  .watch(['schema.graphql'], {ignoreInitial: true})
-  .on('all', setup(`npm run codegen`));
+chokidar.watch(['src', 'templates'], {ignoreInitial: true}).on('all', setup(`npm run deploy ${contractsPath}`));
+chokidar.watch(['schema.graphql'], {ignoreInitial: true}).on('all', setup(`npm run codegen`));

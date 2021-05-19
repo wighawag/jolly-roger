@@ -10,7 +10,7 @@ to make an app out of it, execute the following
 npx degit wighawag/jolly-roger <your-app-folder>
 ```
 
-There also more template available in branches:
+<!-- There are also more templates available in branches:
 
 ## Lite version (without subgraph, no dependency on any backend):
 
@@ -22,7 +22,7 @@ npx degit wighawag/jolly-roger#lite <your-app-folder>
 
 ```
 npx degit wighawag/jolly-roger#erc721 <your-app-folder>
-```
+``` -->
 
 ---
 
@@ -76,7 +76,7 @@ The following command will start everything up.
 pnpm start
 ```
 
-This will run each processes in their own terminal window/tap. Note that you might need confiugration based on your system.
+This will run each processes in their own terminal window/tab. Note that you might need configuration based on your system.
 
 On linux it uses `xterm` by default (so you need that installed).
 
@@ -108,17 +108,127 @@ and then run `pnpm dev` to bring up the rest in watch mode.
 
 You can also always run them individually
 
-# production
+# full list of commands
 
-## web
+Here is the list of npm scripts you can execute:
 
-To export the web app (ipfs ready) execute the following:
+Some of them relies on [./\_scripts.js](./_scripts.js) to allow parameterizing it via command line argument (have a look inside if you need modifications)
+<br/><br/>
 
-```bash
-pnpm production:web:build
-```
+`pnpm prepare`
 
-## full deployment
+As a standard lifecycle npm script, it is executed automatically upon install. It generate various config file for you, including vscode files.
+<br/><br/>
+
+`pnpm setup`
+
+this will update name of the project (by default "jolly-roger") to be the name of the folder (See `set-name` command) and install the dependencies (`pnpm install`)
+<br/><br/>
+
+`pnpm set-name [<new name>]`
+
+This will replace every instance of `jolly-roger` (or whatever name was set) to `new name` (if specified, otherwise it use the folder name)
+If your name is not unique and conflict with variable name, etc... this will not be safe to execute.
+<br/><br/>
+
+`pnpm common:dev`
+
+This will compile the common-library and watch for changes.
+<br/><br/>
+
+`pnpm common:build`
+
+This will compile the common library and terminate
+<br/><br/>
+
+`pnpm contracts:dev`
+
+This will deploy the contract on localhost and watch for changes and recompile/redeploy when so.
+<br/><br/>
+
+`pnpm contracts:deploy [<network>]`
+
+This will deploy the contract on the network specified.
+
+If network is a live network, a mnemonic and url will be required. the following env need to be set:
+
+- `MNEMONIC_<network name>`
+- `ETH_NODE_URI_<network name>`
+  <br/><br/>
+
+`pnpm seed [<network>]`
+
+This will execute the contracts/scripts/seed.ts on the network specified
+<br/><br/>
+
+`pnpm subgraph:dev`
+
+This will setup and deploy the subgraph on localhost and watch for changes.
+<br/><br/>
+
+`pnpm subgraph:deploy [<network>]`
+
+This will deploy subgraph on the network specified. If network is a live network, the following env beed to be set:
+
+- `THEGRAPH_TOKEN` token gibing you write access to thegraph.com service
+  <br/><br/>
+
+`pnpm web:dev [<network>]`
+
+This will spawn a vite dev server for the webapp, connected to the specified network
+<br/><br/>
+
+`pnpm web:build [<network>]`
+
+This will build a static version of the web app for the specified network.
+<br/><br/>
+
+`pnpm web:serve`
+
+This will serve the static file as if on an ipfs gateway.
+<br/><br/>
+
+`pnpm web:build:serve [<network>]`
+
+this both build and serve the web app.
+<br/><br/>
+
+`pnpm web:deploy <network>`
+
+This build and deploy the web app on ipfs for the network specified.
+
+You ll need the following env variables setup :
+
+- `IPFS_DEPLOY_PINATA__API_KEY` │
+- `IPFS_DEPLOY_PINATA__SECRET_API_KEY`
+
+<br/><br/>
+
+`pnpm deploy [<network>]`
+
+This will deploy all (contracts, subgraph and web app). See below for more details.
+
+If no network are specified it will fetch from the env variable `NETWORK_NAME`.
+<br/><br/>
+
+`pnpm stop`
+
+This stop the docker services running
+<br/><br/>
+
+`pnpm externals`
+This spawn docker services: an ethereum node, an IPFS node and a subgraph node
+<br/><br/>
+
+`pnpm dev`
+This assume external service run. It will spawn a web server, watch/build the common library, the web app, the contracts and the subgraph. It will also seed the contracts with some data.
+<br/><br/>
+
+`pnpm start`
+It will spawn everything needed to get started, external services, a web server, watch/build the common library, the web app, the contracts and the subgraph. It will also seed the contracts with some data.
+<br/><br/>
+
+# env variables required for full deployment
 
 You need to gather the following environment variables :
 
@@ -144,17 +254,7 @@ you then need to ensure you have a subgraph already created on thegraph.com with
 
 Furthermore, you need to ensure the values in [web/application.json](web/application.json) are to your liking. Similar for the the web/public/preview.png image that is used for open graph metadata. The application.json is also where you setup the ens name if any.
 
-finally execute the following for staging :
-
-```
-pnpm staging
-```
-
-for production:
-
-```
-pnpm production
-```
+# fleek github integration
 
 For `webapp:build` you can also use [fleek](https://fleek.co) so that building and ipfs deployment is done automatically. The repo provide a `.fleek.json` file already setup for staging.
 

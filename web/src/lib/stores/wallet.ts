@@ -7,7 +7,8 @@ import {finality, nodeUrl, chainId} from '$lib/config';
 import {base} from '$app/paths';
 import {isCorrected, correctTime} from './time';
 
-const walletStores = WalletStores({
+// weird bug in vite build?
+const walletStores = ((WalletStores as any).default || WalletStores)({
   chainConfigs: contractsInfo,
   builtin: {autoProbe: true},
   transactions: {
