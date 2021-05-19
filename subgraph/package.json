@@ -27,7 +27,7 @@
     "create:silent": "dotenv -- cross-var graph create $SUBGRAPH_NAME --node http://$GRAPH_NODE_API || true",
     "setup": "dotenv -- cross-var wait-on http-get://$GRAPH_NODE_GRAPHQL && npm run create:silent",
 
-    "redeploy": "dotenv -- graph codegen && dotenv -- cross-var graph deploy --ipfs $IPFS_URL --node http://$GRAPH_NODE_API --debug $SUBGRAPH_NAME",
+    "redeploy": "dotenv -- graph codegen && dotenv -- cross-var graph deploy --ipfs $IPFS_URL --node http://$GRAPH_NODE_API $SUBGRAPH_NAME",
     "wait:deploy": "dotenv -- cross-var wait-on $IPFS_URL/api/v0/version http-get://$GRAPH_NODE_GRAPHQL && run-s redeploy",
     "deploy": "npm-run-all \"generate -- {1}\" codegen wait:deploy --",
 
