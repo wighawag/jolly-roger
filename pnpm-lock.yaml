@@ -68,7 +68,7 @@ importers:
       ethers: ^5.1.4
       fs-extra: ^10.0.0
       hardhat: ^2.3.0
-      hardhat-deploy: ^0.7.6
+      hardhat-deploy: ^0.7.7
       hardhat-gas-reporter: ^1.0.4
       jolly-roger-common: workspace:*
       mocha: ^8.4.0
@@ -100,7 +100,7 @@ importers:
       ethers: 5.1.4
       fs-extra: 10.0.0
       hardhat: 2.3.0
-      hardhat-deploy: 0.7.6_hardhat@2.3.0
+      hardhat-deploy: 0.7.7_hardhat@2.3.0
       hardhat-gas-reporter: 1.0.4_hardhat@2.3.0
       jolly-roger-common: link:../common-lib
       mocha: 8.4.0
@@ -6272,8 +6272,8 @@ packages:
       hardhat: 2.3.0
     dev: true
 
-  /hardhat-deploy/0.7.6_hardhat@2.3.0:
-    resolution: {integrity: sha512-oyhp9B1LvKpW6mTttDQ/gyxc+IpbMQi0Q76LcAlfygD+XRF0LUKTKEkPwYktfAruRrxe8Sap87Uma6a65TLR5A==}
+  /hardhat-deploy/0.7.7_hardhat@2.3.0:
+    resolution: {integrity: sha512-f4RzxnnUWmIUFpwCL54MSyyuLCWl/wAuUhuO1fd9VnHx2H4GzIz81g9Vi5xjxN/8OG2N4xBWr5jS7+klglICiQ==}
     peerDependencies:
       '@ethersproject/hardware-wallets': ^5.0.14
       hardhat: ^2.0.0

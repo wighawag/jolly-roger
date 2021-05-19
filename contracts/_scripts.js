@@ -69,9 +69,9 @@ async function performAction(rawArgs) {
   if (firstArg === 'run') {
     const {fixedArgs, extra} = parseArgs(args, 2, {});
     await execute(
-      `cross-env HARDHAT_NETWORK=${fixedArgs[0]} ts-node --files ${
-        fixedArgs[1]
-      } ${extra.join(' ')}`
+      `cross-env HARDHAT_DEPLOY_LOG=true HARDHAT_NETWORK=${
+        fixedArgs[0]
+      } ts-node --files ${fixedArgs[1]} ${extra.join(' ')}`
     );
   } else if (firstArg === 'deploy') {
     const {fixedArgs, extra} = parseArgs(args, 1, {});
@@ -92,9 +92,9 @@ async function performAction(rawArgs) {
     await execute(
       `cross-env ${
         options.deploy ? 'HARDHAT_DEPLOY_FIXTURE=true' : ''
-      } HARDHAT_DEPLOY_ACCOUNTS_NETWORK=${fixedArgs[0]} HARDHAT_FORK=${
+      } HARDHAT_DEPLOY_LOG=true HARDHAT_DEPLOY_ACCOUNTS_NETWORK=${
         fixedArgs[0]
-      } ${
+      } HARDHAT_FORK=${fixedArgs[0]} ${
         options.blockNumber ? `HARDHAT_FORK_NUMBER=${options.blockNumber}` : ''
       } ${
         options['no-impersonation']
