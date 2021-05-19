@@ -86,7 +86,7 @@ async function performAction(rawArgs) {
     const network = fixedArgs[0] || 'localhost';
     const env = getEnv(network);
     await execute(
-      `${env}npm --prefix contracts run deploy ${network} -- --export ../web/src/lib/contracts.json ${extra}`
+      `${env}npm --prefix contracts run deploy ${network} -- --export ../web/src/lib/contracts.json ${extra.join(' ')}`
     );
   } else if (firstArg === 'contracts:export') {
     const {fixedArgs, extra} = parseArgs(args, 1, {});
@@ -102,7 +102,7 @@ async function performAction(rawArgs) {
     const network = fixedArgs[0] || 'localhost';
     const env = getEnv(network);
     await execute(`wait-on web/src/lib/contracts.json`);
-    await execute(`${env}npm --prefix contracts run execute ${network} scripts/seed.ts ${extra}`);
+    await execute(`${env}npm --prefix contracts run execute ${network} scripts/seed.ts ${extra.join(' ')}`);
     // TODO execute command
   } else if (firstArg === 'subgraph:dev') {
     await execute(`dotenv -- npm --prefix subgraph run setup`);

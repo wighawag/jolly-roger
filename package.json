@@ -38,7 +38,7 @@
     "---------------------- DEPLOYMENT ----------------------": "deployments",
     "deploy": "node ./_scripts.js deploy",
     "web:deploy": "node ./_scripts.js web:deploy",
-    "---------------------- DEVELOPMENT ----------------------": "run external services, setup subgraph and deploy it on the local graph-node, deploy the contracts and seed it",
+    "---------------------- DEVELOPMENT ----------------------": "run external services, setup subgraph and deploy it on the local graph-node + deploy the contracts and seed it",
     "stop": "node ./_scripts.js stop",
     "externals": "node ./_scripts.js externals",
     "dev": "node ./_scripts.js dev",
