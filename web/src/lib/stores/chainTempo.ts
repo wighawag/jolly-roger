@@ -1,5 +1,8 @@
 import {blockTime} from '$lib/config';
 import type {Provider} from '@ethersproject/abstract-provider';
+import {logs} from 'named-logs';
+const console = logs('chainTempo');
+
 function removeFrom(array: unknown[], elem: unknown): void {
   for (let i = array.length - 1; i >= 0; i--) {
     if (array[i] === elem) {
@@ -23,9 +26,7 @@ class ChainTempo {
   private triggerTimeout: NodeJS.Timeout;
   private chainInfo: ChainTempoInfo = {lastBlockNumber: undefined, stale: true};
 
-  constructor(private maxTimeout: number) {
-    console.log('ChainTempo()');
-  }
+  constructor(private maxTimeout: number) {}
 
   subscribe(func: TempoListener): () => void {
     func(this.chainInfo);
@@ -36,23 +37,22 @@ class ChainTempo {
   check() {
     const now = Date.now() / 1000;
     if (now - this.lastUpdate > this.maxTimeout - 1) {
-      console.log(`timed out... ${now}  - ${this.lastUpdate} = ${now - this.lastUpdate} > ${this.maxTimeout - 1}`);
+      console.info(`timed out... ${now}  - ${this.lastUpdate} = ${now - this.lastUpdate} > ${this.maxTimeout - 1}`);
       this.onBlock(undefined);
     }
     this.timeout = setTimeout(this.check.bind(this), this.maxTimeout * 1000);
   }
 
   startOrUpdateProvider(provider?: Provider) {
-    console.log({provider});
     if (this.currentProvider !== provider) {
       if (this.currentProvider) {
-        console.log('stop listening for block event');
+        console.info('stop listening for block event');
         this.currentProvider.off('block', this.callback);
       }
       this.callback = this.onBlock.bind(this);
       this.currentProvider = provider;
       if (this.currentProvider) {
-        console.log('listening for block event');
+        console.info('listening for block event');
         this.currentProvider.on('block', this.callback);
       }
     }
@@ -61,29 +61,8 @@ class ChainTempo {
     if (!this.timeout) {
       this.timeout = setTimeout(this.check.bind(this), this.maxTimeout * 1000);
     }
-
-    // this.debug();
   }
-
-  // private debugInterval: NodeJS.Timeout;
-  // private debug() {
-  //   if (!this.debugInterval) {
-  //     this.debugInterval = setInterval(async () => {
-  //       if (this.currentProvider) {
-  //         // const block = await this.currentProvider.getBlock('latest');
-  //         // console.log(`b: ${block.number}`);
-  //         const blockNumber = parseInt(
-  //           await (window as any).ethereum.request({method: 'eth_blockNumber', params: []}),
-  //           16
-  //         );
-  //         console.log(`b: ${blockNumber}`);
-  //       }
-  //     }, 1000);
-  //   }
-  // }
-
   private onBlock(blockNumber?: number) {
-    console.log(`onBlock ${blockNumber}`);
     if (blockNumber) {
       this.chainInfo.lastBlockNumber = blockNumber;
       this.chainInfo.stale = false;
@@ -102,6 +81,8 @@ class ChainTempo {
   }
 
   private callListeners() {
+    console.info(`onBlock ${this.chainInfo.lastBlockNumber}`);
+
     for (const listener of this.blockListeners) {
       // TODO delay them ?
       listener(this.chainInfo); // TODO wait for each one ?

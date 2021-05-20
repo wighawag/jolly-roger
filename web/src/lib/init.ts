@@ -1,6 +1,6 @@
-// TODO import {hookup} from 'named-logs-console';
+import {hookup} from 'named-logs-console';
 import {getParamsFromURL, getParamsFromURLHash} from './utils/web';
-// hookup();
+hookup();
 
 export let startTime = Math.floor(Date.now() / 1000);
 export const hashParams = getParamsFromURLHash();

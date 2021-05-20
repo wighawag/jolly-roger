@@ -17,6 +17,8 @@
     "@urql/core": "2.1.2",
     "@urql/devtools": "^2.0.3",
     "graphql": "^15.5.0",
+    "named-logs": "^0.0.13",
+    "named-logs-console": "^0.1.1",
     "web3w": "^0.3.0",
     "web3w-torus-loader": "^0.3.0",
     "web3w-walletconnect-loader": "^0.3.0",

@@ -1,6 +1,8 @@
 import type {EndPoint} from '$lib/graphql';
 import type {Readable} from 'svelte/store';
 import {BaseStoreWithData} from './stores';
+import {logs} from 'named-logs';
+const console = logs('graphql');
 
 type ChainTempoInfo = {lastBlockNumber?: number; stale: boolean};
 
@@ -38,7 +40,7 @@ class BaseQueryStore<T, V extends Record<string, unknown> = Record<string, unkno
   }
 
   protected async fetch(): Promise<void> {
-    console.log('fetching....');
+    console.info('fetching....');
     try {
       const result = await this.endpoint.query<Record<string, unknown>, V>({
         query: this.query,
@@ -136,20 +138,20 @@ export class HookedQueryStore<T, V extends Record<string, unknown> = Record<stri
   private stopUpdates?: () => void;
   subscribe(run: (value: QueryState<T>) => void, invalidate?: (value?: QueryState<T>) => void): () => void {
     this.listenerCount++;
-    console.log(`subscribed ${this.listenerCount}`);
+    // console.info(`subscribed ${this.listenerCount}`);
     if (this.listenerCount === 1) {
-      console.log(`start fetching`);
+      console.info(`start fetching`);
       this.stopUpdates = this.hook.subscribe((chainInfo: ChainTempoInfo) => {
-        console.log(chainInfo);
+        // console.log(chainInfo);
         this.fetch();
       });
     }
     const unsubscribe = this.store.subscribe(run, invalidate);
     return () => {
       this.listenerCount--;
-      console.log(`unsubscribed ${this.listenerCount}`);
+      // console.log(`unsubscribed ${this.listenerCount}`);
       if (this.listenerCount === 0) {
-        console.log(`stop fetching`);
+        console.info(`stop fetching`);
         if (this.stopUpdates) {
           this.stopUpdates();
           this.stopUpdates = undefined;

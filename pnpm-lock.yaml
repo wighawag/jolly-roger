@@ -167,6 +167,8 @@ importers:
       ipfs-deploy: ^8.0.1
       ipfs-gateway-emulator: ^4.2.1-ipfs.1
       jolly-roger-common: workspace:*
+      named-logs: ^0.0.13
+      named-logs-console: ^0.1.1
       postcss: ^8.2.15
       postcss-load-config: ^3.0.1
       prepare-for-web: ^0.1.5
@@ -194,6 +196,8 @@ importers:
       '@urql/core': 2.1.2_graphql@15.5.0
       '@urql/devtools': 2.0.3_@urql+core@2.1.2+graphql@15.5.0
       graphql: 15.5.0
+      named-logs: 0.0.13
+      named-logs-console: 0.1.1
       web3w: 0.3.0_b5ca6036183ad2f7fa75d2813463e3af
       web3w-torus-loader: 0.3.0
       web3w-walletconnect-loader: 0.3.0
@@ -9114,6 +9118,12 @@ packages:
       object-assign: 4.1.1
       thenify-all: 1.6.0
     dev: true
+
+  /named-logs-console/0.1.1:
+    resolution: {integrity: sha512-JVYQVrbO9GqfK9BrRA7KdJY0B/LPfYcRCn9Pcfh9Q6ZbFsvXz9HPxlQWaszcwQsCE6yCKlvk8SJ+Br3ffFayLA==}
+    dependencies:
+      named-logs: 0.0.13
+    dev: false
 
   /named-logs/0.0.13:
     resolution: {integrity: sha512-I5cX7HbnLpQW8VsNu3dAh6g631I1cRsdlN8y/j/NQ4yyKA0Iecp4FZ5a2AYNQbzohMwLTDXW+EW6eeH6wAppSA==}
