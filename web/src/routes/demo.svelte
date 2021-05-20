@@ -13,14 +13,16 @@
   }
 
   onMount(() => {
-    console.log("mount demo", {combine: combine(wallet.address || "0x0000000000000000000000000000000000000000", "hi").toString()})
-    messages.fetch();
+    console.log('mount demo', {
+      combine: combine(wallet.address || '0x0000000000000000000000000000000000000000', 'hi').toString(),
+    });
+    messages.start();
   });
 
   onDestroy(() => {
     // console.log("destroy demo", {combine: combine(wallet.address || "0x0000000000000000000000000000000000000000", "hi").toString()})
-    messages.cancel();
-  })
+    messages.stop();
+  });
 </script>
 
 <symbol id="icon-spinner6" viewBox="0 0 32 32">
@@ -30,11 +32,11 @@
 </symbol>
 <WalletAccess>
   <section class="py-8 px-4">
-    {#if !$messages.state}
+    {#if !$messages.step}
       <div>Messages not loaded</div>
     {:else if $messages.error}
       <div>Error: {$messages.error}</div>
-    {:else if $messages.state === 'Fetching' || !$messages.data}
+    {:else if $messages.step === 'LOADING' || !$messages.data}
       <div>Loading Messages...</div>
     {:else}
       {#each $messages.data as message, index}

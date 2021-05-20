@@ -6,6 +6,12 @@ const {spawn} = require('child_process');
 
 const commandlineArgs = process.argv.slice(2);
 
+function wait(numSeconds) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, numSeconds * 1000);
+  });
+}
+
 function parseArgs(rawArgs, numFixedArgs, expectedOptions) {
   const fixedArgs = [];
   const options = {};
@@ -78,6 +84,7 @@ async function performAction(rawArgs) {
       await execute('rimraf contracts/deployments/localhost && rimraf web/src/lib/contracts.json');
     }
     await execute(`wait-on tcp:localhost:8545`);
+    await wait(1); // slight delay to ensure ethereum node is actually ready
     await execute(
       `dotenv -e .env -e contracts/.env -- npm --prefix contracts run local:dev -- --export ../web/src/lib/contracts.json`
     );
