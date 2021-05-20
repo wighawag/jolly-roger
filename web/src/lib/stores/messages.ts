@@ -3,8 +3,9 @@ import type {TransactionStore} from 'web3w';
 import type {Invalidator, Subscriber, Unsubscriber} from 'web3w/dist/esm/utils/internals';
 import {SUBGRAPH_ENDPOINT} from '$lib/graphql/graphql_endpoints';
 import {transactions} from './wallet';
-import {QueryState, QueryStore, BasicQueryStore} from '$lib/utils/grapql';
+import {HookedQueryStore, QueryState, QueryStore} from '$lib/utils/grapql';
 import type {EndPoint} from '$lib/graphql';
+import {chainTempo} from './chainTempo';
 
 type Messages = {
   id: string;
@@ -45,7 +46,7 @@ class MessagesStore implements QueryStore<Messages> {
   private queryStore: QueryStore<Messages>;
   private store: Readable<QueryState<Messages>>;
   constructor(endpoint: EndPoint, private transactions: TransactionStore) {
-    this.queryStore = new BasicQueryStore(
+    this.queryStore = new HookedQueryStore(
       endpoint,
       `
     query {
@@ -55,7 +56,8 @@ class MessagesStore implements QueryStore<Messages> {
         timestamp
       }
     }`,
-      {path: 'messageEntries', frequency: 2}
+      chainTempo,
+      {path: 'messageEntries'}
     );
     this.store = derived([this.queryStore, this.transactions], (values) => this.update(values)); // lambda ensure update is not bound and can be hot swapped on HMR
   }
@@ -94,12 +96,6 @@ class MessagesStore implements QueryStore<Messages> {
     }
   }
 
-  start(): QueryStore<Messages> {
-    return this.queryStore.start();
-  }
-  stop() {
-    return this.queryStore.stop();
-  }
   acknowledgeError() {
     return this.queryStore.acknowledgeError();
   }

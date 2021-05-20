@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@ethersproject/abi": "^5.1.2",
+    "@ethersproject/abstract-provider": "^5.1.0",
     "@ethersproject/bignumber": "^5.1.1",
     "@ethersproject/bytes": "^5.1.0",
     "@ethersproject/contracts": "^5.1.1",

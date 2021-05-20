@@ -2,6 +2,10 @@ import type {EndPoint} from '$lib/graphql';
 import type {Readable} from 'svelte/store';
 import {BaseStoreWithData} from './stores';
 
+type ChainTempoInfo = {lastBlockNumber?: number; stale: boolean};
+
+export type Hook = {subscribe: (f: (chainInfo: ChainTempoInfo) => void) => () => void};
+
 export type QueryState<T> = {
   step: 'IDLE' | 'LOADING' | 'READY';
   data?: T;
@@ -9,23 +13,19 @@ export type QueryState<T> = {
 };
 
 export type QueryStore<T> = Readable<QueryState<T>> & {
-  start: () => QueryStore<T>;
-  stop: () => void;
   acknowledgeError: () => void;
 };
 
-export class BasicQueryStore<T, V extends Record<string, unknown>>
+class BaseQueryStore<T, V extends Record<string, unknown> = Record<string, unknown>>
   extends BaseStoreWithData<QueryState<T>, T>
   implements QueryStore<T>
 {
-  private timeout: NodeJS.Timeout;
   public constructor(
     private endpoint: EndPoint,
     private query: string,
     private options?: {
       variables?: V;
       path?: string;
-      frequency?: number;
     }
   ) {
     super({
@@ -37,7 +37,8 @@ export class BasicQueryStore<T, V extends Record<string, unknown>>
     this.setPartial({error: undefined});
   }
 
-  async fetch(): Promise<void> {
+  protected async fetch(): Promise<void> {
+    console.log('fetching....');
     try {
       const result = await this.endpoint.query<Record<string, unknown>, V>({
         query: this.query,
@@ -58,8 +59,35 @@ export class BasicQueryStore<T, V extends Record<string, unknown>>
     } catch (e) {
       console.error(e);
     }
+  }
+}
 
-    this.timeout = setTimeout(this.fetch.bind(this), (this.options?.frequency || 1) * 1000);
+export class TimedQueryStore<T, V extends Record<string, unknown> = Record<string, unknown>>
+  extends BaseQueryStore<T, V>
+  implements QueryStore<T>
+{
+  private timeout: NodeJS.Timeout;
+  private extraOptions: {frequency?: number};
+  public constructor(
+    endpoint: EndPoint,
+    query: string,
+    options?: {
+      variables?: V;
+      path?: string;
+      frequency?: number;
+    }
+  ) {
+    super(endpoint, query, options);
+    this.extraOptions = options;
+  }
+
+  acknowledgeError(): void {
+    this.setPartial({error: undefined});
+  }
+
+  protected async fetch(): Promise<void> {
+    await super.fetch();
+    this.timeout = setTimeout(this.fetch.bind(this), (this.extraOptions?.frequency || 1) * 1000);
   }
 
   start(): QueryStore<T> {
@@ -79,5 +107,55 @@ export class BasicQueryStore<T, V extends Record<string, unknown>>
       clearTimeout(this.timeout);
       this.timeout = undefined;
     }
+  }
+}
+
+export class HookedQueryStore<T, V extends Record<string, unknown> = Record<string, unknown>>
+  extends BaseQueryStore<T, V>
+  implements QueryStore<T>
+{
+  private hook: Hook;
+  public constructor(
+    endpoint: EndPoint,
+    query: string,
+    hook: Hook,
+    options?: {
+      variables?: V;
+      path?: string;
+    }
+  ) {
+    super(endpoint, query, options);
+    this.hook = hook;
+  }
+
+  acknowledgeError(): void {
+    this.setPartial({error: undefined});
+  }
+
+  private listenerCount = 0;
+  private stopUpdates?: () => void;
+  subscribe(run: (value: QueryState<T>) => void, invalidate?: (value?: QueryState<T>) => void): () => void {
+    this.listenerCount++;
+    console.log(`subscribed ${this.listenerCount}`);
+    if (this.listenerCount === 1) {
+      console.log(`start fetching`);
+      this.stopUpdates = this.hook.subscribe((chainInfo: ChainTempoInfo) => {
+        console.log(chainInfo);
+        this.fetch();
+      });
+    }
+    const unsubscribe = this.store.subscribe(run, invalidate);
+    return () => {
+      this.listenerCount--;
+      console.log(`unsubscribed ${this.listenerCount}`);
+      if (this.listenerCount === 0) {
+        console.log(`stop fetching`);
+        if (this.stopUpdates) {
+          this.stopUpdates();
+          this.stopUpdates = undefined;
+        }
+      }
+      unsubscribe();
+    };
   }
 }

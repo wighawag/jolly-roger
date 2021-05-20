@@ -6,6 +6,7 @@ import {notifications} from './notifications';
 import {finality, nodeUrl, chainId} from '$lib/config';
 import {base} from '$app/paths';
 import {isCorrected, correctTime} from './time';
+import {chainTempo} from './chainTempo';
 
 // weird bug in vite build?
 const walletStores = ((WalletStores as any).default || WalletStores)({
@@ -32,6 +33,13 @@ const walletStores = ((WalletStores as any).default || WalletStores)({
 });
 
 export const {wallet, transactions, builtin, chain, balance, flow, fallback} = walletStores;
+
+if (typeof window !== 'undefined') {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (window as any).walletStores = walletStores;
+}
+
+chainTempo.startOrUpdateProvider(wallet.provider);
 
 function notifyFailure(tx: {hash: string}) {
   notifications.queue({
@@ -71,6 +79,7 @@ transactions.subscribe(($transactions) => {
 });
 
 chain.subscribe(async (v) => {
+  chainTempo.startOrUpdateProvider(wallet.provider);
   if (!isCorrected()) {
     if (v.state === 'Connected' || v.state === 'Ready') {
       const latestBlock = await wallet.provider?.getBlock('latest');
