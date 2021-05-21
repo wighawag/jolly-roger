@@ -1,16 +1,15 @@
-import {blockTime} from '../config';
+import {blockTime} from '$lib/config';
 import {readable} from 'svelte/store';
-import {startTime as initStartTime} from '../init';
 
-export let startTime = initStartTime;
+export let startTime = (Date.now() - performance.now()) / 1000;
 
 const performanceAvailable = typeof performance !== 'undefined';
 
 export function now(): number {
   if (performanceAvailable) {
-    return Math.floor(performance.now() / 1000) + startTime - blockTime;
+    return Math.floor(performance.now() / 1000) + startTime;
   } else {
-    return Math.floor(Date.now() / 1000) + startTime - blockTime;
+    return Math.floor(Date.now() / 1000) + startTime;
   }
 }
 
@@ -18,7 +17,7 @@ let _corrected = false;
 export function correctTime(actualTime: number): void {
   const currentTime = now();
   const diff = actualTime - currentTime;
-  if (Math.abs(diff) > 60) {
+  if (Math.abs(diff) > blockTime) {
     // only adapt if difference is significant
     startTime += diff;
   }
@@ -39,15 +38,13 @@ export const time = readable(now(), function start(set) {
   };
 });
 
-// TODO remove
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 if (typeof window !== 'undefined') {
-  (window as any).time = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (window as unknown as any).time = {
     now,
     startTime,
     correctTime,
     isCorrected,
     time,
   };
-  // console.log((window as any).time);
 }
