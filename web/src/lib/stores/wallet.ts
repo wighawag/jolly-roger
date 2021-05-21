@@ -9,6 +9,7 @@ import {isCorrected, correctTime} from './time';
 import {chainTempo} from './chainTempo';
 
 // weird bug in vite build?
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const walletStores = ((WalletStores as any).default || WalletStores)({
   chainConfigs: contractsInfo,
   builtin: {autoProbe: true},

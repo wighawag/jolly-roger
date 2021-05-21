@@ -138,18 +138,13 @@ export class HookedQueryStore<T, V extends Record<string, unknown> = Record<stri
   private stopUpdates?: () => void;
   subscribe(run: (value: QueryState<T>) => void, invalidate?: (value?: QueryState<T>) => void): () => void {
     this.listenerCount++;
-    // console.info(`subscribed ${this.listenerCount}`);
     if (this.listenerCount === 1) {
       console.info(`start fetching`);
-      this.stopUpdates = this.hook.subscribe((chainInfo: ChainTempoInfo) => {
-        // console.log(chainInfo);
-        this.fetch();
-      });
+      this.stopUpdates = this.hook.subscribe(() => this.fetch());
     }
     const unsubscribe = this.store.subscribe(run, invalidate);
     return () => {
       this.listenerCount--;
-      // console.log(`unsubscribed ${this.listenerCount}`);
       if (this.listenerCount === 0) {
         console.info(`stop fetching`);
         if (this.stopUpdates) {

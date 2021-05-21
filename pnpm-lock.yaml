@@ -167,8 +167,7 @@ importers:
       ipfs-deploy: ^8.0.1
       ipfs-gateway-emulator: ^4.2.1-ipfs.1
       jolly-roger-common: workspace:*
-      named-logs: ^0.0.13
-      named-logs-console: ^0.1.1
+      named-logs: ^0.1.0
       postcss: ^8.2.15
       postcss-load-config: ^3.0.1
       prepare-for-web: ^0.1.5
@@ -181,9 +180,9 @@ importers:
       tslib: ^2.2.0
       typescript: ^4.2.4
       vite: ^2.3.3
-      web3w: ^0.3.0
-      web3w-torus-loader: ^0.3.0
-      web3w-walletconnect-loader: ^0.3.0
+      web3w: ^0.3.1
+      web3w-torus-loader: ^0.3.1
+      web3w-walletconnect-loader: ^0.3.1
       wonka: ^4.0.15
     dependencies:
       '@ethersproject/abi': 5.1.2
@@ -196,16 +195,15 @@ importers:
       '@urql/core': 2.1.2_graphql@15.5.0
       '@urql/devtools': 2.0.3_@urql+core@2.1.2+graphql@15.5.0
       graphql: 15.5.0
-      named-logs: 0.0.13
-      named-logs-console: 0.1.1
-      web3w: 0.3.0_b5ca6036183ad2f7fa75d2813463e3af
-      web3w-torus-loader: 0.3.0
-      web3w-walletconnect-loader: 0.3.0
+      named-logs: 0.1.0
+      web3w: 0.3.1_b5ca6036183ad2f7fa75d2813463e3af
+      web3w-torus-loader: 0.3.1
+      web3w-walletconnect-loader: 0.3.1
       wonka: 4.0.15
     devDependencies:
-      '@sveltejs/adapter-node': 1.0.0-next.21
+      '@sveltejs/adapter-node': 1.0.0-next.22_@sveltejs+kit@1.0.0-next.109
       '@sveltejs/adapter-static': 1.0.0-next.9
-      '@sveltejs/kit': 1.0.0-next.108_svelte@3.38.2
+      '@sveltejs/kit': 1.0.0-next.109_svelte@3.38.2
       '@tailwindcss/jit': 0.1.18_postcss@8.2.15+tailwindcss@2.1.2
       '@typescript-eslint/eslint-plugin': 4.24.0_59c9e933fd1a489015de5df6809ac2f2
       '@typescript-eslint/parser': 4.24.0_eslint@7.26.0+typescript@4.2.4
@@ -1312,17 +1310,21 @@ packages:
     resolution: {integrity: sha512-d7VS7PxgMosm5NyaiyDJRNID5pK4AWj1l64Dbz0147hJgy5k2C0/ZiKK/9u5c5K+HRUVHmp+RMvGEjGh84oA5Q==}
     dev: true
 
-  /@sveltejs/adapter-node/1.0.0-next.21:
-    resolution: {integrity: sha512-xAuLpct6VEbfPweIynhLFiuZmD8jIU8NTP5n6UWeDubGtFFJ0kOUKU5trJLxFOZXRTYbyDGVp9LfoSIs5LkWWQ==}
+  /@sveltejs/adapter-node/1.0.0-next.22_@sveltejs+kit@1.0.0-next.109:
+    resolution: {integrity: sha512-8LCv8jLSvG7btIYqHiQ+9+xEMQjbPYXi0/jZa/+z+5nYnqoIzqd8g5dyqDm8S+lJcdyE/dZctD4aQCnNuDCXhw==}
+    peerDependencies:
+      '@sveltejs/kit': 1.0.0-next.109
+    dependencies:
+      '@sveltejs/kit': 1.0.0-next.109_svelte@3.38.2
     dev: true
 
   /@sveltejs/adapter-static/1.0.0-next.9:
     resolution: {integrity: sha512-yqZ+4dzi+2+2jDPHCrI7WrLdXyQ/0U56a7aFdepmodpvpxhazF203D1ez+AtTo27FjMmHjfI+q0O2FivUOosxg==}
     dev: true
 
-  /@sveltejs/kit/1.0.0-next.108_svelte@3.38.2:
-    resolution: {integrity: sha512-4XPuN1WsL6hksYZionnO1f+aBLifWIM/gFgDgx4u1Fzhln5usgOCe0RqrN3unmhyprawRYY5/1DUPfqfVHxSVQ==}
-    engines: {node: '>= 12.17.0'}
+  /@sveltejs/kit/1.0.0-next.109_svelte@3.38.2:
+    resolution: {integrity: sha512-72iHsgcZTj9WU2VMq/qzMdFidTrSlJ1+KE0Iiw43Gee8TkKi5tMOyeu/f8lWa4HzdHLFZ2CJdvmcL7w3F4SWjg==}
+    engines: {node: ^12.20 || ^14.13.1 || >= 16}
     hasBin: true
     peerDependencies:
       svelte: ^3.38.2
@@ -9119,14 +9121,8 @@ packages:
       thenify-all: 1.6.0
     dev: true
 
-  /named-logs-console/0.1.1:
-    resolution: {integrity: sha512-JVYQVrbO9GqfK9BrRA7KdJY0B/LPfYcRCn9Pcfh9Q6ZbFsvXz9HPxlQWaszcwQsCE6yCKlvk8SJ+Br3ffFayLA==}
-    dependencies:
-      named-logs: 0.0.13
-    dev: false
-
-  /named-logs/0.0.13:
-    resolution: {integrity: sha512-I5cX7HbnLpQW8VsNu3dAh6g631I1cRsdlN8y/j/NQ4yyKA0Iecp4FZ5a2AYNQbzohMwLTDXW+EW6eeH6wAppSA==}
+  /named-logs/0.1.0:
+    resolution: {integrity: sha512-BH/I7iUfuL+FR9QmNUT1wUK/JC53qUogrCEv3XGVCHrlQ9hqRrLNakfE5BQbjXPC2A6Kb0whw9BkU+A7nhYKOg==}
     dev: false
 
   /nan/2.14.2:
@@ -13157,20 +13153,20 @@ packages:
       web3-utils: 1.3.5
     dev: true
 
-  /web3w-torus-loader/0.3.0:
-    resolution: {integrity: sha512-moOGSUbszcaxhnhXqErV69T41UcEVwSiFYprCD7IRogOtRhYopSpt1Igsc6NawjC9rDoo2JNUp08HNbvSH0GfA==}
+  /web3w-torus-loader/0.3.1:
+    resolution: {integrity: sha512-yFdhpMcnITPCDtWOGevvkEylnHm+dNbnqO8tDodJnacujItg+BG4RVAVKSLIGbFgUMYiMww5K8xNiD0n+vRcbQ==}
     dependencies:
-      named-logs: 0.0.13
+      named-logs: 0.1.0
     dev: false
 
-  /web3w-walletconnect-loader/0.3.0:
-    resolution: {integrity: sha512-L9Eyvs4e+qNZSCQeU/Sq6yPZQG6/4eldWUl4+LqDdGH/JupJ8oL4PEn37fnubf0dyYOsCkI3ro6RQcaHU9xv1g==}
+  /web3w-walletconnect-loader/0.3.1:
+    resolution: {integrity: sha512-gF+SjsNKvl5lKUwFGAI8CHTsWl34YkLkr9BqlCi9CCVB9DgB5Rj8BpliFlLKAgomW9lSVG32Vzr6o0LYCYUd6A==}
     dependencies:
-      named-logs: 0.0.13
+      named-logs: 0.1.0
     dev: false
 
-  /web3w/0.3.0_b5ca6036183ad2f7fa75d2813463e3af:
-    resolution: {integrity: sha512-HxSBIXVA99kzvjerZfloSwI9YpdEauHehheF+eYyxdpTCcfktOzsEmmpPzq7ibB9UxG4fyDlk05XNMlHZZH/4w==}
+  /web3w/0.3.1_b5ca6036183ad2f7fa75d2813463e3af:
+    resolution: {integrity: sha512-r/kq7y7zSO6OEszSHQ0dHhSOB+lDUZFgPlwb5wTSV3uh4moSYN8LWifhhhcIu6UcxEjGMprkhudCKz9wwRSHSA==}
     peerDependencies:
       '@ethersproject/abi': ^5.0.0
       '@ethersproject/bignumber': ^5.0.0
@@ -13181,7 +13177,7 @@ packages:
       '@ethersproject/bignumber': 5.1.1
       '@ethersproject/contracts': 5.1.1
       '@ethersproject/providers': 5.1.2
-      named-logs: 0.0.13
+      named-logs: 0.1.0
     dev: false
 
   /websocket/1.0.33:

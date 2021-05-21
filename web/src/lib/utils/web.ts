@@ -45,6 +45,15 @@ export function getParamsFromURLHash(str?: string): Record<string, string> {
   return obj;
 }
 
+export function queryStringifyNoArray(query: Record<string, string>): string {
+  let str = '';
+  for (const key of Object.keys(query)) {
+    const value = query[key];
+    str += `${str === '' ? '?' : '&'}${key}=${value}`;
+  }
+  return str;
+}
+
 export function rebuildLocationHash(hashParams: Record<string, string>): void {
   if (typeof window === 'undefined') {
     return;

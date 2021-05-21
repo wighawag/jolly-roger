@@ -1,10 +1,11 @@
 <script context="module">
-  export const hydrate = false;
+  // export const hydrate = false;
 </script>
 
 <script lang="ts">
   import NavButton from '$lib/components/navigation/NavButton.svelte';
   import Feature from '$lib/components/Feature.svelte';
+  import {url} from '$lib/utils/url';
   const name = 'Jolly Roger';
 
   function _select(elem: HTMLElement) {
@@ -38,7 +39,7 @@
     </p>
     <div class="max-w-md mx-auto pt-1 mt-5 space-y-3 md:mt-8 md:space-y-5">
       <div class="space-y-5 sm:flex sm:justify-center sm:space-y-0 sm:space-x-3">
-        <NavButton class="big secondary" href="demo" label="Try the Demo!">Demo</NavButton>
+        <NavButton class="big secondary" href={url('demo/')} label="Try the Demo!">Demo</NavButton>
         <NavButton
           blank={true}
           class="big secondary"
@@ -100,8 +101,8 @@
         </Feature>
         <Feature title="All in Typescript">The whole app including contracts tests, is written in typescript.</Feature>
         <Feature title="Code Splitting and Tree Shaking">
-          By using Svelte Kit (and so Vite) and ES modules, the frontend benefit from code splitting an dynamic imports as well as tree
-          shaking.
+          By using Svelte Kit (and so Vite) and ES modules, the frontend benefit from code splitting an dynamic imports
+          as well as tree shaking.
         </Feature>
         <Feature title="VSCode Setup">
           The repo is setup as a vscode workspace with recommended plugins. Execute tests from the editor. Auto format,

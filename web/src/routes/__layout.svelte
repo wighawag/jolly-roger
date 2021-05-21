@@ -1,7 +1,8 @@
 <script>
+  import '$lib/init';
   import '../service-worker-handler';
   import '../global.css';
-  import {base} from '$app/paths';
+  import {url} from '$lib/utils/url';
   import NavBar from '$lib/components/navigation/NavBar.svelte';
   import Notifications from '$lib/components/notification/Notifications.svelte';
   import NoInstallPrompt from '$lib/components/NoInstallPrompt.svelte';
@@ -17,6 +18,10 @@
 <NewVersionNotification />
 
 <NavBar
-  links={[{href: `${base}/`, title: 'Home'}, {href: `${base}/demo/`, title: 'Demo'}]} />
+  links={[
+    {href: url(''), title: 'Home'},
+    {href: url('demo/'), title: 'Demo'},
+  ]}
+/>
 <slot />
 <Notifications />

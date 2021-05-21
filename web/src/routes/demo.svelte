@@ -6,7 +6,6 @@
   import {wallet, flow, chain} from '$lib/stores/wallet';
   import {onMount} from 'svelte';
   import {combine} from 'jolly-roger-common';
-  import {chainTempo} from '$lib/stores/chainTempo';
 
   let message = '';
   async function setMessage() {
