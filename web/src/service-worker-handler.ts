@@ -1,11 +1,13 @@
-// import {logs} from 'named-logs-console';
+import {Logger, logs} from 'named-logs';
 import {updateAvailable} from './lib/stores/appUpdates';
 import {base} from '$app/paths';
 
-// const log = logs('sw.js');
+type CLogger = Logger & {level: number; enabled: boolean};
+
+const log = logs('sw.js') as CLogger;
 function updateLoggingForWorker(worker: ServiceWorker | null) {
   if (worker) {
-    // worker.postMessage({type: 'debug', level: log.level, enabled: log.enabled});
+    worker.postMessage({type: 'debug', level: log.level, enabled: log.enabled});
   }
 }
 
@@ -32,7 +34,7 @@ if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
         });
       })
       .catch((e) => {
-        console.log(e);
+        console.error(e);
         // console.error('Failed to register service worker', e);
       });
   });
