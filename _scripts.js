@@ -127,8 +127,11 @@ async function performAction(rawArgs) {
     console.log({env});
     await execute(`${env}npm --prefix subgraph run ${deployCommand} ../contracts/deployments/${network}`);
   } else if (firstArg === 'web:dev') {
-    const {fixedArgs, extra} = parseArgs(args, 1, {});
+    const {fixedArgs, options} = parseArgs(args, 1, {skipContracts: 'boolean'});
     const network = fixedArgs[0] || 'localhost';
+    if (!options.skipContracts) {
+      await performAction(['contracts:export', network]);
+    }
     const env = getEnv(network);
     await execute(`${env}npm --prefix web run dev`);
   } else if (firstArg === 'web:build') {
@@ -177,7 +180,7 @@ async function performAction(rawArgs) {
     await execute(`docker-compose up`);
   } else if (firstArg === 'dev') {
     execute(`newsh "npm run common:dev"`);
-    execute(`newsh "npm run web:dev"`);
+    execute(`newsh "npm run web:dev -- --skipContracts"`);
     execute(`newsh "npm run contracts:dev -- --reset"`);
     execute(`newsh "npm run subgraph:dev"`);
     await performAction(['common:build']);
@@ -186,7 +189,7 @@ async function performAction(rawArgs) {
     await execute(`docker-compose down -v`);
     execute(`newsh "npm run externals"`);
     execute(`newsh "npm run common:dev"`);
-    execute(`newsh "npm run web:dev"`);
+    execute(`newsh "npm run web:dev -- --skipContracts"`);
     execute(`newsh "npm run contracts:dev -- --reset"`);
     execute(`newsh "npm run subgraph:dev"`);
     await performAction(['common:build']);

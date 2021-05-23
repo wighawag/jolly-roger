@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-export function getParamsFromURL(str?: string): Record<string, string> {
-  if (typeof window === 'undefined') {
+export function getParamsFromURL(url: string): Record<string, string> {
+  if (!url) {
     return {};
   }
-  const url = str || window.location.href;
   const obj: Record<string, string> = {};
   const hash = url.lastIndexOf('#');
 
@@ -25,7 +24,15 @@ export function getParamsFromURL(str?: string): Record<string, string> {
   return obj;
 }
 
-export function getParamsFromURLHash(str?: string): Record<string, string> {
+/* eslint-disable @typescript-eslint/no-explicit-any */
+export function getParamsFromLocation(): Record<string, string> {
+  if (typeof window === 'undefined') {
+    return {};
+  }
+  return getParamsFromURL(window.location.href);
+}
+
+export function getHashParamsFromLocation(str?: string): Record<string, string> {
   if (typeof window === 'undefined') {
     return {};
   }

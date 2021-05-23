@@ -44,4 +44,5 @@ if (!nodeUrl) {
 
 const graphNodeURL = import.meta.env.VITE_THE_GRAPH_HTTP as string;
 
-export {finality, nodeUrl, chainId, blockTime, chainName, graphNodeURL};
+const globalQueryParams = ['debug', 'log', 'subgraph', 'ethnode', '_d_eruda'];
+export {finality, nodeUrl, chainId, blockTime, chainName, graphNodeURL, globalQueryParams};
