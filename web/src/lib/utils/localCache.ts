@@ -1,4 +1,4 @@
-import {VERSION} from '../init';
+import {VERSION} from '$lib/config';
 import {base} from '$app/paths';
 
 class LocalCache {

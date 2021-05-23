@@ -1,7 +1,6 @@
 import {base} from '$app/paths';
 import {getParamsFromURL, queryStringifyNoArray} from './web';
-import {globalQueryParams} from '$lib/config';
-import {params} from '$lib/init';
+import {params, globalQueryParams} from '$lib/config';
 
 export function url(path: string): string {
   const paramFromPath = getParamsFromURL(path);

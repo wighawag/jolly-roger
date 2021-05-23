@@ -1,5 +1,4 @@
 <script>
-  import '$lib/init';
   import '../service-worker-handler';
   import '../global.css';
   import {url} from '$lib/utils/url';

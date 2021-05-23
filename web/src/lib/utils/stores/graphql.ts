@@ -1,6 +1,6 @@
-import type {EndPoint} from '$lib/graphql';
+import type {EndPoint} from '../graphql/endpoint';
 import type {Readable} from 'svelte/store';
-import {BaseStoreWithData} from './stores';
+import {BaseStoreWithData} from './base';
 import {logs} from 'named-logs';
 const console = logs('graphql');
 

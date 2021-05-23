@@ -1,10 +1,10 @@
 import {derived, Readable} from 'svelte/store';
 import type {TransactionStore} from 'web3w';
 import type {Invalidator, Subscriber, Unsubscriber} from 'web3w/dist/esm/utils/internals';
-import {SUBGRAPH_ENDPOINT} from '$lib/graphql/graphql_endpoints';
+import {SUBGRAPH_ENDPOINT} from '$lib/graphql';
 import {transactions} from './wallet';
-import {HookedQueryStore, QueryState, QueryStore} from '$lib/utils/grapql';
-import type {EndPoint} from '$lib/graphql';
+import {HookedQueryStore, QueryState, QueryStore} from '$lib/utils/stores/graphql';
+import type {EndPoint} from '$lib/utils/graphql/endpoint';
 import {chainTempo} from './chainTempo';
 
 type Messages = {
