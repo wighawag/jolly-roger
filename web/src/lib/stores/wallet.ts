@@ -17,6 +17,9 @@ const walletStores = ((WalletStores as any).default || WalletStores)({
     autoDelete: false,
     finality,
   },
+  flow: {
+    autoUnlock: true,
+  },
   autoSelectPrevious: true,
   localStoragePrefix: base.startsWith('/ipfs/') || base.startsWith('/ipns/') ? base.slice(6) : undefined, // ensure local storage is not conflicting across web3w-based apps on ipfs gateways
   options: [
