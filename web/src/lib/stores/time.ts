@@ -1,9 +1,9 @@
 import {blockTime} from '$lib/config';
 import {readable} from 'svelte/store';
 
-export let startTime = (Date.now() - performance.now()) / 1000;
+const performanceAvailable = typeof performance !== 'undefined'; // server
 
-const performanceAvailable = typeof performance !== 'undefined';
+export let startTime = performanceAvailable ? (Date.now() - performance.now()) / 1000 : Date.now() / 1000;
 
 export function now(): number {
   if (performanceAvailable) {

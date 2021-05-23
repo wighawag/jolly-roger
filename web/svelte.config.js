@@ -6,7 +6,11 @@ const config = {
   preprocess: preprocess(),
 
   kit: {
-    adapter: adapter_ipfs({removeBuiltInServiceWorkerRegistration: true, injectPagesInServiceWorker: true}),
+    adapter: adapter_ipfs({
+      removeBuiltInServiceWorkerRegistration: true,
+      injectPagesInServiceWorker: true,
+      injectDebugConsole: true,
+    }),
     target: '#svelte',
     trailingSlash: 'ignore',
   },

@@ -175,7 +175,7 @@ importers:
       prettier-plugin-svelte: ^2.3.0
       svelte: ^3.38.2
       svelte-preprocess: ^4.7.3
-      sveltejs-adapter-ipfs: ^0.1.1
+      sveltejs-adapter-ipfs: ^0.1.4
       tailwindcss: ^2.1.2
       tslib: ^2.2.0
       typescript: ^4.2.4
@@ -225,7 +225,7 @@ importers:
       prettier-plugin-svelte: 2.3.0_prettier@2.3.0+svelte@3.38.2
       svelte: 3.38.2
       svelte-preprocess: 4.7.3_5944bffd99aeae72e0daf7602e6be64e
-      sveltejs-adapter-ipfs: 0.1.1
+      sveltejs-adapter-ipfs: 0.1.4
       tailwindcss: 2.1.2_797cfc3ceddb49f111b184f6879a433f
       tslib: 2.2.0
       typescript: 4.2.4
@@ -12014,10 +12014,11 @@ packages:
     engines: {node: '>= 8'}
     dev: true
 
-  /sveltejs-adapter-ipfs/0.1.1:
-    resolution: {integrity: sha512-QCetoBoygJvL/qgy2f5oTXwqOUBO+rb0WDqS4sJFJHGXbWwEj7es/VKG6KVab9V6H9RgvygNsPIkOQA7Xhxgyw==}
+  /sveltejs-adapter-ipfs/0.1.4:
+    resolution: {integrity: sha512-DKJSS+ss3Rfnx4PZR3NVVWDytZgQ9PeNkZjvpFMLrGNpjHs8xHwLN1cHjk4j1AWLIpG/QZSAR8HjNIrJ0HcK3A==}
     dependencies:
-      slash: 3.0.0
+      fs-extra: 10.0.0
+      slash: 4.0.0
     dev: true
 
   /svgo/2.3.0:
