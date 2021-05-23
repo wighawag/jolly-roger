@@ -8,6 +8,7 @@
   import NoInstallPrompt from '$lib/components/NoInstallPrompt.svelte';
   import NewVersionNotification from '$lib/components/NewVersionNotification.svelte';
   // import Install from './components/Install.svelte';
+  import DarkSwitch from '$lib/components/DarkSwitch.svelte';
 </script>
 
 <svelte:head>
@@ -23,5 +24,10 @@
     {href: url('demo/'), title: 'Demo'},
   ]}
 />
+
+<div class="absolute top-0 right-0 m-2">
+  <DarkSwitch />
+</div>
+
 <slot />
 <Notifications />
