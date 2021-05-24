@@ -10,20 +10,6 @@ to make an app out of it, execute the following
 npx degit wighawag/jolly-roger <your-app-folder>
 ```
 
-<!-- There are also more templates available in branches:
-
-## Lite version (without subgraph, no dependency on any backend):
-
-```
-npx degit wighawag/jolly-roger#lite <your-app-folder>
-```
-
-## NFT version (it includes eip-721-subgraph and a basic "my nfts" page):
-
-```
-npx degit wighawag/jolly-roger#erc721 <your-app-folder>
-``` -->
-
 ---
 
 <br/>
