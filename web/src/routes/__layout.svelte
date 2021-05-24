@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import '../service-worker-handler';
   import '../global.css';
   import {url} from '$lib/utils/url';
