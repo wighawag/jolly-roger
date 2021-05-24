@@ -104,13 +104,24 @@ async function performAction(rawArgs) {
     }
     const env = getEnv(network);
     await execute(`${env}npm --prefix contracts run export ${network} -- ../web/src/lib/contracts.json`);
-  } else if (firstArg === 'seed') {
-    const {fixedArgs, extra} = parseArgs(args, 1, {});
+  } else if (firstArg === 'contracts:seed') {
+    const {fixedArgs, extra, options} = parseArgs(args, 1, {waitContracts: 'boolean'});
     const network = fixedArgs[0] || 'localhost';
     const env = getEnv(network);
-    await execute(`wait-on web/src/lib/contracts.json`);
+    if (options.waitContracts) {
+      console.log(`waiting for web/src/lib/contracts.json...`);
+      await execute(`wait-on web/src/lib/contracts.json`);
+    }
     await execute(`${env}npm --prefix contracts run execute ${network} scripts/seed.ts ${extra.join(' ')}`);
-    // TODO execute command
+  } else if (firstArg === 'contracts:execute') {
+    const {fixedArgs, extra, options} = parseArgs(args, 1, {waitContracts: 'boolean'});
+    const network = fixedArgs[0] || 'localhost';
+    const env = getEnv(network);
+    if (options.waitContracts) {
+      console.log(`waiting for web/src/lib/contracts.json...`);
+      await execute(`wait-on web/src/lib/contracts.json`);
+    }
+    await execute(`${env}npm --prefix contracts run execute ${network} ${extra.join(' ')}`);
   } else if (firstArg === 'subgraph:dev') {
     await execute(`dotenv -- npm --prefix subgraph run setup`);
     await execute(`wait-on web/src/lib/contracts.json`);
@@ -184,7 +195,7 @@ async function performAction(rawArgs) {
     execute(`newsh "npm run contracts:dev -- --reset"`);
     execute(`newsh "npm run subgraph:dev"`);
     await performAction(['common:build']);
-    await performAction(['seed', 'localhost']);
+    await performAction(['contracts:seed', 'localhost', '--waitContracts']);
   } else if (firstArg === 'start') {
     await execute(`docker-compose down -v`);
     execute(`newsh "npm run externals"`);
@@ -193,7 +204,7 @@ async function performAction(rawArgs) {
     execute(`newsh "npm run contracts:dev -- --reset"`);
     execute(`newsh "npm run subgraph:dev"`);
     await performAction(['common:build']);
-    await performAction(['seed', 'localhost']);
+    await performAction(['contracts:seed', 'localhost', '--waitContracts']);
   }
 }
 

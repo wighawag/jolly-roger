@@ -27,6 +27,7 @@
     "contracts:dev": "node ./_scripts.js contracts:dev",
     "contracts:deploy": "node ./_scripts.js contracts:deploy",
     "seed": "node ./_scripts.js contracts:seed",
+    "contracts:execute": "node ./_scripts.js contracts:execute",
     "---------------------- subgraphs ----------------------": "generate and deploy local subgraph",
     "subgraph:dev": "node ./_scripts.js subgraph:dev",
     "subgraph:deploy": "node ./_scripts.js subgraph:deploy",
