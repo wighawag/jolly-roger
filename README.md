@@ -170,7 +170,7 @@ This will setup and deploy the subgraph on localhost and watch for changes.
 
 This will deploy subgraph on the network specified. If network is a live network, the following env beed to be set:
 
-- `THEGRAPH_TOKEN` token gibing you write access to thegraph.com service
+- `THEGRAPH_TOKEN` token giving you write access to thegraph.com service
   <br/><br/>
 
 `pnpm web:dev [<network>]`
@@ -236,7 +236,7 @@ You need to gather the following environment variables :
 - `INFURA_TOKEN=<infura token to talk to a network>`
 - `IPFS_DEPLOY_PINATA__API_KEY=<pinata api key>`
 - `IPFS_DEPLOY_PINATA__SECRET_API_KEY=<pinata secret key>`
-- `MNEMONIC=<mnemonic of the account that will deploy the contract>`
+- `MNEMONIC=<mnemonic of the account that will deploy the contract>` (you can also use `MNEMONIC_<network name>`)
 
 Note that pinata is currently the default ipfs provider setup but ipfs-deploy, the tool used to deploy to ipfs support other providers, see : https://github.com/ipfs-shipyard/ipfs-deploy
 
@@ -256,6 +256,6 @@ Furthermore, you need to ensure the values in [web/application.json](web/applica
 
 # fleek github integration
 
-For `webapp:build` you can also use [fleek](https://fleek.co) so that building and ipfs deployment is done automatically. The repo provide a `.fleek.json` file already setup for staging.
+For `web:build` you can also use [fleek](https://fleek.co) so that building and ipfs deployment is done automatically. The repo provide a `.fleek.json` file already setup for staging.
 
 The only thing needed is setting up the environment variables (VITE_THE_GRAPH_HTTP, VITE_CHAIN_ID). You can either set them in fleek dashboard or set them in `.fleek.json`
