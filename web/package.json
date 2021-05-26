@@ -43,7 +43,7 @@
     "jolly-roger-common": "workspace:*",
     "postcss": "^8.2.15",
     "postcss-load-config": "^3.0.1",
-    "prepare-for-web": "^0.1.5",
+    "prepare-for-web": "^0.1.6",
     "prettier": "~2.3.0",
     "prettier-plugin-svelte": "^2.3.0",
     "svelte": "^3.38.2",
