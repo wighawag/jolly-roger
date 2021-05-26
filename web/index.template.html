@@ -2,12 +2,27 @@
 <html lang="en">
   <head>
     {{> APPLICATION}}
-    <title>{{title}}</title>
     <!--SCRIPTS-->
-    <link rel="stylesheet" href="/dist/global.css" />
+
+    <!-- inject named-logs-console -->
+    <!-- prettier-ignore -->
+    <script>
+      "use strict";var noop=function(){},W="undefined"!=typeof window?window:globalThis,oldConsole=W.console,disabledRegexps=[],enabledRegexps=[];function bindCall(e,l,s,a){return l.enabled&&(l.level>=a||logs.level>=a)?s<=a||logs.traceLevel<=a?oldConsole.trace.bind(oldConsole):e.bind(oldConsole):noop}var loggers={},logs=function(e){var l=loggers[e];if(l)return l;var s=logs.level,a=logs.traceLevel;return l=loggers[e]={get assert(){return bindCall(oldConsole.assert,l,a,1)},get error(){return bindCall(oldConsole.error,l,a,1)},get warn(){return bindCall(oldConsole.warn,l,a,2)},get info(){return bindCall(oldConsole.info,l,a,3)},get log(){return bindCall(oldConsole.log,l,a,4)},get debug(){return bindCall(oldConsole.debug,l,a,5)},get trace(){return bindCall(oldConsole.trace,l,a,6)},get dir(){return bindCall(oldConsole.dir,l,a,5)},get table(){return bindCall(oldConsole.table||oldConsole.debug,l,a,5)},get level(){return s},set level(e){s=e},get traceLevel(){return a},set traceLevel(e){a=e},enabled:enabled(e,{disabledRegexps:disabledRegexps,enabledRegexps:enabledRegexps})}},logLevels={error:1,warn:2,info:3,log:4,debug:5,trace:6};function enabled(e,l){var s,a,r=l.disabledRegexps,o=l.enabledRegexps;if("*"===e[e.length-1])return!0;for(s=0,a=r.length;s<a;s++)if(r[s].test(e))return!1;for(s=0,a=o.length;s<a;s++)if(o[s].test(e))return!0;return!1}function processNamespaces(e,l,s){for(var a=l.disabledRegexps,r=l.enabledRegexps,o=("string"==typeof e?e:"").split(/[\s,]+/),n=o.length,t=0;t<n;t++)o[t]&&("-"===(e=o[t].replace(/\*/g,".*?"))[0]?a.push(new RegExp("^"+e.substr(1)+"$")):r.push(new RegExp("^"+e+"$")));for(var g=0,d=Object.keys(loggers);g<d.length;g++){var i=d[g];s(i,enabled(i,{disabledRegexps:a,enabledRegexps:r}))}}logs.level=2,logs.traceLevel=6,logs.setTraceLevelFor=function(e,l){processNamespaces(e||"*",{disabledRegexps:[],enabledRegexps:[]},(function(e,s){s&&(loggers[e].traceLevel=l)}))},logs.disable=function(){disabledRegexps.splice(0,disabledRegexps.length),enabledRegexps.splice(0,enabledRegexps.length);for(var e=0,l=Object.keys(loggers);e<l.length;e++){var s=l[e];loggers[s].enabled=!1}try{localStorage.removeItem("debug")}catch(e){}},logs.enable=function(e){disabledRegexps.splice(0,disabledRegexps.length),enabledRegexps.splice(0,enabledRegexps.length),processNamespaces(e=""===e?"*":e||"*",{disabledRegexps:disabledRegexps,enabledRegexps:enabledRegexps},(function(e,l){return loggers[e].enabled=l}));try{localStorage.setItem("debug",e)}catch(e){}};try{var str=localStorage.getItem("debug");str&&""!==str&&logs.enable(str)}catch(e){}for(var vars=W.location?W.location.search.slice(1).split("&"):[],_i=0,vars_1=vars;_i<vars_1.length;_i++){var variable=vars_1[_i];if(variable.startsWith("debug="))""===(val=variable.slice(6))?logs.disable():logs.enable(val);else if(variable.startsWith("log=")){var val=variable.slice(4);logs.level=logLevels[val]||parseInt(val)||logs.level}else if(variable.startsWith("trace=")){val=variable.slice(6);logs.traceLevel=logLevels[val]||parseInt(val)||logs.level}}window._logFactory=logs;
+    </script>
+    <script>
+      // darkMode
+      if (
+        localStorage.theme === 'dark' ||
+        (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)
+      ) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    </script>
+    %svelte.head%
   </head>
-  <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
-    <script type="module" src="/dist/index.js"></script>
+  <body class="bg-white dark:bg-black">
+    <div id="svelte">%svelte.body%</div>
   </body>
 </html>

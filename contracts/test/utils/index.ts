@@ -1,4 +1,4 @@
-import {Contract} from '@ethersproject/contracts';
+import {Contract} from 'ethers';
 import {ethers} from 'hardhat';
 
 export async function setupUsers<T extends {[contractName: string]: Contract}>(

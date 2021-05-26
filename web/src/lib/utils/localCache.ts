@@ -1,28 +1,25 @@
-import {VERSION} from '../../init';
+import {VERSION} from '$lib/config';
+import {base} from '$app/paths';
 
 class LocalCache {
-
   private _prefix: string;
   constructor(version?: string) {
-    this._prefix =
-    window.basepath &&
-    (window.basepath.startsWith('/ipfs/') ||
-      window.basepath.startsWith('/ipns/'))
-      ? window.basepath.slice(6)
-      : ''; // ensure local storage is not conflicting across web3w-based apps on ipfs gateways (require encryption for sensitive data)
+    this._prefix = base.startsWith('/ipfs/') || base.startsWith('/ipns/') ? base.slice(6) : ''; // ensure local storage is not conflicting across web3w-based apps on ipfs gateways (require encryption for sensitive data)
 
-      const lastVersion = this.getItem('_version');
-      if (lastVersion !== version) {
-        this.clear();
-        if (version) {
-          this.setItem('_version', version);
-        }
+    const lastVersion = this.getItem('_version');
+    if (lastVersion !== version) {
+      this.clear();
+      if (version) {
+        this.setItem('_version', version);
       }
+    }
   }
   setItem(key: string, value: string): void {
     try {
       localStorage.setItem(this._prefix + key, value);
-    } catch (e) {}
+    } catch (e) {
+      //
+    }
   }
 
   getItem(key: string): string | null {
@@ -36,15 +33,18 @@ class LocalCache {
   removeItem(key: string) {
     try {
       localStorage.removeItem(this._prefix + key);
-    } catch (e) {}
+    } catch (e) {
+      //
+    }
   }
 
   clear(): void {
     try {
       localStorage.clear();
-    } catch (e) {}
+    } catch (e) {
+      //
+    }
   }
 }
-
 
 export default new LocalCache(VERSION);

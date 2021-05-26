@@ -1,6 +1,3 @@
-web/build
-web/public/pwa
-web/public/pwa
 contracts/deployments
 contracts/artifacts
 contracts/cache
@@ -11,3 +8,8 @@ subgraph/build
 subgraph/generated
 common-lib/lib
 package.json
+web/.svelte/**
+web/static/**
+web/build/**
+.vscode/**
+.yalc/**

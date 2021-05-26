@@ -1,6 +1,7 @@
 {
   "name": "jolly-roger-common",
   "description": "common library used by other modules",
+  "private": true,
   "version": "0.0.1",
   "main": "./lib/cjs/index.js",
   "module": "./lib/esm/index.js",
@@ -9,22 +10,31 @@
     "lib/"
   ],
   "devDependencies": {
-    "@ethersproject/bignumber": "^5.0.5",
-    "@ethersproject/bytes": "^5.0.3",
-    "@ethersproject/solidity": "^5.0.2",
+    "@ethersproject/bignumber": "^5.1.1",
+    "@ethersproject/bytes": "^5.1.0",
+    "@ethersproject/solidity": "^5.1.0",
+    "@typescript-eslint/eslint-plugin": "^4.24.0",
+    "@typescript-eslint/parser": "^4.24.0",
+    "eslint": "^7.26.0",
+    "eslint-config-prettier": "^8.3.0",
     "npm-run-all": "^4.1.5",
-    "typescript": "^3.8.3"
+    "prettier": "^2.3.0",
+    "typescript": "^4.2.4"
   },
   "peerDependencies": {
-    "@ethersproject/bignumber": "^5.0.5",
-    "@ethersproject/bytes": "^5.0.3",
-    "@ethersproject/solidity": "^5.0.2"
+    "@ethersproject/bignumber": "^5.1.0",
+    "@ethersproject/bytes": "^5.1.0",
+    "@ethersproject/solidity": "^5.1.0"
   },
   "scripts": {
-    "prepare": "npm run build",
+    "prepare": "node ./.setup.cjs && run-s build",
     "watch:esm": "tsc -w --preserveWatchOutput -p tsconfig.json",
     "watch:cjs": "tsc -w --preserveWatchOutput -p tsconfig-cjs.json",
     "dev": "run-p watch:esm watch:cjs",
-    "build": "tsc -p tsconfig.json && tsc -p tsconfig-cjs.json"
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig-cjs.json",
+    "lint": "eslint \"**/*.ts\"",
+    "lint:fix": "eslint --fix \"**/*.ts\"",
+    "format": "prettier --check \"**/*.ts\"",
+    "format:fix": "prettier --write \"**/*.ts\""
   }
 }

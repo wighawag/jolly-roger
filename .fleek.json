@@ -1,7 +1,7 @@
 {
   "build": {
-    "image": "wighawag/pnpm:latest",
-    "command": "pnpm i --store=node_modules/.pnpm && pnpm run staging:web:build",
+    "image": "node:14",
+    "command": "npm install -g pnpm@^6.0.0 && pnpm i --store=node_modules/.pnpm && pnpm run web:build",
     "publicDir": "web/build"
   }
 }

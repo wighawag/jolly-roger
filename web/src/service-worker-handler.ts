@@ -1,17 +1,19 @@
-import {logs} from 'named-logs-console';
-import {updateAvailable} from './stores/appUpdates';
+import {Logger, logs} from 'named-logs';
+import {updateAvailable} from './lib/stores/appUpdates';
+import {base} from '$app/paths';
 
-const log = logs('sw.js');
+type CLogger = Logger & {level: number; enabled: boolean};
+
+const log = logs('sw.js') as CLogger;
 function updateLoggingForWorker(worker: ServiceWorker | null) {
   if (worker) {
     worker.postMessage({type: 'debug', level: log.level, enabled: log.enabled});
   }
 }
 
-if ('serviceWorker' in navigator) {
+if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
   window.addEventListener('load', function () {
-    const base = typeof window.basepath === 'undefined' ? '/' : window.basepath;
-    const swLocation = `${base}sw.js`;
+    const swLocation = `${base}/service-worker.js`;
     //{scope: base}
     navigator.serviceWorker
       .register(swLocation)
@@ -23,10 +25,7 @@ if ('serviceWorker' in navigator) {
           const worker = registration.installing;
           if (worker) {
             worker.addEventListener('statechange', () => {
-              if (
-                worker.state === 'installed' &&
-                navigator.serviceWorker.controller
-              ) {
+              if (worker.state === 'installed' && navigator.serviceWorker.controller) {
                 console.log('[Service Worker] Update found');
                 updateAvailable.set(true);
               }
@@ -35,7 +34,7 @@ if ('serviceWorker' in navigator) {
         });
       })
       .catch((e) => {
-        console.log(e);
+        console.error(e);
         // console.error('Failed to register service worker', e);
       });
   });

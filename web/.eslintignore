@@ -1,0 +1,12 @@
+.DS_Store
+node_modules
+/.svelte
+/build
+/functions
+.yalc
+yalc.lock
+.env
+/static/pwa
+.vscode
+*.html
+*.md

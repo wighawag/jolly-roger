@@ -1,27 +1,32 @@
 {
-  "include": ["src", "types"],
   "compilerOptions": {
-    "module": "esnext",
-    "target": "esnext",
     "moduleResolution": "node",
-    "jsx": "preserve",
-    "baseUrl": "./",
-    /* paths - import rewriting/resolving */
-    "paths": {
-      // If you configured any Snowpack aliases, add them here.
-      // Add this line to get types for streaming imports (packageOptions.source="remote"):
-      //     "*": [".snowpack/types/*"]
-      // More info: https://www.snowpack.dev/guides/streaming-imports
-    },
-    /* noEmit - Snowpack builds (emits) files, not tsc. */
-    "noEmit": true,
-    /* Additional Options */
-    "strict": true,
+    "module": "es2020",
+    "lib": ["es2020"],
+    "target": "es2018",
+    /**
+			svelte-preprocess cannot figure out whether you have a value or a type, so tell TypeScript
+			to enforce using \`import type\` instead of \`import\` for Types.
+			*/
+    "importsNotUsedAsValues": "error",
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    /**
+			To have warnings/errors of the Svelte compiler at the correct position,
+			enable source maps by default.
+			*/
+    "sourceMap": true,
+    "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "useDefineForClassFields": true,
-    "allowSyntheticDefaultImports": true,
-    "importsNotUsedAsValues": "error"
-  }
+    "baseUrl": ".",
+    // "allowJs": true,
+    // "checkJs": true,
+    "paths": {
+      "$app/*": [".svelte/dev/runtime/app/*", ".svelte/build/runtime/app/*"],
+      "$service-worker": [".svelte/build/runtime/service-worker"],
+      "$lib/*": ["src/lib/*"]
+    }
+  },
+  "include": ["src/**/*.d.ts", "src/**/*.js", "src/**/*.ts", "src/**/*.svelte"]
 }

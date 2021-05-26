@@ -1,0 +1,21 @@
+module.exports = {
+  root: true,
+  parser: '@typescript-eslint/parser',
+  extends: ['eslint:recommended', 'plugin:@typescript-eslint/recommended', 'prettier'],
+  plugins: ['@typescript-eslint'],
+  ignorePatterns: ['*.cjs'],
+  parserOptions: {
+    sourceType: 'module',
+    ecmaVersion: 2018,
+  },
+  env: {
+    browser: true,
+    es2017: true,
+    node: true,
+  },
+  rules: {
+    'no-empty': 'off',
+    'no-empty-function': 'off',
+    '@typescript-eslint/no-empty-function': 'off',
+  },
+};
