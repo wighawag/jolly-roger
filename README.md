@@ -10,6 +10,14 @@ to make an app out of it, execute the following
 npx degit wighawag/jolly-roger <your-app-folder>
 ```
 
+There also more templates available in branches:
+
+## NFT version (it includes eip-721-subgraph and a basic "my nfts" page):
+
+```
+npx degit wighawag/jolly-roger#nft <your-app-folder>
+```
+
 ---
 
 <br/>
