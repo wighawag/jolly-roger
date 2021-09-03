@@ -1,4 +1,5 @@
-import {Writable, writable, Readable} from 'svelte/store';
+import type {Readable, Writable} from 'svelte/store';
+import {writable} from 'svelte/store';
 
 type DataType<T> = Record<string, unknown> & {data?: T};
 

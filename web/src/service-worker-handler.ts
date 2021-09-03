@@ -1,4 +1,5 @@
-import {Logger, logs} from 'named-logs';
+import type {Logger} from 'named-logs';
+import {logs} from 'named-logs';
 import {updateAvailable} from './lib/stores/appUpdates';
 import {base} from '$app/paths';
 
