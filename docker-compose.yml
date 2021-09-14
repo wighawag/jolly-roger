@@ -2,6 +2,8 @@ version: '3'
 services:
   graph-node:
     image: graphprotocol/graph-node:integer
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
     ports:
       - '8000:8000'
       - '8001:8001'
@@ -9,7 +11,6 @@ services:
       - '8030:8030'
       - '8040:8040'
     depends_on:
-      - ethereum
       - ipfs
       - postgres
     environment:
@@ -18,9 +19,10 @@ services:
       postgres_pass: let-me-in
       postgres_db: graph-node
       ipfs: 'ipfs:5001'
-      ethereum: 'mainnet:http://ethereum:8545'
+      ethereum: 'mainnet:http://host.docker.internal:8545'
       # RUST_LOG: trace
       # RUST_BACKTRACE: full
+
   ipfs:
     image: ipfs/go-ipfs:v0.4.23
     ports:
@@ -37,24 +39,3 @@ services:
       POSTGRES_PASSWORD: let-me-in
       POSTGRES_DB: graph-node
       PGDATA: /tmp
-  # ethereum: # GETH
-  #   image: ethereum/client-go:v1.9.22
-  #   ports:
-  #     - "8545:8545"
-  #     - "30303:30303"
-  #   command: --dev --nousb --ws --ws.addr "0.0.0.0" --ws.origins "*" --http --http.vhosts "*" --http.addr "0.0.0.0" --http.corsdomain "*" --miner.gasprice 1000000000 --dev.period 5
-  ethereum: # GANACHE
-    image: trufflesuite/ganache-cli:v6.12.0
-    ports:
-      - '8545:8545'
-    entrypoint:
-      - node
-      - /app/ganache-core.docker.cli.js
-      - --deterministic
-      - --mnemonic
-      - '${MNEMONIC-test test test test test test test test test test test junk}'
-      - --hostname
-      - '0.0.0.0'
-      - --blockTime
-      - '5'
-      # - --debug

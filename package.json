@@ -18,7 +18,7 @@
     "preinstall": "npx only-allow pnpm",
     "---------------------- setup ----------------------": "",
     "prepare": "node ./.setup.js",
-    "setup": "npx change-name jolly-roger && pnpm install",
+    "boot": "npx change-name jolly-roger && pnpm install",
     "set-name": "npx change-name jolly-roger",
     "---------------------- common lib ----------------------": "compile the common library",
     "common:dev": "npm --prefix common-lib run dev",

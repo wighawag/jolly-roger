@@ -83,10 +83,8 @@ async function performAction(rawArgs) {
     if (options.reset) {
       await execute('rimraf contracts/deployments/localhost && rimraf web/src/lib/contracts.json');
     }
-    await execute(`wait-on tcp:localhost:8545`);
-    await wait(1); // slight delay to ensure ethereum node is actually ready
     await execute(
-      `dotenv -e .env -e contracts/.env -- npm --prefix contracts run local:dev -- --export ../web/src/lib/contracts.json`
+      `dotenv -e .env -e contracts/.env -- npm --prefix contracts run dev -- --export ../web/src/lib/contracts.json`
     );
   } else if (firstArg === 'contracts:deploy') {
     const {fixedArgs, extra} = parseArgs(args, 1, {});
@@ -145,6 +143,14 @@ async function performAction(rawArgs) {
     }
     const env = getEnv(network);
     await execute(`${env}npm --prefix web run dev`);
+  } else if (firstArg === 'web:dev') {
+    const {fixedArgs, options} = parseArgs(args, 1, {skipContracts: 'boolean'});
+    const network = fixedArgs[0] || 'localhost';
+    if (!options.skipContracts) {
+      await performAction(['contracts:export', network]);
+    }
+    const env = getEnv(network);
+    await execute(`${env}npm --prefix web run dev`);
   } else if (firstArg === 'web:build') {
     const {fixedArgs, extra} = parseArgs(args, 1, {});
     const network = fixedArgs[0] || process.env.NETWORK_NAME || 'localhost';
@@ -174,7 +180,7 @@ async function performAction(rawArgs) {
     await performAction(['web:build', network]);
     await execute(`${env}npm --prefix web run deploy`);
   } else if (firstArg === 'deploy') {
-    //run-s staging:contracts staging:subgraph web:prepare common:build staging:web:rebuild staging:web:deploy
+    //run-s staging:contracts web:prepare common:build staging:web:rebuild staging:web:deploy
     const {fixedArgs, extra} = parseArgs(args, 1, {});
     const network = fixedArgs[0] || process.env.NETWORK_NAME;
     if (!network) {
@@ -197,7 +203,7 @@ async function performAction(rawArgs) {
     await performAction(['common:build']);
     await performAction(['contracts:seed', 'localhost', '--waitContracts']);
   } else if (firstArg === 'start') {
-    await execute(`docker-compose down -v`);
+    await execute(`docker-compose down -v`); // required else we run in race conditions
     execute(`newsh "npm run externals"`);
     execute(`newsh "npm run common:dev"`);
     execute(`newsh "npm run web:dev -- --skipContracts"`);
