@@ -24,6 +24,8 @@
     "common:dev": "npm --prefix common-lib run dev",
     "common:build": "npm --prefix common-lib run build",
     "---------------------- contracts ----------------------": "compile and deploy smart contracts",
+    "contracts:node": "node ./_scripts.js contracts:node",
+    "contracts:local:dev": "node ./_scripts.js contracts:local:dev",
     "contracts:dev": "node ./_scripts.js contracts:dev",
     "contracts:deploy": "node ./_scripts.js contracts:deploy",
     "seed": "node ./_scripts.js contracts:seed",

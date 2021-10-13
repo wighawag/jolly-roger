@@ -10,8 +10,8 @@ import {chainTempo} from './chainTempo';
 
 // weird bug in vite build?
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const walletStores = ((WalletStores as any).default || WalletStores)({
-  // const walletStores = WalletStores({
+// const walletStores = ((WalletStores as any).default || WalletStores)({
+const walletStores = WalletStores({
   chainConfigs: contractsInfo,
   builtin: {autoProbe: true},
   transactions: {
@@ -35,6 +35,7 @@ const walletStores = ((WalletStores as any).default || WalletStores)({
     }),
   ],
   fallbackNode: nodeUrl, // TODO use query string to specify it // TODO settings
+  checkGenesis: true,
 });
 
 export const {wallet, transactions, builtin, chain, balance, flow, fallback} = walletStores;

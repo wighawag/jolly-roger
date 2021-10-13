@@ -86,6 +86,18 @@ async function performAction(rawArgs) {
     await execute(
       `dotenv -e .env -e contracts/.env -- npm --prefix contracts run dev -- --export ../web/src/lib/contracts.json`
     );
+  } else if (firstArg == 'contracts:node') {
+    await execute(`dotenv -e .env -e contracts/.env -- npm --prefix contracts run dev:zero`);
+  } else if (firstArg == 'contracts:local:dev') {
+    const {fixedArgs, extra, options} = parseArgs(args, 0, {reset: 'boolean'});
+    if (options.reset) {
+      await execute('rimraf contracts/deployments/localhost && rimraf web/src/lib/contracts.json');
+    }
+    await execute(`wait-on tcp:localhost:8545`);
+    await wait(1); // slight delay to ensure ethereum node is actually ready
+    await execute(
+      `dotenv -e .env -e contracts/.env -- npm --prefix contracts run local:dev -- --export ../web/src/lib/contracts.json`
+    );
   } else if (firstArg === 'contracts:deploy') {
     const {fixedArgs, extra} = parseArgs(args, 1, {});
     const network = fixedArgs[0] || 'localhost';
@@ -143,14 +155,6 @@ async function performAction(rawArgs) {
     }
     const env = getEnv(network);
     await execute(`${env}npm --prefix web run dev`);
-  } else if (firstArg === 'web:dev') {
-    const {fixedArgs, options} = parseArgs(args, 1, {skipContracts: 'boolean'});
-    const network = fixedArgs[0] || 'localhost';
-    if (!options.skipContracts) {
-      await performAction(['contracts:export', network]);
-    }
-    const env = getEnv(network);
-    await execute(`${env}npm --prefix web run dev`);
   } else if (firstArg === 'web:build') {
     const {fixedArgs, extra} = parseArgs(args, 1, {});
     const network = fixedArgs[0] || process.env.NETWORK_NAME || 'localhost';
@@ -198,7 +202,8 @@ async function performAction(rawArgs) {
   } else if (firstArg === 'dev') {
     execute(`newsh "npm run common:dev"`);
     execute(`newsh "npm run web:dev -- --skipContracts"`);
-    execute(`newsh "npm run contracts:dev -- --reset"`);
+    execute(`newsh "npm run contracts:node"`);
+    execute(`newsh "npm run contracts:local:dev -- --reset"`);
     execute(`newsh "npm run subgraph:dev"`);
     await performAction(['common:build']);
     await performAction(['contracts:seed', 'localhost', '--waitContracts']);
@@ -207,7 +212,8 @@ async function performAction(rawArgs) {
     execute(`newsh "npm run externals"`);
     execute(`newsh "npm run common:dev"`);
     execute(`newsh "npm run web:dev -- --skipContracts"`);
-    execute(`newsh "npm run contracts:dev -- --reset"`);
+    execute(`newsh "npm run contracts:node"`);
+    execute(`newsh "npm run contracts:local:dev -- --reset"`);
     execute(`newsh "npm run subgraph:dev"`);
     await performAction(['common:build']);
     await performAction(['contracts:seed', 'localhost', '--waitContracts']);

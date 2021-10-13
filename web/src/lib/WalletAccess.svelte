@@ -37,6 +37,10 @@
         name: v,
       };
     });
+
+  function acknowledgeNewGenesis() {
+    chain.acknowledgeNewGenesisHash();
+  }
 </script>
 
 <slot />
@@ -66,6 +70,15 @@
     <p class="w-64 text-center rounded-bl-xl rounded-br-xl text-gray-200 bg-pink-600 p-1">
       Wrong network, use
       {chainName}
+    </p>
+  </div>
+{:else if $chain.genesisChanged}
+  <div class="w-full flex items-center justify-center fixed top-0" style="z-index: 5;">
+    <p class="w-64 text-center rounded-bl-xl rounded-br-xl text-gray-200 bg-red-500 p-1">
+      chain reset detected! Metamask need to have its account reset! <button
+        class="border-2 border-white p-2"
+        on:click={acknowledgeNewGenesis}>OK</button
+      >
     </p>
   </div>
 {/if}

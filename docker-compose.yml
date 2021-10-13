@@ -1,7 +1,7 @@
 version: '3'
 services:
   graph-node:
-    image: graphprotocol/graph-node:integer
+    image: graphprotocol/graph-node:fraction
     extra_hosts:
       - 'host.docker.internal:host-gateway'
     ports:

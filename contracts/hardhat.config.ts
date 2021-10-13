@@ -9,7 +9,17 @@ import {node_url, accounts} from './utils/network';
 
 const config: HardhatUserConfig = {
   solidity: {
-    version: '0.7.6',
+    compilers: [
+      {
+        version: '0.8.9',
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 2000,
+          },
+        },
+      },
+    ],
   },
   namedAccounts: {
     deployer: 0,
@@ -26,6 +36,14 @@ const config: HardhatUserConfig = {
             blockNumber: process.env.HARDHAT_FORK_NUMBER
               ? parseInt(process.env.HARDHAT_FORK_NUMBER)
               : undefined,
+          }
+        : undefined,
+      mining: process.env.MINING_INTERVAL
+        ? {
+            auto: false,
+            interval: process.env.MINING_INTERVAL.split(',').map((v) =>
+              parseInt(v)
+            ) as [number, number],
           }
         : undefined,
     },
