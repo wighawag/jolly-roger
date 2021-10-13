@@ -13,7 +13,9 @@
     const selection = window.getSelection();
     range.selectNodeContents(elem);
     console.log({selection: range.toString()});
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (selection as any).removeAllRanges();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (selection as any).addRange(range);
   }
   function select(e: MouseEvent) {

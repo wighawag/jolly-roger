@@ -1,4 +1,5 @@
-import {build, files, timestamp} from '$service-worker';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import {build, timestamp} from '$service-worker';
 
 ///////////////////////////////////////////////////////////////////////////////
 const URLS_TO_PRE_CACHE = build.concat(['_INJECT_PAGES_']);

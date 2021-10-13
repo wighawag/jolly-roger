@@ -2,7 +2,7 @@
   let _class = '';
   export {_class as class};
 
-  export let href: string;
+  export let href: string = undefined;
   export let blank = false;
   export let label: string;
 

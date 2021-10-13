@@ -26,6 +26,7 @@
     if (evt.key === 'Tab') {
       // trap focus
       const nodes = modal.querySelectorAll('*');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const tabbable = Array.from(nodes).filter((n: any) => n.tabIndex >= 0);
 
       let index = -1;

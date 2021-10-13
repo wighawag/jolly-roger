@@ -7,6 +7,7 @@
 
   import {wallet, builtin, chain, flow, fallback} from './stores/wallet';
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   $: executionError = $flow.executionError as any;
 
   let options: {img: string; id: string; name: string}[] = [];

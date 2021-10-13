@@ -31,7 +31,8 @@
     show = false;
     setVisited();
     deferredPrompt.prompt();
-    deferredPrompt.userChoice.then((choice) => {
+    deferredPrompt.userChoice.then(() => {
+      // (choice) => {}
       // TODO ?
     });
   }

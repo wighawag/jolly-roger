@@ -1,6 +1,9 @@
 .svelte/**
+.svelte-kit/**
 static/**
 build/**
 node_modules/**
 .vscode/**
 .yalc/**
+src/app.html
+src/lib/contracts.json
