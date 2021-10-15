@@ -70,6 +70,7 @@ importers:
       hardhat: ^2.6.4
       hardhat-deploy: ^0.9.3
       hardhat-gas-reporter: ^1.0.4
+      jolly-roger-common: workspace:*
       mocha: ^9.1.2
       prettier: ^2.4.1
       prettier-plugin-solidity: ^1.0.0-beta.18
@@ -101,6 +102,7 @@ importers:
       hardhat: 2.6.5
       hardhat-deploy: 0.9.3_hardhat@2.6.5
       hardhat-gas-reporter: 1.0.4_hardhat@2.6.5
+      jolly-roger-common: link:../common-lib
       mocha: 9.1.2
       prettier: 2.4.1
       prettier-plugin-solidity: 1.0.0-beta.18_prettier@2.4.1
