@@ -5,9 +5,8 @@ import "./ERC20Internal.sol";
 import "../Interfaces/IERC2612Standalone.sol";
 
 abstract contract WithPermit is ERC20Internal, IERC2612Standalone {
-    bytes32 internal constant PERMIT_TYPEHASH = keccak256(
-        "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
-    );
+    bytes32 internal constant PERMIT_TYPEHASH =
+        keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
     mapping(address => uint256) internal _nonces;
 
     function DOMAIN_SEPARATOR() public view virtual override returns (bytes32);

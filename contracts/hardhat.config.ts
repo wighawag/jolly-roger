@@ -33,17 +33,13 @@ const config: HardhatUserConfig = {
       forking: process.env.HARDHAT_FORK
         ? {
             url: node_url(process.env.HARDHAT_FORK),
-            blockNumber: process.env.HARDHAT_FORK_NUMBER
-              ? parseInt(process.env.HARDHAT_FORK_NUMBER)
-              : undefined,
+            blockNumber: process.env.HARDHAT_FORK_NUMBER ? parseInt(process.env.HARDHAT_FORK_NUMBER) : undefined,
           }
         : undefined,
       mining: process.env.MINING_INTERVAL
         ? {
             auto: false,
-            interval: process.env.MINING_INTERVAL.split(',').map((v) =>
-              parseInt(v)
-            ) as [number, number],
+            interval: process.env.MINING_INTERVAL.split(',').map((v) => parseInt(v)) as [number, number],
           }
         : undefined,
     },

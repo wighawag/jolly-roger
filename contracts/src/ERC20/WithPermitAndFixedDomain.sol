@@ -5,9 +5,8 @@ import "./ERC20Internal.sol";
 import "../Interfaces/IERC2612Standalone.sol";
 
 abstract contract WithPermitAndFixedDomain is ERC20Internal, IERC2612Standalone {
-    bytes32 internal constant PERMIT_TYPEHASH = keccak256(
-        "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
-    );
+    bytes32 internal constant PERMIT_TYPEHASH =
+        keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
 
     // solhint-disable-next-line var-name-mixedcase
     bytes32 public immutable override DOMAIN_SEPARATOR;
