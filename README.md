@@ -51,7 +51,7 @@ If you prefer (or do not have access to docker/docker-compose) you can run them 
 ## intall dependencies :
 
 ```bash
-pnpm run setup
+pnpm boot
 ```
 
 This will set the app name (and change the files to reflect that) and then call `pnpm install`
