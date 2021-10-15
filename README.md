@@ -12,11 +12,13 @@ npx degit wighawag/jolly-roger <your-app-folder>
 
 There also more templates available in branches:
 
+<!-- //TODO
 ## NFT version (it includes eip-721-subgraph and a basic "my nfts" page):
 
 ```
 npx degit wighawag/jolly-roger#nft <your-app-folder>
 ```
+-->
 
 ---
 
