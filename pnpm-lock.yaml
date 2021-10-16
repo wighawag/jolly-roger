@@ -68,7 +68,7 @@ importers:
       ethers: ^5.4.7
       fs-extra: ^10.0.0
       hardhat: ^2.6.4
-      hardhat-deploy: ^0.9.3
+      hardhat-deploy: ^0.9.4
       hardhat-gas-reporter: ^1.0.4
       jolly-roger-common: workspace:*
       mocha: ^9.1.2
@@ -100,7 +100,7 @@ importers:
       ethers: 5.4.7
       fs-extra: 10.0.0
       hardhat: 2.6.5
-      hardhat-deploy: 0.9.3_hardhat@2.6.5
+      hardhat-deploy: 0.9.4_hardhat@2.6.5
       hardhat-gas-reporter: 1.0.4_hardhat@2.6.5
       jolly-roger-common: link:../common-lib
       mocha: 9.1.2
@@ -7011,8 +7011,8 @@ packages:
       hardhat: 2.6.5
     dev: true
 
-  /hardhat-deploy/0.9.3_hardhat@2.6.5:
-    resolution: {integrity: sha512-0sxxQoxcA1+LSVmmLwp9empK4Pz5tjr92JvfcobojBz35DSpp0o3f0f/tXocYWaGbOrms3eQJ8OX5WVsmcnN4Q==}
+  /hardhat-deploy/0.9.4_hardhat@2.6.5:
+    resolution: {integrity: sha512-0Zr8R5SAq6oK/gi170yCDqPTvKNPHdlm6wQe3ZQg/uiIDZxofpRM2frQVPUFlgdI2yUXtVcGBiPcC2r2fEockw==}
     peerDependencies:
       '@ethersproject/hardware-wallets': ^5.0.14
       hardhat: ^2.0.0
@@ -7022,6 +7022,7 @@ packages:
       '@ethersproject/address': 5.4.0
       '@ethersproject/bignumber': 5.4.2
       '@ethersproject/bytes': 5.4.0
+      '@ethersproject/constants': 5.4.0
       '@ethersproject/contracts': 5.4.1
       '@ethersproject/providers': 5.4.5
       '@ethersproject/solidity': 5.4.0
