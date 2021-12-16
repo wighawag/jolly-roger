@@ -1,9 +1,9 @@
 {
   "dependencies": {
-    "prettier": "^2.3.2",
-    "prettier-plugin-solidity": "^1.0.0-beta.17",
-    "prettier-plugin-svelte": "^2.4.0",
-    "svelte": "^3.2.0"
+    "prettier": "^2.5.1",
+    "prettier-plugin-solidity": "^1.0.0-beta.19",
+    "prettier-plugin-svelte": "^2.5.1",
+    "svelte": "^3.44.3"
   },
   "scripts": {
     "// Fallback to npm for prettier as vscode-prettier extension fails with pnpm file structure": "",

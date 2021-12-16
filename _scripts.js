@@ -105,6 +105,11 @@ async function performAction(rawArgs) {
     await execute(
       `${env}npm --prefix contracts run deploy ${network} -- --export ../web/src/lib/contracts.json ${extra.join(' ')}`
     );
+  } else if (firstArg === 'contracts:fork:deploy') {
+    const {fixedArgs, extra} = parseArgs(args, 1, {});
+    const network = fixedArgs[0] || 'localhost';
+    const env = getEnv(network);
+    await execute(`${env}npm --prefix contracts run fork:deploy ${network} -- ${extra.join(' ')}`);
   } else if (firstArg === 'contracts:export') {
     const {fixedArgs, extra} = parseArgs(args, 1, {});
     const network = fixedArgs[0];
@@ -132,6 +137,11 @@ async function performAction(rawArgs) {
       await execute(`wait-on web/src/lib/contracts.json`);
     }
     await execute(`${env}npm --prefix contracts run execute ${network} ${extra.join(' ')}`);
+  } else if (firstArg === 'contracts:fork:execute') {
+    const {fixedArgs, extra} = parseArgs(args, 1, {});
+    const network = fixedArgs[0] || 'localhost';
+    const env = getEnv(network);
+    await execute(`${env}npm --prefix contracts run fork:execute ${network} ${extra.join(' ')}`);
   } else if (firstArg === 'subgraph:dev') {
     await execute(`dotenv -- npm --prefix subgraph run setup`);
     await execute(`wait-on web/src/lib/contracts.json`);
@@ -184,7 +194,6 @@ async function performAction(rawArgs) {
     await performAction(['web:build', network]);
     await execute(`${env}npm --prefix web run deploy`);
   } else if (firstArg === 'deploy') {
-    //run-s staging:contracts web:prepare common:build staging:web:rebuild staging:web:deploy
     const {fixedArgs, extra} = parseArgs(args, 1, {});
     const network = fixedArgs[0] || process.env.NETWORK_NAME;
     if (!network) {
@@ -194,6 +203,15 @@ async function performAction(rawArgs) {
     await performAction(['contracts:deploy', network]);
     await performAction(['subgraph:deploy', network]);
     await performAction(['web:deploy', network]);
+  } else if (firstArg === 'deploy:noweb') {
+    const {fixedArgs, extra} = parseArgs(args, 1, {});
+    const network = fixedArgs[0] || process.env.NETWORK_NAME;
+    if (!network) {
+      console.error(`need to specify the network as first argument (or via env: NETWORK_NAME)`);
+      return;
+    }
+    await performAction(['contracts:deploy', network]);
+    await performAction(['subgraph:deploy', network]);
   } else if (firstArg === 'stop') {
     await execute(`docker-compose down -v`);
   } else if (firstArg === 'externals') {
