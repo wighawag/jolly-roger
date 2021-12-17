@@ -188,31 +188,23 @@ async function performAction(rawArgs) {
       deployCommand = 'hosted:deploy';
     }
     await execute(`wait-on web/src/lib/contracts.json`);
-    // console.log({env});
     await execute(`${env}npm --prefix subgraph run ${deployCommand} ../contracts/deployments/${network}`);
   } else if (firstArg === 'web:dev') {
-    const {fixedArgs, options} = parseArgs(args, 1, {skipContracts: 'boolean'});
+    const {fixedArgs, options, extra} = parseArgs(args, 1, {skipContracts: 'boolean'});
     const network = fixedArgs[0] || 'localhost';
     if (!options.skipContracts) {
       await performAction(['contracts:export', network]);
     }
     const env = getEnv(network);
-    await execute(`${env}npm --prefix web run dev`);
+    await execute(`${env}npm --prefix web run dev -- ${extra.join(' ')}`);
   } else if (firstArg === 'web:build') {
-    // console.log(args);
     const {fixedArgs, extra} = parseArgs(args, 1, {});
     const network = fixedArgs[0] || (await getNetworkName()) || 'localhost';
     const env = getEnv(network);
-    // console.log(`preparing... ${network}`);
     await execute(`${env}npm --prefix web run prepare`);
-    // console.log(`...prepared`);
-    // console.log(`contracts:export...`);
     await performAction(['contracts:export', network || 'localhost']);
-    // console.log(`common:build....`);
     await execute(`${env}npm run common:build`);
-    // console.log(`web build...`);
     await execute(`${env}npm --prefix web run build`);
-    // console.log(`.. all done!`);
   } else if (firstArg === 'web:serve') {
     const {fixedArgs, extra} = parseArgs(args, 1, {});
     const network = fixedArgs[0];
