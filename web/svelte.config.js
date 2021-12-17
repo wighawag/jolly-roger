@@ -11,14 +11,22 @@ if (!process.env.VITE_CHAIN_ID) {
   }
 }
 
+let outputFolder = './build';
+
+if (process.env.VERCEL) {
+  // allow no config when creating a vercel project
+  outputFolder = '../public';
+  console.log('building on VERCEL...');
+}
+
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
   preprocess: preprocess(),
 
   kit: {
     adapter: adapter_ipfs({
-      assets: process.env.VERCEL ? '../public' : './build', // allow no config when creating a vercel project
-      pages: process.env.VERCEL ? '../public' : './build',
+      assets: outputFolder,
+      pages: outputFolder,
       removeBuiltInServiceWorkerRegistration: true,
       injectPagesInServiceWorker: true,
       injectDebugConsole: true,
