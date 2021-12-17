@@ -175,7 +175,7 @@ importers:
       svelte: ^3.44.3
       svelte-preprocess: ^4.10.0
       sveltejs-adapter-ipfs: 0.1.10
-      tailwindcss: ^3.0.5
+      tailwindcss: ^3.0.7
       tslib: ^2.3.1
       typescript: ^4.5.4
       vite: 2.7.3
@@ -224,7 +224,7 @@ importers:
       svelte: 3.44.3
       svelte-preprocess: 4.10.0_2744a29ed8b290f6e2130b2432ae0c01
       sveltejs-adapter-ipfs: 0.1.10
-      tailwindcss: 3.0.5_16a290f6d0e3717bf6d2667234aebd30
+      tailwindcss: 3.0.7_16a290f6d0e3717bf6d2667234aebd30
       tslib: 2.3.1
       typescript: 4.5.4
       vite: 2.7.3
@@ -3681,7 +3681,7 @@ packages:
     hasBin: true
     dependencies:
       caniuse-lite: 1.0.30001287
-      electron-to-chromium: 1.4.20
+      electron-to-chromium: 1.4.24
       escalade: 3.1.1
       node-releases: 2.0.1
       picocolors: 1.0.0
@@ -5242,8 +5242,8 @@ packages:
       encoding: 0.1.13
     dev: true
 
-  /electron-to-chromium/1.4.20:
-    resolution: {integrity: sha512-N7ZVNrdzX8NE90OXEFBMsBf3fp8P/vVDUER3WCUZjzC7OkNTXHVoF6W9qVhq8+dA8tGnbDajzUpj2ISNVVyj+Q==}
+  /electron-to-chromium/1.4.24:
+    resolution: {integrity: sha512-erwx5r69B/WFfFuF2jcNN0817BfDBdC4765kQ6WltOMuwsimlQo3JTEq0Cle+wpHralwdeX3OfAtw/mHxPK0Wg==}
     dev: true
 
   /elliptic/6.5.3:
@@ -8272,8 +8272,8 @@ packages:
     resolution: {integrity: sha512-YttjnrswnUYRVJvxCvu8z+PGMUSzC2JttP0OEXezlAEdp3EXzhf7IZ3j0gRAybJBQupedIZFhY61Tga6E0qASA==}
     dev: true
 
-  /is-core-module/2.7.0:
-    resolution: {integrity: sha512-ByY+tjCciCr+9nLryBYcSD50EOGWt95c7tIsKTG1J2ixKKXPvF7Ej3AVd+UfDydAJom3biBGDBALaO79ktwgEQ==}
+  /is-core-module/2.8.0:
+    resolution: {integrity: sha512-vd15qHsaqrRL7dtH6QNuy0ndJmRDrS9HAM1CAiSifNUFv4x1a0CCVsj18hJ1mShxIG6T2i1sO78MkP56r0nYRw==}
     dependencies:
       has: 1.0.3
     dev: true
@@ -12272,7 +12272,7 @@ packages:
   /resolve/1.20.0:
     resolution: {integrity: sha512-wENBPt4ySzg4ybFQW2TT1zMQucPK95HSh/nq2CFTZVOGut2+pQvSsgtda4d26YrYcr067wjbmzOG8byDPBX63A==}
     dependencies:
-      is-core-module: 2.7.0
+      is-core-module: 2.8.0
       path-parse: 1.0.7
     dev: true
 
@@ -13383,8 +13383,8 @@ packages:
       string-width: 3.1.0
     dev: true
 
-  /tailwindcss/3.0.5_16a290f6d0e3717bf6d2667234aebd30:
-    resolution: {integrity: sha512-59pNgzx2o+wkAk7IZGIH7H9eNS53gzZGrO3+NPyOEWHDbquHgiLL/c993T5t1vPSAeBxox4X5OgZwNuRvXVf+g==}
+  /tailwindcss/3.0.7_16a290f6d0e3717bf6d2667234aebd30:
+    resolution: {integrity: sha512-rZdKNHtC64jcQncLoWOuCzj4lQDTAgLtgK3WmQS88tTdpHh9OwLqULTQxI3tw9AMJsqSpCKlmcjW/8CSnni6zQ==}
     engines: {node: '>=12.13.0'}
     hasBin: true
     peerDependencies:
