@@ -29,7 +29,7 @@ function getCurrentBranch() {
   });
 }
 
-async function getNetworkNane() {
+async function getNetworkName() {
   let networkName = process.env.NETWORK_NAME;
   if (!networkName) {
     try {
@@ -41,7 +41,7 @@ async function getNetworkNane() {
       console.error(e);
     }
   }
-  console.log(`networkName: ${networkName}`);
+  // console.log(`networkName: ${networkName}`);
   return networkName;
 }
 
@@ -110,7 +110,7 @@ function getEnv(network) {
 async function performAction(rawArgs) {
   const firstArg = rawArgs[0];
   const args = rawArgs.slice(1);
-  console.log({firstArg, args});
+  // console.log({firstArg, args});
   if (firstArg == 'contracts:dev') {
     const {fixedArgs, extra, options} = parseArgs(args, 0, {reset: 'boolean'});
     if (options.reset) {
@@ -188,7 +188,7 @@ async function performAction(rawArgs) {
       deployCommand = 'hosted:deploy';
     }
     await execute(`wait-on web/src/lib/contracts.json`);
-    console.log({env});
+    // console.log({env});
     await execute(`${env}npm --prefix subgraph run ${deployCommand} ../contracts/deployments/${network}`);
   } else if (firstArg === 'web:dev') {
     const {fixedArgs, options} = parseArgs(args, 1, {skipContracts: 'boolean'});
@@ -199,20 +199,20 @@ async function performAction(rawArgs) {
     const env = getEnv(network);
     await execute(`${env}npm --prefix web run dev`);
   } else if (firstArg === 'web:build') {
-    console.log(args);
+    // console.log(args);
     const {fixedArgs, extra} = parseArgs(args, 1, {});
-    const network = fixedArgs[0] || getNetworkNane() || 'localhost';
+    const network = fixedArgs[0] || (await getNetworkName()) || 'localhost';
     const env = getEnv(network);
-    console.log(`preparing... ${network}`);
+    // console.log(`preparing... ${network}`);
     await execute(`${env}npm --prefix web run prepare`);
-    console.log(`...prepared`);
-    console.log(`contracts:export...`);
+    // console.log(`...prepared`);
+    // console.log(`contracts:export...`);
     await performAction(['contracts:export', network || 'localhost']);
-    console.log(`common:build....`);
+    // console.log(`common:build....`);
     await execute(`${env}npm run common:build`);
-    console.log(`web build...`);
+    // console.log(`web build...`);
     await execute(`${env}npm --prefix web run build`);
-    console.log(`.. all done!`);
+    // console.log(`.. all done!`);
   } else if (firstArg === 'web:serve') {
     const {fixedArgs, extra} = parseArgs(args, 1, {});
     const network = fixedArgs[0];
@@ -235,7 +235,7 @@ async function performAction(rawArgs) {
     await execute(`${env}npm --prefix web run deploy`);
   } else if (firstArg === 'deploy') {
     const {fixedArgs, extra} = parseArgs(args, 1, {});
-    const network = fixedArgs[0] || getNetworkNane();
+    const network = fixedArgs[0] || (await getNetworkName());
     if (!network) {
       console.error(`need to specify the network as first argument (or via env: NETWORK_NAME)`);
       return;
@@ -245,7 +245,7 @@ async function performAction(rawArgs) {
     await performAction(['web:deploy', network]);
   } else if (firstArg === 'deploy:noweb') {
     const {fixedArgs, extra} = parseArgs(args, 1, {});
-    const network = fixedArgs[0] || getNetworkNane();
+    const network = fixedArgs[0] || (await getNetworkName());
     if (!network) {
       console.error(`need to specify the network as first argument (or via env: NETWORK_NAME)`);
       return;
