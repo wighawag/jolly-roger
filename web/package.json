@@ -59,7 +59,7 @@
     "lint:fix": "eslint --fix .",
     "format": "prettier --check .",
     "format:fix": "prettier --write .",
-    "dev": "svelte-kit dev",
+    "dev": "svelte-kit dev --host 0.0.0.0",
     "build": "svelte-kit build",
     "start": "svelte-kit start",
     "serve": "ipfs-emulator --only -d build -p 8080",
