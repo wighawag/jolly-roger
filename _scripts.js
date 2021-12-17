@@ -110,7 +110,7 @@ function getEnv(network) {
 async function performAction(rawArgs) {
   const firstArg = rawArgs[0];
   const args = rawArgs.slice(1);
-  // console.log({firstArg, args});
+  console.log({firstArg, args});
   if (firstArg == 'contracts:dev') {
     const {fixedArgs, extra, options} = parseArgs(args, 0, {reset: 'boolean'});
     if (options.reset) {
@@ -203,7 +203,7 @@ async function performAction(rawArgs) {
     const {fixedArgs, extra} = parseArgs(args, 1, {});
     const network = fixedArgs[0] || getNetworkNane() || 'localhost';
     const env = getEnv(network);
-    console.log(`preparing...`);
+    console.log(`preparing... ${network}`);
     await execute(`${env}npm --prefix web run prepare`);
     console.log(`...prepared`);
     console.log(`contracts:export...`);
