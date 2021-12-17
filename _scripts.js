@@ -100,7 +100,7 @@ function execute(command) {
 
 function getEnv(network) {
   let env = 'dotenv -e .env -e contracts/.env -- ';
-  if (network && network !== 'localhost') {
+  if (network && network !== 'localhost' && fs.existsSync(`.env.${network}`)) {
     env = `dotenv -e .env.${network} -e .env -e contracts/.env -- `;
   }
   return env;
