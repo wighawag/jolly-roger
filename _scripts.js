@@ -41,6 +41,7 @@ async function getNetworkNane() {
       console.error(e);
     }
   }
+  console.log(`networkName: ${networkName}`);
   return networkName;
 }
 
