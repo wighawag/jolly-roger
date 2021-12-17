@@ -2,7 +2,8 @@
 'use strict';
 /* eslint-disable no-undef */
 /* eslint-disable @typescript-eslint/no-var-requires */
-const {spawn} = require('child_process');
+const {spawn, exec} = require('child_process');
+const fs = require('fs');
 
 const commandlineArgs = process.argv.slice(2);
 
@@ -10,6 +11,37 @@ function wait(numSeconds) {
   return new Promise((resolve) => {
     setTimeout(resolve, numSeconds * 1000);
   });
+}
+
+function getCurrentBranch() {
+  return new Promise((resolve, reject) => {
+    try {
+      exec('git rev-parse --abbrev-ref HEAD', (error, stdout, stderr) => {
+        if (error !== null) {
+          reject('git error: ' + error + stderr);
+        } else {
+          resolve(stdout.toString().trim());
+        }
+      });
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
+
+async function getNetworkNane() {
+  let networkName = process.env.NETWORK_NAME;
+  if (!networkName) {
+    try {
+      const branch = await getCurrentBranch();
+      if (fs.existsSync(`contracts/deployments/${branch}`)) {
+        networkName = branch;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+  return networkName;
 }
 
 function parseArgs(rawArgs, numFixedArgs, expectedOptions) {
@@ -167,7 +199,7 @@ async function performAction(rawArgs) {
     await execute(`${env}npm --prefix web run dev`);
   } else if (firstArg === 'web:build') {
     const {fixedArgs, extra} = parseArgs(args, 1, {});
-    const network = fixedArgs[0] || process.env.NETWORK_NAME || 'localhost';
+    const network = fixedArgs[0] || getNetworkNane() || 'localhost';
     const env = getEnv(network);
     await execute(`${env}npm --prefix web run prepare`);
     await performAction(['contracts:export', network || 'localhost']);
@@ -195,7 +227,7 @@ async function performAction(rawArgs) {
     await execute(`${env}npm --prefix web run deploy`);
   } else if (firstArg === 'deploy') {
     const {fixedArgs, extra} = parseArgs(args, 1, {});
-    const network = fixedArgs[0] || process.env.NETWORK_NAME;
+    const network = fixedArgs[0] || getNetworkNane();
     if (!network) {
       console.error(`need to specify the network as first argument (or via env: NETWORK_NAME)`);
       return;
@@ -205,7 +237,7 @@ async function performAction(rawArgs) {
     await performAction(['web:deploy', network]);
   } else if (firstArg === 'deploy:noweb') {
     const {fixedArgs, extra} = parseArgs(args, 1, {});
-    const network = fixedArgs[0] || process.env.NETWORK_NAME;
+    const network = fixedArgs[0] || getNetworkNane();
     if (!network) {
       console.error(`need to specify the network as first argument (or via env: NETWORK_NAME)`);
       return;

@@ -172,9 +172,11 @@ This will deploy subgraph on the network specified. If network is a live network
 This will spawn a vite dev server for the webapp, connected to the specified network
 <br/><br/>
 
-`pnpm web:build [<network>]`
+`pnpm web:build [<network>]` or `pnpm build [<network>]`
 
 This will build a static version of the web app for the specified network.
+
+If no network are specified it will fetch from the env variable `NETWORK_NAME`. If no such env variable is set, it will try to fetch the git's branch name.
 <br/><br/>
 
 `pnpm web:serve`
@@ -202,7 +204,14 @@ You ll need the following env variables setup :
 
 This will deploy all (contracts, subgraph and web app). See below for more details.
 
-If no network are specified it will fetch from the env variable `NETWORK_NAME`.
+If no network are specified it will fetch from the env variable `NETWORK_NAME`. If no such env variable is set, it will try to fetch the git's branch name.
+<br/><br/>
+
+`pnpm deploy:noweb [<network>]`
+
+This will deploy all (contracts, subgraph) except web app. See below for more details.
+
+If no network are specified it will fetch from the env variable `NETWORK_NAME`. If no such env variable is set, it will try to fetch the git's branch name.
 <br/><br/>
 
 `pnpm stop`
