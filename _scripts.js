@@ -199,13 +199,20 @@ async function performAction(rawArgs) {
     const env = getEnv(network);
     await execute(`${env}npm --prefix web run dev`);
   } else if (firstArg === 'web:build') {
+    console.log(args);
     const {fixedArgs, extra} = parseArgs(args, 1, {});
     const network = fixedArgs[0] || getNetworkNane() || 'localhost';
     const env = getEnv(network);
+    console.log(`preparing...`);
     await execute(`${env}npm --prefix web run prepare`);
+    console.log(`...prepared`);
+    console.log(`contracts:export...`);
     await performAction(['contracts:export', network || 'localhost']);
+    console.log(`common:build....`);
     await execute(`${env}npm run common:build`);
+    console.log(`web build...`);
     await execute(`${env}npm --prefix web run build`);
+    console.log(`.. all done!`);
   } else if (firstArg === 'web:serve') {
     const {fixedArgs, extra} = parseArgs(args, 1, {});
     const network = fixedArgs[0];
