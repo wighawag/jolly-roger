@@ -16,7 +16,9 @@ async function main() {
     const sender = others[i];
     if (sender) {
       const greetingsRegistryContract = await ethers.getContract('GreetingsRegistry', sender);
-      await waitFor(greetingsRegistryContract.setMessage(messages[i]));
+      const tx = await greetingsRegistryContract.setMessage(messages[i]);
+      console.log(tx.hash);
+      await tx.wait();
     }
   }
 }

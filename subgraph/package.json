@@ -27,7 +27,8 @@
     "redeploy": "dotenv -- graph codegen && dotenv -- cross-var graph deploy -l v0.0.1 --ipfs $IPFS_URL --node http://$GRAPH_NODE_API $SUBGRAPH_NAME",
     "wait:deploy": "dotenv -- cross-var wait-on $IPFS_URL/api/v0/version http-get://$GRAPH_NODE_GRAPHQL && run-s redeploy",
     "deploy": "npm-run-all \"generate -- {1}\" codegen wait:deploy --",
-    "hosted:redeploy": "echo \"deploying $SUBGRAPH_NAME ...\" && dotenv -- cross-var graph deploy -l v0.0.1 --studio $SUBGRAPH_NAME",
-    "hosted:deploy": "npm-run-all \"generate -- {1}\" codegen hosted:redeploy --"
+    "hosted:auth": "dotenv -- cross-var graph auth --product hosted-service $THEGRAPH_TOKEN ",
+    "hosted:redeploy": "echo \"deploying $SUBGRAPH_NAME ...\" && dotenv -- cross-var graph deploy --product hosted-service $SUBGRAPH_NAME",
+    "hosted:deploy": "npm-run-all \"generate -- {1}\" codegen hosted:auth hosted:redeploy --"
   }
 }

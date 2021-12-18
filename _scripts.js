@@ -120,13 +120,14 @@ async function performAction(rawArgs) {
       `dotenv -e .env -e contracts/.env -- npm --prefix contracts run dev -- --export ../web/src/lib/contracts.json`
     );
   } else if (firstArg == 'contracts:node') {
-    await execute(`dotenv -e .env -e contracts/.env -- npm --prefix contracts run dev:zero`);
+    await execute(`dotenv -e .env -e contracts/.env -- npm --prefix contracts run dev:node -- --no-deploy`);
   } else if (firstArg == 'contracts:local:dev') {
     const {fixedArgs, extra, options} = parseArgs(args, 0, {reset: 'boolean'});
     if (options.reset) {
       await execute('rimraf contracts/deployments/localhost && rimraf web/src/lib/contracts.json');
     }
     await execute(`wait-on tcp:localhost:8545`);
+    await performAction([`contracts:execute`, 'localhost', 'contracts/scripts/fundingFromCoinbase.ts']);
     await wait(1); // slight delay to ensure ethereum node is actually ready
     await execute(
       `dotenv -e .env -e contracts/.env -- npm --prefix contracts run local:dev -- --export ../web/src/lib/contracts.json`
@@ -175,6 +176,11 @@ async function performAction(rawArgs) {
     const network = fixedArgs[0] || 'localhost';
     const env = getEnv(network);
     await execute(`${env}npm --prefix contracts run fork:execute ${network} ${extra.join(' ')}`);
+  } else if (firstArg === 'tenderly:push') {
+    const {fixedArgs} = parseArgs(args, 1, {});
+    const network = fixedArgs[0] || 'localhost';
+    const env = getEnv(network);
+    await execute(`${env}npm --prefix contracts run tenderly:push ${network}`);
   } else if (firstArg === 'subgraph:dev') {
     await execute(`dotenv -- npm --prefix subgraph run setup`);
     await execute(`wait-on web/src/lib/contracts.json`);
@@ -248,10 +254,13 @@ async function performAction(rawArgs) {
     await performAction(['contracts:deploy', network]);
     await performAction(['subgraph:deploy', network]);
   } else if (firstArg === 'stop') {
-    await execute(`docker-compose down -v`);
+    await execute(`docker-compose down -v --remove-orphans`);
   } else if (firstArg === 'externals') {
-    await execute(`docker-compose down -v`);
+    await execute(`docker-compose down -v --remove-orphans`);
     await execute(`docker-compose up`);
+  } else if (firstArg === 'externals:geth') {
+    await execute(`docker-compose down -v --remove-orphans`);
+    await execute(`docker-compose -f docker-compose.yml -f docker-compose.geth.yml up`);
   } else if (firstArg === 'dev') {
     const {extra} = parseArgs(args, 0, {});
     execute(`newsh "npm run common:dev"`);
@@ -263,11 +272,21 @@ async function performAction(rawArgs) {
     await performAction(['contracts:seed', 'localhost', '--waitContracts']);
   } else if (firstArg === 'start') {
     const {extra} = parseArgs(args, 0, {});
-    await execute(`docker-compose down -v`); // required else we run in race conditions
+    await execute(`docker-compose down -v --remove-orphans`); // required else we run in race conditions
     execute(`newsh "npm run externals"`);
     execute(`newsh "npm run common:dev"`);
     execute(`newsh "npm run web:dev localhost -- --skipContracts --waitContracts ${extra.join(' ')}"`);
     execute(`newsh "npm run contracts:node"`);
+    execute(`newsh "npm run contracts:local:dev -- --reset"`);
+    execute(`newsh "npm run subgraph:dev"`);
+    await performAction(['common:build']);
+    await performAction(['contracts:seed', 'localhost', '--waitContracts']);
+  } else if (firstArg === 'start:geth') {
+    const {extra} = parseArgs(args, 0, {});
+    await execute(`docker-compose down -v --remove-orphans`); // required else we run in race conditions
+    execute(`newsh "npm run externals:geth"`);
+    execute(`newsh "npm run common:dev"`);
+    execute(`newsh "npm run web:dev localhost -- --skipContracts --waitContracts ${extra.join(' ')}"`);
     execute(`newsh "npm run contracts:local:dev -- --reset"`);
     execute(`newsh "npm run subgraph:dev"`);
     await performAction(['common:build']);

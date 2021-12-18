@@ -32,6 +32,7 @@
     "seed": "node ./_scripts.js contracts:seed",
     "contracts:execute": "node ./_scripts.js contracts:execute",
     "contracts:fork:execute": "node ./_scripts.js contracts:fork:execute",
+    "tenderly:push": "node ./_scripts.js tenderly:push",
     "---------------------- agent-service ----------------------": "deploy agent-service",
     "---------------------- subgraphs ----------------------": "generate and deploy local subgraph",
     "subgraph:dev": "node ./_scripts.js subgraph:dev",
@@ -49,7 +50,9 @@
     "---------------------- DEVELOPMENT ----------------------": "run external services, setup subgraph and deploy it on the local graph-node + deploy the contracts and seed it",
     "stop": "node ./_scripts.js stop",
     "externals": "node ./_scripts.js externals",
+    "externals:geth": "node ./_scripts.js externals:geth",
     "dev": "node ./_scripts.js dev",
-    "start": "node ./_scripts.js start"
+    "start": "node ./_scripts.js start",
+    "start:geth": "node ./_scripts.js start:geth"
   }
 }

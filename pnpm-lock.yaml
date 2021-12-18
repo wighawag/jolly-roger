@@ -69,6 +69,7 @@ importers:
       fs-extra: ^10.0.0
       hardhat: ^2.8.0
       hardhat-deploy: ^0.9.14
+      hardhat-deploy-tenderly: ^0.0.5
       hardhat-gas-reporter: ^1.0.6
       jolly-roger-common: workspace:*
       mocha: ^9.1.3
@@ -101,6 +102,7 @@ importers:
       fs-extra: 10.0.0
       hardhat: 2.8.0
       hardhat-deploy: 0.9.14_hardhat@2.8.0
+      hardhat-deploy-tenderly: 0.0.5_hardhat@2.8.0
       hardhat-gas-reporter: 1.0.6_hardhat@2.8.0
       jolly-roger-common: link:../common-lib
       mocha: 9.1.3
@@ -2853,7 +2855,15 @@ packages:
   /axios/0.21.4_debug@4.3.3:
     resolution: {integrity: sha512-ut5vewkiu8jjGBdqpM44XxjuCjq9LAKeHVmoVfHVzy8eHgxxq8SbAVQNovDA8mVi05kP0Ea/n/UzcSHcTJQfNg==}
     dependencies:
-      follow-redirects: 1.14.6_debug@4.3.3
+      follow-redirects: 1.14.6
+    transitivePeerDependencies:
+      - debug
+    dev: true
+
+  /axios/0.24.0:
+    resolution: {integrity: sha512-Q6cWsys88HoPgAaFAVUb0WpPk0O8iTeisR9IMqy9G8AbO4NlpVknrnQS03zzF9PGAWgO3cgletO3VjV/P7VztA==}
+    dependencies:
+      follow-redirects: 1.14.6
     transitivePeerDependencies:
       - debug
     dev: true
@@ -6764,18 +6774,6 @@ packages:
         optional: true
     dev: true
 
-  /follow-redirects/1.14.6_debug@4.3.3:
-    resolution: {integrity: sha512-fhUl5EwSJbbl8AR+uYL2KQDxLkdSjZGR36xy46AO7cOMTrCMON6Sa28FmAnC2tRTDbd/Uuzz3aJBv7EBN7JH8A==}
-    engines: {node: '>=4.0'}
-    peerDependencies:
-      debug: '*'
-    peerDependenciesMeta:
-      debug:
-        optional: true
-    dependencies:
-      debug: 4.3.3
-    dev: true
-
   /foreach/2.0.5:
     resolution: {integrity: sha1-C+4AUBiusmDQo6865ljdATbsG5k=}
     dev: true
@@ -7356,6 +7354,18 @@ packages:
     dependencies:
       ethers: 5.5.2
       hardhat: 2.8.0
+    dev: true
+
+  /hardhat-deploy-tenderly/0.0.5_hardhat@2.8.0:
+    resolution: {integrity: sha512-cps4oGSx3UiEbmZS5w7dr0aij3YR0UQcgJZXuZsFQDDQK88R3X02M0eMJsaQ/6lKIxh5EVcB4Zl0ZTbYU2J7PA==}
+    peerDependencies:
+      hardhat: ^2.0.0
+    dependencies:
+      axios: 0.24.0
+      hardhat: 2.8.0
+      js-yaml: 4.1.0
+    transitivePeerDependencies:
+      - debug
     dev: true
 
   /hardhat-deploy/0.9.14_hardhat@2.8.0:
@@ -11768,6 +11778,7 @@ packages:
     resolution: {integrity: sha512-N9iVG+CGJsI4b4ZGazjwLnxErD2d9Pe4DPvvXSxYA9tFNu8ymXME4Qs5HIQ0LMJpNM7zj+m0NlNnNeqFpKzqnA==}
     deprecated: Unmaintained
     dev: true
+    bundledDependencies: []
 
   /protobufjs/6.11.2:
     resolution: {integrity: sha512-4BQJoPooKJl2G9j3XftkIXjoC9C0Av2NOrWmbLWT1vH32GcSUHjM0Arra6UfTsVyfMAuFzaLucXn1sadxJydAw==}
@@ -12866,7 +12877,7 @@ packages:
     dependencies:
       command-exists: 1.2.9
       commander: 3.0.2
-      follow-redirects: 1.14.6_debug@4.3.3
+      follow-redirects: 1.14.6
       fs-extra: 0.30.0
       js-sha3: 0.8.0
       memorystream: 0.3.1

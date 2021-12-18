@@ -1,0 +1,8 @@
+version: '3'
+services:
+  ethereum: # GETH
+    image: ethereum/client-go:v1.10.13
+    ports:
+      - '8545:8545'
+      - '30303:30303'
+    command: --dev --nousb --ws --ws.addr "0.0.0.0" --ws.origins "*" --http --http.vhosts "*" --http.addr "0.0.0.0" --http.corsdomain "*" --miner.gasprice 1000000000 --dev.period 5
