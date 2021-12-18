@@ -1,15 +1,16 @@
 import {initWeb3W} from 'web3w';
 import {WalletConnectModuleLoader} from 'web3w-walletconnect-loader';
-import contractsInfos from '$lib/contracts.json';
+import {contractsInfos} from '$lib/blockchain/contracts';
 import {notifications} from '../web/notifications';
 import {webWalletURL, finality, fallbackProviderOrUrl, chainId, localDev} from '$lib/config';
 import {isCorrected, correctTime} from '$lib/time';
 import {base} from '$app/paths';
 import {chainTempo} from '$lib/blockchain/chainTempo';
 import * as Sentry from '@sentry/browser';
+import {get} from 'svelte/store';
 
 const walletStores = initWeb3W({
-  chainConfigs: contractsInfos,
+  chainConfigs: get(contractsInfos),
   builtin: {autoProbe: true},
   transactions: {
     autoDelete: false,
@@ -109,3 +110,7 @@ if (typeof window !== 'undefined') {
 }
 
 chainTempo.startOrUpdateProvider(wallet.provider);
+
+contractsInfos.subscribe(async ($contractsInfo) => {
+  await chain.updateContracts($contractsInfo);
+});

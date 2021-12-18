@@ -190,10 +190,13 @@ async function performAction(rawArgs) {
     await execute(`wait-on web/src/lib/contracts.json`);
     await execute(`${env}npm --prefix subgraph run ${deployCommand} ../contracts/deployments/${network}`);
   } else if (firstArg === 'web:dev') {
-    const {fixedArgs, options, extra} = parseArgs(args, 1, {skipContracts: 'boolean'});
+    const {fixedArgs, options, extra} = parseArgs(args, 1, {skipContracts: 'boolean', waitContracts: 'boolean'});
     const network = fixedArgs[0] || 'localhost';
     if (!options.skipContracts) {
       await performAction(['contracts:export', network]);
+    }
+    if (options.waitContracts) {
+      await execute(`wait-on web/src/lib/contracts.json`);
     }
     const env = getEnv(network);
     await execute(`${env}npm --prefix web run dev -- ${extra.join(' ')}`);
@@ -250,18 +253,20 @@ async function performAction(rawArgs) {
     await execute(`docker-compose down -v`);
     await execute(`docker-compose up`);
   } else if (firstArg === 'dev') {
+    const {extra} = parseArgs(args, 0, {});
     execute(`newsh "npm run common:dev"`);
-    execute(`newsh "npm run web:dev -- --skipContracts"`);
+    execute(`newsh "npm run web:dev localhost -- --skipContracts --waitContracts ${extra.join(' ')}"`);
     execute(`newsh "npm run contracts:node"`);
     execute(`newsh "npm run contracts:local:dev -- --reset"`);
     execute(`newsh "npm run subgraph:dev"`);
     await performAction(['common:build']);
     await performAction(['contracts:seed', 'localhost', '--waitContracts']);
   } else if (firstArg === 'start') {
+    const {extra} = parseArgs(args, 0, {});
     await execute(`docker-compose down -v`); // required else we run in race conditions
     execute(`newsh "npm run externals"`);
     execute(`newsh "npm run common:dev"`);
-    execute(`newsh "npm run web:dev -- --skipContracts"`);
+    execute(`newsh "npm run web:dev localhost -- --skipContracts --waitContracts ${extra.join(' ')}"`);
     execute(`newsh "npm run contracts:node"`);
     execute(`newsh "npm run contracts:local:dev -- --reset"`);
     execute(`newsh "npm run subgraph:dev"`);

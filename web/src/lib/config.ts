@@ -1,5 +1,4 @@
 import {getDefaultProvider, Provider} from '@ethersproject/providers';
-import {contractsInfos} from './blockchain/contractsInfos';
 import {nameForChainId} from './utils/eth/networks';
 import {getParamsFromLocation, getHashParamsFromLocation} from './utils/web';
 
