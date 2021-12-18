@@ -1,5 +1,5 @@
 <script lang="ts">
-  import darkMode from '$lib/stores/darkMode';
+  import darkMode from '$lib/web/darkMode';
 </script>
 
 <div class="dark:text-white">

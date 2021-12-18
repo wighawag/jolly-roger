@@ -90,5 +90,7 @@ function setup(command) {
     running = false;
   };
 }
-chokidar.watch(['src', 'templates'], {ignoreInitial: true}).on('all', setup(`npm run deploy ${contractsPath}`));
+chokidar
+  .watch(['src', 'templates', contractsPath], {ignoreInitial: true})
+  .on('all', setup(`npm run deploy ${contractsPath}`));
 chokidar.watch(['schema.graphql'], {ignoreInitial: true}).on('all', setup(`npm run codegen`));

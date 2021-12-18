@@ -39,6 +39,7 @@
     "---------------------- web ----------------------": "build and serve the web app",
     "web:dev": "node ./_scripts.js web:dev",
     "web:build": "node ./_scripts.js web:build",
+    "build": "node ./_scripts.js web:build",
     "web:serve": "node ./_scripts.js web:serve",
     "web:build:serve": "node ./_scripts.js web:build:serve",
     "---------------------- DEPLOYMENT ----------------------": "deployments",

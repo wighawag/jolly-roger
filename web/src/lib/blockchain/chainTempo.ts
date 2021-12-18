@@ -1,6 +1,7 @@
 import {blockTime} from '$lib/config';
 import type {Provider} from '@ethersproject/abstract-provider';
 import {logs} from 'named-logs';
+import type {Readable} from 'svelte/store';
 const console = logs('chainTempo');
 
 function removeFrom(array: unknown[], elem: unknown): void {
@@ -17,14 +18,14 @@ export type ChainTempoInfo = {lastBlockNumber?: number; stale: boolean};
 
 export type TempoListener = (chainInfo: ChainTempoInfo) => void;
 
-class ChainTempo {
+class ChainTempo implements Readable<ChainTempoInfo> {
   private blockListeners: TempoListener[] = [];
   private currentProvider?: Provider = undefined;
   private callback: () => void;
   private timeout: NodeJS.Timeout;
   private lastUpdate = 0;
   private triggerTimeout: NodeJS.Timeout;
-  private chainInfo: ChainTempoInfo = {lastBlockNumber: undefined, stale: true};
+  public readonly chainInfo: ChainTempoInfo = {lastBlockNumber: undefined, stale: true};
 
   constructor(private maxTimeout: number) {}
 

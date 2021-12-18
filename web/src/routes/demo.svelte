@@ -1,9 +1,9 @@
 <script lang="ts">
-  import WalletAccess from '$lib/WalletAccess.svelte';
-  import NavButton from '$lib/components/navigation/NavButton.svelte';
-  import Blockie from '$lib/components/Blockie.svelte';
-  import {messages} from '$lib/stores/messages';
-  import {wallet, flow, chain} from '$lib/stores/wallet';
+  import WalletAccess from '$lib/blockchain/WalletAccess.svelte';
+  import NavButton from '$lib/components/styled/navigation/NavButton.svelte';
+  import Blockie from '$lib/components/generic/CanvasBlockie.svelte';
+  import {messages} from '$lib/messages/messages';
+  import {wallet, flow, chain} from '$lib/blockchain/wallet';
   import {onMount} from 'svelte';
   import {combine} from 'jolly-roger-common';
 
@@ -43,7 +43,7 @@
           <!-- <div class="px-2 mb-6">
               <h2 class="text-xl">{`${name.id.slice(0, 4)}...${name.id.slice(name.id.length - 4)}`} :</h2>
             </div> -->
-          <Blockie address={message.id} class="m-1" />
+          <Blockie address={message.id} class="m-1 h-6 w-6" />
           <span class="px-2">
             <p>
               {message.message}
