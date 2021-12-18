@@ -2,11 +2,11 @@
   import '../service-worker-handler';
   import '../global.css';
   import {url} from '$lib/utils/url';
-  import NavBar from '$lib/theme/navigation/NavBar.svelte';
-  import Notifications from '$lib/theme/notification/Notifications.svelte';
-  import NoInstallPrompt from '$lib/generic/NoInstallPrompt.svelte';
-  import NewVersionNotification from '$lib/theme/NewVersionNotification.svelte';
-  import DarkSwitch from '$lib/theme/DarkSwitch.svelte';
+  import NavBar from '$lib/components/styled/navigation/NavBar.svelte';
+  import Notifications from '$lib/components/styled/notification/Notifications.svelte';
+  import NoInstallPrompt from '$lib/components/generic/NoInstallPrompt.svelte';
+  import NewVersionNotification from '$lib/components/styled/NewVersionNotification.svelte';
+  import DarkSwitch from '$lib/components/styled/DarkSwitch.svelte';
 
   import {appDescription, url as appUrl} from '../../application.json';
 

@@ -1,7 +1,7 @@
 <script lang="ts">
   import WalletAccess from '$lib/blockchain/WalletAccess.svelte';
-  import NavButton from '$lib/theme/navigation/NavButton.svelte';
-  import Blockie from '$lib/generic/CanvasBlockie.svelte';
+  import NavButton from '$lib/components/styled/navigation/NavButton.svelte';
+  import Blockie from '$lib/components/generic/CanvasBlockie.svelte';
   import {messages} from '$lib/messages/messages';
   import {wallet, flow, chain} from '$lib/blockchain/wallet';
   import {onMount} from 'svelte';

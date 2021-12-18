@@ -1,8 +1,8 @@
 <script lang="ts">
   export let title = '';
   import {chainName} from '$lib/config';
-  import NavButton from '$lib/theme/navigation/NavButton.svelte';
-  import Modal from '$lib/theme/Modal.svelte';
+  import NavButton from '$lib/components/styled/navigation/NavButton.svelte';
+  import Modal from '$lib/components/styled/Modal.svelte';
   import {base} from '$app/paths';
   import {wallet, builtin, chain, flow, fallback} from '$lib/blockchain/wallet';
 
