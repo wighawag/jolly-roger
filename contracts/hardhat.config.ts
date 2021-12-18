@@ -5,6 +5,7 @@ import '@nomiclabs/hardhat-ethers';
 import 'hardhat-gas-reporter';
 import '@typechain/hardhat';
 import 'solidity-coverage';
+import 'hardhat-deploy-tenderly';
 import {node_url, accounts, addForkConfiguration} from './utils/network';
 
 const config: HardhatUserConfig = {
@@ -84,6 +85,11 @@ const config: HardhatUserConfig = {
         },
       }
     : undefined,
+
+  tenderly: {
+    project: 'jolly-roger',
+    username: process.env.TENDERLY_USERNAME as string,
+  },
 };
 
 export default config;

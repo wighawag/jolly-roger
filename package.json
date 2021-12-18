@@ -32,6 +32,7 @@
     "seed": "node ./_scripts.js contracts:seed",
     "contracts:execute": "node ./_scripts.js contracts:execute",
     "contracts:fork:execute": "node ./_scripts.js contracts:fork:execute",
+    "tenderly:push": "node ./_scripts.js tenderly:push",
     "---------------------- agent-service ----------------------": "deploy agent-service",
     "---------------------- subgraphs ----------------------": "generate and deploy local subgraph",
     "subgraph:dev": "node ./_scripts.js subgraph:dev",
