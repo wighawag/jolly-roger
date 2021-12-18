@@ -3,6 +3,15 @@ import adapter_ipfs from 'sveltejs-adapter-ipfs';
 import {execSync} from 'child_process';
 import fs from 'fs';
 
+function loadJSON(filepath) {
+  try {
+    return JSON.parse(fs.readFileSync(filepath).toString());
+  } catch (e) {
+    return {};
+  }
+}
+const pkg = loadJSON('./package.json');
+
 const VERSION = execSync('git rev-parse --short HEAD').toString().trim();
 
 if (!process.env.VITE_CHAIN_ID) {
@@ -32,8 +41,8 @@ const config = {
     adapter: adapter_ipfs({
       assets: outputFolder,
       pages: outputFolder,
-      removeSourceMap: true,
-      copyBeforeSourceMapRemoval: 'release',
+      removeSourceMap: pkg.name === 'jolly' + '-roger-web' ? false : true, // source map are exposed for jolly-roger
+      copyBeforeSourceMapRemoval: pkg.name === 'jolly' + '-roger-web' ? undefined : 'release', // source map are exposed for jolly-roger
       removeBuiltInServiceWorkerRegistration: true,
       injectPagesInServiceWorker: true,
       injectDebugConsole: true,
