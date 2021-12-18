@@ -261,4 +261,21 @@ Furthermore, you need to ensure the values in [web/application.json](web/applica
 
 For `web:build` you can also use [fleek](https://fleek.co) so that building and ipfs deployment is done automatically. The repo provide a `.fleek.json` file already setup for staging.
 
-The only thing needed is setting up the environment variables (VITE_THE_GRAPH_HTTP, VITE_CHAIN_ID). You can either set them in fleek dashboard or set them in `.fleek.json`
+The only thing needed is setting up the environment variables. You can either set them in fleek dashboard or set them in `.fleek.json`
+
+Note though that no environment variables might be needed, if you branch name is equal to the expected network name and you have got VITE_THE_GRAPH_HTTP set in the `.env.<networkName>.default` file.
+
+Here are the env variable and their default:
+
+- NETWORK_NAME: mandatory but will default to the got branch name if a deployment folder is found
+- VITE_CHAIN_ID: will default to the chainId specificed in the contracts.json
+- VITE_ETH_NODE_URI: optional, if set, the app will have access to on-chain data through that node. Better not make your app depends on it.
+- VITE_THE_GRAPH_HTTP: This can be set up in the `.env.<networkName>.default` file
+
+# other git integrations
+
+Vercal can be easily setup like fleek above. THe only thing needed currently is to set the following install command:
+
+- `npx pnpm i`
+
+And like fleek you ll need to setup `NETWORK_NAME` env variable unless it is the same as the branch name.
