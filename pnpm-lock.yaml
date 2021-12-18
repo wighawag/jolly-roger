@@ -183,7 +183,6 @@ importers:
       typescript: ^4.5.4
       vite: 2.7.3
       web3w: ^0.3.2-beta.17
-      web3w-torus-loader: ^0.3.1
       web3w-walletconnect-loader: ^0.3.2
       wonka: ^4.0.15
     dependencies:
@@ -202,7 +201,6 @@ importers:
       graphql: 16.2.0
       named-logs: 0.1.0
       web3w: 0.3.2-beta.17_7cfc4f7162cd950c0fd5c893fc3e8a45
-      web3w-torus-loader: 0.3.1
       web3w-walletconnect-loader: 0.3.2
       wonka: 4.0.15
     devDependencies:
@@ -14597,12 +14595,6 @@ packages:
       web3-shh: 1.5.2
       web3-utils: 1.5.2
     dev: true
-
-  /web3w-torus-loader/0.3.1:
-    resolution: {integrity: sha512-yFdhpMcnITPCDtWOGevvkEylnHm+dNbnqO8tDodJnacujItg+BG4RVAVKSLIGbFgUMYiMww5K8xNiD0n+vRcbQ==}
-    dependencies:
-      named-logs: 0.1.0
-    dev: false
 
   /web3w-walletconnect-loader/0.3.2:
     resolution: {integrity: sha512-6IgyNsnC92ermTq3cGmU0hLMM0LuGObyN3sZfR/Zp01haaMGi6GRrtx9BtHkBcHfO4lXbtx6iO3Chc71prtHrA==}
