@@ -1,6 +1,6 @@
 import type {Logger} from 'named-logs';
 import {logs} from 'named-logs';
-import {updateAvailable} from './lib/stores/appUpdates';
+import {updateAvailable} from './lib/web/appUpdates';
 import {base} from '$app/paths';
 
 type CLogger = Logger & {level: number; enabled: boolean};

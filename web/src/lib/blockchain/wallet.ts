@@ -1,15 +1,15 @@
 import {initWeb3W} from 'web3w';
-import {TorusModuleLoader} from 'web3w-torus-loader';
 import {WalletConnectModuleLoader} from 'web3w-walletconnect-loader';
-import contractsInfo from '$lib/contracts.json';
-import {notifications} from './notifications';
-import {finality, nodeUrl, chainId} from '$lib/config';
+import contractsInfos from '$lib/contracts.json';
+import {notifications} from '../web/notifications';
+import {webWalletURL, finality, fallbackProviderOrUrl, chainId, localDev} from '$lib/config';
+import {isCorrected, correctTime} from '$lib/time';
 import {base} from '$app/paths';
-import {isCorrected, correctTime} from './time';
-import {chainTempo} from './chainTempo';
+import {chainTempo} from '$lib/blockchain/chainTempo';
+import * as Sentry from '@sentry/browser';
 
 const walletStores = initWeb3W({
-  chainConfigs: contractsInfo,
+  chainConfigs: contractsInfos,
   builtin: {autoProbe: true},
   transactions: {
     autoDelete: false,
@@ -19,30 +19,20 @@ const walletStores = initWeb3W({
     autoUnlock: true,
   },
   autoSelectPrevious: true,
-  localStoragePrefix: base.startsWith('/ipfs/') || base.startsWith('/ipns/') ? base.slice(6) : undefined, // ensure local storage is not conflicting across web3w-based apps on ipfs gateways
+  localStoragePrefix: (base && base.startsWith('/ipfs/')) || base.startsWith('/ipns/') ? base.slice(6) : undefined, // ensure local storage is not conflicting across web3w-based apps on ipfs gateways
   options: [
     'builtin',
-    new TorusModuleLoader({verifier: 'google', nodeUrl, chainId}),
-    new TorusModuleLoader({verifier: 'facebook', nodeUrl, chainId}),
-    new TorusModuleLoader({verifier: 'discord', nodeUrl, chainId}),
     new WalletConnectModuleLoader({
-      nodeUrl,
+      nodeUrl: typeof fallbackProviderOrUrl === 'string' ? fallbackProviderOrUrl : undefined,
       chainId,
       infuraId: 'bc0bdd4eaac640278cdebc3aa91fabe4',
     }),
   ],
-  fallbackNode: nodeUrl, // TODO use query string to specify it // TODO settings
-  checkGenesis: true,
+  fallbackNode: fallbackProviderOrUrl,
+  checkGenesis: localDev,
 });
 
 export const {wallet, transactions, builtin, chain, balance, flow, fallback} = walletStores;
-
-if (typeof window !== 'undefined') {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (window as any).walletStores = walletStores;
-}
-
-chainTempo.startOrUpdateProvider(wallet.provider);
 
 function notifyFailure(tx: {hash: string}) {
   notifications.queue({
@@ -103,3 +93,19 @@ fallback.subscribe(async (v) => {
     }
   }
 });
+
+let lastAddress: string | undefined;
+wallet.subscribe(async ($wallet) => {
+  if (lastAddress !== $wallet.address) {
+    lastAddress = $wallet.address;
+    Sentry.setUser({address: $wallet.address});
+  }
+});
+
+// TODO remove
+if (typeof window !== 'undefined') {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (window as any).walletStores = walletStores;
+}
+
+chainTempo.startOrUpdateProvider(wallet.provider);

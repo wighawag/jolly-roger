@@ -1,6 +1,9 @@
 import preprocess from 'svelte-preprocess';
 import adapter_ipfs from 'sveltejs-adapter-ipfs';
+import {execSync} from 'child_process';
 import fs from 'fs';
+
+const VERSION = execSync('git rev-parse --short HEAD').toString().trim();
 
 if (!process.env.VITE_CHAIN_ID) {
   try {
@@ -21,18 +24,30 @@ if (process.env.VERCEL) {
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
-  preprocess: preprocess(),
+  preprocess: preprocess({
+    sourceMap: true,
+  }),
 
   kit: {
     adapter: adapter_ipfs({
       assets: outputFolder,
       pages: outputFolder,
+      removeSourceMap: true,
+      copyBeforeSourceMapRemoval: 'release',
       removeBuiltInServiceWorkerRegistration: true,
       injectPagesInServiceWorker: true,
       injectDebugConsole: true,
     }),
     target: '#svelte',
     trailingSlash: 'ignore',
+    vite: {
+      build: {
+        sourcemap: true,
+      },
+      define: {
+        __VERSION__: JSON.stringify(VERSION),
+      },
+    },
   },
 };
 

@@ -3,8 +3,8 @@
 </script>
 
 <script lang="ts">
-  import NavButton from '$lib/components/navigation/NavButton.svelte';
-  import Feature from '$lib/components/Feature.svelte';
+  import NavButton from '$lib/theme/navigation/NavButton.svelte';
+  import Feature from '$lib/theme/Feature.svelte';
   import {url} from '$lib/utils/url';
   const name = 'Jolly Roger';
 

@@ -1,6 +1,6 @@
 <script lang="ts">
-  import Notification from '../notification/Notification.svelte';
-  import {notifications} from '../../stores/notifications';
+  import Notification from './Notification.svelte';
+  import {notifications} from '$lib/web/notifications';
 </script>
 
 <div

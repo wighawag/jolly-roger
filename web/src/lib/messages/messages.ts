@@ -3,11 +3,11 @@ import {derived} from 'svelte/store';
 import type {TransactionStore} from 'web3w';
 import type {Invalidator, Subscriber, Unsubscriber} from 'web3w/dist/esm/utils/internals';
 import {SUBGRAPH_ENDPOINT} from '$lib/graphql';
-import {transactions} from './wallet';
+import {transactions} from '$lib/blockchain/wallet';
 import type {QueryState, QueryStore} from '$lib/utils/stores/graphql';
 import {HookedQueryStore} from '$lib/utils/stores/graphql';
 import type {EndPoint} from '$lib/utils/graphql/endpoint';
-import {chainTempo} from './chainTempo';
+import {chainTempo} from '$lib/blockchain/chainTempo';
 
 type Messages = {
   id: string;

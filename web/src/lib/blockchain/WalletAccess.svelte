@@ -1,13 +1,11 @@
 <script lang="ts">
   export let title = '';
-  import {chainName} from './config';
-  import NavButton from './components/navigation/NavButton.svelte';
-  import Modal from './components/Modal.svelte';
+  import {chainName} from '$lib/config';
+  import NavButton from '$lib/theme/navigation/NavButton.svelte';
+  import Modal from '$lib/theme/Modal.svelte';
   import {base} from '$app/paths';
+  import {wallet, builtin, chain, flow, fallback} from '$lib/blockchain/wallet';
 
-  import {wallet, builtin, chain, flow, fallback} from './stores/wallet';
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   $: executionError = $flow.executionError as any;
 
   let options: {img: string; id: string; name: string}[] = [];
@@ -132,20 +130,42 @@
         <NavButton label="Unlock Wallet" on:click={() => wallet.unlock()}>Unlock</NavButton>
       {/if}
     {:else if $chain.state === 'Idle'}
-      {#if $chain.connecting}Connecting...{/if}
+      {#if $chain.connecting}
+        Connecting...
+      {:else if $chain.error}
+        <div class="text-center">
+          <p>{$chain.error?.message || '' + $chain.error}</p>
+          <NavButton class="mt-4" label="OK" on:click={() => flow.cancel()}>OK</NavButton>
+        </div>
+      {/if}
     {:else if $chain.state === 'Connected'}
       {#if $chain.loadingData}
         Loading contracts...
-      {:else if $chain.notSupported}Please switch to {chainName}{/if}
-    {:else if $wallet.pendingUserConfirmation}
-      Please accept transaction...
+      {:else if $chain.notSupported}
+        Please switch to
+        {chainName}
+        <!-- ({$chain.chainId}) -->
+      {/if}
     {:else if executionError}
-      {#if executionError.code === 4001}
-        You rejected the request
-      {:else if executionError.message}
-        {executionError.message}
-      {:else}Error: {executionError}{/if}
-      <NavButton label="Retry" on:click={() => flow.retry()}>Retry</NavButton>
+      <div class="text-center">
+        <p>
+          {#if executionError.code === 4001}
+            You rejected the request
+          {:else if executionError.message}{executionError.message}{:else}Error: {executionError}{/if}
+        </p>
+        <NavButton class="mt-4" label="Retry" on:click={() => flow.retry()}>Retry</NavButton>
+      </div>
+    {:else if $wallet.pendingUserConfirmation}
+      {#if $wallet.pendingUserConfirmation[0] === 'transaction'}
+        Please accept transaction...
+      {:else if $wallet.pendingUserConfirmation[0] === 'signature'}
+        Please accept signature...
+      {:else}Please accept request...{/if}
+    {:else}
+      <div class="text-center">
+        <p>Flow aborted {$wallet.state}</p>
+        <NavButton class="mt-4" label="Retry" on:click={() => flow.cancel()}>OK</NavButton>
+      </div>
     {/if}
   </Modal>
 {/if}

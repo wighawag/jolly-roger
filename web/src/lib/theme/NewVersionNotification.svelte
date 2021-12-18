@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {updateAvailable} from '$lib/stores/appUpdates';
+  import {updateAvailable} from '$lib/web/appUpdates';
   import {base} from '$app/paths';
 
   function skip() {
@@ -8,7 +8,7 @@
 
   function reload() {
     $updateAvailable = false;
-    window.location.reload(true);
+    (window.location as any).reload(true);
   }
 </script>
 

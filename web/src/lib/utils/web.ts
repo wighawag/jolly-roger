@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-export function getParamsFromURL(url: string): Record<string, string> {
+export function getParamsFromURL(url: string): {params: Record<string, string>; pathname?: string} {
   if (!url) {
-    return {};
+    return {params: {}, pathname: ''};
   }
   const obj: Record<string, string> = {};
   const hash = url.lastIndexOf('#');
@@ -18,16 +18,21 @@ export function getParamsFromURL(url: string): Record<string, string> {
       .split('&')
       .forEach((piece) => {
         const [key, val = ''] = piece.split('=');
-        obj[decodeURIComponent(key)] = decodeURIComponent(val);
+        obj[decodeURIComponent(key)] = val === '' ? 'true' : decodeURIComponent(val);
       });
   }
-  return obj;
+
+  let pathname = cleanedUrl.slice(0, question) || '';
+  if (pathname && !pathname.endsWith('/')) {
+    pathname += '/';
+  }
+  return {params: obj, pathname};
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-export function getParamsFromLocation(): Record<string, string> {
+export function getParamsFromLocation(): {params: Record<string, string>; pathname?: string} {
   if (typeof window === 'undefined') {
-    return {};
+    return {params: {}};
   }
   return getParamsFromURL(window.location.href);
 }
