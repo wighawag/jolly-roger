@@ -158,3 +158,7 @@ export {
   localDev,
   setGetName,
 };
+
+if (typeof window !== 'undefined') {
+  (window as any).env = import.meta.env;
+}

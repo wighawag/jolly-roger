@@ -82,7 +82,13 @@
   </div>
 {/if}
 
-{#if $flow.inProgress}
+{#if $wallet.error}
+  <Modal title="An Error Happened" on:close={() => wallet.acknowledgeError()}>
+    <p class="w-64 text-center text-red-500 p-1">
+      {$wallet.error.message}
+    </p>
+  </Modal>
+{:else if $flow.inProgress}
   <Modal {title} cancelable={!$wallet.connecting} on:close={() => flow.cancel()} closeButton={false}>
     {#if $wallet.state === 'Idle'}
       {#if $wallet.loadingModule}
