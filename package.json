@@ -49,7 +49,9 @@
     "---------------------- DEVELOPMENT ----------------------": "run external services, setup subgraph and deploy it on the local graph-node + deploy the contracts and seed it",
     "stop": "node ./_scripts.js stop",
     "externals": "node ./_scripts.js externals",
+    "externals:geth": "node ./_scripts.js externals:geth",
     "dev": "node ./_scripts.js dev",
-    "start": "node ./_scripts.js start"
+    "start": "node ./_scripts.js start",
+    "start:geth": "node ./_scripts.js start:geth"
   }
 }
