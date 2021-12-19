@@ -1,20 +1,27 @@
 <script lang="ts">
-  import {updateAvailable} from '$lib/web/appUpdates';
+  import {serviceWorker} from '$lib/web/serviceWorker';
   import {base} from '$app/paths';
 
   function skip() {
-    $updateAvailable = false;
+    $serviceWorker.updateAvailable = false;
   }
 
   function reload() {
-    $updateAvailable = false;
-    (window.location as any).reload(true);
+    if ($serviceWorker.updateAvailable && $serviceWorker.registration) {
+      if ($serviceWorker.registration.waiting) {
+        $serviceWorker.registration.waiting.postMessage('skipWaiting');
+      } else {
+        console.error(`not waiting..., todo reload?`);
+        // window.location.reload();
+      }
+      $serviceWorker.updateAvailable = false;
+    }
   }
 </script>
 
-<svelte:window on:click={skip} />
+<!-- <svelte:window on:click={skip} /> -->
 
-{#if $updateAvailable}
+{#if $serviceWorker.updateAvailable && $serviceWorker.registration}
   <div
     on:click={(e) => {
       e.preventDefault();
