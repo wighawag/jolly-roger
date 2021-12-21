@@ -21,7 +21,7 @@
     "@urql/devtools": "^2.0.3",
     "graphql": "^16.2.0",
     "named-logs": "^0.1.0",
-    "web3w": "^0.3.2-beta.21",
+    "web3w": "^0.3.2-beta.22",
     "web3w-walletconnect-loader": "^0.3.2",
     "wonka": "^4.0.15"
   },
