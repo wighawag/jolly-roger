@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import {build, timestamp} from '$service-worker';
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -13,9 +12,14 @@ function log(...args) {
     console.debug(...args);
   }
 }
+
 self.addEventListener('message', function (event) {
   if (event.data && event.data.type === 'debug') {
     _logEnabled = event.data.enabled && event.data.level >= 5;
+  } else if (event.data === 'skipWaiting') {
+    log(`skipWaiting received`);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (self as any).skipWaiting();
   }
 });
 
@@ -39,6 +43,7 @@ const regexesCacheOnly = [];
 
 log(`[Service Worker] Origin: ${self.location.origin}`);
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 self.addEventListener('install', (event: any) => {
   log('[Service Worker] Install');
   event.waitUntil(
@@ -49,11 +54,13 @@ self.addEventListener('install', (event: any) => {
         return cache.addAll(urlsToPreCache);
       })
       .then(() => {
-        (self as any).skipWaiting();
+        // (self as any).skipWaiting();
+        log(`cache fully fetched!`);
       })
   );
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 self.addEventListener('activate', (event: any) => {
   log('[Service Worker] Activate');
   event.waitUntil(
@@ -65,6 +72,7 @@ self.addEventListener('activate', (event: any) => {
             return caches.delete(thisCacheName);
           }
         })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ).then(() => (self as any).clients.claim());
     })
   );
@@ -119,23 +127,42 @@ const onlineOnly = {
   regexes: regexesOnlineOnly,
 };
 
-self.addEventListener('fetch', (event: any) => {
+async function getResponse(event: {request: Request}): Promise<Response> {
   const request = event.request;
-  event.respondWith(
-    // TODO remove query param from matching, query param are used as config (why not use hashes then ?) const normalizedUrl = normalizeUrl(event.request.url);
-    caches.match(request).then((cache) => {
-      // The order matters !
-      const patterns = [onlineFirst, onlineOnly, cacheFirst, cacheOnly];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const registration = (self as any).registration as ServiceWorkerRegistration;
+  if (
+    event.request.mode === 'navigate' &&
+    event.request.method === 'GET' &&
+    registration.waiting &&
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (await (self as any).clients.matchAll()).length < 2
+  ) {
+    log('only one client, skipWaiting as we navigate the page');
+    registration.waiting.postMessage('skipWaiting');
+    const response = new Response('', {headers: {Refresh: '0'}});
+    return response;
+  }
 
-      for (const pattern of patterns) {
-        for (const regex of pattern.regexes) {
-          if (RegExp(regex).test(request.url)) {
-            return pattern.method(request, cache);
-          }
+  // TODO remove query param from matching, query param are used as config (why not use hashes then ?) const normalizedUrl = normalizeUrl(event.request.url);
+  const response = await caches.match(request).then((cache) => {
+    // The order matters !
+    const patterns = [onlineFirst, onlineOnly, cacheFirst, cacheOnly];
+
+    for (const pattern of patterns) {
+      for (const regex of pattern.regexes) {
+        if (RegExp(regex).test(request.url)) {
+          return pattern.method(request, cache);
         }
       }
+    }
 
-      return onlineFirst.method(request, cache);
-    })
-  );
+    return onlineFirst.method(request, cache);
+  });
+  return response;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+self.addEventListener('fetch', (event: any) => {
+  event.respondWith(getResponse(event));
 });
