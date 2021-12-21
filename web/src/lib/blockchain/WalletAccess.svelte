@@ -54,7 +54,7 @@
     if (fallbackProviderOrUrl) {
       rpcUrls.push(fallbackProviderOrUrl);
     }
-    await chain.switchChain(chainId + 1000, {chainName, rpcUrls, blockExplorerUrls});
+    await chain.switchChain(chainId, {chainName, rpcUrls, blockExplorerUrls});
   }
 </script>
 
