@@ -1,6 +1,6 @@
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/dist/src/signers';
 import {ethers} from 'hardhat';
-import {Contract} from 'ethers/';
+import {Contract} from 'ethers';
 import {TypedDataDomain, TypedDataField} from '@ethersproject/abstract-signer';
 
 export async function setupNamedUsers<T extends {[contractName: string]: Contract}>(
