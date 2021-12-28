@@ -51,7 +51,8 @@ switch (process.platform) {
       '.newsh.json',
       `
   {
-    "terminalApp": "xterm"
+    "terminalApp": "xterm",
+    "terminalAppSetup": "-hold -e {{command}}"
   }
   `
     );
