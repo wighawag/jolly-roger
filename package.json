@@ -33,7 +33,6 @@
     "contracts:execute": "node ./_scripts.js contracts:execute",
     "contracts:fork:execute": "node ./_scripts.js contracts:fork:execute",
     "tenderly:push": "node ./_scripts.js tenderly:push",
-    "---------------------- agent-service ----------------------": "deploy agent-service",
     "---------------------- subgraphs ----------------------": "generate and deploy local subgraph",
     "subgraph:dev": "node ./_scripts.js subgraph:dev",
     "subgraph:deploy": "node ./_scripts.js subgraph:deploy",
@@ -54,5 +53,8 @@
     "dev": "node ./_scripts.js dev",
     "start": "node ./_scripts.js start",
     "start:geth": "node ./_scripts.js start:geth"
+  },
+  "volta": {
+    "node": "14.18.2"
   }
 }
