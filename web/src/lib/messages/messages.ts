@@ -2,7 +2,7 @@ import type {Readable} from 'svelte/store';
 import {derived} from 'svelte/store';
 import type {TransactionStore} from 'web3w';
 import type {Invalidator, Subscriber, Unsubscriber} from 'web3w/dist/esm/utils/internals';
-import {SUBGRAPH_ENDPOINT} from '$lib/graphql';
+import {SUBGRAPH_ENDPOINT} from '$lib/blockchain/subgraph';
 import {transactions} from '$lib/blockchain/wallet';
 import type {QueryState, QueryStore} from '$lib/utils/stores/graphql';
 import {HookedQueryStore} from '$lib/utils/stores/graphql';

@@ -11,7 +11,7 @@ function removeFrom(array: unknown[], elem: unknown): void {
       return;
     }
   }
-  console.log('NOT FOUNF');
+  console.log('NOT FOUND');
 }
 
 export type ChainTempoInfo = {lastBlockNumber?: number; stale: boolean};
