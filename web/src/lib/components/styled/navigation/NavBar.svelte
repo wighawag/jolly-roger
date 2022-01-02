@@ -13,7 +13,7 @@
 
 <ul class="flex m-1 border-b border-pink-600">
   {#each links as link}
-    <NavLink href={link.href} active={urlOfPath(link.href, $page.path)}>
+    <NavLink href={link.href} active={urlOfPath(link.href, $page.url.pathname)}>
       {link.title}
       <!-- ({link.href}) -->
     </NavLink>
