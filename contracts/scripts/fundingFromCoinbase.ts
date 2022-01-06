@@ -1,7 +1,6 @@
 // script used to fund account from a geth coinbase account (geth --dev)
 import {ethers, network} from 'hardhat';
 import {BigNumber, providers} from 'ethers';
-
 const {JsonRpcProvider} = providers;
 
 function wait(numSec: number): Promise<void> {
@@ -36,8 +35,12 @@ async function main() {
   }
   const accounts = await ethers.provider.listAccounts();
   let accountsToFund = accounts;
-  if (coinbase === accounts[0]) {
-    accountsToFund = accounts.slice(1);
+  const coinbaseIndex = accounts.findIndex((v) => v === coinbase)
+  if (coinbaseIndex >= 0) {
+    accountsToFund = accounts.concat().splice(coinbaseIndex, 1);
+  } else {
+    console.log('coinbase is not an account controlled');
+    return;
   }
 
   const coinbaseBalance = await ethers.provider.getBalance(coinbase);
