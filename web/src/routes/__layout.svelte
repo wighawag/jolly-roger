@@ -8,7 +8,7 @@
   import NewVersionNotification from '$lib/components/styled/NewVersionNotification.svelte';
   import DarkSwitch from '$lib/components/styled/DarkSwitch.svelte';
 
-  import {appDescription, url as appUrl} from '../../application.json';
+  import {appDescription, url as appUrl} from '../application.json';
 
   const title = 'Jolly Roger, Template for Decentralised Applications.';
   const description = appDescription;
