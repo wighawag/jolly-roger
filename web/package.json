@@ -56,7 +56,7 @@
     "vite": "2.7.10"
   },
   "scripts": {
-    "prepare": "node ./.setup.cjs && prepare-for-web --target static --targetFile src/app.html",
+    "prepare": "node ./.setup.cjs && prepare-for-web --config src/application.json --target static --targetFile src/app.html",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
     "format": "prettier --check .",
