@@ -121,7 +121,7 @@
                   On-chain Generative Bitmaps With Zero Externalities
                 </p>
                 <p class="mt-3 text-base text-gray-700 dark:text-gray-300">
-                  The First On-Chain Generative Art Project to make full use of token URI to remove all external dependencies. It generates SVG and Bitmap from the smart cotnract directly.
+                  The First On-Chain Generative Art Project to make full use of token URI to remove all external dependencies. It generates SVG and Bitmap from the smart contract directly.
                   </p>
                 <p class="mt-3 text-base text-gray-500">
                   Source code available <a href="https://github.com/wighawag/mandalas" target="_blank" class="underline">here</a>
