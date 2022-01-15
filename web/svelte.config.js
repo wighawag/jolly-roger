@@ -12,7 +12,10 @@ function loadJSON(filepath) {
 }
 const pkg = loadJSON('./package.json');
 
-const VERSION = execSync('git rev-parse --short HEAD').toString().trim();
+let VERSION = `timestamp_${Date.now()}`;
+try {
+  VERSION = execSync('git rev-parse --short HEAD', {stdio: 'ignore'}).toString().trim();
+} catch (e) {}
 
 if (!process.env.VITE_CHAIN_ID) {
   try {
