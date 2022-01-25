@@ -176,6 +176,17 @@ async function performAction(rawArgs) {
     const network = fixedArgs[0] || 'localhost';
     const env = getEnv(network);
     await execute(`${env}npm --prefix contracts run fork:execute ${network} ${extra.join(' ')}`);
+  } else if (firstArg === 'contracts:etherscan-verify') {
+    const {fixedArgs, extra} = parseArgs(args, 1, {});
+    const network = fixedArgs[0];
+    if (!network) {
+      console.error(`need to specify the network as first argument`);
+      return;
+    }
+    const env = getEnv(network);
+    await execute(
+      `${env}npm --prefix contracts run hardhat -- --network ${network} etherscan-verify  ${extra.join(' ')}`
+    );
   } else if (firstArg === 'tenderly:push') {
     const {fixedArgs} = parseArgs(args, 1, {});
     const network = fixedArgs[0] || 'localhost';
