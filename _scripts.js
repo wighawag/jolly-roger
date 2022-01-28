@@ -185,7 +185,7 @@ async function performAction(rawArgs) {
     }
     const env = getEnv(network);
     await execute(
-      `${env}npm --prefix contracts run hardhat -- --network ${network} etherscan-verify  ${extra.join(' ')}`
+      `${env}npm --prefix contracts run verify ${network} ${extra.length > 0 ? `-- ${extra.join(' ')}` : ''}`
     );
   } else if (firstArg === 'tenderly:push') {
     const {fixedArgs} = parseArgs(args, 1, {});
