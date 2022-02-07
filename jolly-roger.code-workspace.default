@@ -19,6 +19,7 @@
   "settings": {
     "editor.formatOnSave": true,
     "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "prettier.documentSelectors": ["**/*.sol", "**/*.svelte"], // needed, see https://github.com/sveltejs/prettier-plugin-svelte/issues/155#issuecomment-831166730
     "editor.codeActionsOnSave": {
       "source.fixAll": true
     },
@@ -37,10 +38,7 @@
       "MNEMONIC": "test test test test test test test test test test test junk"
     },
     "mochaExplorer.require": ["ts-node/register/transpile-only"],
-    "eslint.alwaysShowStatus": true,
-    "prettier.prettierPath": "_prettier-vscode-fix/node_modules/prettier",
-    "prettier.configPath": ".prettierrc.js",
-    "prettier.ignorePath": ".prettierignore"
+    "eslint.alwaysShowStatus": true
     // ----------------------------------------------------------------------------------------------------------------------------------------------
   },
   "extensions": {
