@@ -1,5 +1,5 @@
 'use strict';
-process.env.TS_NODE_FILES = true;
+process.env.TS_NODE_FILES = 'true';
 module.exports = {
   'allow-uncaught': true,
   diff: true,

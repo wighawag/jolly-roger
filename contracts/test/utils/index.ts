@@ -1,4 +1,4 @@
-import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/dist/src/signers';
+import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers';
 import {ethers} from 'hardhat';
 import {Contract} from 'ethers';
 import {TypedDataDomain, TypedDataField} from '@ethersproject/abstract-signer';
