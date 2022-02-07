@@ -6,6 +6,7 @@ module.exports = {
     {
       files: '*.sol',
       options: {
+        parser: 'solidity-parse', // needed, see https://github.com/sveltejs/prettier-plugin-svelte/issues/155#issuecomment-831166730
         printWidth: 120,
         tabWidth: 4,
         singleQuote: false,

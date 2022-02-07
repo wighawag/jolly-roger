@@ -1,5 +1,0 @@
-{
-  "prettier.prettierPath": "../_prettier-vscode-fix/node_modules/prettier",
-  "prettier.configPath": "../.prettierrc.js",
-  "prettier.ignorePath": "../.prettierignore"
-}

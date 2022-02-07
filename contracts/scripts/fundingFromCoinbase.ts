@@ -35,7 +35,7 @@ async function main() {
   }
   const accounts = await ethers.provider.listAccounts();
   let accountsToFund = accounts;
-  const coinbaseIndex = accounts.findIndex((v) => v === coinbase)
+  const coinbaseIndex = accounts.findIndex((v) => v === coinbase);
   if (coinbaseIndex >= 0) {
     accountsToFund = accounts.concat().splice(coinbaseIndex, 1);
   } else {
