@@ -14,8 +14,13 @@ const pkg = loadJSON('./package.json');
 
 let VERSION = `timestamp_${Date.now()}`;
 try {
-  VERSION = execSync('git rev-parse --short HEAD', {stdio: 'ignore'}).toString().trim();
-} catch (e) {}
+  VERSION = execSync('git rev-parse --short HEAD', {stdio: ['ignore', 'pipe', 'ignore']})
+    .toString()
+    .trim();
+} catch (e) {
+  console.error(e);
+}
+console.log(`VERSION: ${VERSION}`);
 
 if (!process.env.VITE_CHAIN_ID) {
   try {
