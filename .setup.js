@@ -22,7 +22,15 @@ function copyFromDefault(p) {
   copyUnlessExists(`${p}.default`, p);
 }
 
-['jolly-roger.code-workspace', '.env', '.env.production', '.env.staging'].map(copyFromDefault);
+function copyFromAllDefault() {
+  const files = fs
+    .readdirSync('.')
+    .filter((v) => v.endsWith('.default'))
+    .map((v) => v.slice(0, v.length - 8));
+  files.map(copyFromDefault);
+}
+
+copyFromAllDefault();
 
 switch (process.platform) {
   case 'win32':
@@ -51,18 +59,3 @@ switch (process.platform) {
 if (anyChanges) {
   console.log('setting up defaults...');
 }
-
-const execSync = require('child_process').execSync;
-function npmInstall(dir) {
-  console.log(`INSTALLING ${dir}...`);
-  let exitCode = 0;
-  try {
-    execSync('npm install', {cwd: dir, stdio: 'inherit'});
-  } catch (err) {
-    exitCode = err.status;
-  }
-  if (exitCode) {
-    process.exit(exitCode);
-  }
-}
-npmInstall('_prettier-vscode-fix');
