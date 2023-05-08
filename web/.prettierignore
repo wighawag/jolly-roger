@@ -1,9 +1,17 @@
-.svelte/**
-.svelte-kit/**
-static/**
-build/**
-node_modules/**
-.vscode/**
-.yalc/**
+.DS_Store
+node_modules
+/build
+/.svelte-kit
+/package
+.env
+.env.*
+!.env.example
+
+# Ignore files for PNPM, NPM and YARN
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
 src/app.html
-src/lib/contracts.json
+src/lib/blockchain/data/contracts.ts
+static/pwa
+package.json

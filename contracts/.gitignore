@@ -1,23 +1,33 @@
+# Compiler files
 cache/
-artifacts/
+out/
 
-coverage*
-typechain/
+# Ignores development broadcast logs
+!/broadcast
+/broadcast/*/31337/
+/broadcast/*/1337/
+/broadcast/**/dry-run/
 
-.vscode/*
-!.vscode/settings.json.default
-!.vscode/launch.json.default
-!.vscode/extensions.json.default
+# Docs
+docs/
 
+# local files
+*.local
+
+# forge-deploy
+/generated
+/deployments/localhost
+/deployments/31337
+/deployments/1337
+/deployments/void
+
+# forge: we do not use submodule instead we specify dependencies in package.json `prepare` script
+/lib
+
+# npm
 node_modules/
-.env
 
-.yalc
-yalc.lock
-
-contractsInfo.json
-deployments/hardhat
-deployments/localhost
-
-.dapp/
-_lib/
+# vscode
+.vscode/*
+!.vscode/extensions.json
+!*.default

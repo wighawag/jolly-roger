@@ -1,9 +1,0 @@
-node_modules/
-.env
-generated/
-build/
-subgraph.yaml
-!templates/*
-abis/
-.vscode/*
-!.vscode/settings.json.default

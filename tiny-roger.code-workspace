@@ -1,0 +1,39 @@
+{
+	"folders": [
+		{
+			"name": "contracts",
+			"path": "./contracts"
+		},
+		{
+			"name": "indexer",
+			"path": "./indexer"
+		},
+		{
+			"name": "web",
+			"path": "./web"
+		},
+		{
+			"name": "ROOT",
+			"path": "./"
+		}
+	],
+	"settings": {
+		"editor.formatOnSave": true,
+		"editor.defaultFormatter": "esbenp.prettier-vscode",
+		"[svelte]": {
+			"editor.defaultFormatter": "svelte.svelte-vscode"
+		},
+		"[solidity]": {
+			"editor.defaultFormatter": "NomicFoundation.hardhat-solidity"
+		},
+		"solidity.formatter": "forge",
+		"npm.exclude": "**/lib/**"
+	},
+	"extensions": {
+		"recommendations": [
+			"svelte.svelte-vscode",
+			"esbenp.prettier-vscode",
+			"NomicFoundation.hardhat-solidity"
+		]
+	}
+}

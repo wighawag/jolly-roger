@@ -1,0 +1,3 @@
+forge-std/=lib/forge-std/src/
+forge-deploy/=node_modules/forge-deploy/contracts/
+forge-deploy-proxy/=node_modules/forge-deploy-proxy/src/

@@ -1,137 +1,160 @@
-# Boilerplate for ethereum solidity smart contract development
+# template-foundry
 
-## INSTALL
+A template to build, deploy and test smart contracts using [foundry-rs/forge](https://github.com/foundry-rs/foundry) and [forge-deploy](https://github.com/wighawag/forge-deploy)
 
-```bash
-yarn
-```
+This template uses npm to make it easy to integrate in a full stack monorepo.
 
-## TEST
+[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/wighawag/template-foundry)
 
-There are 2 flavors of test
+## How to use?
 
-- One using hardhat that can leverage hardhat-deploy to reuse deployment procedures and named accounts:
+We are assuming here that you already setup your env as specified in the [initial setup section](#initial-setup)
 
-```bash
-yarn test
-```
-
-- And another using [dapptools](https://dapp.tools)
+### Compile your contracts
 
 ```bash
-dapp test
+pnpm compile
 ```
 
-The latter requires additional step to set up your machine:
-
-Install dapptools (Following instruction [here](https://github.com/dapphub/dapptools#installation)):
+### Test your contracts
 
 ```bash
-# user must be in sudoers
-curl -L https://nixos.org/nix/install | sh
-
-# Run this or login again to use Nix
-. "$HOME/.nix-profile/etc/profile.d/nix.sh"
-
-curl https://dapp.tools/install | sh
+pnpm test
 ```
 
-Then install solc with the correct version:
+See how the [Counter.t.sol](test/Counter.t.sol) test use the deploy script to get setup, removing the need to duplicate the deployment procedure.
+
+### watch for changes and rebuild automatically
 
 ```bash
-nix-env -f https://github.com/dapphub/dapptools/archive/master.tar.gz -iA solc-static-versions.solc_0_8_9
+pnpm watch_compile
 ```
 
-## SCRIPTS
+### deploy your contract
 
-Here is the list of npm scripts you can execute:
+- in memory only:
 
-Some of them relies on [./\_scripts.js](./_scripts.js) to allow parameterizing it via command line argument (have a look inside if you need modifications)
-<br/><br/>
+  ```bash
+  pnpm run deploy void
+  ```
 
-`yarn prepare`
+- on localhost
 
-As a standard lifecycle npm script, it is executed automatically upon install. It generate config file and typechain to get you started with type safe contract interactions
-<br/><br/>
+  This assume you have anvil running : `anvil`
 
-`yarn lint`, `yarn lint:fix`, `yarn format` and `yarn format:fix`
+  ```bash
+  pnpm run deploy localhost
+  ```
 
-These will lint and format check your code. the `:fix` version will modifiy the files to match the requirement specified in `.eslintrc` and `.prettierrc.`
-<br/><br/>
+- on a network of your choice
 
-`yarn compile`
+  Just make sure you have `RPC_URL` or `RPC_URL_<network>` set for it either in `env.local` or `.env.<network>.local`
 
-These will compile your contracts
-<br/><br/>
+  ```bash
+  pnpm run deploy <network>
+  ```
 
-`yarn void:deploy`
+### execute script on the deployed contract
 
-This will deploy your contracts on the in-memory hardhat network and exit, leaving no trace. quick way to ensure deployments work as intended without consequences
-<br/><br/>
+```bash
+pnpm script localhost script/UpdateCounter.s.sol --sig 'run(uint256)' 42;
+```
 
-`yarn test [mocha args...]`
+### zellij
 
-These will execute your tests using mocha. you can pass extra arguments to mocha
-<br/><br/>
+[zellij](https://zellij.dev/) is a useful multiplexer (think tmux) for which we have included a [layout file](./zellij.kdl) to get started
 
-`yarn coverage`
+Once installed simply run
 
-These will produce a coverage report in the `coverage/` folder
-<br/><br/>
+```bash
+pnpm start
+```
 
-`yarn gas`
+And you'll have anvil running as well as watch process executing tests on changes
 
-These will produce a gas report for function used in the tests
-<br/><br/>
+if you want to try zellij without install try this :
 
-`yarn dev`
+```bash
+bash <(curl -L zellij.dev/launch) --layout zellij.kdl
+```
 
-These will run a local hardhat network on `localhost:8545` and deploy your contracts on it. Plus it will watch for any changes and redeploy them.
-<br/><br/>
+In the shell in the upper pane, you can deploy your contract via
 
-`yarn local:dev`
+```bash
+pnpm run deploy
+```
 
-This assumes a local node it running on `localhost:8545`. It will deploy your contracts on it. Plus it will watch for any changes and redeploy them.
-<br/><br/>
+## Initial Setup
 
-`yarn execute <network> <file.ts> [args...]`
+You need to have these installed
 
-This will execute the script `<file.ts>` against the specified network
-<br/><br/>
+- [nodejs](https://nodejs.org/en)
 
-`yarn deploy <network> [args...]`
+  For windows (see more info [here](#windows)), you will need to select the option "Automatically install the necessary tools....". Note that process will open a powershell window and will take a while (it does not even show progress).
 
-This will deploy the contract on the specified network.
+  This step will allow foundry/forge to work
 
-Behind the scene it uses `hardhat deploy` command so you can append any argument for it
-<br/><br/>
+- [pnpm](https://pnpm.io/)
 
-`yarn export <network> <file.json>`
+  ```bash
+  npm i -g pnpm
+  ```
 
-This will export the abi+address of deployed contract to `<file.json>`
-<br/><br/>
+- [foundry](https://getfoundry.sh/)
 
-`yarn fork:execute <network> [--blockNumber <blockNumber>] [--deploy] <file.ts> [args...]`
+  ```bash
+  curl -L https://foundry.paradigm.xyz | bash;
+  export PATH=$HOME/.foundry/bin:$PATH # or load it from your shell config which the script above should have configured
+  foundryup
+  ```
 
-This will execute the script `<file.ts>` against a temporary fork of the specified network
+Then you need to install the local dependencies with the following command:
 
-if `--deploy` is used, deploy scripts will be executed
-<br/><br/>
+```bash
+pnpm i
+```
 
-`yarn fork:deploy <network> [--blockNumber <blockNumber>] [args...]`
+We also recommend to install [zellij](https://zellij.dev/) to have your dev env setup in one go via `pnpm start`
 
-This will deploy the contract against a temporary fork of the specified network.
+### Windows
 
-Behind the scene it uses `hardhat deploy` command so you can append any argument for it
-<br/><br/>
+Tested from a fresh install of : https://www.microsoft.com/en-US/software-download/windows10ISO on [virtualbox](https://www.virtualbox.org/).
 
-`yarn fork:test <network> [--blockNumber <blockNumber>] [mocha args...]`
+You first install bash if you do not have already. For that we are using git which comes with bash.
 
-This will test the contract against a temporary fork of the specified network.
-<br/><br/>
+You can install it via [scoop](https://scoop.sh/).
 
-`yarn fork:dev <network> [--blockNumber <blockNumber>] [args...]`
+```bat
+scoop install git
+```
 
-This will deploy the contract against a fork of the specified network and it will keep running as a node.
+Or you can use the installer from https://gitforwindows.org/.
 
-Behind the scene it uses `hardhat node` command so you can append any argument for it
+If you that last option, you can choose "Use Git and optional Unix tolls from the Command Prompt" and you'll have bash accessible from cmd.exe. otherwise you need to use "Git Bash Here"
+
+Anyway after that you should be able to get into a bash shell.
+
+```bat
+bash
+```
+
+There you can clone the repo if you did not already and cd into it.
+
+```bash
+git clone https://github.com/wighawag/template-foundry.git
+cd template-foundry
+```
+
+Then you can install the dependencies as stated in the [initial setup section](#initial-setup)
+
+#### wezterm
+
+on Windows [zellij](https://zellij.dev/) multiplexer is not available
+
+We recommend you install [wezterm](https://wezfurlong.org/wezterm/install/windows.html) instead
+
+With that you can do the following to get started:
+
+```bash
+pnpm start:wezterm
+```

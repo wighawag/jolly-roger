@@ -1,0 +1,17 @@
+{
+	"name": "Jolly Roger",
+	"title": "Jolly Roger - Template for Decentralised Applications.",
+	"description": "Build and Deploy for Eternity. Jolly Roger is a production-ready template for decentralised applications.",
+	"canonicalURL": "https://jolly-roger.eth.limo",
+	"ENSName": "jolly-roger.eth",
+	"themeColor": "#000000",
+	"appleStatusBarStyle": "black-translucent",
+	"icon": "static/icon.svg",
+	"maskableIcons": [
+		{
+			"src": "../maskable_icon_512x512.png",
+			"type": "image/png",
+			"sizes": "512x512"
+		}
+	]
+}

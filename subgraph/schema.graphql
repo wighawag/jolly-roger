@@ -1,5 +1,0 @@
-type MessageEntry @entity {
-  id: ID!
-  message: String!
-  timestamp: BigInt!
-}

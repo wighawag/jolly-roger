@@ -1,5 +1,5 @@
 packages:
-  - 'contracts'
-  - 'web'
-  - 'subgraph'
-  - 'common-lib'
+  - "contracts"
+  - "indexer"
+  - "web"
+  - "packages/*"

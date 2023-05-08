@@ -1,0 +1,18 @@
+# environment variables
+.env*.local
+
+# node modules
+node_modules/
+
+# vscode
+.vscode/*
+!.vscode/settings.json.default
+!.vscode/launch.json.default
+!.vscode/extensions.json.default
+
+# data generated
+dist/
+data/
+ethereum-indexer-data
+
+src/contracts.ts

@@ -1,0 +1,27 @@
+layout {
+	pane {
+		pane {}
+		pane split_direction="vertical" {
+			pane command="bash"  {
+				args "-c" "pnpm start:local_node; ${SHELL-bash}"
+			}
+			pane {
+				pane command="bash"  {
+					args "-c" "pnpm start:contracts:compile; cd contracts; ${SHELL-bash}"
+				}
+				pane command="bash"  {
+					args "-c" "pnpm start:contracts:deploy; cd contracts; ${SHELL-bash}"
+				}
+			}
+		}
+		pane split_direction="vertical" {
+			pane command="bash"  {
+				args "-c" "pnpm start:indexer; cd indexer; ${SHELL-bash}"
+			}
+			pane command="bash"  {
+				args "-c" "pnpm start:web; cd web; ${SHELL-bash}"
+			}
+		}
+	}
+
+}

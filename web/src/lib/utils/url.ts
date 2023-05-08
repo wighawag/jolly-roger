@@ -1,28 +1,40 @@
-import {base} from '$app/paths';
-import {getParamsFromURL, queryStringifyNoArray} from './web';
-import {params, globalQueryParams} from '$lib/config';
+import { base } from '$app/paths';
+import { params, globalQueryParams } from '$lib/config';
+import { getParamsFromURL, queryStringifyNoArray } from './web';
 
-export function url(path: string, hash?: string): string {
-  const {params: paramFromPath, pathname} = getParamsFromURL(path);
-  for (const queryParam of globalQueryParams) {
-    if (typeof params[queryParam] != 'undefined' && typeof paramFromPath[queryParam] === 'undefined') {
-      paramFromPath[queryParam] = params[queryParam];
-    }
-  }
-  return `${base}/${pathname}${queryStringifyNoArray(paramFromPath)}${hash ? `#${hash}` : ''}`;
+export function pathname(p: string, hash?: string) {
+	if (!p.endsWith('/')) {
+		p += '/';
+	}
+	let path = `${base}${p}${getQueryStringToKeep(p)}${hash ? `#${hash}` : ''}`;
+	return path;
 }
 
-export function urlOfPath(url: string, path: string): boolean {
-  // console.log({url, path, base});
+function getQueryStringToKeep(p: string): string {
+	if (globalQueryParams && globalQueryParams.length > 0) {
+		const { params: paramFromPath } = getParamsFromURL(p);
+		for (const queryParam of globalQueryParams) {
+			if (
+				typeof params[queryParam] != 'undefined' &&
+				typeof paramFromPath[queryParam] === 'undefined'
+			) {
+				paramFromPath[queryParam] = params[queryParam];
+			}
+		}
+		return queryStringifyNoArray(paramFromPath);
+	} else {
+		return '';
+	}
+}
 
-  // hmm, svelte-kit is prepending "//prerender" when using adapter-static
-  if (path.startsWith('//prerender')) {
-    path = path.slice(11);
-  } else if (path.startsWith(base)) {
-    // hmm, svelte-kit has changed its path handling, TODO : deal with it in svelte-kit-ipfs-adapter
-    path = path.slice(base.length);
-  }
+export function url(p: string, hash?: string) {
+	return `${base}${p}${getQueryStringToKeep(p)}${hash ? `#${hash}` : ''}`;
+}
 
-  const basicUrl = url.split('?')[0].split('#')[0];
-  return basicUrl.replace(base, '').replace(/^\/+|\/+$/g, '') === path.replace(/^\/+|\/+$/g, '');
+export function isSameURL(a: string, b: string): boolean {
+	return a === b || a === pathname(b);
+}
+
+export function isParentURL(a: string, b: string): boolean {
+	return a.startsWith(pathname(b));
 }

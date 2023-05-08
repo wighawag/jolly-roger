@@ -1,0 +1,70 @@
+{
+	"31337": {
+		"config": {
+			"rpcUrls": ["http://localhost:8545"],
+			"blockExplorerUrls": ["http://localhost:4000"],
+			"chainName": "Hardhat",
+			"nativeCurrency": {
+				"name": "Ether",
+				"symbol": "ETH",
+				"decimals": 18
+			}
+		},
+		"finality": 2
+	},
+	"1": {
+		"config": {
+			"blockExplorerUrls": ["https://etherscan.io"],
+			"chainName": "Mainnet",
+			"nativeCurrency": {
+				"name": "Ether",
+				"symbol": "ETH",
+				"decimals": 18
+			}
+		},
+		"finality": 12,
+		"averageBblockTime": 12
+	},
+	"11155111": {
+		"config": {
+			"blockExplorerUrls": ["https://sepolia.etherscan.io"],
+			"chainName": "Sepolia Testnet",
+			"iconUrls": null,
+			"nativeCurrency": {
+				"name": "Sepolia Ether",
+				"symbol": "SepETH",
+				"decimals": 18
+			}
+		},
+		"finality": 12,
+		"averageBblockTime": 15
+	},
+	"100": {
+		"config": {
+			"rpcUrls": ["https://rpc.gnosischain.com"],
+			"blockExplorerUrls": ["https://gnosisscan.io/"],
+			"chainName": "Gnosis Chain",
+			"nativeCurrency": {
+				"name": "XDai",
+				"symbol": "XDAI",
+				"decimals": 18
+			}
+		},
+		"finality": 12,
+		"averageBblockTime": 5
+	},
+	"10200": {
+		"config": {
+			"rpcUrls": ["https://rpc.chiadochain.net"],
+			"blockExplorerUrls": ["https://blockscout.com/gnosis/chiado"],
+			"chainName": "Chiado (Gnosis Testnet)",
+			"nativeCurrency": {
+				"name": "Chiado xDAI",
+				"symbol": "ChXDAI",
+				"decimals": 18
+			}
+		},
+		"finality": 12,
+		"averageBblockTime": 5
+	}
+}

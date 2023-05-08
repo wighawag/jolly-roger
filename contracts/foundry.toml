@@ -1,0 +1,16 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+
+fs_permissions = [
+    { access = "read", path = "./deployments" },
+    { access = "read", path = "./out" },
+    { access = "read", path = "./contexts.json" },
+]
+
+# for pnpm
+allow_paths = ["../node_modules"]
+
+[fmt]
+ignore = ['generated/**/*.sol', "lib/**/*.sol"]

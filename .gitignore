@@ -1,7 +1,5 @@
-.env*
-!.env*.default
-!.env.web.*
-.newsh.json
-node_modules
-*.code-workspace
-!*.code-workspace.default
+# environment variables
+.env*.local
+
+# node modules
+node_modules/

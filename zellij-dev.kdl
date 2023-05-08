@@ -1,0 +1,14 @@
+layout {
+	pane {
+		pane {}
+		pane split_direction="vertical" {
+			pane command="bash"  {
+				args "-c" "pnpm start:indexer; cd indexer; ${SHELL-bash}"
+			}
+			pane command="bash"  {
+				args "-c" "pnpm start:web; cd web; ${SHELL-bash}"
+			}
+		}
+	}
+
+}

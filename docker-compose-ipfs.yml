@@ -1,0 +1,9 @@
+version: "3"
+services:
+  ipfs:
+    image: ipfs/go-ipfs:v0.4.23
+    ports:
+      - "6651:5001"
+      - "6680:8080"
+    environment:
+      IPFS_PATH: /tmp

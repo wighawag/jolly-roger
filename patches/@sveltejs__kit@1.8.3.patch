@@ -1,0 +1,315 @@
+diff --git a/src/core/config/options.js b/src/core/config/options.js
+index ecf69c81815de6f313f095c47e8c0d56210834f0..cae5fed1d9ac7305f747d7315554d49bcb0c3bfe 100644
+--- a/src/core/config/options.js
++++ b/src/core/config/options.js
+@@ -167,6 +167,13 @@ const options = object(
+ 						}
+ 					}
+ 
++					return input;
++				}),
++				relative: validate(undefined, (input, keypath) => {
++					if (typeof input !== 'boolean') {
++						throw new Error(`${keypath} option must be a boolean , if specified`);
++					}
++
+ 					return input;
+ 				})
+ 			}),
+diff --git a/src/core/sync/write_server.js b/src/core/sync/write_server.js
+index 0ccd98c42bd52113be99325676e73cc87e2554ec..a7140dce749e62dfd3f208800fbb850b16a6cc51 100644
+--- a/src/core/sync/write_server.js
++++ b/src/core/sync/write_server.js
+@@ -27,7 +27,8 @@ const server_template = ({
+ }) => `
+ import root from '../root.svelte';
+ import { set_building } from '__sveltekit/environment';
+-import { set_assets, set_private_env, set_public_env } from '${runtime_directory}/shared-server.js';
++import { set_assets } from '__sveltekit/paths';
++import { set_private_env, set_public_env } from '${runtime_directory}/shared-server.js';
+ 
+ export const options = {
+ 	app_template_contains_nonce: ${template.includes('%sveltekit.nonce%')},
+diff --git a/src/exports/vite/dev/index.js b/src/exports/vite/dev/index.js
+index 05adc2776fb15594308b0a669afc2ef9484aacbb..27b3a1b5dace1adb65c5e2e5c37488c0a4c5f547 100644
+--- a/src/exports/vite/dev/index.js
++++ b/src/exports/vite/dev/index.js
+@@ -451,15 +451,14 @@ export async function dev(vite, vite_config, svelte_config) {
+ 					await vite.ssrLoadModule(`${runtime_base}/server/index.js`)
+ 				);
+ 
+-				const { set_assets, set_fix_stack_trace } =
+-					/** @type {import('types').ServerInternalModule} */ (
+-						await vite.ssrLoadModule(`${runtime_base}/shared-server.js`)
+-					);
++				const { set_fix_stack_trace } = await vite.ssrLoadModule(
++					`${runtime_base}/shared-server.js`
++				);
++				set_fix_stack_trace(fix_stack_trace);
+ 
++				const { set_assets } = await vite.ssrLoadModule('__sveltekit/paths');
+ 				set_assets(assets);
+ 
+-				set_fix_stack_trace(fix_stack_trace);
+-
+ 				const server = new Server(manifest);
+ 
+ 				await server.init({ env });
+diff --git a/src/exports/vite/index.js b/src/exports/vite/index.js
+index 5517deb6ea448783148954a5aa0262620b41bbdf..4e5fd03d1c4303e85638346f937a09edae97fdc8 100644
+--- a/src/exports/vite/index.js
++++ b/src/exports/vite/index.js
+@@ -374,17 +374,34 @@ function kit({ svelte_config }) {
+ 				case '\0__sveltekit/paths':
+ 					const { assets, base } = svelte_config.kit.paths;
+ 
++					// use the values defined in `global`, but fall back to hard-coded values
++					// for the sake of things like Vitest which may import this module
++					// outside the context of a page
+ 					if (browser) {
+-						return `export const base = ${s(base)};
+-export const assets = ${global}.assets;`;
++						return `export const base = ${global}?.base ?? ${s(base)};
++export const assets = ${global}?.assets ?? ${assets ? s(assets) : 'base'};`;
+ 					}
+ 
+-					return `export const base = ${s(base)};
++					return `export let base = ${s(base)};
+ export let assets = ${assets ? s(assets) : 'base'};
+ 
++export const relative = ${svelte_config.kit.paths.relative};
++
++const initial = { base, assets };
++
++export function override(paths) {
++	base = paths.base;
++	assets = paths.assets;
++}
++
++export function reset() {
++	base = initial.base;
++	assets = initial.assets;
++}
++
+ /** @param {string} path */
+ export function set_assets(path) {
+-	assets = path;
++	assets = initial.assets = path;
+ }`;
+ 
+ 				case '\0__sveltekit/environment':
+diff --git a/src/internal.d.ts b/src/internal.d.ts
+index cfe9bf5485445f9c2e071579ea399e842ec888f0..c248d9d528f6e024ee934735ca8e01c9ccc36c26 100644
+--- a/src/internal.d.ts
++++ b/src/internal.d.ts
+@@ -7,7 +7,10 @@ declare module '__sveltekit/environment' {
+ 
+ /** Internal version of $app/paths */
+ declare module '__sveltekit/paths' {
+-	export const base: `/${string}`;
+-	export let assets: `https://${string}` | `http://${string}`;
++	export let base: '' | `/${string}`;
++	export let assets: '' | `https://${string}` | `http://${string}` | '/_svelte_kit_assets';
++	export let relative: boolean | undefined; // TODO in 2.0, make this a `boolean` that defaults to `true`
++	export function reset(): void;
++	export function override(paths: { base: string; assets: string }): void;
+ 	export function set_assets(path: string): void;
+ }
+diff --git a/src/runtime/server/page/render.js b/src/runtime/server/page/render.js
+index 92da25ad1916f73422c01e57b09feae3c6088a74..585186dbc058e77c94b9e56e602a06e72f7c8c5c 100644
+--- a/src/runtime/server/page/render.js
++++ b/src/runtime/server/page/render.js
+@@ -1,7 +1,7 @@
+ import * as devalue from 'devalue';
+ import { readable, writable } from 'svelte/store';
+ import { DEV } from 'esm-env';
+-import { assets, base } from '__sveltekit/paths';
++import * as paths from '__sveltekit/paths';
+ import { hash } from '../../hash.js';
+ import { serialize_data } from './serialize_data.js';
+ import { s } from '../../../utils/misc.js';
+@@ -11,6 +11,7 @@ import { clarify_devalue_error, stringify_uses, handle_error_and_jsonify } from
+ import { public_env } from '../../shared-server.js';
+ import { text } from '../../../exports/index.js';
+ import { create_async_iterator } from '../../../utils/streaming.js';
++import { SVELTE_KIT_ASSETS } from '../../../constants.js';
+ 
+ // TODO rename this function/module
+ 
+@@ -80,6 +81,42 @@ export async function render_response({
+ 			? action_result.data ?? null
+ 			: null;
+ 
++	/** @type {string} */
++	let base = paths.base;
++
++	/** @type {string} */
++	let assets = paths.assets;
++
++	/**
++	 * An expression that will evaluate in the client to determine the resolved base path.
++	 * We use a relative path when possible to support IPFS, the internet archive, etc.
++	 */
++	let base_expression = s(paths.base);
++
++	// if appropriate, use relative paths for greater portability
++	if (paths.relative !== false && !state.prerendering?.fallback) {
++		const segments = event.url.pathname.slice(paths.base.length).split('/');
++
++		if (segments.length === 1 && paths.base !== '') {
++			// if we're on `/my-base-path`, relative links need to start `./my-base-path` rather than `.`
++			base = `./${paths.base.split('/').at(-1)}`;
++
++			base_expression = `new URL(${s(base)}, location).pathname`;
++		} else {
++			base =
++				segments
++					.slice(2)
++					.map(() => '..')
++					.join('/') || '.';
++
++			base_expression = `new URL(${s(base)}, location).pathname.slice(0, -1)`;
++		}
++
++		if (!paths.assets || (paths.assets[0] === '/' && paths.assets !== SVELTE_KIT_ASSETS)) {
++			assets = base;
++		}
++	}
++
+ 	if (page_config.ssr) {
+ 		if (__SVELTEKIT_DEV__ && !branch.at(-1)?.node.component) {
+ 			// Can only be the leaf, layouts have a fallback component generated
+@@ -116,6 +153,10 @@ export async function render_response({
+ 			form: form_value
+ 		};
+ 
++		// use relative paths during rendering, so that the resulting HTML is as
++		// portable as possible, but reset afterwards
++		if (paths.relative) paths.override({ base, assets });
++
+ 		if (__SVELTEKIT_DEV__) {
+ 			const fetch = globalThis.fetch;
+ 			let warned = false;
+@@ -138,9 +179,14 @@ export async function render_response({
+ 				rendered = options.root.render(props);
+ 			} finally {
+ 				globalThis.fetch = fetch;
++				paths.reset();
+ 			}
+ 		} else {
+-			rendered = options.root.render(props);
++			try {
++				rendered = options.root.render(props);
++			} finally {
++				paths.reset();
++			}
+ 		}
+ 
+ 		for (const { node } of branch) {
+@@ -156,35 +202,6 @@ export async function render_response({
+ 		rendered = { head: '', html: '', css: { code: '', map: null } };
+ 	}
+ 
+-	/**
+-	 * The prefix to use for static assets. Replaces `%sveltekit.assets%` in the template
+-	 * @type {string}
+-	 */
+-	let resolved_assets;
+-
+-	/**
+-	 * An expression that will evaluate in the client to determine the resolved asset path
+-	 */
+-	let asset_expression;
+-
+-	if (assets) {
+-		// if an asset path is specified, use it
+-		resolved_assets = assets;
+-		asset_expression = s(assets);
+-	} else if (state.prerendering?.fallback) {
+-		// if we're creating a fallback page, asset paths need to be root-relative
+-		resolved_assets = base;
+-		asset_expression = s(base);
+-	} else {
+-		// otherwise we want asset paths to be relative to the page, so that they
+-		// will work in odd contexts like IPFS, the internet archive, and so on
+-		const segments = event.url.pathname.slice(base.length).split('/').slice(2);
+-		resolved_assets = segments.length > 0 ? segments.map(() => '..').join('/') : '.';
+-		asset_expression = `new URL(${s(
+-			resolved_assets
+-		)}, location.href).pathname.replace(/^\\\/$/, '')`;
+-	}
+-
+ 	let head = '';
+ 	let body = rendered.html;
+ 
+@@ -198,9 +215,9 @@ export async function render_response({
+ 			// Vite makes the start script available through the base path and without it.
+ 			// We load it via the base path in order to support remote IDE environments which proxy
+ 			// all URLs under the base path during development.
+-			return base + path;
++			return paths.base + path;
+ 		}
+-		return `${resolved_assets}/${path}`;
++		return `${assets}/${path}`;
+ 	};
+ 
+ 	if (inline_styles.size > 0) {
+@@ -285,9 +302,10 @@ export async function render_response({
+ 
+ 		const properties = [
+ 			`env: ${s(public_env)}`,
+-			`assets: ${asset_expression}`,
++			paths.assets && `assets: ${s(paths.assets)}`,
++			`base: ${base_expression}`,
+ 			`element: document.currentScript.parentElement`
+-		];
++		].filter(Boolean);
+ 
+ 		if (chunks) {
+ 			blocks.push(`const deferred = new Map();`);
+@@ -418,7 +436,7 @@ export async function render_response({
+ 	const html = options.templates.app({
+ 		head,
+ 		body,
+-		assets: resolved_assets,
++		assets,
+ 		nonce: /** @type {string} */ (csp.nonce),
+ 		env: public_env
+ 	});
+diff --git a/src/runtime/shared-server.js b/src/runtime/shared-server.js
+index faaaca4cec79c5a42f9227f6f0d59b6894884d53..ed1c5efcb47230cf120eb8c2c2813e24bb055789 100644
+--- a/src/runtime/shared-server.js
++++ b/src/runtime/shared-server.js
+@@ -1,5 +1,3 @@
+-export { set_assets } from '__sveltekit/paths';
+-
+ /** @type {Record<string, string>} */
+ export let private_env = {};
+ 
+diff --git a/types/index.d.ts b/types/index.d.ts
+index 73c5683ca8fe032091a216d5c223642da880fd95..e9ee9b25a93994ba866bf74a15abc953a8c24aff 100644
+--- a/types/index.d.ts
++++ b/types/index.d.ts
+@@ -427,12 +427,20 @@ export interface KitConfig {
+ 		 * An absolute path that your app's files are served from. This is useful if your files are served from a storage bucket of some kind.
+ 		 * @default ""
+ 		 */
+-		assets?: string;
++		assets?: '' | `http://${string}` | `https://${string}`;
+ 		/**
+ 		 * A root-relative path that must start, but not end with `/` (e.g. `/base-path`), unless it is the empty string. This specifies where your app is served from and allows the app to live on a non-root path. Note that you need to prepend all your root-relative links with the base value or they will point to the root of your domain, not your `base` (this is how the browser works). You can use [`base` from `$app/paths`](/docs/modules#$app-paths-base) for that: `<a href="{base}/your-page">Link</a>`. If you find yourself writing this often, it may make sense to extract this into a reusable component.
+ 		 * @default ""
+ 		 */
+-		base?: string;
++		base?: '' | `/${string}`;
++		/**
++		 * Whether to use relative asset paths. By default, if `paths.assets` is not external, SvelteKit will replace `%sveltekit.assets%` with a relative path and use relative paths to reference build artifacts, but `base` and `assets` imported from `$app/paths` will be as specified in your config.
++		 *
++		 * If `true`, `base` and `assets` imported from `$app/paths` will be replaced with relative asset paths during server-side rendering, resulting in portable HTML.
++		 * If `false`, `%sveltekit.assets%` and references to build artifacts will always be root-relative paths, unless `paths.assets` is an external URL
++		 * @default undefined
++		 */
++		relative?: boolean | undefined;
+ 	};
+ 	/**
+ 	 * See [Prerendering](https://kit.svelte.dev/docs/page-options#prerender).

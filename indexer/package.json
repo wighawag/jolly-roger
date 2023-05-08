@@ -1,0 +1,33 @@
+{
+  "name": "jolly-roger-indexer",
+  "version": "0.1.0",
+  "description": "In-browser Indexer for jolly-roger. Can also run on a backend.",
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "volta": {
+    "node": "18.7.0"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.3",
+    "ethereum-indexer-js-processor": "^0.6.1",
+    "named-logs": "^0.2.2"
+  },
+  "devDependencies": {
+    "ethereum-indexer-server": "^0.6.2",
+    "prettier": "^2.8.8",
+    "tsup": "^6.7.0",
+    "typescript": "^5.0.4",
+    "wait-on": "^7.0.1"
+  },
+  "scripts": {
+    "eis": "eis",
+    "test": "eis run -p ./dist/index.cjs --disableCache --deployments ../contracts/deployments/localhost",
+    "build": "tsup src/index.ts --dts --format esm,cjs",
+    "dev": "echo 'waiting for src/contracts.ts...'; wait-on src/contracts.ts && tsup src/index.ts --dts --format esm,cjs --watch"
+  }
+}

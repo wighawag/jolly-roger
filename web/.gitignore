@@ -1,14 +1,25 @@
-.DS_Store
-node_modules
-/.svelte-kit
-/build
-/functions
-/src/lib/contracts.json
-.yalc
-yalc.lock
-.env
-/static/pwa
+# environment variables
+.env*.local
+
+# node modules
+node_modules/
+
+# vscode
 .vscode/*
-!.vscode/*.default
-/src/app.html
-/static/robots.txt
+!.vscode/settings.json.default
+!.vscode/launch.json.default
+!.vscode/extensions.json.default
+
+# data generated
+/build
+/.svelte-kit
+/package
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# pwag
+static/pwa
+static/robots.txt
+
+# generated from contracts
+src/lib/blockchain/data/contracts.ts
