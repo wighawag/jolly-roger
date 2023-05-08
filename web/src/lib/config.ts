@@ -63,6 +63,8 @@ if (import.meta.hot) {
 
 console.log(`VERSION: ${version}`);
 
+console.log(`Jolly Roger`);
+
 console.log({
 	defaultRPC,
 	localDev,
