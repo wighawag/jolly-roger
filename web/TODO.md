@@ -1,0 +1,3 @@
+- [ ] test edge-case where unlocking popup trigger but the modal disapear after some time
+- [ ] ensure we see the "unlock error" case when a user is trying to click unlock after metamask has already a notificaiton icon about it
+- [ ] ensure we show the metamask bug on reload

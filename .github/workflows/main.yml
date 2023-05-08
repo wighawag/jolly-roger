@@ -1,0 +1,29 @@
+name: push stripped down version to main
+on: push
+jobs:
+  update:
+    if: github.ref == 'refs/heads/public'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: main
+      - run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+
+          echo "fetching ${{ github.ref_name }}..."
+          git fetch origin ${{ github.ref_name }}:${{ github.ref_name }}
+
+          # completely copy from public
+          git reset origin/${{ github.ref_name }} --hard
+
+          # we then delete unwanted files:
+          rm web/TODO.md
+          rm -Rf .github/
+          rm publish.sh
+          # TODO more ...
+
+          git add -A
+          git commit -m "Delete the unwanted file after copying from ${{ github.ref_name }}"
+          git push --force
