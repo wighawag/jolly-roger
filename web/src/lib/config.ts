@@ -61,7 +61,7 @@ if (import.meta.hot) {
 	});
 }
 
-console.log({ version });
+console.log(`VERSION: ${version}`);
 
 console.log({
 	defaultRPC,
