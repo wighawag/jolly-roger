@@ -27,6 +27,14 @@
 	},
 	"11155111": {
 		"config": {
+			"rpcUrls": [
+				"https://rpc.sepolia.org",
+				"https://rpc2.sepolia.org",
+				"https://rpc.sepolia.online",
+				"https://www.sepoliarpc.space",
+				"https://rpc-sepolia.rockx.com",
+				"https://rpc.bordel.wtf/sepolia"
+			],
 			"blockExplorerUrls": ["https://sepolia.etherscan.io"],
 			"chainName": "Sepolia Testnet",
 			"iconUrls": null,
