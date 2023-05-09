@@ -37,7 +37,7 @@
 		<div
 			class={`flex flex-wrap items-center -mx-2 ${
 				$account.address && greeting.account === $account.address ? 'font-bold' : 'font-normal'
-			} dark:text-white`}
+			}`}
 		>
 			<!-- <div class="px-2 mb-6">
 						<h2 class="text-xl">{`${name.id.slice(0, 4)}...${name.id.slice(name.id.length - 4)}`} :</h2>
@@ -47,7 +47,7 @@
 				<p>
 					{greeting.message}
 					<!-- {#if greeting.pending}
-						<svg class="fill-current animate-spin inline h-4 w-4 dark:text-white"
+						<svg class="fill-current animate-spin inline h-4 w-4"
 							><use xlink:href="#icon-spinner6" /></svg
 						>
 					{/if} -->
