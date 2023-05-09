@@ -75,8 +75,8 @@ importers:
         specifier: ^0.3.16
         version: 0.3.16(typescript@5.0.4)
       web3-connection:
-        specifier: ^0.0.8
-        version: 0.0.8(svelte@3.58.0)
+        specifier: ^0.0.9
+        version: 0.0.9(svelte@3.58.0)
       web3w-walletconnect-loader:
         specifier: ^0.4.3
         version: 0.4.3
@@ -4965,8 +4965,8 @@ packages:
     engines: {node: '>= 8'}
     dev: true
 
-  /web3-connection@0.0.8(svelte@3.58.0):
-    resolution: {integrity: sha512-z8RxzOyxhuLLicL/eJkl+RcTTpOQrOfsub8BHazhpea4hSy6EXmLq5xFR/xFAHVu+f72I5MgHCHGPE6NTwLODg==}
+  /web3-connection@0.0.9(svelte@3.58.0):
+    resolution: {integrity: sha512-yliwgxR6KUlTl93CmJSPxWKu9Sw8PGS4bQa3I/ZBUBwn2c+vK6j+fX5FgwPio5Qj4Zmqgy2PCcqQwkcMgeMlnQ==}
     peerDependencies:
       svelte: ^3.54.0
     dependencies:
