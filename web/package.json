@@ -30,7 +30,7 @@
     "wait-on": "^7.0.1"
   },
   "dependencies": {
-    "ethereum-indexer-browser": "^0.6.2",
+    "ethereum-indexer-browser": "^0.6.3",
     "jolly-roger-indexer": "workspace:*",
     "named-logs": "^0.2.2",
     "theme-change": "^2.5.0",

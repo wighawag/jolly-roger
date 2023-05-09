@@ -28,7 +28,9 @@ async function indexIfNotIndexing() {
 async function indexContinuously(provider: EIP1193Provider) {
 	indexIfNotIndexing();
 	connection.onNewBlock(() => {
-		indexIfNotIndexing();
+		if (network.$state.chainId === initialContractsInfos.chainId) {
+			indexIfNotIndexing();
+		}
 	});
 }
 

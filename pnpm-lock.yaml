@@ -60,8 +60,8 @@ importers:
   web:
     dependencies:
       ethereum-indexer-browser:
-        specifier: ^0.6.2
-        version: 0.6.2(typescript@5.0.4)
+        specifier: ^0.6.3
+        version: 0.6.3(typescript@5.0.4)
       jolly-roger-indexer:
         specifier: workspace:*
         version: link:../indexer
@@ -1672,10 +1672,10 @@ packages:
     engines: {node: '>= 0.6'}
     dev: true
 
-  /ethereum-indexer-browser@0.6.2(typescript@5.0.4):
-    resolution: {integrity: sha512-GREbbrvFPL4UbcgK5CBLAS/GG+egMJ/5XvHhy19wavcKUuMPsqtiJljmTtDBIPv9jq3h1+6T20qPaGosVddCXw==}
+  /ethereum-indexer-browser@0.6.3(typescript@5.0.4):
+    resolution: {integrity: sha512-9xu3vMQgse9+RNjQrJ+q1fUAeOQE03EDZOw8jGtu6cTgmosrTeEcWS0kok41E1kEkTb1F1aiT7hfxfLQ8JTNhg==}
     dependencies:
-      ethereum-indexer: 0.6.2(typescript@5.0.4)
+      ethereum-indexer: 0.6.3(typescript@5.0.4)
       idb-keyval: 6.2.0
       named-logs: 0.2.2
       sveltore: 0.0.2
@@ -1772,8 +1772,8 @@ packages:
       - utf-8-validate
       - zod
 
-  /ethereum-indexer@0.6.2(typescript@5.0.4):
-    resolution: {integrity: sha512-MgvwMIhcT8pq+uE7PiPO9gSaY3PPhEh0xCaBZY+Bfo6XxNV7xpHoaJVJG2c/LoHmE1HnBy9MzyIkEZ4mIh+uaA==}
+  /ethereum-indexer@0.6.3(typescript@5.0.4):
+    resolution: {integrity: sha512-DMLC3NV/Aa7ZRnXtSc0rmT3hi1jAOOzbkg0y66uK6OlWZ4p/6WnavgwASZLn1aMS5a1Iol5aV7vD1SsfhwUZYQ==}
     dependencies:
       named-logs: 0.2.2
       viem: 0.1.26(typescript@5.0.4)
