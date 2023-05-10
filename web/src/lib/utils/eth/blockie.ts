@@ -10,8 +10,8 @@ export class Blockie {
 
 	private randseed: number[] = [0, 0, 0, 0];
 
-	static blockiesCache: { [key: string]: Blockie } = {};
-	static blockieStringsCache: { [key: string]: string } = {};
+	static blockiesCache: {[key: string]: Blockie} = {};
+	static blockieStringsCache: {[key: string]: string} = {};
 	static get(address: string, offset = 0): Blockie {
 		const key = address.toLowerCase() + '_' + offset;
 		if (!Blockie.blockiesCache[key]) {
@@ -31,7 +31,7 @@ export class Blockie {
 			canvas.width = 8 + offset * 2;
 			canvas.height = 8 + offset * 2;
 			const ctx = <CanvasRenderingContext2D>canvas.getContext('2d');
-			blockie.draw(ctx, 0, 0, 1, { offset });
+			blockie.draw(ctx, 0, 0, 1, {offset});
 			Blockie.blockieStringsCache[key] = canvas.toDataURL();
 		}
 		return Blockie.blockieStringsCache[key];
@@ -55,7 +55,7 @@ export class Blockie {
 		x: number,
 		y: number,
 		furtherScale: number,
-		options?: { offset?: number; border?: number }
+		options?: {offset?: number; border?: number}
 	): void {
 		const oldColor = ctx.fillStyle;
 		const appliedScale = this.scale * furtherScale;
@@ -130,8 +130,7 @@ export class Blockie {
 			this.randseed[i] = 0;
 		}
 		for (let i = 0; i < seed.length; i++) {
-			this.randseed[i % 4] =
-				(this.randseed[i % 4] << 5) - this.randseed[i % 4] + seed.charCodeAt(i);
+			this.randseed[i % 4] = (this.randseed[i % 4] << 5) - this.randseed[i % 4] + seed.charCodeAt(i);
 		}
 	}
 
@@ -153,8 +152,7 @@ export class Blockie {
 		// saturation goes from 40 to 100, it avoids greyish colors
 		const s = Math.floor(1000 * (this.rand() * 60 + 40)) / 1000 + '%';
 		// lightness can be anything from 0 to 100, but probabilities are a bell curve around 50%
-		const l =
-			Math.floor(1000 * (this.rand() + this.rand() + this.rand() + this.rand()) * 25) / 1000 + '%';
+		const l = Math.floor(1000 * (this.rand() + this.rand() + this.rand() + this.rand()) * 25) / 1000 + '%';
 
 		const color = 'hsl(' + h + ',' + s + ',' + l + ')';
 		return color;

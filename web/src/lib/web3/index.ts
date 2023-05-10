@@ -1,11 +1,11 @@
-import { init } from 'web3-connection';
-import { WalletConnectModuleLoader } from 'web3w-walletconnect-loader';
-import { contractsInfos, defaultRPC, initialContractsInfos, blockTime } from '$lib/config';
-import { initAccountData } from './account-data';
-import { initTransactionProcessor } from '$external/tx-observer';
+import {init} from 'web3-connection';
+import {WalletConnectModuleLoader} from 'web3w-walletconnect-loader';
+import {contractsInfos, defaultRPC, initialContractsInfos, blockTime} from '$lib/config';
+import {initAccountData} from './account-data';
+import {initTransactionProcessor} from '$external/tx-observer';
 
 const accountData = initAccountData();
-const txObserver = initTransactionProcessor({ finality: 12 }); // TODO config.finality
+const txObserver = initTransactionProcessor({finality: 12}); // TODO config.finality
 
 // we hook up accountData and txObserver
 // they do not need to know about each other
@@ -82,7 +82,7 @@ contractsInfos.subscribe((contractsInfos) => {
 	stores.connection.updateContractsInfos(contractsInfos);
 });
 
-export const { connection, network, account, pendingActions, execution, execute } = stores;
+export const {connection, network, account, pendingActions, execution, execute} = stores;
 
 if (typeof window !== 'undefined') {
 	(window as any).execution = execution;

@@ -1,14 +1,9 @@
-import { writable } from 'svelte/store';
-import type { EIP1193Provider, EIP1193Block } from 'eip-1193';
-import type { EIP1193TransactionWithMetadata } from 'web3-connection/dist/provider/wrap';
-import { initEmitter } from '$external/callbacks';
+import {writable} from 'svelte/store';
+import type {EIP1193Provider, EIP1193Block} from 'eip-1193';
+import type {EIP1193TransactionWithMetadata} from 'web3-connection/dist/provider/wrap';
+import {initEmitter} from '$external/callbacks';
 
-export type PendingTransactionInclusion =
-	| 'Loading'
-	| 'Pending'
-	| 'NotFound'
-	| 'Cancelled'
-	| 'Included';
+export type PendingTransactionInclusion = 'Loading' | 'Pending' | 'NotFound' | 'Cancelled' | 'Included';
 export type PendingTransaction = {
 	readonly hash: `0x${string}`;
 	readonly request: EIP1193TransactionWithMetadata;
@@ -26,13 +21,13 @@ export type PendingTransactionState =
 			final: number;
 	  };
 
-export function initTransactionProcessor(config: { finality: number }) {
+export function initTransactionProcessor(config: {finality: number}) {
 	const emitter = initEmitter<PendingTransaction>();
 
 	let provider: EIP1193Provider | undefined;
 	const $txs: PendingTransaction[] = [];
 	const store = writable<PendingTransaction[]>($txs);
-	const map: { [hash: string]: PendingTransaction } = {};
+	const map: {[hash: string]: PendingTransaction} = {};
 
 	function add(list: PendingTransaction[]) {
 		for (const tx of list) {
@@ -48,11 +43,7 @@ export function initTransactionProcessor(config: { finality: number }) {
 		}
 	}
 
-	function addTx(
-		tx: EIP1193TransactionWithMetadata,
-		hash: `0x${string}`,
-		state?: PendingTransactionState
-	) {
+	function addTx(tx: EIP1193TransactionWithMetadata, hash: `0x${string}`, state?: PendingTransactionState) {
 		if (!map[hash]) {
 			const pendingTransaction: PendingTransaction = {
 				hash,
@@ -135,7 +126,11 @@ export function initTransactionProcessor(config: { finality: number }) {
 		{
 			latestBlockNumber,
 			finalityNonce,
-		}: { latestBlockNumber: number; latestFinalizedBlockNumber: number; finalityNonce: number }
+		}: {
+			latestBlockNumber: number;
+			latestFinalizedBlockNumber: number;
+			finalityNonce: number;
+		}
 	): Promise<boolean> {
 		if (!provider) {
 			return false;

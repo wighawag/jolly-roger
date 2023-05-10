@@ -38,18 +38,18 @@ export type Action<T = any> = (
 
 export function clickoutside(
 	node: HTMLElement,
-	params: { enabled: boolean; callback: (node: HTMLElement) => unknown }
+	params: {enabled: boolean; callback: (node: HTMLElement) => unknown}
 ): ReturnType<Action> {
-	const { enabled: initialEnabled, callback } = params;
+	const {enabled: initialEnabled, callback} = params;
 
-	const handleOutsideClick = ({ target }: MouseEvent) => {
+	const handleOutsideClick = ({target}: MouseEvent) => {
 		if (!node.contains(target as HTMLElement)) {
 			callback(node);
 		}
 	};
 
 	let currentEnabledStatus = initialEnabled;
-	function update({ enabled }: { enabled: boolean }) {
+	function update({enabled}: {enabled: boolean}) {
 		if (enabled) {
 			currentEnabledStatus = true;
 			setTimeout(() => {
@@ -62,7 +62,7 @@ export function clickoutside(
 			window.removeEventListener('click', handleOutsideClick);
 		}
 	}
-	update({ enabled: initialEnabled });
+	update({enabled: initialEnabled});
 	return {
 		update,
 		destroy() {

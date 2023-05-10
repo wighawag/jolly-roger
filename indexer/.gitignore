@@ -2,11 +2,9 @@
 .env*.local
 
 # node modules
-node_modules/
+node_modules
 
 # data generated
-dist/
-data/
-ethereum-indexer-data
-
-src/contracts.ts
+/dist
+/ethereum-indexer-data
+/src/contracts.ts

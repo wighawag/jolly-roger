@@ -1,14 +1,13 @@
 <script lang="ts">
-	import type { connection as Connection } from './';
+	import type {connection as Connection} from './';
 	export let connection: typeof Connection;
-	import { url } from '$lib/utils/url';
+	import {url} from '$lib/utils/url';
 	import Modal from '$lib/components/modals/Modal.svelte';
 
 	const builtin = connection.builtin;
 
 	$: builtinNeedInstalation =
-		(connection.options.filter((v) => v === 'builtin').length > 0 ||
-			connection.options.length === 0) &&
+		(connection.options.filter((v) => v === 'builtin').length > 0 || connection.options.length === 0) &&
 		!$builtin.available;
 
 	$: options = connection.options

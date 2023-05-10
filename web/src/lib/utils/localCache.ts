@@ -1,5 +1,5 @@
-import { version } from '$app/environment';
-import { base } from '$app/paths';
+import {version} from '$app/environment';
+import {base} from '$app/paths';
 
 class LocalCache {
 	private _prefix: string;

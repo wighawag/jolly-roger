@@ -1,12 +1,8 @@
-import { readable } from 'svelte/store';
-import { version } from '$app/environment';
+import {readable} from 'svelte/store';
+import {version} from '$app/environment';
 
-import { getParamsFromLocation, getHashParamsFromLocation } from '$lib/utils/web';
-import {
-	PUBLIC_ETH_NODE_URI_LOCALHOST,
-	PUBLIC_ETH_NODE_URI,
-	PUBLIC_LOCALHOST_BLOCK_TIME,
-} from '$env/static/public';
+import {getParamsFromLocation, getHashParamsFromLocation} from '$lib/utils/web';
+import {PUBLIC_ETH_NODE_URI_LOCALHOST, PUBLIC_ETH_NODE_URI, PUBLIC_LOCALHOST_BLOCK_TIME} from '$env/static/public';
 
 import _contractsInfos from '$lib/blockchain/data/contracts';
 export type NetworkConfig = typeof _contractsInfos;
@@ -16,7 +12,7 @@ export const initialContractsInfos = _contractsInfos;
 export const globalQueryParams = ['debug', 'log', 'ethnode', '_d_eruda'];
 
 export const hashParams = getHashParamsFromLocation();
-export const { params } = getParamsFromLocation();
+export const {params} = getParamsFromLocation();
 
 const chainId = initialContractsInfos.chainId as string;
 let defaultRPCURL: string | undefined = params['ethnode'];
@@ -41,9 +37,9 @@ if (!defaultRPCURL) {
 	}
 }
 
-const defaultRPC = defaultRPCURL ? { chainId, url: defaultRPCURL } : undefined;
+const defaultRPC = defaultRPCURL ? {chainId, url: defaultRPCURL} : undefined;
 
-export { defaultRPC, localDev, blockTime };
+export {defaultRPC, localDev, blockTime};
 
 let _setContractsInfos: any;
 export const contractsInfos = readable<NetworkConfig>(_contractsInfos, (set) => {

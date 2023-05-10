@@ -1,4 +1,4 @@
-import { build, version, prerendered, files } from '$service-worker';
+import {build, version, prerendered, files} from '$service-worker';
 // ------------------- CONFIG ---------------------------
 const DEV = true;
 const OFFLINE_CACHE = 'all';
@@ -6,9 +6,7 @@ const OFFLINE_CACHE = 'all';
 
 let URLS_TO_PRE_CACHE: string[] = [];
 if (OFFLINE_CACHE === 'all') {
-	URLS_TO_PRE_CACHE = build
-		.concat(prerendered)
-		.concat(files.filter((v) => v.indexOf('pwa/') === -1));
+	URLS_TO_PRE_CACHE = build.concat(prerendered).concat(files.filter((v) => v.indexOf('pwa/') === -1));
 } // TODO support more offline option
 
 let _logEnabled = true; // TODO false
@@ -140,7 +138,7 @@ const onlineOnly = {
 	regexes: regexesOnlineOnly,
 };
 
-async function getResponse(event: { request: Request }): Promise<Response> {
+async function getResponse(event: {request: Request}): Promise<Response> {
 	const request = event.request;
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const registration = (self as any).registration as ServiceWorkerRegistration;
@@ -153,7 +151,7 @@ async function getResponse(event: { request: Request }): Promise<Response> {
 	) {
 		log('only one client, skipWaiting as we navigate the page');
 		registration.waiting.postMessage('skipWaiting');
-		const response = new Response('', { headers: { Refresh: '0' } });
+		const response = new Response('', {headers: {Refresh: '0'}});
 		return response;
 	}
 

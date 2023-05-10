@@ -1,9 +1,9 @@
 <script lang="ts">
 	import ConnectButton from '$lib/web3/ConnectButton.svelte';
 	import Web3ConnectionUI from '$lib/web3/Web3ConnectionUI.svelte';
-	import { contracts } from '$lib/web3/viem';
-	import { account, connection, network } from '$lib/web3';
-	import { status, state } from '$lib/blockchain/state/State';
+	import {contracts} from '$lib/web3/viem';
+	import {account, connection, network} from '$lib/web3';
+	import {status, state} from '$lib/blockchain/state/State';
 	import ImgBlockie from '$lib/components/ethereum/ImgBlockie.svelte';
 
 	let messageToSend: string;
@@ -72,7 +72,7 @@
 </div>
 <button
 	on:click={() =>
-		contracts.execute(async ({ contracts }) => {
+		contracts.execute(async ({contracts}) => {
 			contracts.Registry.write({
 				functionName: 'setMessage',
 				args: [messageToSend, 12],

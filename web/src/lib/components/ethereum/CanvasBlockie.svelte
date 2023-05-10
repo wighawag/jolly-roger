@@ -1,9 +1,9 @@
 <script lang="ts">
 	// blockie generation code from https://github.com/stephensprinkle/react-blockies, itself referenced from https://github.com/alexvandesande/blockies
-	import { afterUpdate } from 'svelte';
+	import {afterUpdate} from 'svelte';
 
 	export let _class = '';
-	export { _class as class };
+	export {_class as class};
 	export let address: string;
 	export let scale = 4;
 

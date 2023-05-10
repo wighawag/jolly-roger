@@ -7,17 +7,13 @@ export function clipboard(node: HTMLElement, args: any) {
 		if (typeof args === 'object') {
 			// Element Inner HTML
 			if (Object.prototype.hasOwnProperty.call(args, 'element')) {
-				const element: HTMLElement | null = document.querySelector(
-					`[data-clipboard="${args.element}"]`
-				);
+				const element: HTMLElement | null = document.querySelector(`[data-clipboard="${args.element}"]`);
 				copyToClipboard(element?.innerHTML);
 				return;
 			}
 			// Form Input Value
 			if (Object.prototype.hasOwnProperty.call(args, 'input')) {
-				const input: HTMLInputElement | null = document.querySelector(
-					`[data-clipboard="${args.input}"]`
-				);
+				const input: HTMLInputElement | null = document.querySelector(`[data-clipboard="${args.input}"]`);
 				copyToClipboard(input?.value);
 				return;
 			}

@@ -1,33 +1,35 @@
 {
-  "name": "jolly-roger-indexer",
-  "version": "0.1.0",
-  "description": "In-browser Indexer for jolly-roger. Can also run on a backend.",
-  "type": "module",
-  "main": "dist/index.cjs",
-  "module": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "volta": {
-    "node": "18.7.0"
-  },
-  "dependencies": {
-    "ethereum-indexer-js-processor": "^0.6.3",
-    "named-logs": "^0.2.2"
-  },
-  "devDependencies": {
-    "ethereum-indexer-server": "^0.6.6",
-    "ldenv": "^0.3.5",
-    "prettier": "^2.8.8",
-    "tsup": "^6.7.0",
-    "typescript": "^5.0.4",
-    "wait-on": "^7.0.1"
-  },
-  "scripts": {
-    "eis": "eis",
-    "serve": "ldenv eis run -n @@RPC_URL_:DEPLOYMENT_CONTEXT,RPC_URL -p ./dist/index.cjs --disable-cache --deployments ../contracts/deployments/@@DEPLOYMENT_CONTEXT @@",
-    "build": "tsup src/index.ts --dts --format esm,cjs",
-    "dev": "echo 'waiting for src/contracts.ts...'; wait-on src/contracts.ts && tsup src/index.ts --dts --format esm,cjs --watch"
-  }
+	"name": "jolly-roger-indexer",
+	"version": "0.1.0",
+	"description": "In-browser Indexer for jolly-roger. Can also run on a backend.",
+	"type": "module",
+	"main": "dist/index.cjs",
+	"module": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"volta": {
+		"node": "18.7.0"
+	},
+	"dependencies": {
+		"ethereum-indexer-js-processor": "^0.6.3",
+		"named-logs": "^0.2.2"
+	},
+	"devDependencies": {
+		"ethereum-indexer-server": "^0.6.6",
+		"ldenv": "^0.3.5",
+		"prettier": "^2.8.8",
+		"tsup": "^6.7.0",
+		"typescript": "^5.0.4",
+		"wait-on": "^7.0.1"
+	},
+	"scripts": {
+		"eis": "eis",
+		"serve": "ldenv eis run -n @@RPC_URL_:DEPLOYMENT_CONTEXT,RPC_URL -p ./dist/index.cjs --disable-cache --deployments ../contracts/deployments/@@DEPLOYMENT_CONTEXT @@",
+		"build": "tsup src/index.ts --dts --format esm,cjs",
+		"dev": "echo 'waiting for src/contracts.ts...'; wait-on src/contracts.ts && tsup src/index.ts --dts --format esm,cjs --watch",
+		"format:check": "prettier --check .",
+		"format": "prettier --write ."
+	}
 }

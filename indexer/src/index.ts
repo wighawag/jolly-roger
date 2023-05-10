@@ -11,7 +11,10 @@ const TinyRogerIndexerProcessor: JSProcessor<MergedAbis<typeof contractsInfo.con
 		const findIndex = json.greetings.findIndex((v) => v.account === event.args.user);
 
 		if (findIndex === -1) {
-			json.greetings.push({account: event.args.user, message: event.args.message});
+			json.greetings.push({
+				account: event.args.user,
+				message: event.args.message,
+			});
 		} else {
 			json.greetings[findIndex].message = event.args.message + ` (${event.args.timestamp})`;
 		}

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import CopyBlock from '$lib/components/utilities/CopyBlock.svelte';
 
-	import { name } from 'web-config';
+	import {name} from 'web-config';
 </script>
 
 <section class="py-2 px-4 text-center">
@@ -13,12 +13,11 @@
 			It can be used to quickly get a dev environment for hackathon or quick prototypes.
 		</p>
 		<p class="!text-xl flex justify-center space-x-2 my-8">
-			But it is also a good starting point for long term projects as it contains a set of best
-			practises for web and ipfs deployment.
+			But it is also a good starting point for long term projects as it contains a set of best practises for web and
+			ipfs deployment.
 		</p>
 		<p class="!text-xl flex justify-center space-x-2 my-8">
-			{name} with its in-browser indexer, is also a great ally to ensure your application remains fully
-			decentralised.
+			{name} with its in-browser indexer, is also a great ally to ensure your application remains fully decentralised.
 		</p>
 	</div>
 
@@ -34,11 +33,8 @@
 		/>
 		<p class="mt-6 text-base-300">
 			Find out more on
-			<a
-				class="underline"
-				href="https://github.com/wighawag/jolly-roger#readme"
-				target="_blank"
-				rel="noreferrer">github</a
+			<a class="underline" href="https://github.com/wighawag/jolly-roger#readme" target="_blank" rel="noreferrer"
+				>github</a
 			>
 		</p>
 	</div>

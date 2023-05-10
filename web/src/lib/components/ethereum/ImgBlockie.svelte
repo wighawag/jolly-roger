@@ -3,9 +3,9 @@
 	export let offset: number = 0;
 	export let style: string | undefined = undefined;
 	export let _class = '';
-	export { _class as class };
+	export {_class as class};
 
-	import { Blockie } from '$lib/utils/eth/blockie';
+	import {Blockie} from '$lib/utils/eth/blockie';
 
 	$: uri = Blockie.getURI(address, offset);
 </script>

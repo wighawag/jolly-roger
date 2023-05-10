@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { connection as Connection } from './';
+	import type {connection as Connection} from './';
 	export let connection: typeof Connection;
 	import AlertWithSlot from '$lib/components/alert/AlertWithSlot.svelte';
 	import Alert from '$lib/components/alert/Alert.svelte';
@@ -17,15 +17,12 @@
 						href="https://github.com/MetaMask/metamask-extension/issues/7221"
 						target="_blank"
 						rel="noreferrer">github issue</a
-					>. Please <a class="link" on:click={() => location.reload()} href=".">reload</a>
+					>. Please
+					<a class="link" on:click={() => location.reload()} href=".">reload</a>
 				</p>
 			{:else}
 				<p>
-					Your Wallet is not responding. Please <a
-						class="link"
-						on:click={() => location.reload()}
-						href=".">reload.</a
-					>
+					Your Wallet is not responding. Please <a class="link" on:click={() => location.reload()} href=".">reload.</a>
 				</p>
 			{/if}
 		</AlertWithSlot>

@@ -1,25 +1,17 @@
-import { createProcessor } from 'jolly-roger-indexer';
-import { createIndexerState } from 'ethereum-indexer-browser';
-import { initialContractsInfos } from '$lib/config';
-import { connection, network } from '$lib/web3';
-import { browser } from '$app/environment';
-import type { EIP1193Provider } from 'eip-1193';
-import { logs } from 'named-logs';
+import {createProcessor} from 'jolly-roger-indexer';
+import {createIndexerState} from 'ethereum-indexer-browser';
+import {initialContractsInfos} from '$lib/config';
+import {connection, network} from '$lib/web3';
+import {browser} from '$app/environment';
+import type {EIP1193Provider} from 'eip-1193';
+import {logs} from 'named-logs';
 
 const namedLogger = logs('state');
 
 export const processor = createProcessor();
 
-export const {
-	state,
-	syncing,
-	status,
-	init,
-	indexToLatest,
-	indexMore,
-	startAutoIndexing,
-	indexMoreAndCatchupIfNeeded,
-} = createIndexerState(processor, { trackNumRequests: true });
+export const {state, syncing, status, init, indexToLatest, indexMore, startAutoIndexing, indexMoreAndCatchupIfNeeded} =
+	createIndexerState(processor, {trackNumRequests: true});
 
 async function indexIfNotIndexing() {
 	await indexMoreAndCatchupIfNeeded();

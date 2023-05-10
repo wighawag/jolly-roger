@@ -6,7 +6,7 @@
 
 	type BeforeInstallPromptEvent = Event & {
 		prompt: () => void;
-		userChoice: Promise<{ outcome: string }>;
+		userChoice: Promise<{outcome: string}>;
 	};
 
 	let show = false;
@@ -73,23 +73,13 @@
 						<img class="h-16 w-16 rounded-box border-2 border-base-200" {src} {alt} />
 					</div>
 					<div class="ml-3 w-0 flex-1">
-						<p class="text-base font-medium">
-							Do you want to install Jolly Roger on your home screen?
-						</p>
+						<p class="text-base font-medium">Do you want to install Jolly Roger on your home screen?</p>
 						<!-- <p class="mt-1 text-sm text-gray-500">
             Install it for later
           </p> -->
 						<div class="mt-4 flex">
-							<button
-								on:click={install}
-								type="button"
-								class="btn rounded-btn btn-success btn-sm m-1"
-							>
-								Install
-							</button>
-							<button on:click={decline} type="button" class="btn rounded-btn btn-error btn-sm m-1">
-								Decline
-							</button>
+							<button on:click={install} type="button" class="btn rounded-btn btn-success btn-sm m-1"> Install </button>
+							<button on:click={decline} type="button" class="btn rounded-btn btn-error btn-sm m-1"> Decline </button>
 						</div>
 					</div>
 					<div class="ml-4 flex-shrink-0 flex">

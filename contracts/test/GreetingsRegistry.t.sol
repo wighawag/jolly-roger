@@ -5,16 +5,15 @@ import {Test} from "forge-std/Test.sol";
 import {GreetingsRegistry} from "src/GreetingsRegistry.sol";
 import {Deployments} from "script/Deploy.s.sol";
 
-
 contract GreetingsRegistryTest is Test {
     GreetingsRegistry public registry;
 
     function setUp() public {
-		registry = new Deployments().deploy();
+        registry = new Deployments().deploy();
         registry.setMessage("hello", 1);
     }
 
-	function testMessage() public {
+    function testMessage() public {
         assertEq(registry.messages(address(this)).content, "hello");
     }
 
@@ -22,5 +21,4 @@ contract GreetingsRegistryTest is Test {
         registry.setMessage("hello2", 1);
         assertEq(registry.messages(address(this)).content, "hello2");
     }
-
 }

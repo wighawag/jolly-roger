@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Modal from '$lib/components/modals/Modal.svelte';
-	import type { account as Account } from './';
+	import type {account as Account} from './';
 	export let account: typeof Account;
 </script>
 
@@ -10,8 +10,8 @@
 			account.cancelUnlock();
 			return true;
 		}}
-		settings={{ type: 'info', message: 'Please unlock' }}
-		cancelation={{ clickOutside: false, button: true }}
+		settings={{type: 'info', message: 'Please unlock'}}
+		cancelation={{clickOutside: false, button: true}}
 	/>
 {/if}
 

@@ -1,17 +1,36 @@
-.DS_Store
+# ###########################################
+# .gitignore
+#############################################
+# environment variables
+.env*.local
+
+# node modules
 node_modules
+
+# vscode
+.vscode/*
+!.vscode/settings.json.default
+!.vscode/launch.json.default
+!.vscode/extensions.json.default
+
+# data generated
 /build
 /.svelte-kit
 /package
-.env
-.env.*
-!.env.example
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
 
-# Ignore files for PNPM, NPM and YARN
-pnpm-lock.yaml
-package-lock.json
-yarn.lock
-src/app.html
-src/lib/blockchain/data/contracts.ts
+# pwag
 static/pwa
+static/robots.txt
+
+# generated from contracts
+src/lib/blockchain/data/contracts.ts
+#############################################
+
+# Ignore npm files
+pnpm-lock.yaml
 package.json
+
+#ignore static files
+static/

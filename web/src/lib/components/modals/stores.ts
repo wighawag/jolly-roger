@@ -1,10 +1,10 @@
 // Modal Store Queue
 
-import { writable } from 'svelte/store';
-import type { ModalSettings } from './types';
+import {writable} from 'svelte/store';
+import type {ModalSettings} from './types';
 
 function modalService() {
-	const { subscribe, set, update } = writable<ModalSettings[]>([]);
+	const {subscribe, set, update} = writable<ModalSettings[]>([]);
 	return {
 		subscribe,
 		set,

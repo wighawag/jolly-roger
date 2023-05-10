@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
-	import { fade, fly } from 'svelte/transition';
+	import {createEventDispatcher} from 'svelte';
+	import {fade, fly} from 'svelte/transition';
 	import ModalContent from './ModalContent.svelte';
-	import { modalStore } from './stores';
-	import type { ModalCancelationMode, ModalContentSettings } from './types';
+	import {modalStore} from './stores';
+	import type {ModalCancelationMode, ModalContentSettings} from './types';
 
 	// ----------------------------------------------------------------------------------------------
 	// EXPORTS
@@ -92,12 +92,12 @@
 		class="modal modal-bottom sm:modal-middle cursor-pointer"
 		on:mousedown={onBackdropInteraction}
 		on:touchstart={onBackdropInteraction}
-		transition:fade={{ duration }}
+		transition:fade={{duration}}
 	>
 		<div
 			class="modal-box relative"
 			style="--tw-translate-y:0;"
-			transition:fly={{ duration, opacity: flyOpacity, x: flyX, y: flyY }}
+			transition:fly={{duration, opacity: flyOpacity, x: flyX, y: flyY}}
 			bind:this={content}
 		>
 			{#if settings}

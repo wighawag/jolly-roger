@@ -1,10 +1,13 @@
-import type { Logger } from 'named-logs';
-import { logs } from 'named-logs';
-import { serviceWorker } from '$lib/web/serviceWorker';
-import { base } from '$app/paths';
-import { dev } from '$app/environment';
+import type {Logger} from 'named-logs';
+import {logs} from 'named-logs';
+import {serviceWorker} from '$lib/web/serviceWorker';
+import {base} from '$app/paths';
+import {dev} from '$app/environment';
 
-const console = logs('service-worker') as Logger & { level: number; enabled: boolean };
+const console = logs('service-worker') as Logger & {
+	level: number;
+	enabled: boolean;
+};
 function updateLoggingForWorker(worker: ServiceWorker | null) {
 	if (worker) {
 		if (console.enabled) {
@@ -13,7 +16,11 @@ function updateLoggingForWorker(worker: ServiceWorker | null) {
 			console.debug(`disabling logging for service worker, level: ${console.level}`);
 		}
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		worker.postMessage({ type: 'debug', level: console.level, enabled: console.enabled });
+		worker.postMessage({
+			type: 'debug',
+			level: console.level,
+			enabled: console.enabled,
+		});
 	}
 }
 
@@ -81,12 +88,12 @@ if (!dev && typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
 			try {
 				handleAutomaticUpdate(registration);
 			} catch (e) {}
-			serviceWorker.set({ registration, updateAvailable: false }); // TODO keep updateAvailable if any ?
+			serviceWorker.set({registration, updateAvailable: false}); // TODO keep updateAvailable if any ?
 			updateLoggingForWorker(registration.installing);
 			updateLoggingForWorker(registration.waiting);
 			updateLoggingForWorker(registration.active);
 			listenForWaitingServiceWorker(registration, () => {
-				serviceWorker.set({ registration, updateAvailable: true });
+				serviceWorker.set({registration, updateAvailable: true});
 			});
 		})
 		.catch((e) => {

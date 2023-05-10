@@ -21,8 +21,6 @@ export type ModalContentSettings =
 			message: string;
 	  };
 
-export type ModalCancellationOptions =
-	| { button: boolean; clickOutside?: boolean }
-	| { cancelable: false };
+export type ModalCancellationOptions = {button: boolean; clickOutside?: boolean} | {cancelable: false};
 
 export type ModalResponseCallback = (response: boolean) => boolean | undefined | void;

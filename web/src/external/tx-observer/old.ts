@@ -1,14 +1,9 @@
-import { writable } from 'svelte/store';
-import type { EIP1193Provider } from 'eip-1193';
-import type { EIP1193TransactionWithMetadata } from 'web3-connection/dist/provider/wrap';
+import {writable} from 'svelte/store';
+import type {EIP1193Provider} from 'eip-1193';
+import type {EIP1193TransactionWithMetadata} from 'web3-connection/dist/provider/wrap';
 
 // export type CheckedStatus = 'SUCCESS' | 'FAILURE' | 'LOADING' | 'PENDING' | 'CANCELED' | 'TIMEOUT';
-export type PendingTransactionInclusion =
-	| 'Loading'
-	| 'Pending'
-	| 'NotFound'
-	| 'Cancelled'
-	| 'Included';
+export type PendingTransactionInclusion = 'Loading' | 'Pending' | 'NotFound' | 'Cancelled' | 'Included';
 export type PendingTransaction = {
 	hash: `0x${string}`;
 	request: EIP1193TransactionWithMetadata;
@@ -25,11 +20,11 @@ export type PendingTransaction = {
 	  }
 );
 
-export function initTransactionObserver(config: { finality: number }) {
+export function initTransactionObserver(config: {finality: number}) {
 	let provider: EIP1193Provider | undefined;
 	const $txs: PendingTransaction[] = [];
 	const store = writable<PendingTransaction[]>($txs);
-	const map: { [hash: string]: PendingTransaction } = {};
+	const map: {[hash: string]: PendingTransaction} = {};
 
 	function addTx(tx: EIP1193TransactionWithMetadata, hash: `0x${string}`, inclusion?: 'Pending') {
 		if (!map[hash]) {
@@ -106,7 +101,11 @@ export function initTransactionObserver(config: { finality: number }) {
 		{
 			latestBlockNumber,
 			finalityNonce,
-		}: { latestBlockNumber: number; latestFinalizedBlockNumber: number; finalityNonce: number }
+		}: {
+			latestBlockNumber: number;
+			latestFinalizedBlockNumber: number;
+			finalityNonce: number;
+		}
 	): Promise<boolean> {
 		if (!provider) {
 			return false;

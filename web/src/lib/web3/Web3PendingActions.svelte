@@ -1,8 +1,8 @@
 <script lang="ts">
-	import type { pendingActions as PendingActions } from './';
+	import type {pendingActions as PendingActions} from './';
 	export let pendingActions: typeof PendingActions;
 	import Modal from '$lib/components/modals/Modal.svelte';
-	import { modalStore } from '$lib/components/modals/stores';
+	import {modalStore} from '$lib/components/modals/stores';
 </script>
 
 {#if $pendingActions.list.length > 0}
@@ -30,10 +30,12 @@
 				},
 			});
 		}}
-		cancelation={{ button: true, clickOutside: false }}
+		cancelation={{button: true, clickOutside: false}}
 	>
 		{#if $pendingActions.list[0].item.metadata && $pendingActions.list[0].item.metadata.title}
-			<h3 class="text-lg font-bold">{$pendingActions.list[0].item.metadata.title}</h3>
+			<h3 class="text-lg font-bold">
+				{$pendingActions.list[0].item.metadata.title}
+			</h3>
 		{/if}
 		<p class="py-4">
 			{#if $pendingActions.list[0].item.metadata && $pendingActions.list[0].item.metadata.description}

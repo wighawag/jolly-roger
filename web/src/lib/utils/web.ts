@@ -4,7 +4,7 @@ export function getParamsFromURL(url: string): {
 	pathname?: string;
 } {
 	if (!url) {
-		return { params: {}, pathname: '' };
+		return {params: {}, pathname: ''};
 	}
 	const obj: Record<string, string> = {};
 	const hash = url.lastIndexOf('#');
@@ -29,13 +29,16 @@ export function getParamsFromURL(url: string): {
 	if (pathname && !pathname.endsWith('/')) {
 		pathname += '/';
 	}
-	return { params: obj, pathname };
+	return {params: obj, pathname};
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-export function getParamsFromLocation(): { params: Record<string, string>; pathname?: string } {
+export function getParamsFromLocation(): {
+	params: Record<string, string>;
+	pathname?: string;
+} {
 	if (typeof window === 'undefined') {
-		return { params: {} };
+		return {params: {}};
 	}
 	return getParamsFromURL(window.location.href);
 }
@@ -91,7 +94,7 @@ export function rebuildLocationHash(hashParams: Record<string, string>): void {
 		);
 	} else {
 		// Prevent scrolling by storing the page's current scroll offset
-		const { scrollTop, scrollLeft } = document.body;
+		const {scrollTop, scrollLeft} = document.body;
 		window.location.hash = '';
 
 		// Restore the scroll offset, should be flicker free
@@ -102,16 +105,14 @@ export function rebuildLocationHash(hashParams: Record<string, string>): void {
 
 async function chrome76Detection(): Promise<boolean> {
 	if ('storage' in navigator && 'estimate' in navigator.storage) {
-		const { quota } = await navigator.storage.estimate();
+		const {quota} = await navigator.storage.estimate();
 		return quota !== undefined && quota < 120000000;
 	}
 	return false;
 }
 
 function isNewChrome(): boolean {
-	const pieces = navigator.userAgent.match(
-		/Chrom(?:e|ium)\/([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)/
-	);
+	const pieces = navigator.userAgent.match(/Chrom(?:e|ium)\/([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)/);
 	if (pieces === null || pieces.length !== 5) {
 		return false;
 	}

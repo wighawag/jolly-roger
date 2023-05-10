@@ -1,4 +1,20 @@
-dist/
-node_modules/
+# ###########################################
+# .gitignore
+#############################################
+# environment variables
+.env*.local
+
+# node modules
+node_modules
+
+# data generated
+/dist
+/ethereum-indexer-data
+/src/contracts.ts
+
+#############################################
+
+# Ignore npm files
+pnpm-lock.yaml
 package.json
-data/
+

@@ -1,11 +1,7 @@
 <script lang="ts">
-	import { modalStore } from './stores';
-	import type {
-		ModalCancellationOptions,
-		ModalContentSettings,
-		ModalResponseCallback,
-	} from './types';
-	import { focusTrap } from '$lib/skeleton/actions/FocusTrap/focusTrap';
+	import {modalStore} from './stores';
+	import type {ModalCancellationOptions, ModalContentSettings, ModalResponseCallback} from './types';
+	import {focusTrap} from '$lib/skeleton/actions/FocusTrap/focusTrap';
 
 	// ----------------------------------------------------------------------------------------------
 	// EXPORTS
@@ -51,13 +47,11 @@
 				{settings.message}
 			</p>
 			<div class="modal-action">
-				<button
-					on:click={() => (onResponse ? onResponse(false) : modalStore.close())}
-					class="btn btn-error">Cancel</button
+				<button on:click={() => (onResponse ? onResponse(false) : modalStore.close())} class="btn btn-error"
+					>Cancel</button
 				>
-				<button
-					on:click={() => (onResponse ? onResponse(true) : modalStore.close())}
-					class="btn btn-success">Confirm</button
+				<button on:click={() => (onResponse ? onResponse(true) : modalStore.close())} class="btn btn-success"
+					>Confirm</button
 				>
 			</div>
 		{:else}

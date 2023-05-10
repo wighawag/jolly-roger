@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { status, state, syncing } from '$lib/blockchain/state/State';
+	import {status, state, syncing} from '$lib/blockchain/state/State';
 	import ConnectButton from '$lib/web3/ConnectButton.svelte';
 	import Web3ConnectionUI from '$lib/web3/Web3ConnectionUI.svelte';
 
@@ -42,7 +42,9 @@
 {#if $syncing.numRequests !== undefined}
 	<p>requests sent: {$syncing.numRequests}</p>
 {/if}
-<p>block processed: {$syncing.lastSync?.numBlocksProcessedSoFar?.toLocaleString() || 0}</p>
+<p>
+	block processed: {$syncing.lastSync?.numBlocksProcessedSoFar?.toLocaleString() || 0}
+</p>
 
 {#if $state}
 	{JSON.stringify(

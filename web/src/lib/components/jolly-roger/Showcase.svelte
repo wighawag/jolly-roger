@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { url } from '$lib/utils/url';
+	import {url} from '$lib/utils/url';
 
 	export let href: string;
 	export let preview: string;
@@ -11,8 +11,7 @@
 
 <div class="flex flex-col rounded-lg shadow-lg bg-base-200 overflow-hidden">
 	<div class="flex-shrink-0">
-		<a {href} target="_blank" rel="noreferrer"
-			><img class="h-48 w-full object-cover" src={url(preview)} alt={name} /></a
+		<a {href} target="_blank" rel="noreferrer"><img class="h-48 w-full object-cover" src={url(preview)} alt={name} /></a
 		>
 	</div>
 	<div class="flex-1 p-6 flex flex-col justify-between">
@@ -31,9 +30,7 @@
 				</p>
 				<p class="mt-3 text-base">
 					{#if source}
-						Check the <a href={source} target="_blank" rel="noreferrer" class="underline"
-							>source code</a
-						>.
+						Check the <a href={source} target="_blank" rel="noreferrer" class="underline">source code</a>.
 					{:else}Source code not yet available.{/if}
 				</p>
 			</div>

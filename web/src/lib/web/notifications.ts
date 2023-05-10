@@ -1,4 +1,4 @@
-import { writable } from 'svelte/store';
+import {writable} from 'svelte/store';
 
 type Notification = {
 	id?: string;
@@ -22,7 +22,7 @@ const createStore = () => {
 
 	let timeout: NodeJS.Timeout;
 
-	const { subscribe, set } = writable<CurrentNotification>(data);
+	const {subscribe, set} = writable<CurrentNotification>(data);
 
 	function setCurrent(current: Notification | undefined) {
 		data.current = current;

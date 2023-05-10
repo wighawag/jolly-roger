@@ -24,6 +24,8 @@
     "export": "forge-deploy export",
     "deployments:sync": "forge-deploy sync",
     "test": "pnpm gen-deployer && forge test",
+    "format:check": "forge fmt --check",
+    "format": "forge fmt",
     "watch_compile": "as-soon -w script -w src -w test pnpm compile",
     "watch_deploy": "pnpm compile && as-soon -w script -w src -w test pnpm run deploy",
     "watch_test": "as-soon -w script -w src -w test pnpm test",

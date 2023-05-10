@@ -1,23 +1,18 @@
 <script>
-	import { connection, account, pendingActions, network } from './';
+	import {connection, account, pendingActions, network} from './';
 	import ImgBlockie from '$lib/components/ethereum/ImgBlockie.svelte';
-	import { contractsInfos } from '$lib/config';
-	import { getNetworkConfig } from '$lib/blockchain/networks';
+	import {contractsInfos} from '$lib/config';
+	import {getNetworkConfig} from '$lib/blockchain/networks';
 </script>
 
 {#if $account.state === 'Disconnected' || $account.locked}
 	{#if $account.locked}
-		<button
-			class="m-1 btn btn-primary"
-			disabled={$account.unlocking}
-			on:click={() => account.unlock()}>unlock</button
-		>
+		<button class="m-1 btn btn-primary" disabled={$account.unlocking} on:click={() => account.unlock()}>unlock</button>
 	{:else}
 		<button
 			disabled={$connection.connecting}
 			class={`${$connection.initialised ? '' : '!invisible'} m-1 btn btn-primary`}
-			on:click={() => connection.connect()}
-			>{$connection.connecting ? 'Connecting' : 'Connect'}</button
+			on:click={() => connection.connect()}>{$connection.connecting ? 'Connecting' : 'Connect'}</button
 		>
 	{/if}
 {:else}
@@ -32,8 +27,7 @@
 	{#if $network.notSupported}
 		<!-- svelte-ignore a11y-click-events-have-key-events -->
 		<svg
-			on:click={() =>
-				network.switchTo($contractsInfos.chainId, getNetworkConfig($contractsInfos.chainId))}
+			on:click={() => network.switchTo($contractsInfos.chainId, getNetworkConfig($contractsInfos.chainId))}
 			xmlns="http://www.w3.org/2000/svg"
 			fill="none"
 			viewBox="0 0 24 24"
@@ -60,14 +54,9 @@
 			</button>
 		</div>
 		<!-- svelte-ignore a11y-no-noninteractive-tabindex -->
-		<ul
-			tabindex="0"
-			class="menu menu-compact dropdown-content mt-3 p-2 shadow bg-base-200 rounded-box w-52"
-		>
+		<ul tabindex="0" class="menu menu-compact dropdown-content mt-3 p-2 shadow bg-base-200 rounded-box w-52">
 			<li>
-				<button
-					class="m-1 btn btn-error text-error-content"
-					on:click={() => connection.disconnect()}>disconnect</button
+				<button class="m-1 btn btn-error text-error-content" on:click={() => connection.disconnect()}>disconnect</button
 				>
 			</li>
 		</ul>

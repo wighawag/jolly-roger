@@ -3,17 +3,10 @@
 	import ThemeChanger from '$lib/components/daisyui/ThemeChanger.svelte';
 	import NavTabs from '$lib/components/daisyui/NavTabs.svelte';
 
-	import {
-		name,
-		description,
-		themeColor,
-		canonicalURL,
-		appleStatusBarStyle,
-		ENSName,
-	} from 'web-config';
+	import {name, description, themeColor, canonicalURL, appleStatusBarStyle, ENSName} from 'web-config';
 	import NewVersionNotification from '$lib/components/web/NewVersionNotification.svelte';
 	import NoInstallPrompt from '$lib/components/web/NoInstallPrompt.svelte';
-	import { url } from '$lib/utils/url';
+	import {url} from '$lib/utils/url';
 	import Install from '$lib/components/web/Install.svelte';
 
 	const host = canonicalURL.endsWith('/') ? canonicalURL : canonicalURL + '/';
@@ -60,10 +53,10 @@
 	<div class="flex-1">
 		<NavTabs
 			pages={[
-				{ pathname: '/', title: 'Home' },
-				{ pathname: '/demo/', title: 'Demo' },
-				{ pathname: '/indexer/', title: 'Indexer' },
-				{ pathname: '/about/', title: 'About' },
+				{pathname: '/', title: 'Home'},
+				{pathname: '/demo/', title: 'Demo'},
+				{pathname: '/indexer/', title: 'Indexer'},
+				{pathname: '/about/', title: 'About'},
 			]}
 		/>
 	</div>
@@ -89,9 +82,7 @@
 
 	<!--TEMPLATE_REMOVE-->
 	<footer class="bg-base-200">
-		<div
-			class="max-w-screen-xl mx-auto py-12 px-4 sm:px-6 md:flex md:items-center md:justify-between lg:px-8"
-		>
+		<div class="max-w-screen-xl mx-auto py-12 px-4 sm:px-6 md:flex md:items-center md:justify-between lg:px-8">
 			<div class="flex justify-center space-x-6 md:order-2">
 				<a class="link" href="https://twitter.com/wighawag" target="_blank" rel="noreferrer">
 					<span class="sr-only">Twitter</span>
@@ -124,9 +115,7 @@
 			</div>
 			<div class="mt-8 md:mt-0 md:order-1">
 				<p class="text-center text-base leading-6">
-					Created by <a class="link" href="https://ronan.eth.limo" target="_blank" rel="noreferrer"
-						>Ronan Sandford.</a
-					>
+					Created by <a class="link" href="https://ronan.eth.limo" target="_blank" rel="noreferrer">Ronan Sandford.</a>
 				</p>
 			</div>
 		</div>

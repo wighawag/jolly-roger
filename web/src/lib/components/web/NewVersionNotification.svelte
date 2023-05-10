@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { serviceWorker } from '$lib/web/serviceWorker';
+	import {serviceWorker} from '$lib/web/serviceWorker';
 
 	export let src: string;
 	export let alt: string;
@@ -49,23 +49,13 @@
 						<img class="h-16 w-16 rounded-box border-2 border-base-200" {src} {alt} />
 					</div>
 					<div class="ml-3 w-0 flex-1">
-						<p class="text-base font-medium">
-							A new version is available. Reload to get the update.
-						</p>
+						<p class="text-base font-medium">A new version is available. Reload to get the update.</p>
 						<!-- <p class="mt-1 text-sm text-gray-500">
             Install it for later
           </p> -->
 						<div class="mt-4 flex">
-							<button
-								on:click={reload}
-								type="button"
-								class="btn rounded-btn btn-success btn-sm m-1"
-							>
-								Reload
-							</button>
-							<button on:click={skip} type="button" class="btn rounded-btn btn-error btn-sm m-1">
-								Skip
-							</button>
+							<button on:click={reload} type="button" class="btn rounded-btn btn-success btn-sm m-1"> Reload </button>
+							<button on:click={skip} type="button" class="btn rounded-btn btn-error btn-sm m-1"> Skip </button>
 						</div>
 					</div>
 					<div class="ml-4 flex-shrink-0 flex">

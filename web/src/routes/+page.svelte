@@ -3,8 +3,8 @@
 	import Feature from '$lib/components/jolly-roger/Feature.svelte';
 	import CopyBlock from '$lib/components/utilities/CopyBlock.svelte';
 
-	import { name } from 'web-config';
-	import { url } from '$lib/utils/url';
+	import {name} from 'web-config';
+	import {url} from '$lib/utils/url';
 </script>
 
 <section class="py-2 px-4 text-center">
@@ -24,22 +24,19 @@
 		</h2>
 		<div class="!text-xl flex justify-center space-x-2">
 			<h3>
-				<span
-					class="bg-gradient-to-br from-blue-500 to-cyan-300 bg-clip-text text-transparent box-decoration-clone"
+				<span class="bg-gradient-to-br from-blue-500 to-cyan-300 bg-clip-text text-transparent box-decoration-clone"
 					>Build</span
 				>
 			</h3>
 			<h3>and</h3>
 			<h3>
-				<span
-					class="bg-gradient-to-br from-red-500 to-yellow-500 bg-clip-text text-transparent box-decoration-clone"
+				<span class="bg-gradient-to-br from-red-500 to-yellow-500 bg-clip-text text-transparent box-decoration-clone"
 					>Deploy</span
 				>
 			</h3>
 			<h3>for</h3>
 			<h3>
-				<span
-					class="bg-gradient-to-br from-pink-500 to-violet-500 bg-clip-text text-transparent box-decoration-clone"
+				<span class="bg-gradient-to-br from-pink-500 to-violet-500 bg-clip-text text-transparent box-decoration-clone"
 					>Eternity.</span
 				>
 			</h3>
@@ -72,11 +69,8 @@
 			/>
 			<p class="mt-6 text-base-300">
 				Find out more on
-				<a
-					class="underline"
-					href="https://github.com/wighawag/jolly-roger#readme"
-					target="_blank"
-					rel="noreferrer">github</a
+				<a class="underline" href="https://github.com/wighawag/jolly-roger#readme" target="_blank" rel="noreferrer"
+					>github</a
 				>
 			</p>
 		</div>
@@ -122,61 +116,48 @@
 			<div class="max-w-xl mx-auto px-4 sm:px-6 lg:max-w-screen-xl lg:px-8">
 				<div class="lg:grid lg:grid-cols-3 lg:gap-8">
 					<Feature title="All Included">
-						This template include setup for smart contracts, indexer and frontend. All runs locally
-						for the best-in-class developer experience.
+						This template include setup for smart contracts, indexer and frontend. All runs locally for the
+						best-in-class developer experience.
 					</Feature>
 					<Feature title="PWA ready: 100% Lighthouse score">
-						The web app is fully PWA compliant, with offline caching, etc... The javascript code
-						necessary to launch the app is less than 50kB (15kB compressed), including the home page
-						content. Achieves 100% score on a barebone page without extra themes
+						The web app is fully PWA compliant, with offline caching, etc... The javascript code necessary to launch the
+						app is less than 50kB (15kB compressed), including the home page content. Achieves 100% score on a barebone
+						page without extra themes
 					</Feature>
 					<Feature title="Great Dev experience">
-						<a
-							class="link"
-							href="https://github.com/foundry-rs/foundry/#readme"
-							target="_blank"
-							rel="noreferrer">Foundry</a
+						<a class="link" href="https://github.com/foundry-rs/foundry/#readme" target="_blank" rel="noreferrer"
+							>Foundry</a
 						>
 						for contracts,
-						<a
-							class="link"
-							href="https://github.com/wighawag/forge-deploy"
-							target="_blank"
-							rel="noreferrer">forge-deploy</a
+						<a class="link" href="https://github.com/wighawag/forge-deploy" target="_blank" rel="noreferrer"
+							>forge-deploy</a
 						>
 						for contract deployment, the in-browser
-						<a
-							class="link"
-							href="http://npmjs.com/package/ethereum-indexer"
-							target="_blank"
-							rel="noreferrer">ethereum-indexer</a
+						<a class="link" href="http://npmjs.com/package/ethereum-indexer" target="_blank" rel="noreferrer"
+							>ethereum-indexer</a
 						>
 						for contract's api,
-						<a class="link" href="https://svelte.dev" target="_blank" rel="noreferrer"
-							>svelte + Svelte Kit</a
-						>
+						<a class="link" href="https://svelte.dev" target="_blank" rel="noreferrer">svelte + Svelte Kit</a>
 						for frontend with HMR (Hot Module Replacement) and production build.
 					</Feature>
 					<Feature title="Everything Hot Reload">
-						On contract changes, contract get to keep their address and code get updated
-						automatically. On frontend changes, module get replaced using blazing fast
+						On contract changes, contract get to keep their address and code get updated automatically. On frontend
+						changes, module get replaced using blazing fast
 						<a class="link" href="https://vite.dev" target="_blank" rel="noreferrer">Vite</a>
 						es module hot reload.
 					</Feature>
 					<Feature title="Fully IPFS Ready">
-						Fully IPFS ready with proper url routing. The web app works on both IPFS urls and
-						ENS/DNS urls. PWA works on IPFS too with scoped service workers.
+						Fully IPFS ready with proper url routing. The web app works on both IPFS urls and ENS/DNS urls. PWA works on
+						IPFS too with scoped service workers.
 					</Feature>
-					<Feature title="All in Typescript"
-						>The whole app including indexer and, is written in typescript.</Feature
-					>
+					<Feature title="All in Typescript">The whole app including indexer and, is written in typescript.</Feature>
 					<Feature title="Code Splitting and Tree Shaking">
-						By using Svelte Kit (and so Vite) and ES modules, the frontend benefit from code
-						splitting an dynamic imports as well as tree shaking.
+						By using Svelte Kit (and so Vite) and ES modules, the frontend benefit from code splitting an dynamic
+						imports as well as tree shaking.
 					</Feature>
 					<Feature title="VSCode Setup">
-						The repo is setup as a vscode workspace with recommended plugins. Execute tests from the
-						editor. Auto format, etc...
+						The repo is setup as a vscode workspace with recommended plugins. Execute tests from the editor. Auto
+						format, etc...
 					</Feature>
 					<Feature title="One command deploy">
 						Everything is setup, except for the private ENV variable to deploy the contracts.

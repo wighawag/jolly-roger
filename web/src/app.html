@@ -52,10 +52,9 @@
 				document.documentElement.setAttribute('data-theme', localStorage.getItem('theme'));
 			} catch (e) {}
 		</script>
-
 	</head>
 	<!-- --w3m-modal-z-index overrids the low z-index of wallet connect modal (89) -->
-	<body data-sveltekit-preload-data="hover" style="--w3m-modal-z-index: 1001;">
+	<body data-sveltekit-preload-data="hover" style="--w3m-modal-z-index: 1001">
 		<div style="display: contents">%sveltekit.body%</div>
 	</body>
 </html>
