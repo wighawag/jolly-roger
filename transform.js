@@ -189,7 +189,7 @@ for (const file of filesToProcess) {
 			});
 			throw err;
 		} finally {
-			fs.rmSync(file);
+			fs.rmSync(file, {recursive: true});
 		}
 	}
 }
