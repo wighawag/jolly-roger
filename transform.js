@@ -19,18 +19,18 @@ let degit;
 try {
 	degit = JSON.parse(fs.readFileSync('degit.json', 'utf-8'));
 } catch {}
-// if (degit) {
-// 	for (const action of degit) {
-// 		if (action.action === 'remove') {
-// 			const filesToRemove = action.files;
-// 			for (const file of filesToRemove) {
-// 				try {
-// 					fs.rmSync(file, {recursive: true});
-// 				} catch {}
-// 			}
-// 		}
-// 	}
-// }
+if (degit) {
+	for (const action of degit) {
+		if (action.action === 'remove') {
+			const filesToRemove = action.files;
+			for (const file of filesToRemove) {
+				try {
+					fs.rmSync(file, {recursive: true});
+				} catch {}
+			}
+		}
+	}
+}
 
 const ignore_folders = [
 	'.git',
@@ -83,24 +83,24 @@ for (const file of filesToProcess) {
 	if (file.endsWith('-degit') || file.indexOf('-degit.') >= 0) {
 		const orginal_file = file.replace('-degit', '');
 		console.log(`overriding ${orginal_file} with ${file}`);
-		// try {
-		// 	const stats = fs.statSync(file);
-		// 	try {
-		// 		fs.rmSync(orginal_file);
-		// 	} catch {}
-		// 	if (stats.isDirectory()) {
-		// 		fs.cpSync(file, orginal_file);
-		// 	} else {
-		// 		fs.copyFileSync(file, orginal_file);
-		// 	}
-		// } catch (err) {
-		// 	console.error({
-		// 		file,
-		// 		orginal_file,
-		// 	});
-		// 	throw err;
-		// } finally {
-		// 	fs.rmSync(file);
-		// }
+		try {
+			const stats = fs.statSync(file);
+			try {
+				fs.rmSync(orginal_file);
+			} catch {}
+			if (stats.isDirectory()) {
+				fs.cpSync(file, orginal_file);
+			} else {
+				fs.copyFileSync(file, orginal_file);
+			}
+		} catch (err) {
+			console.error({
+				file,
+				orginal_file,
+			});
+			throw err;
+		} finally {
+			fs.rmSync(file);
+		}
 	}
 }
