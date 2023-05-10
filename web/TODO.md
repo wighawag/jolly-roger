@@ -7,3 +7,4 @@
 - [ ] remove prettier ? use default conf to make it simpler (keep prettierignore ?)
 - [ ] remove .npmrc
 - [ ] same: remove editorconfig
+- [ ] use finality and blocktime from data/networks.json
