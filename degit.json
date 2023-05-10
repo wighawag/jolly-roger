@@ -1,6 +1,6 @@
 [
 	{
 		"action": "remove",
-		"files": ["LICENSE", ".github"]
+		"files": ["LICENSE", ".github", "TODO.md", "web/TODO.md", "publish.sh", "transform.js"]
 	}
 ]

@@ -5,15 +5,12 @@
 .env*.local
 
 # node modules
-node_modules
-
-# data generated
-/dist
-/ethereum-indexer-data
-/src/contracts.ts
+node_modules/
 #############################################
 
 # Ignore npm files
 pnpm-lock.yaml
 package.json
 
+# ignore folders
+**/
