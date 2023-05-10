@@ -22,12 +22,8 @@ jobs:
           # completely copy from public
           git reset origin/${{ github.ref_name }} --hard
 
-          # we then delete unwanted files:
-          rm web/TODO.md
-          rm -Rf .github/
-          rm publish.sh
-          # TODO more ...
+          node transform.js
 
           git add -A
-          git commit -m "Delete the unwanted file after copying from ${{ github.ref_name }}"
+          git commit -m "Transform branch ${{ github.ref_name }} into a generic template"
           git push --force
