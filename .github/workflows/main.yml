@@ -12,6 +12,13 @@ jobs:
           git config user.name github-actions
           git config user.email github-actions@github.com
 
+          echo "TESTING degit"
+          npx degit wighawag/jolly-roger#dev __test__
+          cd __test__
+          pnpm i && pnpm template-test
+          cd ..
+          rm -Rf __test__
+
           echo "fetching ${{ github.ref_name }}..."
           git fetch origin ${{ github.ref_name }}:${{ github.ref_name }}
 

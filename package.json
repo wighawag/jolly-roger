@@ -1,15 +1,15 @@
 {
   "name": "jolly-roger",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "Template to develop fully decentralised app and games",
   "private": true,
   "devDependencies": {
-    "dotenv-cli": "^7.2.1",
     "ldenv": "^0.3.5",
     "syncpack": "^9.8.6"
   },
   "scripts": {
-    "= sync-deps": "echo sync dependencies to use same version across the workspace",
+    "template-test": "pnpm --filter ./contracts local_node & pnpm run --filter ./contracts deploy localhost ~~ forge-deploy export localhost ../indexer/src/contracts.ts,../web/src/lib/blockchain/data/contracts.ts ~~ && pnpm --filter ./indexer build",
+    "= sync-deps": "sync dependencies to use same version across the workspace",
     "sync-deps": "syncpack fix-mismatches && pnpm -r format:fix",
     "stop": "zellij kill-session $npm_package_name",
     "start:wezterm": "wezterm --config-file wezterm.lua start $PWD",
