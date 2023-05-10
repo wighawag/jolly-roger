@@ -1,6 +1,30 @@
 // @ts-check
-import fs from 'fs';
 import path from 'path';
+import fs from 'fs';
+// import real_fs from 'fs';
+// const fs = {
+// 	writeFileSync(p, c) {
+// 		console.log(`writeFilySync`, p);
+// 	},
+// 	rmSync(p, options) {
+// 		console.log(`rmSync`, p);
+// 	},
+// 	cpSync(f, t) {
+// 		console.log(`cpSync`, f, t);
+// 	},
+// 	existsSync(p) {
+// 		return real_fs.existsSync(p);
+// 	},
+// 	statSync(p) {
+// 		return real_fs.statSync(p);
+// 	},
+// 	readFileSync(p, options) {
+// 		return real_fs.readFileSync(p, 'utf-8');
+// 	},
+// 	readdirSync(p) {
+// 		return real_fs.readdirSync(p);
+// 	},
+// };
 
 /**
  * @typedef RemoveAction
@@ -63,6 +87,9 @@ function files(filepath, parent = undefined, results = []) {
 	try {
 		const stats = fs.statSync(actual_path);
 		if (stats.isDirectory()) {
+			if (actual_parent !== '.') {
+				results.push(actual_path);
+			}
 			const list = fs.readdirSync(actual_path);
 			for (const file of list) {
 				files(file, actual_path, results);
@@ -80,18 +107,80 @@ function files(filepath, parent = undefined, results = []) {
 const filesToProcess = files('.');
 
 for (const file of filesToProcess) {
-	if (file.endsWith('-degit') || file.indexOf('-degit.') >= 0) {
-		const orginal_file = file.replace('-degit', '');
-		console.log(`overriding ${orginal_file} with ${file}`);
+	const basename = path.basename(file);
+	if (basename === '.degit') {
+		continue;
+	}
+	// console.log({basename});
+	if (basename.startsWith('degit-')) {
+		let orginal_file = file.replace('degit-', '');
+
+		let is_directory = false;
+		let content;
 		try {
 			const stats = fs.statSync(file);
-			try {
-				fs.rmSync(orginal_file);
-			} catch {}
-			if (stats.isDirectory()) {
-				fs.cpSync(file, orginal_file);
+			is_directory = stats.isDirectory();
+			if (is_directory) {
+				console.log({is_directory: file});
+				const degit_file = path.join(file, '.degit');
+				if (fs.existsSync(degit_file) && fs.statSync(degit_file).isFile()) {
+					const relative = fs.readFileSync(degit_file, 'utf-8');
+					orginal_file = path.join(file, relative);
+					console.log(`.degit`, {orginal_file});
+				}
 			} else {
-				fs.copyFileSync(file, orginal_file);
+				content = fs.readFileSync(file, 'utf-8');
+				const lines = content.split('\n');
+				const firstLine = lines.shift();
+				if (firstLine) {
+					if (
+						firstLine.startsWith('#degit:') ||
+						firstLine.startsWith('//degit:') ||
+						firstLine.startsWith('<!--degit:')
+					) {
+						if (firstLine.startsWith('#degit:')) {
+							orginal_file = firstLine.slice(7);
+						} else if (firstLine.startsWith('//degit:')) {
+							orginal_file = firstLine.slice(8);
+						} else if (firstLine.startsWith('<!-- degit:')) {
+							const filename = firstLine.slice(11).split(' ').shift();
+							if (filename) {
+								orginal_file = filename;
+							} else {
+								throw new Error(`invalid file name in ${file}`);
+							}
+						}
+
+						content = lines.join('\n');
+					}
+				}
+			}
+		} catch (err) {
+			console.log({err});
+		}
+
+		console.log(`overriding ${orginal_file} with ${file}`);
+		try {
+			if (is_directory) {
+				console.log({is_directory: file});
+				const files_in_dir = files(file);
+				for (const file_in_dir of files_in_dir) {
+					if (path.basename(file_in_dir) === '.degit') {
+						continue;
+					}
+					console.log({file_in_dir});
+					const rel = path.relative(file, file_in_dir);
+					try {
+						fs.cpSync(path.join(file, rel), path.join(orginal_file, rel));
+					} catch {}
+				}
+			} else {
+				try {
+					fs.rmSync(orginal_file);
+				} catch {}
+				if (content) {
+					fs.writeFileSync(orginal_file, content);
+				}
 			}
 		} catch (err) {
 			console.error({
