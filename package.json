@@ -5,7 +5,7 @@
   "private": true,
   "devDependencies": {
     "dotenv-cli": "^7.2.1",
-    "ldenv": "^0.2.2",
+    "ldenv": "^0.3.5",
     "syncpack": "^9.8.6"
   },
   "scripts": {
