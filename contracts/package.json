@@ -11,7 +11,7 @@
     "as-soon": "^0.0.4",
     "forge-deploy": "0.0.35",
     "forge-deploy-proxy": "^0.0.2",
-    "ldenv": "^0.2.2"
+    "ldenv": "^0.3.5"
   },
   "scripts": {
     "prepare": "forge install --no-git foundry-rs/forge-std@v1.5.3 || echo ''",

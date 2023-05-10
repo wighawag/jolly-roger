@@ -26,8 +26,8 @@ importers:
         specifier: ^0.0.2
         version: 0.0.2(forge-deploy@0.0.35)
       ldenv:
-        specifier: ^0.2.2
-        version: 0.2.2
+        specifier: ^0.3.5
+        version: 0.3.5
 
   indexer:
     dependencies:
