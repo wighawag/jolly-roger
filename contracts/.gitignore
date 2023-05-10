@@ -1,6 +1,6 @@
 # Compiler files
-cache/
-out/
+/cache
+/out
 
 # Ignores development broadcast logs
 !/broadcast
@@ -9,7 +9,7 @@ out/
 /broadcast/**/dry-run/
 
 # Docs
-docs/
+/docs
 
 # local files
 *.local
@@ -25,7 +25,7 @@ docs/
 /lib
 
 # npm
-node_modules/
+node_modules
 
 # vscode
 .vscode/*

@@ -1,3 +1,9 @@
 - [ ] test edge-case where unlocking popup trigger but the modal disapear after some time
 - [ ] ensure we see the "unlock error" case when a user is trying to click unlock after metamask has already a notificaiton icon about it
 - [ ] ensure we show the metamask bug on reload
+- [ ] remove jolly-roger theme ?
+- [ ] reorg folders to simplify the structure and remove unused files
+- [ ] jolly-roger folder to delete + use a different home page => "Getting Started" (based on README ?)
+- [ ] remove prettier ? use default conf to make it simpler (keep prettierignore ?)
+- [ ] remove .npmrc
+- [ ] same: remove editorconfig

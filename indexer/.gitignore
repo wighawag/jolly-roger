@@ -4,12 +4,6 @@
 # node modules
 node_modules/
 
-# vscode
-.vscode/*
-!.vscode/settings.json.default
-!.vscode/launch.json.default
-!.vscode/extensions.json.default
-
 # data generated
 dist/
 data/

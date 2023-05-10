@@ -31,19 +31,19 @@ importers:
 
   indexer:
     dependencies:
-      dotenv:
-        specifier: ^16.0.3
-        version: 16.0.3
       ethereum-indexer-js-processor:
-        specifier: ^0.6.1
-        version: 0.6.1(typescript@5.0.4)
+        specifier: ^0.6.3
+        version: 0.6.3(typescript@5.0.4)
       named-logs:
         specifier: ^0.2.2
         version: 0.2.2
     devDependencies:
       ethereum-indexer-server:
-        specifier: ^0.6.2
-        version: 0.6.2(typescript@5.0.4)
+        specifier: ^0.6.6
+        version: 0.6.6(typescript@5.0.4)
+      ldenv:
+        specifier: ^0.3.5
+        version: 0.3.5
       prettier:
         specifier: ^2.8.8
         version: 2.8.8
@@ -631,17 +631,17 @@ packages:
     resolution: {integrity: sha512-MxObHvNl4A69ofaTRU8DFqvgzzv8s9yRtaPPm5gud9HDNvpB3GPQFvNuTWAI59B9huVGV5jXYJwbCsmBsOGYWA==}
     dependencies:
       '@types/jsonfile': 6.1.1
-      '@types/node': 18.16.3
+      '@types/node': 20.1.2
     dev: true
 
   /@types/jsonfile@6.1.1:
     resolution: {integrity: sha512-GSgiRCVeapDN+3pqA35IkQwasaCh/0YFH5dEF6S88iDvEn901DjOeH3/QPY+XYP1DFzDZPvIvfeEgk+7br5png==}
     dependencies:
-      '@types/node': 18.16.3
+      '@types/node': 20.1.2
     dev: true
 
-  /@types/node@18.16.3:
-    resolution: {integrity: sha512-OPs5WnnT1xkCBiuQrZA4+YAV4HEJejmHneyraIaxsbev5yCEr6KMwINNFP9wQeFIw8FWcoTqF3vQsa5CDaI+8Q==}
+  /@types/node@20.1.2:
+    resolution: {integrity: sha512-CTO/wa8x+rZU626cL2BlbCDzydgnFNgc19h4YvizpTO88MFQxab8wqisxaofQJ/9bLGugRdWIuX/TbIs6VVF6g==}
     dev: true
 
   /@types/pug@2.0.6:
@@ -1528,17 +1528,10 @@ packages:
     engines: {node: '>=12'}
     dev: true
 
-  /dotenv-set@0.1.1:
-    resolution: {integrity: sha512-xtf7/fZl795ykyp9ffcwAUropLnktyjrGnjSAV6mmui3xPqiUuRjjJQ8dAFANd6qKV14+rGpk1/d6hTDPJ2yxA==}
-    hasBin: true
-    dependencies:
-      dotenv: 16.0.3
-      dotenv-expand: 10.0.0
-    dev: true
-
   /dotenv@16.0.3:
     resolution: {integrity: sha512-7GO6HghkA5fYG9TYnNxi14/7K9f5occMlp3zXAuSxn7CKCxt9xbNWG7yF8hTCSUchlfWSe3uLmlPfigevRItzQ==}
     engines: {node: '>=12'}
+    dev: true
 
   /double-ended-queue@2.1.0-0:
     resolution: {integrity: sha512-+BNfZ+deCo8hMNpDqDnvT+c0XpJ5cUa6mqYq89bho2Ifze4URTqRkcwR399hWoTrTkbZ/XJYDgP6rc7pRgffEQ==}
@@ -1687,10 +1680,10 @@ packages:
       - zod
     dev: false
 
-  /ethereum-indexer-db-utils@0.6.1(typescript@5.0.4):
-    resolution: {integrity: sha512-RMtk10JaQX4GTJC9KgDgVVmCISrcf8+OTK8mRPvJDzRw4ZWXA37/eFv4t6Saevcn8IMOVZFEYXg8mZNbHxTyuw==}
+  /ethereum-indexer-db-utils@0.6.3(typescript@5.0.4):
+    resolution: {integrity: sha512-a/1oSbEbatU4AuR2/S63Hc6RU6j8GpL9YcvUDMneU4DEInQftLpcPS4HKGps+t2ZA3a9Ug34tETnj85WOgAMQQ==}
     dependencies:
-      ethereum-indexer: 0.6.1(typescript@5.0.4)
+      ethereum-indexer: 0.6.3(typescript@5.0.4)
       named-logs: 0.2.2
       pouchdb: 8.0.1
       pouchdb-find: 8.0.1
@@ -1702,11 +1695,11 @@ packages:
       - zod
     dev: true
 
-  /ethereum-indexer-fs-cache@0.6.1(typescript@5.0.4):
-    resolution: {integrity: sha512-LAAfkE8f4sUF5h+wFfK3l4A4sX3S7jb02/MWDfKXbwCvPmVEFW+7MMRfKad+U8kggw7ar3GSXlYghcUfp227oQ==}
+  /ethereum-indexer-fs-cache@0.6.3(typescript@5.0.4):
+    resolution: {integrity: sha512-iu4v3YpeiW/KbC7N3/V9MXr1eZPbckPOJW7t+UHWuY6120M2Y3hJ+KnJ0/wHEwSJ323GOJn5Eb8uOhqhUAj1SA==}
     dependencies:
       '@types/fs-extra': 11.0.1
-      ethereum-indexer: 0.6.1(typescript@5.0.4)
+      ethereum-indexer: 0.6.3(typescript@5.0.4)
       fs-extra: 11.1.1
       named-logs: 0.2.2
       pouchdb: 8.0.1
@@ -1719,10 +1712,10 @@ packages:
       - zod
     dev: true
 
-  /ethereum-indexer-js-processor@0.6.1(typescript@5.0.4):
-    resolution: {integrity: sha512-aoGXyKrDLHfDKB4hfmzhNMvFEjCdw3kiRZW0z09PoWaeH76mRklDpfuOvNWqCXEDpEtrcaWRxmjVn1eGxPdqvQ==}
+  /ethereum-indexer-js-processor@0.6.3(typescript@5.0.4):
+    resolution: {integrity: sha512-ntlwMW8NrNs8Is2vK0tpPx/UVnIRzQnJQfRIDprxlW1kfkiA2bi4DWaZ791nZ56D13hs8xcFI0FTZr8XsLg0fQ==}
     dependencies:
-      ethereum-indexer: 0.6.1(typescript@5.0.4)
+      ethereum-indexer: 0.6.3(typescript@5.0.4)
       named-logs: 0.2.2
     transitivePeerDependencies:
       - bufferutil
@@ -1731,23 +1724,23 @@ packages:
       - zod
     dev: false
 
-  /ethereum-indexer-server@0.6.2(typescript@5.0.4):
-    resolution: {integrity: sha512-CPcnRZGeKHCnQ8YiSaZ7Uh2DCT0jkiTZmSpIODBP4l+yVMlvQZtuml972mkAdAWrMTAetdOa1o5JakUB0ngIUg==}
+  /ethereum-indexer-server@0.6.6(typescript@5.0.4):
+    resolution: {integrity: sha512-lq/th8yU2BITmghsNh3msqyzCN7Oy81AOoBysHb48eQs3OyTaMAPsrbxF2Jir2ty9AktA5Of55Z+w7tD7ofTBw==}
     hasBin: true
     dependencies:
       '@ethersproject/bignumber': 5.7.0
       commander: 10.0.1
-      dotenv-set: 0.1.1
       eip-1193-json-provider: 0.1.0
-      ethereum-indexer: 0.6.1(typescript@5.0.4)
-      ethereum-indexer-db-utils: 0.6.1(typescript@5.0.4)
-      ethereum-indexer-fs-cache: 0.6.1(typescript@5.0.4)
+      ethereum-indexer: 0.6.3(typescript@5.0.4)
+      ethereum-indexer-db-utils: 0.6.3(typescript@5.0.4)
+      ethereum-indexer-fs-cache: 0.6.3(typescript@5.0.4)
       figlet: 1.6.0
       koa: 2.14.2
       koa-bodyparser: 4.4.0
       koa-json: 2.0.2
       koa-logger: 3.2.1
       koa-router: 12.0.0
+      ldenv: 0.3.5
       named-logs: 0.2.2
       named-logs-console: 0.2.3
       pouchdb: 8.0.1
@@ -1761,17 +1754,6 @@ packages:
       - zod
     dev: true
 
-  /ethereum-indexer@0.6.1(typescript@5.0.4):
-    resolution: {integrity: sha512-3jEG6/RF7XXE48iazt2PGMV5YOKnV5Qu4ZPqRs7PrcncF6hCVNcVBD6FPwZZAlBkmhzgEYJ8gxk0QGe5R5UbbQ==}
-    dependencies:
-      named-logs: 0.2.2
-      viem: 0.1.26(typescript@5.0.4)
-    transitivePeerDependencies:
-      - bufferutil
-      - typescript
-      - utf-8-validate
-      - zod
-
   /ethereum-indexer@0.6.3(typescript@5.0.4):
     resolution: {integrity: sha512-DMLC3NV/Aa7ZRnXtSc0rmT3hi1jAOOzbkg0y66uK6OlWZ4p/6WnavgwASZLn1aMS5a1Iol5aV7vD1SsfhwUZYQ==}
     dependencies:
@@ -1782,7 +1764,6 @@ packages:
       - typescript
       - utf-8-validate
       - zod
-    dev: false
 
   /event-target-shim@5.0.1:
     resolution: {integrity: sha512-i/2XbnSz/uxRCU6+NdVJgKWDTM427+MqYbkQzD321DuCQJUqOuJKIA0IM2+W2xtYHdKOmZ4dR6fExsd4SXL+WQ==}
@@ -2703,6 +2684,14 @@ packages:
 
   /ldenv@0.2.2:
     resolution: {integrity: sha512-WsVOhnvQlsV6xmUaguq2J/JYza0XW30bj4okSxf+q4nFrnyMOYJEwVThpmikvXywll8TY3c03swgaL0SNVgCkg==}
+    hasBin: true
+    dependencies:
+      dotenv: 16.0.3
+      dotenv-expand: 10.0.0
+    dev: true
+
+  /ldenv@0.3.5:
+    resolution: {integrity: sha512-+mJ/nU6tdTxpDua8sJj06wc5sllPUPWAWkw1AMiQMCFvfdeyxQbzCOeft3HjDjGu9Y9a7v5GSndUyrYBm1Nw8Q==}
     hasBin: true
     dependencies:
       dotenv: 16.0.3
@@ -4043,6 +4032,14 @@ packages:
       fsevents: 2.3.2
     dev: true
 
+  /rollup@3.21.6:
+    resolution: {integrity: sha512-SXIICxvxQxR3D4dp/3LDHZIJPC8a4anKMHd4E3Jiz2/JnY+2bEjqrOokAauc5ShGVNFHlEFjBXAXlaxkJqIqSg==}
+    engines: {node: '>=14.18.0', npm: '>=8.0.0'}
+    hasBin: true
+    optionalDependencies:
+      fsevents: 2.3.2
+    dev: true
+
   /run-parallel@1.2.0:
     resolution: {integrity: sha512-5l4VyZR86LZ/lDxZTR6jqL8AFE2S0IFLMP26AbjsLVADxHdhB/c0GUsH+y39UfCi3dzz8OlQuPmnaJOMoDHQBA==}
     dependencies:
@@ -4721,7 +4718,7 @@ packages:
       joycon: 3.1.1
       postcss-load-config: 3.1.4
       resolve-from: 5.0.0
-      rollup: 3.21.3
+      rollup: 3.21.6
       source-map: 0.8.0-beta.0
       sucrase: 3.32.0
       tree-kill: 1.2.2

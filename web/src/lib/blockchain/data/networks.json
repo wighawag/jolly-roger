@@ -45,7 +45,7 @@
 			}
 		},
 		"finality": 12,
-		"averageBblockTime": 15
+		"averageBblockTime": 12
 	},
 	"100": {
 		"config": {
