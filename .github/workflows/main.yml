@@ -9,22 +9,22 @@ jobs:
         with:
           ref: main
       - run: |
-        git config user.name github-actions
-        git config user.email github-actions@github.com
+          git config user.name github-actions
+          git config user.email github-actions@github.com
 
       # need anvil
       # - run: echo "TESTING degit" && npx degit wighawag/jolly-roger#dev __test__ && cd __test__ && npx pnpm i && npx pnpm template-test && cd .. && rm -Rf __test__
 
       - run: |
-        echo "fetching ${{ github.ref_name }}..."
-        git fetch origin ${{ github.ref_name }}:${{ github.ref_name }}
+          echo "fetching ${{ github.ref_name }}..."
+          git fetch origin ${{ github.ref_name }}:${{ github.ref_name }}
 
-        # completely copy from public
-        git reset origin/${{ github.ref_name }} --hard
+          # completely copy from public
+          git reset origin/${{ github.ref_name }} --hard
 
       - run: node transform.js
 
       - run: |
-        git add -A
-        git commit -m "Transform branch ${{ github.ref_name }} into a generic template"
-        git push --force
+          git add -A
+          git commit -m "Transform branch ${{ github.ref_name }} into a generic template"
+          git push --force
