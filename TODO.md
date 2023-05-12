@@ -1,5 +1,1 @@
-- [ ] add an ERC721 token
-- [ ] add more demo pages / (or tabs?)
-- [ ] handle private local data + show example
-- [ ] rename workspace to jolly-roger
 - [ ] auto rename app ?
