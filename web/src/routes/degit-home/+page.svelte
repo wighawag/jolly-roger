@@ -37,7 +37,7 @@
 				>
 			</h3>
 		</div>
-		<p class="m-6 !text-xl">Welcome to your App</p>
+		<p class="my-6 m-6 !text-3xl font-black">Welcome to your <span id="spin" />!</p>
 		<div class="max-w-md mx-auto pt-1 mt-5 space-y-3 md:m-8 md:space-y-5">
 			<div class="space-y-5 sm:flex sm:justify-center sm:space-y-0 sm:space-x-3">
 				<a class="btn btn-primary btn-wide" href={route('/demo/')} aria-label="Try the Demo!">Demo</a>
@@ -45,3 +45,24 @@
 		</div>
 	</div>
 </section>
+
+<style>
+	#spin {
+		color: #db2777;
+	}
+	#spin:after {
+		content: 'Idea';
+		animation: spin 4s linear infinite;
+	}
+	@keyframes spin {
+		0% {
+			content: 'Idea';
+		}
+		33% {
+			content: 'Game';
+		}
+		66% {
+			content: 'App';
+		}
+	}
+</style>
