@@ -1,7 +1,7 @@
 <script lang="ts">
 	import {modalStore} from './stores';
 	import type {ModalCancellationOptions, ModalContentSettings, ModalResponseCallback} from './types';
-	import {focusTrap} from '$lib/skeleton/actions/FocusTrap/focusTrap';
+	import {focusTrap} from '$lib/components/utilities/focusTrap';
 
 	// ----------------------------------------------------------------------------------------------
 	// EXPORTS

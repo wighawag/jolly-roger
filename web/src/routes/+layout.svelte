@@ -6,7 +6,7 @@
 	import {name, description, themeColor, canonicalURL, appleStatusBarStyle, ENSName} from 'web-config';
 	import NewVersionNotification from '$lib/components/web/NewVersionNotification.svelte';
 	import NoInstallPrompt from '$lib/components/web/NoInstallPrompt.svelte';
-	import {url} from '$lib/utils/url';
+	import {url} from '$lib/utils/path';
 	import Install from '$lib/components/web/Install.svelte';
 
 	const host = canonicalURL.endsWith('/') ? canonicalURL : canonicalURL + '/';

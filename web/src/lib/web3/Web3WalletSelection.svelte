@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type {connection as Connection} from './';
 	export let connection: typeof Connection;
-	import {url} from '$lib/utils/url';
+	import {url} from '$lib/utils/path';
 	import Modal from '$lib/components/modals/Modal.svelte';
 
 	const builtin = connection.builtin;

@@ -6,7 +6,7 @@ export default defineConfig({
 	//TEMPLATE_REMOVE
 	build: {
 		minify: false,
-		sourcemap: true, // "inline" doe snot seem to allow step-by-step debugging
+		sourcemap: true,
 	},
 	//TEMPLATE_REMOVE
 });

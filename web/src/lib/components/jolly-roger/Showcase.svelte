@@ -1,5 +1,5 @@
 <script lang="ts">
-	import {url} from '$lib/utils/url';
+	import {url} from '$lib/utils/path';
 
 	export let href: string;
 	export let preview: string;

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import {name} from 'web-config';
-	import {url} from '$lib/utils/url';
+	import {route, url} from '$lib/utils/path';
 </script>
 
 <section class="py-2 px-4 text-center">
@@ -40,7 +40,7 @@
 		<p class="m-6 !text-xl">Welcome to your App</p>
 		<div class="max-w-md mx-auto pt-1 mt-5 space-y-3 md:m-8 md:space-y-5">
 			<div class="space-y-5 sm:flex sm:justify-center sm:space-y-0 sm:space-x-3">
-				<a class="btn btn-primary btn-wide" href={url('/demo/')} aria-label="Try the Demo!">Demo</a>
+				<a class="btn btn-primary btn-wide" href={route('/demo/')} aria-label="Try the Demo!">Demo</a>
 			</div>
 		</div>
 	</div>

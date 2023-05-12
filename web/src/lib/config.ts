@@ -1,7 +1,7 @@
 import {readable} from 'svelte/store';
 import {version} from '$app/environment';
 
-import {getParamsFromLocation, getHashParamsFromLocation} from '$lib/utils/web';
+import {getParamsFromLocation, getHashParamsFromLocation} from '$lib/utils/url';
 import {PUBLIC_ETH_NODE_URI_LOCALHOST, PUBLIC_ETH_NODE_URI, PUBLIC_LOCALHOST_BLOCK_TIME} from '$env/static/public';
 
 import _contractsInfos from '$lib/blockchain/data/contracts';
