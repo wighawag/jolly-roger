@@ -3,7 +3,9 @@ import {defineConfig} from 'vite';
 
 export default defineConfig({
 	plugins: [sveltekit()],
-	// build: {
-	// 	minify: false,
-	// },
+	//TEMPLATE_REMOVE
+	build: {
+		minify: false,
+	},
+	//TEMPLATE_REMOVE
 });
