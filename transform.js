@@ -192,13 +192,17 @@ for (const file of filesToProcess) {
 		} finally {
 			fs.rmSync(file, {recursive: true});
 		}
-	} else {
-		if (fs.existsSync(file) && fs.statSync(file).isFile()) {
-			if (htmlExtensions.indexOf(path.extname(file)) >= 0) {
-				const regex = /<!--TEMPLATE_REMOVE-->.*?<!--TEMPLATE_REMOVE-->/gms;
-				const content = fs.readFileSync(file, 'utf-8');
-				fs.writeFileSync(file, content.replace(regex, ''));
-			}
+	}
+}
+
+const second_phase_files = files('.');
+
+for (const file of second_phase_files) {
+	if (fs.existsSync(file) && fs.statSync(file).isFile()) {
+		if (htmlExtensions.indexOf(path.extname(file)) >= 0) {
+			const regex = /<!--TEMPLATE_REMOVE-->.*?<!--TEMPLATE_REMOVE-->/gms;
+			const content = fs.readFileSync(file, 'utf-8');
+			fs.writeFileSync(file, content.replace(regex, ''));
 		}
 	}
 }
