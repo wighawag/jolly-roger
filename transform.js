@@ -201,11 +201,11 @@ const second_phase_files = files('.');
 for (const file of second_phase_files) {
 	if (fs.existsSync(file) && fs.statSync(file).isFile()) {
 		if (htmlExtensions.indexOf(path.extname(file)) >= 0) {
-			const regex = /\s<!--TEMPLATE_REMOVE-->.*?<!--TEMPLATE_REMOVE-->\n/gms;
+			const regex = /\s?<!--TEMPLATE_REMOVE-->.*?<!--TEMPLATE_REMOVE-->\n?/gms;
 			const content = fs.readFileSync(file, 'utf-8');
 			fs.writeFileSync(file, content.replace(regex, ''));
 		} else if (doubleDashCommentsExtensions.indexOf(path.extname(file)) >= 0) {
-			const regex = /\s\/\/TEMPLATE_REMOVE.*?\/\/TEMPLATE_REMOVE\n/gms;
+			const regex = /\s?\/\/TEMPLATE_REMOVE.*?\/\/TEMPLATE_REMOVE\n?/gms;
 			const content = fs.readFileSync(file, 'utf-8');
 			fs.writeFileSync(file, content.replace(regex, ''));
 		}
