@@ -56,7 +56,7 @@ if (degit) {
 	}
 }
 
-const htmlExtensions = ['svelte', 'html'];
+const htmlExtensions = ['.svelte', '.html'];
 const ignore_folders = [
 	'.git',
 	'node_modules',
