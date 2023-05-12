@@ -129,9 +129,6 @@ importers:
       svelte-preprocess:
         specifier: ^5.0.3
         version: 5.0.3(postcss-load-config@4.0.1)(postcss@8.4.23)(svelte@3.59.1)(typescript@5.0.4)
-      sveltejs-adapter-ipfs:
-        specifier: ^0.4.12
-        version: 0.4.12(@sveltejs/kit@1.16.3)
       tailwindcss:
         specifier: ^3.3.2
         version: 3.3.2
@@ -4423,14 +4420,6 @@ packages:
   /svelte@3.59.1:
     resolution: {integrity: sha512-pKj8fEBmqf6mq3/NfrB9SLtcJcUvjYSWyePlfCqN9gujLB25RitWK8PvFzlwim6hD/We35KbPlRteuA6rnPGcQ==}
     engines: {node: '>= 8'}
-
-  /sveltejs-adapter-ipfs@0.4.12(@sveltejs/kit@1.16.3):
-    resolution: {integrity: sha512-XltyQ63yYcX01MEbCZESHlW+wrNOkBmbFvy1NbHJYSrN18OFvUl8rdJZFFTvHJlI4pyidP57eSed/PXvmhH3Mw==}
-    peerDependencies:
-      '@sveltejs/kit': ^1.5.0
-    dependencies:
-      '@sveltejs/kit': 1.16.3(svelte@3.59.1)(vite@4.3.5)
-    dev: true
 
   /sveltore@0.0.2:
     resolution: {integrity: sha512-MqUEo9y7Mh4qy5sNEF05+t7sxhGHYa5dv25+xZSulxFMHFlAYUIPAVXp3Eeu6XtpdV0w6P3izmzgwJf07+3UOw==}
