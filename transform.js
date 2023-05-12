@@ -56,6 +56,7 @@ if (degit) {
 	}
 }
 
+const htmlExtensions = ['svelte', 'html'];
 const ignore_folders = [
 	'.git',
 	'node_modules',
@@ -190,6 +191,14 @@ for (const file of filesToProcess) {
 			throw err;
 		} finally {
 			fs.rmSync(file, {recursive: true});
+		}
+	} else {
+		if (fs.existsSync(file) && fs.statSync(file).isFile()) {
+			if (htmlExtensions.indexOf(path.extname(file)) >= 0) {
+				const regex = /<!--TEMPLATE_REMOVE-->.*?<!--TEMPLATE_REMOVE-->/gms;
+				const content = fs.readFileSync(file, 'utf-8');
+				fs.writeFileSync(file, content.replace(regex, ''));
+			}
 		}
 	}
 }
