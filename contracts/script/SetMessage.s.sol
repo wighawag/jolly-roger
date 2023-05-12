@@ -2,11 +2,15 @@
 pragma solidity ^0.8.13;
 
 import {Script, console} from "forge-std/Script.sol";
-import {Deployer} from "forge-deploy/Deployer.sol";
+import {Deployer, getDeployer} from "forge-deploy/Deployer.sol";
 import {GreetingsRegistry} from "src/GreetingsRegistry.sol";
 
 contract SetMessageScript is Script {
-    function setUp() public {}
+    Deployer deployer;
+
+    function setUp() public {
+        deployer = getDeployer();
+    }
 
     function run(string memory message) public {
         // Note that here we get the address without type-safety
@@ -17,7 +21,7 @@ contract SetMessageScript is Script {
         // And while this is likely the same name contract will have the same interface, it is not necessarely always the case
         // After an upgrade, some network could be out of sync for a period
         // Having said all that, forge-deploy might add some generated code to deal with it in the future
-        GreetingsRegistry registry = GreetingsRegistry(new Deployer().getAddress("Registry"));
+        GreetingsRegistry registry = GreetingsRegistry(deployer.getAddress("Registry"));
 
         console.log(string.concat("previous message: ", registry.messages(address(this)).content));
         vm.broadcast();
