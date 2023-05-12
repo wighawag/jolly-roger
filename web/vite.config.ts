@@ -6,6 +6,7 @@ export default defineConfig({
 	//TEMPLATE_REMOVE
 	build: {
 		minify: false,
+		sourcemap: 'inline',
 	},
 	//TEMPLATE_REMOVE
 });
