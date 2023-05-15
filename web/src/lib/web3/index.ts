@@ -1,6 +1,13 @@
 import {init} from 'web3-connection';
 import {WalletConnectModuleLoader} from 'web3w-walletconnect-loader';
-import {contractsInfos, defaultRPC, initialContractsInfos, blockTime, localDev} from '$lib/config';
+import {
+	contractsInfos,
+	defaultRPC,
+	initialContractsInfos,
+	blockTime,
+	localRPC,
+	isUsingLocalDevNetwork,
+} from '$lib/config';
 import {initAccountData} from './account-data';
 import {initTransactionProcessor} from '$external/tx-observer';
 import {logs} from 'named-logs';
@@ -59,7 +66,7 @@ const stores = init({
 			// console.log(`DONE unloading for ${tmp.address} (${tmp.chainId})`);
 		},
 	},
-	checkGenesis: localDev ? 'http://localhost:8545' : undefined, // We use localhost:8545 here
+	checkGenesis: isUsingLocalDevNetwork ? localRPC || true : undefined,
 });
 
 export const txObserver = initTransactionProcessor({finality: 12}); // TODO config.finality

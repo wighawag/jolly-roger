@@ -2,7 +2,12 @@ import {readable} from 'svelte/store';
 import {version} from '$app/environment';
 
 import {getParamsFromLocation, getHashParamsFromLocation} from '$lib/utils/url';
-import {PUBLIC_ETH_NODE_URI_LOCALHOST, PUBLIC_ETH_NODE_URI, PUBLIC_LOCALHOST_BLOCK_TIME} from '$env/static/public';
+import {
+	PUBLIC_ETH_NODE_URI_LOCALHOST,
+	PUBLIC_ETH_NODE_URI,
+	PUBLIC_LOCALHOST_BLOCK_TIME,
+	PUBLIC_DEV_NODE_URI,
+} from '$env/static/public';
 
 import _contractsInfos from '$lib/blockchain/data/contracts';
 export type NetworkConfig = typeof _contractsInfos;
@@ -19,9 +24,9 @@ let defaultRPCURL: string | undefined = params['ethnode'];
 
 let blockTime: number | undefined = undefined;
 
-let localDev = false;
+let isUsingLocalDevNetwork = false;
 if (chainId === '1337' || chainId === '31337') {
-	localDev = true;
+	isUsingLocalDevNetwork = true;
 	if (!defaultRPCURL) {
 		const url = PUBLIC_ETH_NODE_URI_LOCALHOST as string;
 		if (url && url !== '') {
@@ -37,9 +42,11 @@ if (!defaultRPCURL) {
 	}
 }
 
+const localRPC: string | undefined = PUBLIC_DEV_NODE_URI;
+
 const defaultRPC = defaultRPCURL ? {chainId, url: defaultRPCURL} : undefined;
 
-export {defaultRPC, localDev, blockTime};
+export {defaultRPC, isUsingLocalDevNetwork, localRPC, blockTime};
 
 let _setContractsInfos: any;
 export const contractsInfos = readable<NetworkConfig>(_contractsInfos, (set) => {
@@ -62,8 +69,9 @@ console.log(`VERSION: ${version}`);
 console.log(`Jolly Roger`);
 
 console.log({
+	localRPC,
 	defaultRPC,
-	localDev,
+	isUsingLocalDevNetwork,
 	blockTime,
 	contractsInfos,
 });
