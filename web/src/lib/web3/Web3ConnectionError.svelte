@@ -9,7 +9,8 @@
 </script>
 
 {#if $connection.error}
-	{#if $connection.error?.code == 7221}
+	<!-- TODO remove or retest-->
+	<!-- {#if $connection.error?.code == 7221}
 		<AlertWithSlot onClose={connection.acknowledgeError}>
 			{#if $builtin.vendor === 'Metamask'}
 				<p>
@@ -27,9 +28,9 @@
 				</p>
 			{/if}
 		</AlertWithSlot>
-	{:else}
-		<Alert data={$connection.error} onClose={connection.acknowledgeError} />
-	{/if}
+	{:else} -->
+	<Alert data={$connection.error} onClose={connection.acknowledgeError} />
+	<!-- {/if} -->
 {:else if $network.genesisChanged}
 	<AlertWithSlot>
 		<p class="m-2">Chain reset detected! Metamask need to have its account reset!</p>
