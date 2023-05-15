@@ -5,7 +5,7 @@ import {Data} from './types/data';
 const TinyRogerIndexerProcessor: JSProcessor<MergedAbis<typeof contractsInfo.contracts>, Data> = {
 	version: '__VERSION_HASH__',
 	construct(): Data {
-		return {greetings: [], totalTransfered: 0n};
+		return {greetings: []};
 	},
 	onMessageChanged(json, event) {
 		const findIndex = json.greetings.findIndex((v) => v.account === event.args.user);

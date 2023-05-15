@@ -19,7 +19,7 @@
 	export let network: typeof Network;
 </script>
 
-<Web3ConnectionError {connection} />
+<Web3ConnectionError {connection} {network} />
 
 <Web3WalletSelection {connection} />
 

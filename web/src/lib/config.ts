@@ -67,3 +67,51 @@ console.log({
 	blockTime,
 	contractsInfos,
 });
+
+// Debugging vite initial reload
+// const observeUrlChange = () => {
+// 	console.log(`observing...`);
+// 	let oldHref = document.location.href;
+// 	const body = document.querySelector('body');
+// 	if (body) {
+// 		const observer = new MutationObserver((mutations) => {
+// 			mutations.forEach(() => {
+// 				if (oldHref !== document.location.href) {
+// 					oldHref = document.location.href;
+// 					/* Changed ! your code here */
+// 				}
+// 			});
+// 		});
+// 		observer.observe(body, {childList: true, subtree: true});
+// 	}
+// 	window.addEventListener('popstate', (event) => {
+// 		console.log(`popstate`, event);
+// 	});
+
+// 	const oldPushState = window.history.pushState.bind(window.history);
+// 	window.history.pushState = (data, unused, url) => {
+// 		console.log(`pushState`, JSON.stringify({data, unused, url}, null, 2));
+// 		oldPushState(data, unused, url);
+// 	};
+// 	// const oldReload = window.location.reload.bind(window.location);
+// 	// window.location.reload = () => {
+// 	// 	console.log(`reload`);
+// 	// 	oldReload();
+// 	// };
+// 	// const oldReplace = window.location.replace.bind(window.location);
+// 	// window.location.replace = (url) => {
+// 	// 	console.log(`replace`, url);
+// 	// 	oldReplace(url);
+// 	// };
+// 	window.onbeforeunload = function (ev) {
+// 		console.log(ev, JSON.stringify(ev, null, 2));
+// 		// return 'Are you sure you want to navigate away?';
+// 		return false;
+// 	};
+// };
+
+// if (typeof window !== 'undefined') {
+// 	console.log(`WINDOW`);
+// 	// window.addEventListener('load', observeUrlChange);
+// 	observeUrlChange();
+// }

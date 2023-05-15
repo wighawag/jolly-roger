@@ -1,7 +1,10 @@
 import {writable} from 'svelte/store';
 import type {EIP1193Provider, EIP1193Block} from 'eip-1193';
-import type {EIP1193TransactionWithMetadata} from 'web3-connection/dist/provider/wrap';
+import type {EIP1193TransactionWithMetadata} from 'web3-connection';
 import {initEmitter} from '$external/callbacks';
+import {logs} from 'named-logs';
+
+const logger = logs('tx-observer');
 
 export type PendingTransactionInclusion = 'Loading' | 'Pending' | 'NotFound' | 'Cancelled' | 'Included';
 export type PendingTransaction = {
@@ -30,6 +33,7 @@ export function initTransactionProcessor(config: {finality: number}) {
 	const map: {[hash: string]: PendingTransaction} = {};
 
 	function add(list: PendingTransaction[]) {
+		logger.info(`adding ${list.length} txs...`);
 		for (const tx of list) {
 			_addSingle(tx);
 		}
@@ -37,6 +41,7 @@ export function initTransactionProcessor(config: {finality: number}) {
 	}
 
 	function _addSingle(pendingTransaction: PendingTransaction) {
+		logger.info(`adding ${pendingTransaction.hash}...`);
 		if (!map[pendingTransaction.hash]) {
 			map[pendingTransaction.hash] = pendingTransaction;
 			$txs.push(pendingTransaction);
@@ -60,6 +65,7 @@ export function initTransactionProcessor(config: {finality: number}) {
 	}
 
 	function clear() {
+		logger.info(`clearing txs...`);
 		for (const tx of $txs) {
 			delete map[tx.hash];
 		}
@@ -67,6 +73,7 @@ export function initTransactionProcessor(config: {finality: number}) {
 	}
 
 	function remove(hash: string) {
+		logger.info(`removing tx ${hash}...`);
 		const pendingTransaction = map[hash];
 		if (pendingTransaction) {
 			const index = $txs.indexOf(pendingTransaction);
@@ -90,25 +97,24 @@ export function initTransactionProcessor(config: {finality: number}) {
 
 		const latestBlockNumber = parseInt(latestBlock.number.slice(2), 16);
 
+		logger.info(`latestBlock: ${latestBlockNumber}`);
+
 		const latestFinalizedBlockNumber = Math.max(latestBlockNumber - config.finality, 0);
 
 		const latestFinalizedBlock = await provider.request({
 			method: 'eth_getBlockByNumber',
 			params: [`0x${latestFinalizedBlockNumber.toString(16)}`, false],
 		});
-		const account = '0x'; // TODO checkedAction.action.txOrigin || ownerAddress;
-		const tranactionCount = await provider.request({
-			method: 'eth_getTransactionCount',
-			params: [account, latestFinalizedBlock.hash],
-		});
-		const finalityNonce = parseInt(tranactionCount.slice(2), 16);
+
+		logger.info(`latestFinalizedBlock: ${latestFinalizedBlockNumber}`);
+
+		logger.info(`txs: ${$txs.length}`);
 
 		let changes = false;
 		for (const tx of $txs) {
 			const newChanges = await processTx(tx, {
 				latestBlockNumber,
-				latestFinalizedBlockNumber,
-				finalityNonce,
+				latestFinalizedBlock,
 			});
 			// TODO skip if account / network changes
 			changes = changes || newChanges;
@@ -125,11 +131,10 @@ export function initTransactionProcessor(config: {finality: number}) {
 		tx: PendingTransaction,
 		{
 			latestBlockNumber,
-			finalityNonce,
+			latestFinalizedBlock,
 		}: {
 			latestBlockNumber: number;
-			latestFinalizedBlockNumber: number;
-			finalityNonce: number;
+			latestFinalizedBlock: EIP1193Block;
 		}
 	): Promise<boolean> {
 		if (!provider) {
@@ -163,6 +168,11 @@ export function initTransactionProcessor(config: {finality: number}) {
 					params: [txFromPeers.blockHash, false],
 				});
 				if (block) {
+					if (tx.inclusion !== 'Included') {
+						// we change type here
+						(tx as any).inclusion = 'Included';
+						changes = true;
+					}
 					const blockNumber = parseInt(block.number.slice(2), 16);
 					const blockTimestamp = parseInt(block.timestamp.slice(2), 16);
 					const is_final = latestBlockNumber - blockNumber >= config.finality;
@@ -183,6 +193,8 @@ export function initTransactionProcessor(config: {finality: number}) {
 			} else {
 				if (tx.inclusion !== 'Pending') {
 					tx.inclusion = 'Pending';
+					tx.final = undefined;
+					tx.status = undefined;
 					changes = true;
 				}
 			}
@@ -195,16 +207,29 @@ export function initTransactionProcessor(config: {finality: number}) {
 			if (txFromPeers) {
 				return false; // we skip it for now
 			}
+
+			// TODO cache finalityNonce
+			const account = tx.request.from;
+			const tranactionCount = await provider.request({
+				method: 'eth_getTransactionCount',
+				params: [account, latestFinalizedBlock.hash],
+			});
+			const finalityNonce = parseInt(tranactionCount.slice(2), 16);
+
+			logger.info(`finalityNonce: ${finalityNonce}`);
+
 			if (typeof tx.request.nonce === 'number' && finalityNonce > tx.request.nonce) {
 				if (tx.inclusion !== 'Cancelled' || !tx.final) {
 					tx.inclusion = 'Cancelled';
 					tx.final = tx.request.timestamp;
+					tx.status = undefined;
 					changes = true;
 				}
 			} else {
 				if (tx.inclusion !== 'NotFound') {
 					tx.inclusion = 'NotFound';
 					tx.final = undefined;
+					tx.status = undefined;
 					changes = true;
 				}
 			}

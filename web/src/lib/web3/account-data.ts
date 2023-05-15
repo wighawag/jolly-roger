@@ -1,6 +1,6 @@
 import {writable} from 'svelte/store';
 
-import type {EIP1193TransactionWithMetadata} from 'web3-connection/dist/provider/wrap';
+import type {EIP1193TransactionWithMetadata} from 'web3-connection';
 import {initEmitter} from '$external/callbacks';
 import type {PendingTransaction} from '$external/tx-observer';
 
@@ -53,16 +53,21 @@ export function initAccountData() {
 	}
 
 	async function unload() {
-		if (key) {
-			//save before unload
-			localStorage.setItem(key, JSON.stringify({actions: $actions}));
-		}
+		//save before unload
+		await save();
+
 		// delete all
 		for (const hash of Object.keys($actions)) {
 			delete ($actions as any)[hash];
 		}
 		actions.set($actions);
 		emitter.emit({name: 'clear'});
+	}
+
+	async function save() {
+		if (key) {
+			localStorage.setItem(key, JSON.stringify({actions: $actions}));
+		}
 	}
 
 	function addAction(tx: EIP1193TransactionWithMetadata, hash: `0x${string}`, inclusion?: 'Pending') {
@@ -98,6 +103,7 @@ export function initAccountData() {
 	function updateTx(pendingTransaction: PendingTransaction) {
 		_updateTx(pendingTransaction);
 		actions.set($actions);
+		save();
 	}
 
 	function updateTxs(pendingTransactions: PendingTransaction[]) {
@@ -105,6 +111,7 @@ export function initAccountData() {
 			_updateTx(p);
 		}
 		actions.set($actions);
+		save();
 	}
 
 	return {
@@ -119,6 +126,7 @@ export function initAccountData() {
 
 		onTxSent(tx: EIP1193TransactionWithMetadata, hash: `0x${string}`) {
 			addAction(tx, hash, 'Pending');
+			save();
 		},
 
 		on: emitter.on,

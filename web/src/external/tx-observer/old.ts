@@ -1,6 +1,6 @@
 import {writable} from 'svelte/store';
 import type {EIP1193Provider} from 'eip-1193';
-import type {EIP1193TransactionWithMetadata} from 'web3-connection/dist/provider/wrap';
+import type {EIP1193TransactionWithMetadata} from 'web3-connection';
 
 // export type CheckedStatus = 'SUCCESS' | 'FAILURE' | 'LOADING' | 'PENDING' | 'CANCELED' | 'TIMEOUT';
 export type PendingTransactionInclusion = 'Loading' | 'Pending' | 'NotFound' | 'Cancelled' | 'Included';

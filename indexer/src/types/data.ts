@@ -1,4 +1,3 @@
 export type Data = {
-	greetings: {account: string; message: string}[];
-	totalTransfered: bigint;
+	greetings: {account: `0x${string}`; message: string}[];
 };

@@ -1,30 +1,13 @@
 import {init} from 'web3-connection';
 import {WalletConnectModuleLoader} from 'web3w-walletconnect-loader';
-import {contractsInfos, defaultRPC, initialContractsInfos, blockTime} from '$lib/config';
+import {contractsInfos, defaultRPC, initialContractsInfos, blockTime, localDev} from '$lib/config';
 import {initAccountData} from './account-data';
 import {initTransactionProcessor} from '$external/tx-observer';
+import {logs} from 'named-logs';
 
-const accountData = initAccountData();
-const txObserver = initTransactionProcessor({finality: 12}); // TODO config.finality
+const logger = logs('jolly-roger');
 
-// we hook up accountData and txObserver
-// they do not need to know about each other
-// except that account data follow the same type of "pending tx" as input/output
-// but accountData can be strucutred as it wishes otherwise. just need to emit an event for "clear" and "newTx"
-// and since accountData implement load and unload and is passed to web3-connection, these load and unload will be called automatically
-accountData.on((event) => {
-	switch (event.name) {
-		case 'clear':
-			txObserver.clear();
-			break;
-		case 'newTx':
-			txObserver.add(event.txs);
-			break;
-	}
-});
-txObserver.onTx((v) => {
-	accountData.updateTx(v);
-});
+export const accountData = initAccountData();
 
 // TODO we need to hook tx-observer with a provider and make it process tx
 
@@ -76,6 +59,38 @@ const stores = init({
 			// console.log(`DONE unloading for ${tmp.address} (${tmp.chainId})`);
 		},
 	},
+	checkGenesis: localDev ? 'http://localhost:8545' : undefined, // We use localhost:8545 here
+});
+
+export const txObserver = initTransactionProcessor({finality: 12}); // TODO config.finality
+
+// we hook up accountData and txObserver
+// they do not need to know about each other
+// except that account data follow the same type of "pending tx" as input/output
+// but accountData can be strucutred as it wishes otherwise. just need to emit an event for "clear" and "newTx"
+// and since accountData implement load and unload and is passed to web3-connection, these load and unload will be called automatically
+accountData.on((event) => {
+	switch (event.name) {
+		case 'clear':
+			txObserver.clear();
+			break;
+		case 'newTx':
+			txObserver.add(event.txs);
+			break;
+	}
+});
+txObserver.onTx((v) => {
+	logger.info(`onTx ${v.hash}`);
+	accountData.updateTx(v);
+});
+stores.connection.onNewBlock(() => {
+	logger.info(`onNewBlock`);
+	txObserver.process();
+});
+stores.connection.subscribe(($connection) => {
+	if ($connection.provider) {
+		txObserver.setProvider($connection.provider);
+	}
 });
 
 contractsInfos.subscribe((contractsInfos) => {
