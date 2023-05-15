@@ -119,6 +119,14 @@ export function initAccountData() {
 		save();
 	}
 
+	// use with caution
+	async function _reset() {
+		await unload();
+		if (key) {
+			localStorage.removeItem(key);
+		}
+	}
+
 	return {
 		actions: {
 			subscribe: actions.subscribe,
@@ -136,5 +144,7 @@ export function initAccountData() {
 
 		on: emitter.on,
 		off: emitter.off,
+
+		_reset,
 	};
 }

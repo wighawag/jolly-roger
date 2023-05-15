@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type {connection as Connection, network as Network} from './';
+	import {accountData, type connection as Connection, type network as Network} from './';
 	export let network: typeof Network;
 	export let connection: typeof Connection;
 	import AlertWithSlot from '$lib/components/alert/AlertWithSlot.svelte';
@@ -31,23 +31,18 @@
 		<Alert data={$connection.error} onClose={connection.acknowledgeError} />
 	{/if}
 {:else if $network.genesisChanged}
-	<AlertWithSlot
-		onClose={() => {
-			// we clear all
-			localStorage.clear();
-			location.reload();
-		}}
-	>
+	<AlertWithSlot>
 		<p class="m-2">Chain reset detected! Metamask need to have its account reset!</p>
 		<p class="m-2 font-black">
 			Click on your account icon, Go to Settings -&gt; Advanced -&gt; Clear Activity Tab Data
 		</p>
 		<button
 			class="btn btn-sm"
-			on:click={() => {
-				localStorage.clear();
+			on:click={async () => {
+				await network.acknowledgeNewGenesis();
+				accountData._reset();
 				location.reload();
-			}}>clear local storage</button
+			}}>I have done it</button
 		>
 	</AlertWithSlot>
 {/if}
