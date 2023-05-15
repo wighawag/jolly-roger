@@ -46,6 +46,10 @@
 	block processed: {$syncing.lastSync?.numBlocksProcessedSoFar?.toLocaleString() || 0}
 </p>
 
+<p>
+	latestBlock: {$syncing.lastSync?.latestBlock || 0}
+</p>
+
 {#if $state}
 	{JSON.stringify(
 		stateDisplayed,
