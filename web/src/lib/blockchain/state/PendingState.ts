@@ -55,13 +55,13 @@ export const pendingState = derived([syncing, state, accountData.actions], ([$sy
 			case 'Cancelled':
 				// tx cancelled, we ignore it
 				continue;
-			case 'Loading':
+			case 'BeingFetched':
 				// TODO add to state that loading is still going for txs....
 				// tx state is loading
 				continue;
 			case 'Included':
 			case 'NotFound':
-			case 'Pending':
+			case 'Broadcasted':
 			// else we consider it
 		}
 		if (action.tx.metadata && typeof action.tx.metadata === 'object' && 'message' in action.tx.metadata) {

@@ -6,7 +6,7 @@ import {logs} from 'named-logs';
 
 const logger = logs('tx-observer');
 
-export type PendingTransactionInclusion = 'Loading' | 'Pending' | 'NotFound' | 'Cancelled' | 'Included';
+export type PendingTransactionInclusion = 'BeingFetched' | 'Broadcasted' | 'NotFound' | 'Cancelled' | 'Included';
 export type PendingTransaction = {
 	readonly hash: `0x${string}`;
 	readonly request: EIP1193TransactionWithMetadata;
@@ -14,7 +14,7 @@ export type PendingTransaction = {
 
 export type PendingTransactionState =
 	| {
-			inclusion: 'Loading' | 'Pending' | 'NotFound' | 'Cancelled';
+			inclusion: 'BeingFetched' | 'Broadcasted' | 'NotFound' | 'Cancelled';
 			final: undefined;
 			status: undefined;
 	  }
@@ -54,7 +54,7 @@ export function initTransactionProcessor(config: {finality: number}) {
 				hash,
 				request: tx,
 				...(state || {
-					inclusion: 'Loading',
+					inclusion: 'BeingFetched',
 					final: undefined,
 					status: undefined,
 				}),
@@ -191,8 +191,8 @@ export function initTransactionProcessor(config: {finality: number}) {
 					}
 				}
 			} else {
-				if (tx.inclusion !== 'Pending') {
-					tx.inclusion = 'Pending';
+				if (tx.inclusion !== 'Broadcasted') {
+					tx.inclusion = 'Broadcasted';
 					tx.final = undefined;
 					tx.status = undefined;
 					changes = true;
@@ -259,7 +259,7 @@ export function initTransactionProcessor(config: {finality: number}) {
 		// also we need to consider the provider changing ?
 
 		// onTxSent(tx: EIP1193TransactionWithMetadata, hash: string) {
-		// 	addTx(tx, hash, 'Pending');
+		// 	addTx(tx, hash, 'Broadcasted');
 		// },
 		add,
 		remove,

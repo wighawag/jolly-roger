@@ -8,7 +8,7 @@ export type Action = {
 	tx: EIP1193TransactionWithMetadata;
 } & (
 	| {
-			inclusion: 'Loading' | 'Pending' | 'NotFound' | 'Cancelled';
+			inclusion: 'BeingFetched' | 'Broadcasted' | 'NotFound' | 'Cancelled';
 			final: undefined;
 			status: undefined;
 	  }
@@ -70,10 +70,10 @@ export function initAccountData() {
 		}
 	}
 
-	function addAction(tx: EIP1193TransactionWithMetadata, hash: `0x${string}`, inclusion?: 'Pending') {
+	function addAction(tx: EIP1193TransactionWithMetadata, hash: `0x${string}`, inclusion?: 'Broadcasted') {
 		const action: Action = {
 			tx,
-			inclusion: inclusion || 'Loading',
+			inclusion: inclusion || 'BeingFetched',
 			final: undefined,
 			status: undefined,
 		};
@@ -97,6 +97,11 @@ export function initAccountData() {
 			action.inclusion = pendingTransaction.inclusion;
 			action.status = pendingTransaction.status;
 			action.final = pendingTransaction.final;
+
+			// TODO specific to jolly-roger which does not need user acknowledgement for deleting the actions
+			if (action.final) {
+				delete $actions[pendingTransaction.hash];
+			}
 		}
 	}
 
@@ -125,7 +130,7 @@ export function initAccountData() {
 		updateTxs,
 
 		onTxSent(tx: EIP1193TransactionWithMetadata, hash: `0x${string}`) {
-			addAction(tx, hash, 'Pending');
+			addAction(tx, hash, 'Broadcasted');
 			save();
 		},
 

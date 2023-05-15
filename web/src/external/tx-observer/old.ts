@@ -2,14 +2,13 @@ import {writable} from 'svelte/store';
 import type {EIP1193Provider} from 'eip-1193';
 import type {EIP1193TransactionWithMetadata} from 'web3-connection';
 
-// export type CheckedStatus = 'SUCCESS' | 'FAILURE' | 'LOADING' | 'PENDING' | 'CANCELED' | 'TIMEOUT';
-export type PendingTransactionInclusion = 'Loading' | 'Pending' | 'NotFound' | 'Cancelled' | 'Included';
+export type PendingTransactionInclusion = 'BeingFetched' | 'Broadcasted' | 'NotFound' | 'Cancelled' | 'Included';
 export type PendingTransaction = {
 	hash: `0x${string}`;
 	request: EIP1193TransactionWithMetadata;
 } & (
 	| {
-			inclusion: 'Loading' | 'Pending' | 'NotFound' | 'Cancelled';
+			inclusion: 'BeingFetched' | 'Broadcasted' | 'NotFound' | 'Cancelled';
 			final: undefined;
 			status: undefined;
 	  }
@@ -26,12 +25,12 @@ export function initTransactionObserver(config: {finality: number}) {
 	const store = writable<PendingTransaction[]>($txs);
 	const map: {[hash: string]: PendingTransaction} = {};
 
-	function addTx(tx: EIP1193TransactionWithMetadata, hash: `0x${string}`, inclusion?: 'Pending') {
+	function addTx(tx: EIP1193TransactionWithMetadata, hash: `0x${string}`, inclusion?: 'Broadcasted') {
 		if (!map[hash]) {
 			const pendingTransaction: PendingTransaction = {
 				hash,
 				request: tx,
-				inclusion: inclusion || 'Loading',
+				inclusion: inclusion || 'BeingFetched',
 				final: undefined,
 				status: undefined,
 			};
@@ -156,8 +155,8 @@ export function initTransactionObserver(config: {finality: number}) {
 					}
 				}
 			} else {
-				if (tx.inclusion !== 'Pending') {
-					tx.inclusion = 'Pending';
+				if (tx.inclusion !== 'Broadcasted') {
+					tx.inclusion = 'Broadcasted';
 					changes = true;
 				}
 			}
@@ -196,7 +195,7 @@ export function initTransactionObserver(config: {finality: number}) {
 		// also we need to consider the provider changing ?
 
 		// onTxSent(tx: EIP1193TransactionWithMetadata, hash: string) {
-		// 	addTx(tx, hash, 'Pending');
+		// 	addTx(tx, hash, 'Broadcasted');
 		// },
 		add(tx: EIP1193TransactionWithMetadata, hash: `0x${string}`) {
 			addTx(tx, hash);
