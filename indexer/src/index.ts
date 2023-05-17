@@ -13,27 +13,27 @@ const TinyRogerIndexerProcessor: JSProcessor<MergedAbis<typeof contractsInfo.con
 		// you return here the starting state, here an empty array for the greetings
 		return {greetings: []};
 	},
-	onMessageChanged(json, event) {
+	onMessageChanged(state, event) {
 		// we lookup existing message from this user:
-		const findIndex = json.greetings.findIndex((v) => v.account === event.args.user);
+		const findIndex = state.greetings.findIndex((v) => v.account === event.args.user);
 
 		// the message is one of the args of the event object (automatically populated and typed! from the abi)
 		const message = event.args.message;
 
 		if (findIndex === -1) {
 			// if none message exists from that user we push a new entry
-			json.greetings.push({
+			state.greetings.push({
 				account: event.args.user,
 				message: message,
 			});
 		} else {
 			// else we edit the message
-			json.greetings[findIndex].message = message;
+			state.greetings[findIndex].message = message;
 		}
 	},
 
-	// onTransfer(json, event) {
-	// 	json.totalTransfered += event.args.value;
+	// onTransfer(state, event) {
+	// 	state.totalTransfered += event.args.value;
 	// },
 };
 
