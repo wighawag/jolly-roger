@@ -1,7 +1,5 @@
 <script lang="ts">
 	import {status, state, syncing} from '$lib/blockchain/state/State';
-	import ConnectButton from '$lib/web3/ConnectButton.svelte';
-	import Web3ConnectionUI from '$lib/web3/Web3ConnectionUI.svelte';
 
 	// import JSONTree from 'svelte-json-tree';
 
@@ -48,5 +46,3 @@
 {:else}
 	{JSON.stringify($syncing)}
 {/if}
-
-<Web3ConnectionUI />
