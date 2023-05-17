@@ -46,4 +46,19 @@
 			}}>I have done it</button
 		>
 	</AlertWithSlot>
+{:else if $network.nonceCached}
+	<AlertWithSlot>
+		<p class="m-2">Nonce cache detected, Metamask need to have its account reset!</p>
+		<p class="m-2 font-black">
+			Click on your account icon, Go to Settings -&gt; Advanced -&gt; Clear Activity Tab Data
+		</p>
+		<button
+			class="btn btn-sm"
+			on:click={async () => {
+				await network.acknowledgeNewGenesis();
+				accountData._reset();
+				location.reload();
+			}}>I have done it</button
+		>
+	</AlertWithSlot>
 {/if}

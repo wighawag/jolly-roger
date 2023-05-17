@@ -38,8 +38,8 @@ export function initAccountData() {
 	const actions = writable<Actions>($actions);
 
 	let key: string | undefined;
-	async function load(address: `0x${string}`, chainId: string) {
-		key = `account_${address}_${chainId}`;
+	async function load(address: `0x${string}`, chainId: string, genesisHash?: string) {
+		key = `account_${address}_${chainId}_${genesisHash}`;
 		const dataSTR = localStorage.getItem(key);
 		const data: {actions: Actions} = dataSTR ? JSON.parse(dataSTR) : {actions: {}};
 		const pending_transactions: PendingTransaction[] = [];

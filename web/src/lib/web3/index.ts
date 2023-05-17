@@ -42,7 +42,7 @@ const stores = init({
 		async loadWithNetworkConnected(state, setLoadingMessage, waitForStep) {
 			const chainId = state.network.chainId;
 			const address = state.address;
-			await accountData.load(address, chainId);
+			await accountData.load(address, chainId, state.network.genesisHash);
 			// console.log({ chainId: state.network.chainId });
 			// console.log(`loading ${address} (${chainId})`);
 
