@@ -41,7 +41,7 @@ import fs from 'fs';
 /** @type {DegitConf | undefined} */
 let degit;
 try {
-	degit = JSON.parse(fs.readFileSync('degit.json', 'utf-8'));
+	degit = JSON.parse(fs.readFileSync('transform.json', 'utf-8'));
 } catch {}
 if (degit) {
 	for (const action of degit) {

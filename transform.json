@@ -2,6 +2,7 @@
 	{
 		"action": "remove",
 		"files": [
+			"transform.json",
 			"LICENSE",
 			".github",
 			"TODO.md",
