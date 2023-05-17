@@ -1,5 +1,5 @@
 <script lang="ts">
-	import {accountData, type connection as Connection, type network as Network} from './';
+	import type {connection as Connection, network as Network} from './';
 	export let network: typeof Network;
 	export let connection: typeof Connection;
 	import AlertWithSlot from '$lib/components/alert/AlertWithSlot.svelte';
