@@ -19,13 +19,13 @@ export const globalQueryParams = ['debug', 'log', 'ethnode', '_d_eruda'];
 export const hashParams = getHashParamsFromLocation();
 export const {params} = getParamsFromLocation();
 
-const chainId = initialContractsInfos.chainId as string;
+const contractsChainId = initialContractsInfos.chainId as string;
 let defaultRPCURL: string | undefined = params['ethnode'];
 
 let blockTime: number | undefined = undefined;
 
 let isUsingLocalDevNetwork = false;
-if (chainId === '1337' || chainId === '31337') {
+if (contractsChainId === '1337' || contractsChainId === '31337') {
 	isUsingLocalDevNetwork = true;
 	if (!defaultRPCURL) {
 		const url = PUBLIC_ETH_NODE_URI_LOCALHOST as string;
@@ -42,9 +42,10 @@ if (!defaultRPCURL) {
 	}
 }
 
-const localRPC: string | undefined = PUBLIC_DEV_NODE_URI;
+const localRPC =
+	isUsingLocalDevNetwork && PUBLIC_DEV_NODE_URI ? {chainId: contractsChainId, url: PUBLIC_DEV_NODE_URI} : undefined;
 
-const defaultRPC = defaultRPCURL ? {chainId, url: defaultRPCURL} : undefined;
+const defaultRPC = defaultRPCURL ? {chainId: contractsChainId, url: defaultRPCURL} : undefined;
 
 export {defaultRPC, isUsingLocalDevNetwork, localRPC, blockTime};
 

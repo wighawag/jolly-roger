@@ -66,7 +66,7 @@ const stores = init({
 			// console.log(`DONE unloading for ${tmp.address} (${tmp.chainId})`);
 		},
 	},
-	checkGenesis: isUsingLocalDevNetwork ? localRPC || true : undefined,
+	checkGenesis: localRPC,
 });
 
 export const txObserver = initTransactionProcessor({finality: 12}); // TODO config.finality
