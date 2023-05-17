@@ -20,16 +20,6 @@
 	$: stateDisplayed = $state && addLengthToFields($state);
 </script>
 
-<div class="navbar bg-base-100">
-	<div class="navbar-start">
-		<span class="normal-case text-xl">Testing</span>
-	</div>
-	<div class="navbar-center hidden lg:flex" />
-	<div class="navbar-end">
-		<ConnectButton />
-	</div>
-</div>
-
 <progress value={($syncing.lastSync?.syncPercentage || 0) / 100} style="width:100%;" />
 
 <p>status: {$status.state}</p>

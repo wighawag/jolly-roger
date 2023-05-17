@@ -34,7 +34,7 @@
     "named-logs": "^0.2.2",
     "theme-change": "^2.5.0",
     "viem": "^0.3.19",
-    "web3-connection": "^0.0.17",
+    "web3-connection": "^0.0.18",
     "web3w-walletconnect-loader": "^0.4.3"
   },
   "scripts": {

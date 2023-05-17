@@ -55,7 +55,7 @@
 			pages={[
 				{pathname: '/', title: 'Home'},
 				{pathname: '/demo/', title: 'Demo'},
-				{pathname: '/indexer/', title: 'Indexer'},
+				{pathname: '/debug/', title: 'Debug'},
 				{pathname: '/about/', title: 'About'},
 			]}
 		/>

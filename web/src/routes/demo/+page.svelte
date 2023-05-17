@@ -12,7 +12,7 @@
 
 <div class="navbar bg-base-100">
 	<div class="navbar-start">
-		<span class="normal-case text-xl">Testing</span>
+		<span class="normal-case text-xl">Demo</span>
 	</div>
 	<div class="navbar-center hidden lg:flex" />
 	<div class="navbar-end">

@@ -33,5 +33,5 @@ export function isSameRoute(a: string, b: string): boolean {
 }
 
 export function isParentRoute(a: string, b: string): boolean {
-	return a.startsWith(route(b));
+	return a.startsWith(b) || a.startsWith(route(b));
 }

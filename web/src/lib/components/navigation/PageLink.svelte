@@ -1,6 +1,6 @@
 <script lang="ts">
 	import {page} from '$app/stores';
-	import {route, isSameRoute} from '$lib/utils/path';
+	import {route, isParentRoute, isSameRoute} from '$lib/utils/path';
 
 	export let href: string;
 	let className = '';
@@ -9,6 +9,11 @@
 	export let whenUnselected: string = '';
 </script>
 
-<a href={route(href)} class={`${className} ${isSameRoute($page.url.pathname, href) ? whenSelected : whenUnselected}`}
-	><slot /></a
+<a
+	href={route(href)}
+	class={`${className} ${
+		(href === '/' ? isSameRoute($page.url.pathname, href) : isParentRoute($page.url.pathname, href))
+			? whenSelected
+			: whenUnselected
+	}`}><slot /></a
 >
