@@ -1,6 +1,9 @@
 <script lang="ts">
 	import {goto} from '$app/navigation';
 	import {route} from '$lib/utils/path';
+	import {onMount} from 'svelte';
 
-	goto(route('/debug/indexer/'));
+	onMount(() => {
+		goto(route('/debug/indexer/'));
+	});
 </script>
