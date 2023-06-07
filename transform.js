@@ -63,6 +63,8 @@ const ignore_folders = [
 	'node_modules',
 	'contracts/out',
 	'contracts/cache',
+	'contracts/artifacts',
+	'contracts/coverage',
 	'contracts/generated',
 	'contracts/lib',
 	'web/.svelte-kit',

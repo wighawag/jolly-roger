@@ -1,0 +1,333 @@
+{
+  "address": "0xb62f3c5c2e30de9d40529c7afb9d245ccb642436",
+  "txHash": "0xac874951443f0fd1347b6d29f3192e43c26e507c83793328c3db66c21bd8fdce",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "initialPrefix",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "timestamp",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "message",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint24",
+          "name": "dayTimeInSeconds",
+          "type": "uint24"
+        }
+      ],
+      "name": "MessageChanged",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        }
+      ],
+      "name": "lastGreetingOf",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "greeting",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        }
+      ],
+      "name": "messages",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "string",
+              "name": "content",
+              "type": "string"
+            },
+            {
+              "internalType": "uint256",
+              "name": "timestamp",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint24",
+              "name": "dayTimeInSeconds",
+              "type": "uint24"
+            }
+          ],
+          "internalType": "struct GreetingsRegistry.Message",
+          "name": "userMsg",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "initialPrefix",
+          "type": "string"
+        }
+      ],
+      "name": "postUpgrade",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "prefix",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "value",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "message",
+          "type": "string"
+        },
+        {
+          "internalType": "uint24",
+          "name": "dayTimeInSeconds",
+          "type": "uint24"
+        }
+      ],
+      "name": "setMessage",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "contractName": "GreetingsRegistry",
+  "sourceName": "src/GreetingsRegistry.sol",
+  "bytecode": "0x608060405234801562000010575f80fd5b50604051620014b6380380620014b68339818101604052810190620000369190620002ce565b62000047816200004e60201b60201c565b5062000638565b5f6200005f6200012160201b60201c565b90505f73ffffffffffffffffffffffffffffffffffffffff168173ffffffffffffffffffffffffffffffffffffffff1603620000d25773ffffffffffffffffffffffffffffffffffffffff7fb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103556200010b565b8073ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff16146200010a575f80fd5b5b81600190816200011c919062000554565b505050565b5f7fb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d610354905090565b5f604051905090565b5f80fd5b5f80fd5b5f80fd5b5f80fd5b5f601f19601f8301169050919050565b7f4e487b71000000000000000000000000000000000000000000000000000000005f52604160045260245ffd5b620001aa8262000162565b810181811067ffffffffffffffff82111715620001cc57620001cb62000172565b5b80604052505050565b5f620001e062000149565b9050620001ee82826200019f565b919050565b5f67ffffffffffffffff82111562000210576200020f62000172565b5b6200021b8262000162565b9050602081019050919050565b5f5b83811015620002475780820151818401526020810190506200022a565b5f8484015250505050565b5f620002686200026284620001f3565b620001d5565b9050828152602081018484840111156200028757620002866200015e565b5b6200029484828562000228565b509392505050565b5f82601f830112620002b357620002b26200015a565b5b8151620002c584826020860162000252565b91505092915050565b5f60208284031215620002e657620002e562000152565b5b5f82015167ffffffffffffffff81111562000306576200030562000156565b5b62000314848285016200029c565b91505092915050565b5f81519050919050565b7f4e487b71000000000000000000000000000000000000000000000000000000005f52602260045260245ffd5b5f60028204905060018216806200036c57607f821691505b60208210810362000382576200038162000327565b5b50919050565b5f819050815f5260205f209050919050565b5f6020601f8301049050919050565b5f82821b905092915050565b5f60088302620003e67fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff82620003a9565b620003f28683620003a9565b95508019841693508086168417925050509392505050565b5f819050919050565b5f819050919050565b5f6200043c6200043662000430846200040a565b62000413565b6200040a565b9050919050565b5f819050919050565b62000457836200041c565b6200046f620004668262000443565b848454620003b5565b825550505050565b5f90565b6200048562000477565b620004928184846200044c565b505050565b5b81811015620004b957620004ad5f826200047b565b60018101905062000498565b5050565b601f8211156200050857620004d28162000388565b620004dd846200039a565b81016020851015620004ed578190505b62000505620004fc856200039a565b83018262000497565b50505b505050565b5f82821c905092915050565b5f6200052a5f19846008026200050d565b1980831691505092915050565b5f62000544838362000519565b9150826002028217905092915050565b6200055f826200031d565b67ffffffffffffffff8111156200057b576200057a62000172565b5b62000587825462000354565b62000594828285620004bd565b5f60209050601f831160018114620005ca575f8415620005b5578287015190505b620005c1858262000537565b86555062000630565b601f198416620005da8662000388565b5f5b828110156200060357848901518255600182019150602085019450602081019050620005dc565b868310156200062357848901516200061f601f89168262000519565b8355505b6001600288020188555050505b505050505050565b610e7080620006465f395ff3fe608060405234801561000f575f80fd5b5060043610610055575f3560e01c806303433b8e146100595780634c2dd808146100895780635fdd59f8146100a557806375dadb32146100d5578063b1441ce6146100f3575b5f80fd5b610073600480360381019061006e919061061c565b61010f565b60405161008091906106d1565b60405180910390f35b6100a3600480360381019061009e919061078a565b6101dd565b005b6100bf60048036038101906100ba919061061c565b6102fe565b6040516100cc91906108a3565b60405180910390f35b6100dd61040f565b6040516100ea91906106d1565b60405180910390f35b61010d600480360381019061010891906109eb565b61049f565b005b60605f808373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020015f205f01805461015a90610a5f565b80601f016020809104026020016040519081016040528092919081815260200182805461018690610a5f565b80156101d15780601f106101a8576101008083540402835291602001916101d1565b820191905f5260205f20905b8154815290600101906020018083116101b457829003601f168201915b50505050509050919050565b5f600184846040516020016101f493929190610b4f565b604051602081830303815290604052905060405180606001604052808281526020014281526020018362ffffff168152505f803373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020015f205f820151815f0190816102749190610d11565b50602082015181600101556040820151816002015f6101000a81548162ffffff021916908362ffffff1602179055509050503373ffffffffffffffffffffffffffffffffffffffff167f4650083cdd22f274f233c0ae8b1e5a23037ced29923011d703349cdeeface1af4283856040516102f093929190610dfe565b60405180910390a250505050565b61030661058d565b5f808373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020015f206040518060600160405290815f8201805461035c90610a5f565b80601f016020809104026020016040519081016040528092919081815260200182805461038890610a5f565b80156103d35780601f106103aa576101008083540402835291602001916103d3565b820191905f5260205f20905b8154815290600101906020018083116103b657829003601f168201915b5050505050815260200160018201548152602001600282015f9054906101000a900462ffffff1662ffffff1662ffffff16815250509050919050565b60606001805461041e90610a5f565b80601f016020809104026020016040519081016040528092919081815260200182805461044a90610a5f565b80156104955780601f1061046c57610100808354040283529160200191610495565b820191905f5260205f20905b81548152906001019060200180831161047857829003601f168201915b5050505050905090565b5f6104a8610565565b90505f73ffffffffffffffffffffffffffffffffffffffff168173ffffffffffffffffffffffffffffffffffffffff16036105195773ffffffffffffffffffffffffffffffffffffffff7fb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d610355610551565b8073ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff1614610550575f80fd5b5b81600190816105609190610d11565b505050565b5f7fb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d610354905090565b6040518060600160405280606081526020015f81526020015f62ffffff1681525090565b5f604051905090565b5f80fd5b5f80fd5b5f73ffffffffffffffffffffffffffffffffffffffff82169050919050565b5f6105eb826105c2565b9050919050565b6105fb816105e1565b8114610605575f80fd5b50565b5f81359050610616816105f2565b92915050565b5f60208284031215610631576106306105ba565b5b5f61063e84828501610608565b91505092915050565b5f81519050919050565b5f82825260208201905092915050565b5f5b8381101561067e578082015181840152602081019050610663565b5f8484015250505050565b5f601f19601f8301169050919050565b5f6106a382610647565b6106ad8185610651565b93506106bd818560208601610661565b6106c681610689565b840191505092915050565b5f6020820190508181035f8301526106e98184610699565b905092915050565b5f80fd5b5f80fd5b5f80fd5b5f8083601f840112610712576107116106f1565b5b8235905067ffffffffffffffff81111561072f5761072e6106f5565b5b60208301915083600182028301111561074b5761074a6106f9565b5b9250929050565b5f62ffffff82169050919050565b61076981610752565b8114610773575f80fd5b50565b5f8135905061078481610760565b92915050565b5f805f604084860312156107a1576107a06105ba565b5b5f84013567ffffffffffffffff8111156107be576107bd6105be565b5b6107ca868287016106fd565b935093505060206107dd86828701610776565b9150509250925092565b5f82825260208201905092915050565b5f61080182610647565b61080b81856107e7565b935061081b818560208601610661565b61082481610689565b840191505092915050565b5f819050919050565b6108418161082f565b82525050565b61085081610752565b82525050565b5f606083015f8301518482035f86015261087082826107f7565b91505060208301516108856020860182610838565b5060408301516108986040860182610847565b508091505092915050565b5f6020820190508181035f8301526108bb8184610856565b905092915050565b5f80fd5b7f4e487b71000000000000000000000000000000000000000000000000000000005f52604160045260245ffd5b6108fd82610689565b810181811067ffffffffffffffff8211171561091c5761091b6108c7565b5b80604052505050565b5f61092e6105b1565b905061093a82826108f4565b919050565b5f67ffffffffffffffff821115610959576109586108c7565b5b61096282610689565b9050602081019050919050565b828183375f83830152505050565b5f61098f61098a8461093f565b610925565b9050828152602081018484840111156109ab576109aa6108c3565b5b6109b684828561096f565b509392505050565b5f82601f8301126109d2576109d16106f1565b5b81356109e284826020860161097d565b91505092915050565b5f60208284031215610a00576109ff6105ba565b5b5f82013567ffffffffffffffff811115610a1d57610a1c6105be565b5b610a29848285016109be565b91505092915050565b7f4e487b71000000000000000000000000000000000000000000000000000000005f52602260045260245ffd5b5f6002820490506001821680610a7657607f821691505b602082108103610a8957610a88610a32565b5b50919050565b5f81905092915050565b5f819050815f5260205f209050919050565b5f8154610ab781610a5f565b610ac18186610a8f565b9450600182165f8114610adb5760018114610af057610b22565b60ff1983168652811515820286019350610b22565b610af985610a99565b5f5b83811015610b1a57815481890152600182019150602081019050610afb565b838801955050505b50505092915050565b5f610b368385610a8f565b9350610b4383858461096f565b82840190509392505050565b5f610b5a8286610aab565b9150610b67828486610b2b565b9150819050949350505050565b5f819050815f5260205f209050919050565b5f6020601f8301049050919050565b5f82821b905092915050565b5f60088302610bd07fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff82610b95565b610bda8683610b95565b95508019841693508086168417925050509392505050565b5f819050919050565b5f610c15610c10610c0b8461082f565b610bf2565b61082f565b9050919050565b5f819050919050565b610c2e83610bfb565b610c42610c3a82610c1c565b848454610ba1565b825550505050565b5f90565b610c56610c4a565b610c61818484610c25565b505050565b5b81811015610c8457610c795f82610c4e565b600181019050610c67565b5050565b601f821115610cc957610c9a81610b74565b610ca384610b86565b81016020851015610cb2578190505b610cc6610cbe85610b86565b830182610c66565b50505b505050565b5f82821c905092915050565b5f610ce95f1984600802610cce565b1980831691505092915050565b5f610d018383610cda565b9150826002028217905092915050565b610d1a82610647565b67ffffffffffffffff811115610d3357610d326108c7565b5b610d3d8254610a5f565b610d48828285610c88565b5f60209050601f831160018114610d79575f8415610d67578287015190505b610d718582610cf6565b865550610dd8565b601f198416610d8786610b74565b5f5b82811015610dae57848901518255600182019150602085019450602081019050610d89565b86831015610dcb5784890151610dc7601f891682610cda565b8355505b6001600288020188555050505b505050505050565b610de98161082f565b82525050565b610df881610752565b82525050565b5f606082019050610e115f830186610de0565b8181036020830152610e238185610699565b9050610e326040830184610def565b94935050505056fea26469706673582212205ff57d7204d66f60a93eb3fd691fcd29b3ac4649481f79de900e407682122b2664736f6c63430008140033",
+  "deployedBytecode": "0x608060405234801561000f575f80fd5b5060043610610055575f3560e01c806303433b8e146100595780634c2dd808146100895780635fdd59f8146100a557806375dadb32146100d5578063b1441ce6146100f3575b5f80fd5b610073600480360381019061006e919061061c565b61010f565b60405161008091906106d1565b60405180910390f35b6100a3600480360381019061009e919061078a565b6101dd565b005b6100bf60048036038101906100ba919061061c565b6102fe565b6040516100cc91906108a3565b60405180910390f35b6100dd61040f565b6040516100ea91906106d1565b60405180910390f35b61010d600480360381019061010891906109eb565b61049f565b005b60605f808373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020015f205f01805461015a90610a5f565b80601f016020809104026020016040519081016040528092919081815260200182805461018690610a5f565b80156101d15780601f106101a8576101008083540402835291602001916101d1565b820191905f5260205f20905b8154815290600101906020018083116101b457829003601f168201915b50505050509050919050565b5f600184846040516020016101f493929190610b4f565b604051602081830303815290604052905060405180606001604052808281526020014281526020018362ffffff168152505f803373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020015f205f820151815f0190816102749190610d11565b50602082015181600101556040820151816002015f6101000a81548162ffffff021916908362ffffff1602179055509050503373ffffffffffffffffffffffffffffffffffffffff167f4650083cdd22f274f233c0ae8b1e5a23037ced29923011d703349cdeeface1af4283856040516102f093929190610dfe565b60405180910390a250505050565b61030661058d565b5f808373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020019081526020015f206040518060600160405290815f8201805461035c90610a5f565b80601f016020809104026020016040519081016040528092919081815260200182805461038890610a5f565b80156103d35780601f106103aa576101008083540402835291602001916103d3565b820191905f5260205f20905b8154815290600101906020018083116103b657829003601f168201915b5050505050815260200160018201548152602001600282015f9054906101000a900462ffffff1662ffffff1662ffffff16815250509050919050565b60606001805461041e90610a5f565b80601f016020809104026020016040519081016040528092919081815260200182805461044a90610a5f565b80156104955780601f1061046c57610100808354040283529160200191610495565b820191905f5260205f20905b81548152906001019060200180831161047857829003601f168201915b5050505050905090565b5f6104a8610565565b90505f73ffffffffffffffffffffffffffffffffffffffff168173ffffffffffffffffffffffffffffffffffffffff16036105195773ffffffffffffffffffffffffffffffffffffffff7fb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d610355610551565b8073ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff1614610550575f80fd5b5b81600190816105609190610d11565b505050565b5f7fb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d610354905090565b6040518060600160405280606081526020015f81526020015f62ffffff1681525090565b5f604051905090565b5f80fd5b5f80fd5b5f73ffffffffffffffffffffffffffffffffffffffff82169050919050565b5f6105eb826105c2565b9050919050565b6105fb816105e1565b8114610605575f80fd5b50565b5f81359050610616816105f2565b92915050565b5f60208284031215610631576106306105ba565b5b5f61063e84828501610608565b91505092915050565b5f81519050919050565b5f82825260208201905092915050565b5f5b8381101561067e578082015181840152602081019050610663565b5f8484015250505050565b5f601f19601f8301169050919050565b5f6106a382610647565b6106ad8185610651565b93506106bd818560208601610661565b6106c681610689565b840191505092915050565b5f6020820190508181035f8301526106e98184610699565b905092915050565b5f80fd5b5f80fd5b5f80fd5b5f8083601f840112610712576107116106f1565b5b8235905067ffffffffffffffff81111561072f5761072e6106f5565b5b60208301915083600182028301111561074b5761074a6106f9565b5b9250929050565b5f62ffffff82169050919050565b61076981610752565b8114610773575f80fd5b50565b5f8135905061078481610760565b92915050565b5f805f604084860312156107a1576107a06105ba565b5b5f84013567ffffffffffffffff8111156107be576107bd6105be565b5b6107ca868287016106fd565b935093505060206107dd86828701610776565b9150509250925092565b5f82825260208201905092915050565b5f61080182610647565b61080b81856107e7565b935061081b818560208601610661565b61082481610689565b840191505092915050565b5f819050919050565b6108418161082f565b82525050565b61085081610752565b82525050565b5f606083015f8301518482035f86015261087082826107f7565b91505060208301516108856020860182610838565b5060408301516108986040860182610847565b508091505092915050565b5f6020820190508181035f8301526108bb8184610856565b905092915050565b5f80fd5b7f4e487b71000000000000000000000000000000000000000000000000000000005f52604160045260245ffd5b6108fd82610689565b810181811067ffffffffffffffff8211171561091c5761091b6108c7565b5b80604052505050565b5f61092e6105b1565b905061093a82826108f4565b919050565b5f67ffffffffffffffff821115610959576109586108c7565b5b61096282610689565b9050602081019050919050565b828183375f83830152505050565b5f61098f61098a8461093f565b610925565b9050828152602081018484840111156109ab576109aa6108c3565b5b6109b684828561096f565b509392505050565b5f82601f8301126109d2576109d16106f1565b5b81356109e284826020860161097d565b91505092915050565b5f60208284031215610a00576109ff6105ba565b5b5f82013567ffffffffffffffff811115610a1d57610a1c6105be565b5b610a29848285016109be565b91505092915050565b7f4e487b71000000000000000000000000000000000000000000000000000000005f52602260045260245ffd5b5f6002820490506001821680610a7657607f821691505b602082108103610a8957610a88610a32565b5b50919050565b5f81905092915050565b5f819050815f5260205f209050919050565b5f8154610ab781610a5f565b610ac18186610a8f565b9450600182165f8114610adb5760018114610af057610b22565b60ff1983168652811515820286019350610b22565b610af985610a99565b5f5b83811015610b1a57815481890152600182019150602081019050610afb565b838801955050505b50505092915050565b5f610b368385610a8f565b9350610b4383858461096f565b82840190509392505050565b5f610b5a8286610aab565b9150610b67828486610b2b565b9150819050949350505050565b5f819050815f5260205f209050919050565b5f6020601f8301049050919050565b5f82821b905092915050565b5f60088302610bd07fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff82610b95565b610bda8683610b95565b95508019841693508086168417925050509392505050565b5f819050919050565b5f610c15610c10610c0b8461082f565b610bf2565b61082f565b9050919050565b5f819050919050565b610c2e83610bfb565b610c42610c3a82610c1c565b848454610ba1565b825550505050565b5f90565b610c56610c4a565b610c61818484610c25565b505050565b5b81811015610c8457610c795f82610c4e565b600181019050610c67565b5050565b601f821115610cc957610c9a81610b74565b610ca384610b86565b81016020851015610cb2578190505b610cc6610cbe85610b86565b830182610c66565b50505b505050565b5f82821c905092915050565b5f610ce95f1984600802610cce565b1980831691505092915050565b5f610d018383610cda565b9150826002028217905092915050565b610d1a82610647565b67ffffffffffffffff811115610d3357610d326108c7565b5b610d3d8254610a5f565b610d48828285610c88565b5f60209050601f831160018114610d79575f8415610d67578287015190505b610d718582610cf6565b865550610dd8565b601f198416610d8786610b74565b5f5b82811015610dae57848901518255600182019150602085019450602081019050610d89565b86831015610dcb5784890151610dc7601f891682610cda565b8355505b6001600288020188555050505b505050505050565b610de98161082f565b82525050565b610df881610752565b82525050565b5f606082019050610e115f830186610de0565b8181036020830152610e238185610699565b9050610e326040830184610def565b94935050505056fea26469706673582212205ff57d7204d66f60a93eb3fd691fcd29b3ac4649481f79de900e407682122b2664736f6c63430008140033",
+  "linkReferences": {},
+  "deployedLinkReferences": {},
+  "devdoc": {
+    "events": {
+      "MessageChanged(address,uint256,string,uint24)": {
+        "details": "the timestamp is included to speedup indexing see: https://ethereum-magicians.org/t/proposal-for-adding-blocktimestamp-to-logs-object-returned-by-eth-getlogs-and-related-requests/11183",
+        "params": {
+          "dayTimeInSeconds": "the time of the day in seconds where 00:00 => 0 and 23:59 => 82859",
+          "message": "the message content",
+          "timestamp": "the time at which the message was recorded",
+          "user": "the user that send the message"
+        }
+      }
+    },
+    "kind": "dev",
+    "methods": {
+      "constructor": {
+        "details": "constructors",
+        "params": {
+          "initialPrefix": "the prefix that will be prepended to every user message goig forward"
+        }
+      },
+      "lastGreetingOf(address)": {
+        "params": {
+          "user": "address of the user."
+        },
+        "returns": {
+          "greeting": "the message's content send by the user."
+        }
+      },
+      "messages(address)": {
+        "params": {
+          "user": "address of the user."
+        },
+        "returns": {
+          "userMsg": "the message send by the user."
+        }
+      },
+      "postUpgrade(string)": {
+        "details": "called by the admin when the contract is deployed as a proxy",
+        "params": {
+          "initialPrefix": "the prefix that will be prepended to every user message goig forward"
+        }
+      },
+      "prefix()": {
+        "returns": {
+          "value": "prefix string."
+        }
+      },
+      "setMessage(string,uint24)": {
+        "params": {
+          "dayTimeInSeconds": "the time of the day in seconds the message was written.",
+          "message": "the value to set as content."
+        }
+      }
+    },
+    "version": 1
+  },
+  "evm": {
+    "gasEstimates": {
+      "creation": {
+        "codeDepositCost": "739200",
+        "executionCost": "infinite",
+        "totalCost": "infinite"
+      },
+      "external": {
+        "lastGreetingOf(address)": "infinite",
+        "messages(address)": "infinite",
+        "postUpgrade(string)": "infinite",
+        "prefix()": "infinite",
+        "setMessage(string,uint24)": "infinite"
+      }
+    }
+  },
+  "metadata": "{\"compiler\":{\"version\":\"0.8.20+commit.a1b79de6\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"string\",\"name\":\"initialPrefix\",\"type\":\"string\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"user\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"timestamp\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"message\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"uint24\",\"name\":\"dayTimeInSeconds\",\"type\":\"uint24\"}],\"name\":\"MessageChanged\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"user\",\"type\":\"address\"}],\"name\":\"lastGreetingOf\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"greeting\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"user\",\"type\":\"address\"}],\"name\":\"messages\",\"outputs\":[{\"components\":[{\"internalType\":\"string\",\"name\":\"content\",\"type\":\"string\"},{\"internalType\":\"uint256\",\"name\":\"timestamp\",\"type\":\"uint256\"},{\"internalType\":\"uint24\",\"name\":\"dayTimeInSeconds\",\"type\":\"uint24\"}],\"internalType\":\"struct GreetingsRegistry.Message\",\"name\":\"userMsg\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"initialPrefix\",\"type\":\"string\"}],\"name\":\"postUpgrade\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"prefix\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"value\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"message\",\"type\":\"string\"},{\"internalType\":\"uint24\",\"name\":\"dayTimeInSeconds\",\"type\":\"uint24\"}],\"name\":\"setMessage\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"events\":{\"MessageChanged(address,uint256,string,uint24)\":{\"details\":\"the timestamp is included to speedup indexing see: https://ethereum-magicians.org/t/proposal-for-adding-blocktimestamp-to-logs-object-returned-by-eth-getlogs-and-related-requests/11183\",\"params\":{\"dayTimeInSeconds\":\"the time of the day in seconds where 00:00 => 0 and 23:59 => 82859\",\"message\":\"the message content\",\"timestamp\":\"the time at which the message was recorded\",\"user\":\"the user that send the message\"}}},\"kind\":\"dev\",\"methods\":{\"constructor\":{\"details\":\"constructors\",\"params\":{\"initialPrefix\":\"the prefix that will be prepended to every user message goig forward\"}},\"lastGreetingOf(address)\":{\"params\":{\"user\":\"address of the user.\"},\"returns\":{\"greeting\":\"the message's content send by the user.\"}},\"messages(address)\":{\"params\":{\"user\":\"address of the user.\"},\"returns\":{\"userMsg\":\"the message send by the user.\"}},\"postUpgrade(string)\":{\"details\":\"called by the admin when the contract is deployed as a proxy\",\"params\":{\"initialPrefix\":\"the prefix that will be prepended to every user message goig forward\"}},\"prefix()\":{\"returns\":{\"value\":\"prefix string.\"}},\"setMessage(string,uint24)\":{\"params\":{\"dayTimeInSeconds\":\"the time of the day in seconds the message was written.\",\"message\":\"the value to set as content.\"}}},\"version\":1},\"userdoc\":{\"events\":{\"MessageChanged(address,uint256,string,uint24)\":{\"notice\":\"emitted whenever a user set a new greeting to the world\"}},\"kind\":\"user\",\"methods\":{\"lastGreetingOf(address)\":{\"notice\":\"return the last greeting message from the given `user`.\"},\"messages(address)\":{\"notice\":\"return the last message from the given `user`.\"},\"prefix()\":{\"notice\":\"return the prefix that is appended to any new message.\"},\"setMessage(string,uint24)\":{\"notice\":\"set a new message for `msg.sender`.\"}},\"notice\":\"a registry that let user send greetings to the world  It is used as a demo for jolly-roger,  a fully featured SDK to build entirely decentralised apps and games  It is inteded to be deployed via upgradeable proxy locally  to showcase the HCR (Hot Contract Replacement) capabilities of `hardhat-deploy`  but immutable on live networks.\",\"version\":1}},\"settings\":{\"compilationTarget\":{\"src/GreetingsRegistry.sol\":\"GreetingsRegistry\"},\"evmVersion\":\"shanghai\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":false,\"runs\":200},\"remappings\":[]},\"sources\":{\"solidity-proxy/src/Proxied.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.0;\\n\\nabstract contract Proxied {\\n    /// @notice to be used by initialisation / postUpgrade function so that only the proxy's admin can execute them\\n    /// It also allows these functions to be called inside a contructor\\n    /// even if the contract is meant to be used without proxy\\n    modifier proxied() {\\n        address proxyAdminAddress = _proxyAdmin();\\n        // With hardhat-deploy proxies\\n        // the proxyAdminAddress is zero only for the implementation contract\\n        // if the implementation contract want to be used as a standalone/immutable contract\\n        // it simply has to execute the `proxied` function\\n        // This ensure the proxyAdminAddress is never zero post deployment\\n        // And allow you to keep the same code for both proxied contract and immutable contract\\n        if (proxyAdminAddress == address(0)) {\\n            // ensure can not be called twice when used outside of proxy : no admin\\n            // solhint-disable-next-line security/no-inline-assembly\\n            assembly {\\n                sstore(\\n                    0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103,\\n                    0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF\\n                )\\n            }\\n        } else {\\n            require(msg.sender == proxyAdminAddress);\\n        }\\n        _;\\n    }\\n\\n    modifier onlyProxyAdmin() {\\n        require(msg.sender == _proxyAdmin(), \\\"NOT_AUTHORIZED\\\");\\n        _;\\n    }\\n\\n    function _proxyAdmin() internal view returns (address ownerAddress) {\\n        // solhint-disable-next-line security/no-inline-assembly\\n        assembly {\\n            ownerAddress := sload(0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103)\\n        }\\n    }\\n}\\n\",\"keccak256\":\"0xaaceeafeeaf0d200ca3942d8bf14c1c4f787a77f79cc87c08bb668e65acdee29\",\"license\":\"MIT\"},\"src/GreetingsRegistry.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.13;\\n\\nimport 'solidity-proxy/src/Proxied.sol';\\n\\n/// @notice a registry that let user send greetings to the world\\n///  It is used as a demo for jolly-roger,\\n///  a fully featured SDK to build entirely decentralised apps and games\\n///  It is inteded to be deployed via upgradeable proxy locally\\n///  to showcase the HCR (Hot Contract Replacement) capabilities of `hardhat-deploy`\\n///  but immutable on live networks.\\ncontract GreetingsRegistry is Proxied {\\n\\t// ----------------------------------------------------------------------------------------------\\n\\t// EVENTS\\n\\t// ----------------------------------------------------------------------------------------------\\n\\t/// @notice emitted whenever a user set a new greeting to the world\\n\\t/// @param user the user that send the message\\n\\t/// @param timestamp the time at which the message was recorded\\n\\t/// @param message the message content\\n\\t/// @param dayTimeInSeconds the time of the day in seconds where 00:00 => 0 and 23:59 => 82859\\n\\t/// @dev the timestamp is included to speedup indexing\\n\\t/// see: https://ethereum-magicians.org/t/proposal-for-adding-blocktimestamp-to-logs-object-returned-by-eth-getlogs-and-related-requests/11183\\n\\tevent MessageChanged(address indexed user, uint256 timestamp, string message, uint24 dayTimeInSeconds);\\n\\n\\t// ----------------------------------------------------------------------------------------------\\n\\t// TYPES\\n\\t// ----------------------------------------------------------------------------------------------\\n\\tstruct Message {\\n\\t\\tstring content;\\n\\t\\tuint256 timestamp;\\n\\t\\tuint24 dayTimeInSeconds;\\n\\t}\\n\\n\\t// ----------------------------------------------------------------------------------------------\\n\\t// STORAGE\\n\\t// ----------------------------------------------------------------------------------------------\\n\\tmapping(address => Message) internal _messages;\\n\\tstring internal _prefix;\\n\\n\\t// ----------------------------------------------------------------------------------------------\\n\\t// CONSTRUCTOR / INITIALIZER\\n\\t// ----------------------------------------------------------------------------------------------\\n\\n\\t/// @dev constructors\\n\\t/// @param initialPrefix the prefix that will be prepended to every user message goig forward\\n\\tconstructor(string memory initialPrefix) {\\n\\t\\t// the proxied modifier from `hardhat-deploy` (see `postUpgrade` function)\\n\\t\\t//  ensure postUpgrade effect can only be used once when the contract is deployed without proxy.\\n\\t\\t//  by calling that function in the constructor\\n\\t\\t//  we ensure the contract behave the same whether it is deployed through a proxy or not.\\n\\t\\t//  when the contract is deployed without proxy, the postUpgrade can never be called\\n\\t\\tpostUpgrade(initialPrefix);\\n\\t}\\n\\n\\t//\\n\\t/// @dev called by the admin when the contract is deployed as a proxy\\n\\t/// @param initialPrefix the prefix that will be prepended to every user message goig forward\\n\\tfunction postUpgrade(string memory initialPrefix) public proxied {\\n\\t\\t_prefix = initialPrefix;\\n\\t}\\n\\n\\t// ----------------------------------------------------------------------------------------------\\n\\t// PUBLIC INTERFACE\\n\\t// ----------------------------------------------------------------------------------------------\\n\\n\\t/// @notice return the last message from the given `user`.\\n\\t/// @param user address of the user.\\n\\t/// @return userMsg the message send by the user.\\n\\tfunction messages(address user) external view returns (Message memory userMsg) {\\n\\t\\tuserMsg = _messages[user];\\n\\t}\\n\\n\\t/// @notice return the last greeting message from the given `user`.\\n\\t/// @param user address of the user.\\n\\t/// @return greeting the message's content send by the user.\\n\\tfunction lastGreetingOf(address user) external view returns (string memory greeting) {\\n\\t\\tgreeting = _messages[user].content;\\n\\t}\\n\\n\\t/// @notice return the prefix that is appended to any new message.\\n\\t/// @return value prefix string.\\n\\tfunction prefix() external view returns (string memory value) {\\n\\t\\treturn _prefix;\\n\\t}\\n\\n\\t/// @notice set a new message for `msg.sender`.\\n\\t/// @param message the value to set as content.\\n\\t/// @param dayTimeInSeconds the time of the day in seconds the message was written.\\n\\tfunction setMessage(string calldata message, uint24 dayTimeInSeconds) external {\\n\\t\\tstring memory actualMessage = string(bytes.concat(bytes(_prefix), bytes(message)));\\n\\t\\t_messages[msg.sender] = Message({\\n\\t\\t\\tcontent: actualMessage,\\n\\t\\t\\ttimestamp: block.timestamp,\\n\\t\\t\\tdayTimeInSeconds: dayTimeInSeconds\\n\\t\\t});\\n\\t\\temit MessageChanged(msg.sender, block.timestamp, actualMessage, dayTimeInSeconds);\\n\\t}\\n}\\n\",\"keccak256\":\"0x51821898110b6df1ed57361ca1df5e372c1526b9250a740e396cfbb2de98b538\",\"license\":\"MIT\"}},\"version\":1}",
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 78,
+        "contract": "src/GreetingsRegistry.sol:GreetingsRegistry",
+        "label": "_messages",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_mapping(t_address,t_struct(Message)73_storage)"
+      },
+      {
+        "astId": 80,
+        "contract": "src/GreetingsRegistry.sol:GreetingsRegistry",
+        "label": "_prefix",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_string_storage"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      },
+      "t_mapping(t_address,t_struct(Message)73_storage)": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => struct GreetingsRegistry.Message)",
+        "numberOfBytes": "32",
+        "value": "t_struct(Message)73_storage"
+      },
+      "t_string_storage": {
+        "encoding": "bytes",
+        "label": "string",
+        "numberOfBytes": "32"
+      },
+      "t_struct(Message)73_storage": {
+        "encoding": "inplace",
+        "label": "struct GreetingsRegistry.Message",
+        "members": [
+          {
+            "astId": 68,
+            "contract": "src/GreetingsRegistry.sol:GreetingsRegistry",
+            "label": "content",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_string_storage"
+          },
+          {
+            "astId": 70,
+            "contract": "src/GreetingsRegistry.sol:GreetingsRegistry",
+            "label": "timestamp",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_uint256"
+          },
+          {
+            "astId": 72,
+            "contract": "src/GreetingsRegistry.sol:GreetingsRegistry",
+            "label": "dayTimeInSeconds",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_uint24"
+          }
+        ],
+        "numberOfBytes": "96"
+      },
+      "t_uint24": {
+        "encoding": "inplace",
+        "label": "uint24",
+        "numberOfBytes": "3"
+      },
+      "t_uint256": {
+        "encoding": "inplace",
+        "label": "uint256",
+        "numberOfBytes": "32"
+      }
+    }
+  },
+  "userdoc": {
+    "events": {
+      "MessageChanged(address,uint256,string,uint24)": {
+        "notice": "emitted whenever a user set a new greeting to the world"
+      }
+    },
+    "kind": "user",
+    "methods": {
+      "lastGreetingOf(address)": {
+        "notice": "return the last greeting message from the given `user`."
+      },
+      "messages(address)": {
+        "notice": "return the last message from the given `user`."
+      },
+      "prefix()": {
+        "notice": "return the prefix that is appended to any new message."
+      },
+      "setMessage(string,uint24)": {
+        "notice": "set a new message for `msg.sender`."
+      }
+    },
+    "notice": "a registry that let user send greetings to the world  It is used as a demo for jolly-roger,  a fully featured SDK to build entirely decentralised apps and games  It is inteded to be deployed via upgradeable proxy locally  to showcase the HCR (Hot Contract Replacement) capabilities of `hardhat-deploy`  but immutable on live networks.",
+    "version": 1
+  },
+  "argsData": "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000",
+  "nonce": "0x52",
+  "txOrigin": "0x61c461ecc993aadeb7e4b47e96d1b8cc37314b20"
+}
