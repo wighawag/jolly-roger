@@ -13,7 +13,7 @@
     "ldenv": "^0.3.5",
     "rocketh": "^0.5.2",
     "rocketh-deploy-proxy": "^0.5.3",
-    "rocketh-export": "^0.5.4",
+    "rocketh-export": "^0.5.5",
     "rocketh-signer": "^0.5.2",
     "rocketh-verifier": "^0.5.2",
     "set-defaults": "^0.0.1",

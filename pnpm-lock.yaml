@@ -44,8 +44,8 @@ importers:
         specifier: ^0.5.3
         version: 0.5.3(rocketh@0.5.2)(typescript@5.0.4)
       rocketh-export:
-        specifier: ^0.5.4
-        version: 0.5.4(rocketh@0.5.2)
+        specifier: ^0.5.5
+        version: 0.5.5(rocketh@0.5.2)
       rocketh-signer:
         specifier: ^0.5.2
         version: 0.5.2(rocketh@0.5.2)
@@ -6593,8 +6593,8 @@ packages:
       - zod
     dev: true
 
-  /rocketh-export@0.5.4(rocketh@0.5.2):
-    resolution: {integrity: sha512-lk86pR9F/IEu2CzfjoCIAhBNcvQm8VNpzHbEY19RGFkchbZ6vGTnvcuQcSrUU36Z/lsPC9OEAutJAAkuBunh+Q==}
+  /rocketh-export@0.5.5(rocketh@0.5.2):
+    resolution: {integrity: sha512-nnZq6badIFsqPxFe1SII+z4KtAg4SlmcBZFPMD4lBg/GMKt3nfw8QcGKqfsmZc2o3/qnbfs3xN/FXtkDRdVmPA==}
     hasBin: true
     peerDependencies:
       rocketh: 0.5.2
