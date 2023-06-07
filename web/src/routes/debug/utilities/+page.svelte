@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Executor from '$lib/components/utilities/Executor.svelte';
-	import {time, phase} from '$lib/time';
+	import {time} from '$lib/time';
 	import {createExecutor, enableAnvilLogging, increaseBlockTime} from '$lib/utils/debug';
 	// import {increaseDungeonTime} from '$lib/utils/dungeon';
 
@@ -71,25 +71,6 @@
 			on:click={() => addDungeonTime(hours)}>Dungeon: Add {hours} hours</button
 		>
 	</form> -->
-
-	<div class="card-actions justify-end">
-		{#if $execute_increaseBlockTime.error}
-			{$execute_increaseBlockTime.error}
-			<button class={`btn btn-error m-2`} on:click={() => execute_increaseBlockTime.acknowledgeError()}>Ok</button>
-		{:else}
-			<button
-				class={`btn btn-secondary ${$execute_increaseBlockTime.executing ? 'btn-disabled' : ''} m-2`}
-				on:click={() => execute_increaseBlockTime.execute($phase.timeLeftToCommit)}>Switch to Reveal Phase</button
-			>
-			<button
-				class={`btn btn-secondary ${$execute_increaseBlockTime.executing ? 'btn-disabled' : ''} m-2`}
-				on:click={() => execute_increaseBlockTime.execute($phase.timeLeftToReveal)}>Switch to Commit Phase</button
-			>
-		{/if}
-
-		<!-- <button class="btn btn-primary" on:click={() => commit()}>Commit</button> -->
-		<!-- <button class="btn btn-ghost" on:click={() => reset()}>Reset</button> -->
-	</div>
 {/if}
 
 <Executor func={enableAnvilLogging}>Enable Anvil Logging</Executor>

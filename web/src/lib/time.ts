@@ -56,34 +56,6 @@ export const time = {
 	},
 };
 
-export const TOTAL = 24 * 3600;
-export const ACTION_PERIOD = 23 * 3600;
-export const START_TIMESTAMP = 0;
-
-export function computePhase(timestamp: number, synced = true) {
-	const totalTimePassed = timestamp - START_TIMESTAMP;
-	const epoch = Math.floor(totalTimePassed / TOTAL + 1);
-	const epochStartTime = (epoch - 1) * TOTAL;
-	const timePassed = timestamp - epochStartTime;
-	const isActionPhase = synced && timePassed < ACTION_PERIOD;
-	const timeLeftToCommit = ACTION_PERIOD - timePassed;
-	const timeLeftToReveal = isActionPhase ? -1 : TOTAL - timePassed;
-	const timeLeftToEpochEnd = TOTAL - timePassed;
-
-	return {
-		comitting: isActionPhase,
-		epoch,
-		timeLeftToReveal,
-		timeLeftToCommit,
-		timeLeftToEpochEnd,
-	};
-}
-
-export const phase = derived(time, ($time) => {
-	return computePhase($time.timestamp, $time.synced);
-});
-
 if (typeof window !== 'undefined') {
-	(window as any).phase = phase;
 	(window as any).time = time;
 }
