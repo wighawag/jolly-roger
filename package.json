@@ -9,20 +9,20 @@
     "syncpack": "^9.8.6"
   },
   "scripts": {
-    "template-test": "pnpm --filter ./contracts local_node & pnpm run --filter ./contracts deploy localhost ~~ pnpm export -n localhost --ts ../indexer/src/contracts.ts,../web/src/lib/blockchain/data/contracts.ts ~~ && pnpm --filter ./indexer build",
+    "template-test": "pnpm --filter ./contracts local_node & pnpm run --filter ./contracts deploy localhost ~~ pnpm export -n localhost --ts ../indexer/src/contracts.ts,../web/src/lib/blockchain/data/contracts.ts ~~ && pnpm run --filter ./common build && pnpm --filter ./indexer build",
     "= sync-deps": "sync dependencies to use same version across the workspace",
     "sync-deps": "syncpack fix-mismatches && pnpm -r format:fix",
     "stop": "zellij kill-session $npm_package_name",
     "start:wezterm": "wezterm --config-file wezterm.lua start $PWD",
     "start:local_node": "ldenv pnpm --filter ./contracts local_node",
-    "start:contracts:deploy": "pnpm --filter ./contracts watch_deploy localhost ~~ pnpm run export localhost ../indexer/src/contracts.ts,../web/src/lib/blockchain/data/contracts.ts ~~",
+    "start:contracts:deploy": "pnpm --filter ./contracts watch_deploy localhost ~~ pnpm run export -n localhost --ts ../indexer/src/contracts.ts,../web/src/lib/blockchain/data/contracts.ts ~~",
     "contracts:deploy": "pnpm run --filter ./contracts deploy localhost ~~ pnpm run export -n localhost --ts ../indexer/src/contracts.ts,../web/src/lib/blockchain/data/contracts.ts ~~",
     "start:contracts:compile": "pnpm --filter ./contracts watch_compile",
     "start:indexer": "pnpm --filter ./indexer dev",
     "start:web": "pnpm --filter ./web dev",
     "format": "prettier --write . && pnpm -r format",
     "format:check": "prettier --check . && pnpm -r format:check",
-    "build": "ldenv -m sepolia pnpm run --filter ./contracts export -n @@MODE --ts ../indexer/src/contracts.ts,../web/src/lib/blockchain/data/contracts.ts ~~ pnpm run --filter ./indexer build ~~ pnpm run --filter ./web build ~~ @@",
+    "build": "ldenv -m sepolia pnpm run --filter ./contracts export -n @@MODE --ts ../indexer/src/contracts.ts,../web/src/lib/blockchain/data/contracts.ts ~~ pnpm run --filter ./common build ~~ pnpm run --filter ./indexer build ~~ pnpm run --filter ./web build ~~ @@",
     "start": "zellij --layout zellij.kdl a $npm_package_name || zellij --layout zellij.kdl -s $npm_package_name",
     "zellij-dev": "zellij --layout zellij-dev.kdl a ${npm_package_name}-dev || zellij --layout zellij-dev.kdl -s ${npm_package_name}-dev",
     "dev": "ldenv -m localhost pnpm --filter ./contracts export -n @@MODE --ts ../indexer/src/contracts.ts,../web/src/lib/blockchain/data/contracts.ts ~~ pnpm run zellij-dev ~~ @@"

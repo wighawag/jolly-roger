@@ -3,6 +3,7 @@ import type {EIP1193Provider, EIP1193Block} from 'eip-1193';
 import type {EIP1193TransactionWithMetadata} from 'web3-connection';
 import {initEmitter} from '$external/callbacks';
 import {logs} from 'named-logs';
+import {throttle} from 'lodash-es';
 
 const logger = logs('tx-observer');
 
@@ -265,7 +266,7 @@ export function initTransactionProcessor(config: {finality: number}) {
 		remove,
 		clear,
 
-		process,
+		process: throttle(process, 1000), // TODO why onNewBlock is called so many time
 
 		onTx: emitter.on,
 		offTx: emitter.off,

@@ -117,12 +117,18 @@ importers:
 
   web:
     dependencies:
+      '@types/lodash-es':
+        specifier: ^4.17.7
+        version: 4.17.7
       ethereum-indexer-browser:
         specifier: ^0.6.3
         version: 0.6.3(typescript@5.0.4)
       jolly-roger-indexer:
         specifier: workspace:*
         version: link:../indexer
+      lodash-es:
+        specifier: ^4.17.21
+        version: 4.17.21
       named-logs:
         specifier: ^0.2.2
         version: 0.2.2
@@ -133,8 +139,8 @@ importers:
         specifier: ^0.3.19
         version: 0.3.19(typescript@5.0.4)
       web3-connection:
-        specifier: ^0.0.18
-        version: 0.0.18(svelte@3.59.1)
+        specifier: ^0.0.27
+        version: 0.0.27(svelte@3.59.1)
       web3w-walletconnect-loader:
         specifier: ^0.4.3
         version: 0.4.3
@@ -1443,6 +1449,16 @@ packages:
     dependencies:
       '@types/node': 20.1.2
     dev: true
+
+  /@types/lodash-es@4.17.7:
+    resolution: {integrity: sha512-z0ptr6UI10VlU6l5MYhGwS4mC8DZyYer2mCoyysZtSF7p26zOX8UpbrV0YpNYLGS8K4PUFIyEr62IMFFjveSiQ==}
+    dependencies:
+      '@types/lodash': 4.14.195
+    dev: false
+
+  /@types/lodash@4.14.195:
+    resolution: {integrity: sha512-Hwx9EUgdwf2GLarOjQp5ZH8ZmblzcbTBC2wtQWNKARBSxM9ezRIAUpeDTgoQRAFB0+8CNWXVA9+MaSOzOF3nPg==}
+    dev: false
 
   /@types/lru-cache@5.1.1:
     resolution: {integrity: sha512-ssE3Vlrys7sdIzs5LOxCzTVMsU7i9oa/IaW92wF32JFb3CVczqOkru2xspuKczHEbG3nvmPY7IFqVmGGHdNbYw==}
@@ -4971,7 +4987,6 @@ packages:
 
   /lodash-es@4.17.21:
     resolution: {integrity: sha512-mKnC+QJ9pWVzv+C4/U3rRsHapFfHvQFoFB92e52xeyGMcX6/OlIl78je1u8vePzYZSkkogMPJ2yjxxsb89cxyw==}
-    dev: true
 
   /lodash.assignwith@4.2.0:
     resolution: {integrity: sha512-ZznplvbvtjK2gMvnQ1BR/zqPFZmS6jbK4p+6Up4xcRYA7yMIwxHCfbTcrYxXKzzqLsQ05eJPVznEW3tuwV7k1g==}
@@ -8011,8 +8026,8 @@ packages:
     engines: {node: '>= 8'}
     dev: true
 
-  /web3-connection@0.0.18(svelte@3.59.1):
-    resolution: {integrity: sha512-bOluIOXgO7aco667HIMgGQqbXr2wCTcI3LzvqWIznHtvlBdmFI/QO6xOsFTmY2ljQgXu8mX183baO990FSC0+g==}
+  /web3-connection@0.0.27(svelte@3.59.1):
+    resolution: {integrity: sha512-7Ehsi2/lDWFOPf2hetbv3jTX2ZOdGSGwkk1tTCbZ2y9drDMCJz0ogoATSz/FbQSus7Ve4asXHlvucVI8XZxwdQ==}
     peerDependencies:
       svelte: ^3.54.0
     dependencies:

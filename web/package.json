@@ -29,13 +29,14 @@
     "wait-on": "^7.0.1"
   },
   "dependencies": {
+    "@types/lodash-es": "^4.17.7",
     "ethereum-indexer-browser": "^0.6.3",
     "jolly-roger-indexer": "workspace:*",
+    "lodash-es": "^4.17.21",
     "named-logs": "^0.2.2",
     "theme-change": "^2.5.0",
     "viem": "^0.3.19",
-    "web3-connection": "^0.0.18",
-    "web3w-walletconnect-loader": "^0.4.3"
+    "web3-connection": "^0.0.27"
   },
   "scripts": {
     "prepare": "pwag static/icon.svg src/web-config.json",

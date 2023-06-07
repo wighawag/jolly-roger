@@ -21,6 +21,8 @@ export type Action = {
 
 export type Actions = {[hash: `0x${string}`]: Action};
 
+export type AccountData = {actions: Actions};
+
 function fromActionToPendingTransaction(hash: `0x${string}`, action: Action): PendingTransaction {
 	return {
 		hash,
@@ -39,9 +41,7 @@ export function initAccountData() {
 
 	let key: string | undefined;
 	async function load(address: `0x${string}`, chainId: string, genesisHash?: string) {
-		key = `account_${address}_${chainId}_${genesisHash}`;
-		const dataSTR = localStorage.getItem(key);
-		const data: {actions: Actions} = dataSTR ? JSON.parse(dataSTR) : {actions: {}};
+		const data = await _load(address, chainId, genesisHash);
 		const pending_transactions: PendingTransaction[] = [];
 		for (const hash in data.actions) {
 			const action = (data.actions as any)[hash];
@@ -65,8 +65,21 @@ export function initAccountData() {
 	}
 
 	async function save() {
+		_save({actions: $actions});
+	}
+
+	async function _load(address: `0x${string}`, chainId: string, genesisHash?: string): Promise<AccountData> {
+		key = `account_${address}_${chainId}_${genesisHash}`;
+		let dataSTR: string | undefined | null;
+		try {
+			dataSTR = localStorage.getItem(key);
+		} catch {}
+		return dataSTR ? JSON.parse(dataSTR) : {actions: {}};
+	}
+
+	async function _save(accountData: AccountData) {
 		if (key) {
-			localStorage.setItem(key, JSON.stringify({actions: $actions}));
+			localStorage.setItem(key, JSON.stringify(accountData));
 		}
 	}
 

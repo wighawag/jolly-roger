@@ -1,5 +1,4 @@
 import {init} from 'web3-connection';
-import {WalletConnectModuleLoader} from 'web3w-walletconnect-loader';
 import {
 	contractsInfos,
 	defaultRPC,
@@ -20,19 +19,16 @@ export const accountData = initAccountData();
 
 const stores = init({
 	autoConnectUsingPrevious: true,
-	options: [
-		'builtin',
-		new WalletConnectModuleLoader({
-			projectId: '355ea1b63e40657f5b5ce459292375bd',
-			chains: [initialContractsInfos.chainId].map((v) => parseInt(v)),
-		}),
-	],
+	options: ['builtin'],
 	parameters: {
 		blockTime: blockTime || 5,
 		finality: 12, // TODO
 	},
 	defaultRPC,
 	networks: initialContractsInfos,
+	provider: {
+		errorOnTimeDifference: false,
+	},
 	observers: {
 		onTxSent(tx, hash) {
 			accountData.onTxSent(tx, hash as `0x{string}`); // TODO web3-connection 0x{string}
@@ -66,7 +62,15 @@ const stores = init({
 			// console.log(`DONE unloading for ${tmp.address} (${tmp.chainId})`);
 		},
 	},
-	checkGenesis: localRPC,
+	devNetwork:
+		// does not connect through node, so only enable devNetwork when in the browser
+		typeof window != 'undefined' && localRPC
+			? {
+					url: localRPC.url,
+					chainId: localRPC.chainId,
+					checkGenesis: true,
+			  }
+			: undefined,
 });
 
 export const txObserver = initTransactionProcessor({finality: 12}); // TODO config.finality
@@ -104,7 +108,7 @@ contractsInfos.subscribe((contractsInfos) => {
 	stores.connection.updateContractsInfos(contractsInfos);
 });
 
-export const {connection, network, account, pendingActions, execution, execute} = stores;
+export const {connection, network, account, pendingActions, execution, execute, devProvider} = stores;
 
 if (typeof window !== 'undefined') {
 	(window as any).execution = execution;
@@ -112,4 +116,6 @@ if (typeof window !== 'undefined') {
 	(window as any).network = network;
 	(window as any).account = account;
 	(window as any).pendingActions = pendingActions;
+
+	(window as any).actions = accountData.actions;
 }

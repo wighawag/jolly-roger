@@ -28,7 +28,7 @@
     "compile": "hardhat compile",
     "watch_compile": "as-soon -w src pnpm compile",
     "deploy": "ldenv hardhat --network @@MODE deploy @@",
-    "watch_deploy": "ldenv as-soon -w generated -w deploy pnpm run deploy",
+    "watch_deploy": "as-soon -w generated -w deploy pnpm run deploy",
     "test": "hardhat test",
     "export": "rocketh-export",
     "start": "zellij --layout zellij.kdl a $npm_package_name || zellij --layout zellij.kdl -s $npm_package_name",

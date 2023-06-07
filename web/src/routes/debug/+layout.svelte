@@ -13,6 +13,7 @@
 			{pathname: '/debug/indexer/', title: 'Indexer'},
 			{pathname: '/debug/contracts/', title: 'Contracts'},
 			{pathname: '/debug/transactions/', title: 'Transactions'},
+			{pathname: '/debug/utilities/', title: 'Utilities'},
 		]}
 	/>
 
