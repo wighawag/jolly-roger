@@ -125,12 +125,12 @@
 						page without extra themes
 					</Feature>
 					<Feature title="Great Dev experience">
-						<a class="link" href="https://github.com/foundry-rs/foundry/#readme" target="_blank" rel="noreferrer"
-							>Foundry</a
+						<a class="link" href="https://github.com/NomicFoundation/hardhat/#readme" target="_blank" rel="noreferrer"
+							>Hardhat</a
 						>
 						for contracts,
-						<a class="link" href="https://github.com/wighawag/forge-deploy" target="_blank" rel="noreferrer"
-							>forge-deploy</a
+						<a class="link" href="https://github.com/wighawag/hardhat-deploy" target="_blank" rel="noreferrer"
+							>hardhat-deploy</a
 						>
 						for contract deployment, the in-browser
 						<a class="link" href="http://npmjs.com/package/ethereum-indexer" target="_blank" rel="noreferrer"

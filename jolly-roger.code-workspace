@@ -26,14 +26,10 @@
 		"[solidity]": {
 			"editor.defaultFormatter": "NomicFoundation.hardhat-solidity"
 		},
-		"solidity.formatter": "forge",
+		"solidity.formatter": "prettier",
 		"npm.exclude": "**/lib/**"
 	},
 	"extensions": {
-		"recommendations": [
-			"svelte.svelte-vscode",
-			"esbenp.prettier-vscode",
-			"NomicFoundation.hardhat-solidity"
-		]
+		"recommendations": ["svelte.svelte-vscode", "esbenp.prettier-vscode", "NomicFoundation.hardhat-solidity"]
 	}
 }

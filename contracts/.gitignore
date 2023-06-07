@@ -1,33 +1,12 @@
-# Compiler files
-/cache
-/out
+node_modules
+cache
+artifacts
+.vscode/*
+!*.default
+generated
+deployments/localhost
 
-# Ignores development broadcast logs
-!/broadcast
-/broadcast/*/31337/
-/broadcast/*/1337/
-/broadcast/**/dry-run/
-
-# Docs
-/docs
-
-# local files
 *.local
 
-# forge-deploy
-/generated
-/deployments/localhost
-/deployments/31337
-/deployments/1337
-/deployments/void
-
-# forge: we do not use submodule instead we specify dependencies in package.json `prepare` script
-/lib
-
-# npm
-node_modules
-
-# vscode
-.vscode/*
-!.vscode/extensions.json
-!*.default
+coverage
+coverage.json
