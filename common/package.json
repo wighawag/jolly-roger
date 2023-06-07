@@ -1,0 +1,24 @@
+{
+  "name": "jolly-roger-common",
+  "version": "0.0.0",
+  "description": "Common lib",
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "dependencies": {
+    "named-logs": "^0.2.2"
+  },
+  "devDependencies": {
+    "ldenv": "^0.3.5",
+    "prettier": "^2.8.8",
+    "tsup": "^6.7.0",
+    "typescript": "^5.0.4"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --dts --format esm,cjs",
+    "dev": "tsup src/index.ts --dts --format esm,cjs --watch",
+    "format:check": "prettier --check .",
+    "format": "prettier --write ."
+  }
+}

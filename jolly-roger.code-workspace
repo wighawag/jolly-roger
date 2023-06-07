@@ -1,6 +1,10 @@
 {
 	"folders": [
 		{
+			"name": "common",
+			"path": "./common"
+		},
+		{
 			"name": "contracts",
 			"path": "./contracts"
 		},

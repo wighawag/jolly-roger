@@ -1,0 +1,8 @@
+# environment variables
+.env*.local
+
+# node modules
+node_modules
+
+# data generated
+/dist

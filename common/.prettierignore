@@ -1,0 +1,17 @@
+# ###########################################
+# .gitignore
+#############################################
+# environment variables
+.env*.local
+
+# node modules
+node_modules
+
+# data generated
+/dist
+#############################################
+
+# Ignore npm files
+pnpm-lock.yaml
+package.json
+

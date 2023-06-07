@@ -1,17 +1,11 @@
 {
 	"name": "jolly-roger-indexer",
 	"version": "0.1.0",
-	"description": "In-browser Indexer for jolly-roger. Can also run on a backend.",
+	"description": "jolly-roger indexer function to generate the state of all the registry messages",
 	"type": "module",
 	"main": "dist/index.cjs",
 	"module": "dist/index.js",
 	"types": "dist/index.d.ts",
-	"keywords": [],
-	"author": "",
-	"license": "ISC",
-	"volta": {
-		"node": "18.7.0"
-	},
 	"dependencies": {
 		"ethereum-indexer-js-processor": "^0.6.3",
 		"named-logs": "^0.2.2"

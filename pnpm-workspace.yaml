@@ -1,5 +1,5 @@
 packages:
+  - 'common'
   - 'contracts'
   - 'indexer'
   - 'web'
-  - 'packages/*'
