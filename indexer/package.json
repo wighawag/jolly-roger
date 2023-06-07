@@ -26,7 +26,7 @@
 	},
 	"scripts": {
 		"eis": "eis",
-		"serve": "ldenv eis run -n @@RPC_URL_:DEPLOYMENT_CONTEXT,RPC_URL -p ./dist/index.cjs --disable-cache --deployments ../contracts/deployments/@@DEPLOYMENT_CONTEXT @@",
+		"serve": "ldenv eis run -n @@RPC_URL_:MODE,RPC_URL -p ./dist/index.cjs --disable-cache --deployments ../contracts/deployments/@@MODE @@",
 		"build": "tsup src/index.ts --dts --format esm,cjs",
 		"dev": "echo 'waiting for src/contracts.ts...'; wait-on src/contracts.ts && tsup src/index.ts --dts --format esm,cjs --watch",
 		"format:check": "prettier --check .",

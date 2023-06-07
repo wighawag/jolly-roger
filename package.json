@@ -22,9 +22,9 @@
     "start:web": "pnpm --filter ./web dev",
     "format": "prettier --write . && pnpm -r format",
     "format:check": "prettier --check . && pnpm -r format:check",
-    "build": "ldenv -m sepolia pnpm run --filter ./contracts export -n @@DEPLOYMENT_CONTEXT --ts ../indexer/src/contracts.ts,../web/src/lib/blockchain/data/contracts.ts ~~ pnpm run --filter ./indexer build ~~ pnpm run --filter ./web build ~~ @@",
+    "build": "ldenv -m sepolia pnpm run --filter ./contracts export -n @@MODE --ts ../indexer/src/contracts.ts,../web/src/lib/blockchain/data/contracts.ts ~~ pnpm run --filter ./indexer build ~~ pnpm run --filter ./web build ~~ @@",
     "start": "zellij --layout zellij.kdl a $npm_package_name || zellij --layout zellij.kdl -s $npm_package_name",
     "zellij-dev": "zellij --layout zellij-dev.kdl a ${npm_package_name}-dev || zellij --layout zellij-dev.kdl -s ${npm_package_name}-dev",
-    "dev": "ldenv -m localhost pnpm --filter ./contracts export -n @@DEPLOYMENT_CONTEXT --ts ../indexer/src/contracts.ts,../web/src/lib/blockchain/data/contracts.ts ~~ pnpm run zellij-dev ~~ @@"
+    "dev": "ldenv -m localhost pnpm --filter ./contracts export -n @@MODE --ts ../indexer/src/contracts.ts,../web/src/lib/blockchain/data/contracts.ts ~~ pnpm run zellij-dev ~~ @@"
   }
 }

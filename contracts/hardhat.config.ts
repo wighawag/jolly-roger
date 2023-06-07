@@ -10,6 +10,9 @@ export default {
 		addNetworksFromEnv({
 			hardhat: {
 				initialBaseFeePerGas: 0,
+				mining: {
+					interval: process.env['BLOCK_TIME'] ? parseInt(process.env['BLOCK_TIME']) : undefined,
+				},
 			},
 		})
 	),
