@@ -141,9 +141,6 @@ importers:
       web3-connection:
         specifier: ^0.0.27
         version: 0.0.27(svelte@3.59.1)
-      web3w-walletconnect-loader:
-        specifier: ^0.4.3
-        version: 0.4.3
     devDependencies:
       '@sveltejs/adapter-static':
         specifier: ^2.0.2
@@ -5535,10 +5532,6 @@ packages:
       named-logs: 0.2.2
     dev: true
 
-  /named-logs@0.1.0:
-    resolution: {integrity: sha512-BH/I7iUfuL+FR9QmNUT1wUK/JC53qUogrCEv3XGVCHrlQ9hqRrLNakfE5BQbjXPC2A6Kb0whw9BkU+A7nhYKOg==}
-    dev: false
-
   /named-logs@0.2.2:
     resolution: {integrity: sha512-uXvQSEp8W99elz/UFpmptvRkjbr+UwJRfONsTND/W4ncqLlio0hfIBKe2HUhz3pPHhNd1XUoHyf1cn8Pgxt4oA==}
 
@@ -8047,12 +8040,6 @@ packages:
       randombytes: 2.1.0
       utf8: 3.0.0
     dev: true
-
-  /web3w-walletconnect-loader@0.4.3:
-    resolution: {integrity: sha512-34vN/BMQn63S4b5RSsYWQLrvlJ7lpQvnPivyKcjmgawR1J7ug6acsYa3Il+8FzMLKUnrhSPd+l4WpbJvBmVtZQ==}
-    dependencies:
-      named-logs: 0.1.0
-    dev: false
 
   /webidl-conversions@3.0.1:
     resolution: {integrity: sha512-2JAn3z8AR6rjK8Sm8orRC0h/bcl/DqL7tRPdGZ4I1CjdF+EaMLmYxBHyXuKL849eucPFhvBoxMsflfOb8kxaeQ==}
