@@ -31,7 +31,7 @@
   "dependencies": {
     "@types/lodash-es": "^4.17.7",
     "ethereum-indexer-browser": "^0.6.3",
-    "ethereum-tx-observer": "^0.0.1",
+    "ethereum-tx-observer": "^0.0.2",
     "jolly-roger-indexer": "workspace:*",
     "lodash-es": "^4.17.21",
     "named-logs": "^0.2.2",

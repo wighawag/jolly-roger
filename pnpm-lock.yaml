@@ -124,8 +124,8 @@ importers:
         specifier: ^0.6.3
         version: 0.6.3(typescript@5.0.4)
       ethereum-tx-observer:
-        specifier: ^0.0.1
-        version: 0.0.1
+        specifier: ^0.0.2
+        version: 0.0.2
       jolly-roger-indexer:
         specifier: workspace:*
         version: link:../indexer
@@ -3247,8 +3247,8 @@ packages:
       - utf-8-validate
       - zod
 
-  /ethereum-tx-observer@0.0.1:
-    resolution: {integrity: sha512-Ccj9l6R8mRuYFSAIYYxO9G3e1CDjF2xuEjqcs0RgE5a9qLCfrb9q5o9MeogUj96wOmu6UDFumB8SzuPpC9cDqA==}
+  /ethereum-tx-observer@0.0.2:
+    resolution: {integrity: sha512-H4NKZ0y8NUBugkEG7XMytKK9fmddO6BNIgROYvDGuHAbBFbf0EogczqmywIwoiVJCdBu6vt029ZM3XsfyY+1Qw==}
     dependencies:
       lodash-es: 4.17.21
       named-logs: 0.2.2
