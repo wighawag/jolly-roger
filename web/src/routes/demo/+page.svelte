@@ -82,10 +82,8 @@
 			connection.provider.setNextMetadata({
 				message: messageToSend,
 			});
-			contracts.Registry.write({
-				functionName: 'setMessage',
-				args: [messageToSend, 12],
-			});
+
+			contracts.Registry.write.setMessage([messageToSend, 12]);
 		})}
 	class="m-1 btn btn-primary">Say it!</button
 >

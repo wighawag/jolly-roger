@@ -1,67 +1,77 @@
-import type {ConnectedState, ConnectedNetworkState, GenericContractsInfos} from 'web3-connection';
-import type {Chain, Hash, WalletClient} from 'viem';
-import type {WriteContractParameters} from 'viem/contract';
-import type {NetworkConfig} from '$lib/config';
-import type {Abi} from 'abitype';
-import {createWalletClient, custom} from 'viem';
+import type {
+	ConnectedState,
+	ConnectedNetworkState,
+	GenericContractsInfos,
+	SingleNetworkConfig,
+	ConnectedAccountState,
+} from 'web3-connection';
+import {
+	createPublicClient,
+	type WalletClient,
+	type PublicClient,
+	type GetContractReturnType,
+	type CustomTransport,
+	type Address,
+	type LocalAccount,
+	type Chain,
+} from 'viem';
+import {createWalletClient, custom, getContract} from 'viem';
 import {execute} from '$lib/web3';
+import {initialContractsInfos, type NetworkConfig} from '$lib/config';
 
-type ContractParameters<TAbi extends Abi, TFunctionName extends string = string, TChain extends Chain = Chain> = Omit<
-	WriteContractParameters<TAbi, TFunctionName, TChain>,
-	'address' | 'abi' | 'account'
->;
-
-export type ViemContract<ABI extends Abi, TChain extends Chain = Chain> = {
-	write: <TFunctionName extends string = string>(
-		params: ContractParameters<ABI, TFunctionName, TChain>
-	) => Promise<Hash>;
+export type ViemContracts<ContractsTypes extends GenericContractsInfos, TAddress extends Address> = {
+	[ContractName in keyof ContractsTypes]: GetContractReturnType<
+		ContractsTypes[ContractName]['abi'],
+		PublicClient<CustomTransport>,
+		WalletClient<CustomTransport, Chain, LocalAccount<TAddress>>,
+		TAddress
+	>;
 };
 
-export type Contracts = NetworkConfig['contracts'];
-export type ViemContracts = {
-	[ContractName in keyof Contracts]: ViemContract<Contracts[ContractName]['abi']>;
-};
+// TODO we dont really need initialContractsInfos
+function initViemContracts<ContractsInfos extends GenericContractsInfos>(
+	initialContractsInfos: SingleNetworkConfig<ContractsInfos>
+) {
+	return {
+		execute<T, TAddress extends Address>(
+			callback: (state: {
+				connection: ConnectedState;
+				account: ConnectedAccountState<TAddress>;
+				network: ConnectedNetworkState<ContractsInfos>;
+				contracts: ViemContracts<ContractsInfos, TAddress>;
+				walletClient: WalletClient;
+				publicClient: PublicClient;
+			}) => Promise<T>
+		) {
+			return execute(async ({connection, network, account}) => {
+				const transport = custom(connection.provider);
+				const publicClient = createPublicClient({transport});
+				const walletClient = createWalletClient({
+					transport,
+					account: account.address,
+				});
+				const anyContracts = network.contracts as GenericContractsInfos;
+				const contracts: ViemContracts<ContractsInfos, TAddress> = Object.keys(network.contracts).reduce(
+					(prev, curr) => {
+						const contract = anyContracts[curr];
+						const viemContract = getContract({...contract, walletClient, publicClient});
 
-export const contracts = {
-	execute<T>(
-		callback: (state: {
-			connection: ConnectedState;
-			network: ConnectedNetworkState<NetworkConfig>;
-			contracts: ViemContracts;
-			client: WalletClient;
-		}) => Promise<T>
-	) {
-		return execute(async ({connection, network, account}) => {
-			const client = createWalletClient({
-				transport: custom(connection.provider),
+						(prev as any)[curr] = viemContract;
+						return prev;
+					},
+					{} as ViemContracts<ContractsInfos, TAddress>
+				);
+				return callback({
+					connection,
+					account: account as ConnectedAccountState<TAddress>,
+					network,
+					publicClient,
+					walletClient,
+					contracts,
+				});
 			});
-			const anyContracts = network.contracts as GenericContractsInfos;
-			const contracts: ViemContracts = Object.keys(network.contracts).reduce((prev, curr) => {
-				const contract = anyContracts[curr];
-				const write = (args: ContractParameters<Abi>) => {
-					return client.writeContract({
-						chain: {
-							id: parseInt(network.chainId),
-						} as Chain, // TODO
-						account: account.address,
-						address: contract.address,
-						abi: contract.abi,
-						functionName: args.functionName,
-						args: args.args as any,
-					});
-				};
-				const viemContract: ViemContract<Abi> = {
-					write,
-				} as ViemContract<Abi>;
-				(prev as any)[curr] = viemContract;
-				return prev;
-			}, {} as ViemContracts);
-			return callback({
-				connection,
-				network,
-				client,
-				contracts,
-			});
-		});
-	},
-};
+		},
+	};
+}
+
+export const contracts = initViemContracts(initialContractsInfos);
