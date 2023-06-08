@@ -19,7 +19,6 @@ vite.config.ts.timestamp-*
 
 # pwag
 static/pwa
-static/robots.txt
 
 # generated from contracts
 src/lib/blockchain/data/contracts.ts
