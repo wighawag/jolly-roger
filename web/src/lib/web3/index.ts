@@ -113,5 +113,5 @@ if (typeof window !== 'undefined') {
 	(window as any).account = account;
 	(window as any).pendingActions = pendingActions;
 
-	(window as any).actions = accountData.actions;
+	(window as any).accountData = accountData;
 }

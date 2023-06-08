@@ -11,7 +11,7 @@ const logger = logs(`pending-state`);
  * This allow us to optimistically update the UI with pending messages from the user
  *
  */
-export const pendingState = derived([syncing, state, accountData.actions], ([$syncing, $state, $actions]) => {
+export const pendingState = derived([syncing, state, accountData.data], ([$syncing, $state, $accountData]) => {
 	const pendingGreetings: {account: `0x${string}`; message: string; pending: boolean}[] = $state.greetings.map((v) => ({
 		message: v.message,
 		account: v.account,
@@ -37,41 +37,43 @@ export const pendingState = derived([syncing, state, accountData.actions], ([$sy
 		}
 	}
 
-	for (const hash of Object.keys($actions)) {
-		const action = $actions[hash as `0x${string}`];
-		if (action.final) {
-			// in this case, the indexer will pick the correct state once synced up
-			// we can ignore the pending tx
-			// the tx-broadcaster should stop caring about this one
-			continue;
-		}
-		if (action.status === 'Failure') {
-			// tx failed so we can ignore it
-			// TODO? this failure can be picked up elsewhere to let the user know
-			//  but we could also modify the PendingState type to include information here
-			continue;
-		}
+	if ($accountData) {
+		for (const hash of Object.keys($accountData.actions)) {
+			const action = $accountData.actions[hash as `0x${string}`];
+			if (action.final) {
+				// in this case, the indexer will pick the correct state once synced up
+				// we can ignore the pending tx
+				// the tx-broadcaster should stop caring about this one
+				continue;
+			}
+			if (action.status === 'Failure') {
+				// tx failed so we can ignore it
+				// TODO? this failure can be picked up elsewhere to let the user know
+				//  but we could also modify the PendingState type to include information here
+				continue;
+			}
 
-		if (pendingHashes[hash]) {
-			// if tx is already considered in the index, we can skip
-			continue;
-		}
-		switch (action.inclusion) {
-			case 'Cancelled':
-				// tx cancelled, we ignore it
+			if (pendingHashes[hash]) {
+				// if tx is already considered in the index, we can skip
 				continue;
-			case 'BeingFetched':
-				// TODO add to state that loading is still going for txs....
-				// tx state is loading
-				continue;
-			case 'Included':
-			case 'NotFound':
-			case 'Broadcasted':
-			// else we consider it
-		}
-		if (action.tx.metadata && typeof action.tx.metadata === 'object' && 'message' in action.tx.metadata) {
-			const fromAccount = getAddress(action.tx.from);
-			pendingMessages[fromAccount] = action.tx.metadata.message as string;
+			}
+			switch (action.inclusion) {
+				case 'Cancelled':
+					// tx cancelled, we ignore it
+					continue;
+				case 'BeingFetched':
+					// TODO add to state that loading is still going for txs....
+					// tx state is loading
+					continue;
+				case 'Included':
+				case 'NotFound':
+				case 'Broadcasted':
+				// else we consider it
+			}
+			if (action.tx.metadata && typeof action.tx.metadata === 'object' && 'message' in action.tx.metadata) {
+				const fromAccount = getAddress(action.tx.from);
+				pendingMessages[fromAccount] = action.tx.metadata.message as string;
+			}
 		}
 	}
 
