@@ -33,7 +33,7 @@ async function deployGreetingsWithHello() {
 	return deployGreetings('hello');
 }
 
-describe('Lock', function () {
+describe('Registry', function () {
 	describe('Deployment', function () {
 		it('Should be already deployed', async function () {
 			const deployments = await loadAndExecuteDeployments({
@@ -44,7 +44,7 @@ describe('Lock', function () {
 			expect(prefix).to.equal('');
 		});
 
-		it('Should set the right unlockTime', async function () {
+		it('Should set the right prefix', async function () {
 			const {registry, prefix} = await loadFixture(deployGreetingsWithHello);
 			expect(await registry.read.prefix()).to.equal(prefix);
 		});
