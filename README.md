@@ -6,10 +6,20 @@ A template to develop decentralised applications
 
 We are assuming here that you already setup your env as specified in the [initial setup section](#initial-setup)
 
-### install deps
+### install dependencies
+
+Note here that while you can use `pnpm i`, we recommend you follow the instruction here so you can have verythign setup with your project's name.
 
 ```bash
-pnpm i
+pnpm boot
+```
+
+This will set the app name to the folder nane (and change the files to reflect that) and then call `pnpm i`
+
+You can also manually set the name yourself :
+
+```bash
+pnpm set-name [<new name>] && pnpm i
 ```
 
 ### start!

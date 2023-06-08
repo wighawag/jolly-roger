@@ -20,7 +20,7 @@
     "solidity-coverage": "^0.8.2",
     "solidity-proxy": "^0.0.0",
     "ts-node": "^10.9.1",
-    "viem": "^0.3.50"
+    "viem": "^1.0.0"
   },
   "scripts": {
     "prepare": "pnpm compile",

@@ -3,9 +3,6 @@
 	export let bgBorderText = 'bg-error border-error-content text-error-content';
 </script>
 
-<!-- class="fixed top-0 px-4 py-3 m-2 border rounded bg-red-100 border-red-400 text-red-700" -->
-<!-- class="fixed top-0 alert alert-error shadow-lg m-2" -->
-<!-- class="fixed top-0 px-4 py-3 m-2 rounded-box bg-error text-error-content" -->
 <div
 	style="width: auto; left: 0px; right: 0px; max-width: 100%;z-index: 1001;"
 	class={`fixed top-0 px-4 py-3 m-2 border-2 rounded-box ${bgBorderText}`}

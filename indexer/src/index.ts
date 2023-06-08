@@ -31,10 +31,6 @@ const TinyRogerIndexerProcessor: JSProcessor<MergedAbis<typeof contractsInfo.con
 			state.greetings[findIndex].message = message;
 		}
 	},
-
-	// onTransfer(state, event) {
-	// 	state.totalTransfered += event.args.value;
-	// },
 };
 
 export const createProcessor = fromJSProcessor(() => TinyRogerIndexerProcessor);
