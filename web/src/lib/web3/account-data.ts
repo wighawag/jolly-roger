@@ -1,8 +1,8 @@
 import {writable} from 'svelte/store';
 
 import type {EIP1193TransactionWithMetadata} from 'web3-connection';
-import {initEmitter} from '$external/callbacks';
-import type {PendingTransaction} from '$external/tx-observer';
+import {initEmitter} from 'radiate';
+import type {PendingTransaction} from 'ethereum-tx-observer';
 
 export type Action = {
 	tx: EIP1193TransactionWithMetadata;

@@ -123,6 +123,9 @@ importers:
       ethereum-indexer-browser:
         specifier: ^0.6.3
         version: 0.6.3(typescript@5.0.4)
+      ethereum-tx-observer:
+        specifier: ^0.0.1
+        version: 0.0.1
       jolly-roger-indexer:
         specifier: workspace:*
         version: link:../indexer
@@ -132,6 +135,9 @@ importers:
       named-logs:
         specifier: ^0.2.2
         version: 0.2.2
+      radiate:
+        specifier: ^0.0.1
+        version: 0.0.1
       theme-change:
         specifier: ^2.5.0
         version: 2.5.0
@@ -3241,6 +3247,15 @@ packages:
       - utf-8-validate
       - zod
 
+  /ethereum-tx-observer@0.0.1:
+    resolution: {integrity: sha512-Ccj9l6R8mRuYFSAIYYxO9G3e1CDjF2xuEjqcs0RgE5a9qLCfrb9q5o9MeogUj96wOmu6UDFumB8SzuPpC9cDqA==}
+    dependencies:
+      lodash-es: 4.17.21
+      named-logs: 0.2.2
+      radiate: 0.0.1
+      sveltore: 0.0.2
+    dev: false
+
   /ethereumjs-abi@0.6.8:
     resolution: {integrity: sha512-Tx0r/iXI6r+lRsdvkFDlut0N08jWMnKRZ6Gkq+Nmw75lZe4e6o3EkSnkaBP5NF6+m5PTGAr9JP43N3LyeoglsA==}
     dependencies:
@@ -6342,6 +6357,10 @@ packages:
   /queue-microtask@1.2.3:
     resolution: {integrity: sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==}
     dev: true
+
+  /radiate@0.0.1:
+    resolution: {integrity: sha512-dGXMAln3P75QuWuPVSvS9+slFFoVY/RYcfZQN+bix1zay46v7iHPtZYBGpZpHPWh0zjFsPEipE1ym810RmcDJw==}
+    dev: false
 
   /randombytes@2.1.0:
     resolution: {integrity: sha512-vYl3iOX+4CKUWuxGi9Ukhie6fsqXqS9FE2Zaic4tNFD2N2QQaXOMFbuKK4QmDHC0JO6B1Zp41J0LpT0oR68amQ==}

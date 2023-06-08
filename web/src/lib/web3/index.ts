@@ -8,7 +8,7 @@ import {
 	isUsingLocalDevNetwork,
 } from '$lib/config';
 import {initAccountData} from './account-data';
-import {initTransactionProcessor} from '$external/tx-observer';
+import {initTransactionProcessor} from 'ethereum-tx-observer';
 import {logs} from 'named-logs';
 
 const logger = logs('jolly-roger');
