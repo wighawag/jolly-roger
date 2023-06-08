@@ -1,6 +1,6 @@
 import type {EIP1193TransactionWithMetadata} from 'web3-connection';
 import type {PendingTransaction} from 'ethereum-tx-observer';
-import {initAccount} from './generic-account-data';
+import {initAccount} from '../account';
 
 export type Action = {
 	tx: EIP1193TransactionWithMetadata;
