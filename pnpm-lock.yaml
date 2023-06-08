@@ -139,8 +139,8 @@ importers:
         specifier: ^1.0.0
         version: 1.0.0(typescript@5.0.4)
       web3-connection:
-        specifier: ^0.0.27
-        version: link:../../../jolly-roger-eth/web3-connection
+        specifier: ^0.0.28
+        version: 0.0.28(svelte@3.59.1)
     devDependencies:
       '@sveltejs/adapter-static':
         specifier: ^2.0.2
@@ -7396,7 +7396,6 @@ packages:
   /svelte@3.59.1:
     resolution: {integrity: sha512-pKj8fEBmqf6mq3/NfrB9SLtcJcUvjYSWyePlfCqN9gujLB25RitWK8PvFzlwim6hD/We35KbPlRteuA6rnPGcQ==}
     engines: {node: '>= 8'}
-    dev: true
 
   /sveltore@0.0.2:
     resolution: {integrity: sha512-MqUEo9y7Mh4qy5sNEF05+t7sxhGHYa5dv25+xZSulxFMHFlAYUIPAVXp3Eeu6XtpdV0w6P3izmzgwJf07+3UOw==}
@@ -8017,6 +8016,15 @@ packages:
     resolution: {integrity: sha512-e0MO3wdXWKrLbL0DgGnUV7WHVuw9OUvL4hjgnPkIeEvESk74gAITi5G606JtZPp39cd8HA9VQzCIvA49LpPN5Q==}
     engines: {node: '>= 8'}
     dev: true
+
+  /web3-connection@0.0.28(svelte@3.59.1):
+    resolution: {integrity: sha512-9xvJSR+y0Qsxj5luwT6/CBRBVIclARY09b/aZf+oLL8vtRjBWxTL5oY99wmRK+g8RsMhX4ah8aDtVx8upNJFlg==}
+    peerDependencies:
+      svelte: ^3.54.0
+    dependencies:
+      named-logs: 0.2.2
+      svelte: 3.59.1
+    dev: false
 
   /web3-utils@1.10.0:
     resolution: {integrity: sha512-kSaCM0uMcZTNUSmn5vMEhlo02RObGNRRCkdX0V9UTAU0+lrvn0HSaudyCo6CQzuXUsnuY2ERJGCGPfeWmv19Rg==}
