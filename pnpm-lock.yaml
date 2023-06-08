@@ -147,6 +147,9 @@ importers:
       web3-connection:
         specifier: ^0.0.28
         version: 0.0.28(svelte@3.59.1)
+      web3-connection-viem:
+        specifier: ^0.0.1
+        version: 0.0.1(viem@1.0.0)
     devDependencies:
       '@sveltejs/adapter-static':
         specifier: ^2.0.2
@@ -8035,6 +8038,14 @@ packages:
     resolution: {integrity: sha512-e0MO3wdXWKrLbL0DgGnUV7WHVuw9OUvL4hjgnPkIeEvESk74gAITi5G606JtZPp39cd8HA9VQzCIvA49LpPN5Q==}
     engines: {node: '>= 8'}
     dev: true
+
+  /web3-connection-viem@0.0.1(viem@1.0.0):
+    resolution: {integrity: sha512-tMh+JjiDZLXmNLI3wY8sOlOTjoaySgFsm75zxDoi51r9PP7c6apVtyEXP/K0YL49do2zU1B+PWILaj/Hviyt/w==}
+    peerDependencies:
+      viem: ^1.0.0
+    dependencies:
+      viem: 1.0.0(typescript@5.0.4)
+    dev: false
 
   /web3-connection@0.0.28(svelte@3.59.1):
     resolution: {integrity: sha512-9xvJSR+y0Qsxj5luwT6/CBRBVIclARY09b/aZf+oLL8vtRjBWxTL5oY99wmRK+g8RsMhX4ah8aDtVx8upNJFlg==}

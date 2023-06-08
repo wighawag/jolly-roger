@@ -6,6 +6,11 @@ import {getAddress} from 'viem';
 import {logs} from 'named-logs';
 const logger = logs(`pending-state`);
 
+/**
+ * Here we are deriving a new state from the indexer state and the account data
+ * This allow us to optimistically update the UI with pending messages from the user
+ *
+ */
 export const pendingState = derived([syncing, state, accountData.actions], ([$syncing, $state, $actions]) => {
 	const pendingGreetings: {account: `0x${string}`; message: string; pending: boolean}[] = $state.greetings.map((v) => ({
 		message: v.message,

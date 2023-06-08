@@ -38,7 +38,8 @@
     "radiate": "^0.0.1",
     "theme-change": "^2.5.0",
     "viem": "^1.0.0",
-    "web3-connection": "^0.0.28"
+    "web3-connection": "^0.0.28",
+    "web3-connection-viem": "^0.0.1"
   },
   "scripts": {
     "prepare": "pwag static/icon.svg src/web-config.json",

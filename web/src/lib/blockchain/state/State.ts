@@ -10,6 +10,9 @@ const namedLogger = logs('state');
 
 export const processor = createProcessor();
 
+/**
+ * We setup the indexer and make it process the event continuously once connected to the right chain
+ */
 export const {state, syncing, status, init, indexToLatest, indexMore, startAutoIndexing, indexMoreAndCatchupIfNeeded} =
 	createIndexerState(processor, {trackNumRequests: true});
 

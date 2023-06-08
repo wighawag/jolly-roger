@@ -1,14 +1,8 @@
 import {init} from 'web3-connection';
-import {
-	contractsInfos,
-	defaultRPC,
-	initialContractsInfos,
-	blockTime,
-	localRPC,
-	isUsingLocalDevNetwork,
-} from '$lib/config';
+import {contractsInfos, defaultRPC, initialContractsInfos, blockTime, localRPC} from '$lib/config';
 import {initAccountData} from './account-data';
 import {initTransactionProcessor} from 'ethereum-tx-observer';
+import {initViemContracts} from 'web3-connection-viem';
 import {logs} from 'named-logs';
 
 const logger = logs('jolly-roger');
@@ -109,6 +103,8 @@ contractsInfos.subscribe((contractsInfos) => {
 });
 
 export const {connection, network, account, pendingActions, execution, execute, devProvider} = stores;
+
+export const contracts = initViemContracts(execute);
 
 if (typeof window !== 'undefined') {
 	(window as any).execution = execution;

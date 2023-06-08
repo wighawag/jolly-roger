@@ -1,8 +1,7 @@
 <script lang="ts">
 	import ConnectButton from '$lib/web3/ConnectButton.svelte';
 	import Web3ConnectionUI from '$lib/web3/Web3ConnectionUI.svelte';
-	import {contracts} from '$lib/web3/viem';
-	import {account, connection, network} from '$lib/web3';
+	import {account, connection, network, contracts} from '$lib/web3';
 	import {status, state} from '$lib/blockchain/state/State';
 	import {pendingState} from '$lib/blockchain/state/PendingState';
 	import ImgBlockie from '$lib/components/ethereum/ImgBlockie.svelte';
