@@ -45,10 +45,14 @@ function initViemContracts<ContractsInfos extends GenericContractsInfos>(
 		) {
 			return execute(async ({connection, network, account}) => {
 				const transport = custom(connection.provider);
-				const publicClient = createPublicClient({transport});
+				const chain: Chain = {
+					id: parseInt(network.chainId),
+				} as Chain;
+				const publicClient = createPublicClient({transport, chain});
 				const walletClient = createWalletClient({
 					transport,
 					account: account.address,
+					chain,
 				});
 				const anyContracts = network.contracts as GenericContractsInfos;
 				const contracts: ViemContracts<ContractsInfos, TAddress> = Object.keys(network.contracts).reduce(
