@@ -4,6 +4,9 @@ importers:
 
   .:
     devDependencies:
+      ask-env:
+        specifier: ^0.0.1
+        version: 0.0.1
       ldenv:
         specifier: ^0.3.5
         version: 0.3.5
@@ -1829,6 +1832,16 @@ packages:
       lodash-es: 4.17.21
     dev: true
 
+  /ask-env@0.0.1:
+    resolution: {integrity: sha512-Xrcj9yHtPR7TVrZ+vnbQdv0n8Zj+5HI1jNfgFc0PCAtkprXVerRIS7TdsxxiV7ejTm1OnmoF6IyiC2WXARyipQ==}
+    hasBin: true
+    dependencies:
+      commander: 10.0.1
+      dotenv: 16.1.4
+      edit-dotenv: 1.0.4
+      prompts: 2.4.2
+    dev: true
+
   /asn1@0.2.6:
     resolution: {integrity: sha512-ix/FxPn0MDjeyJ7i/yoHGFt/EX6LyNbxSEhPPXODPL+KB0VPk86UYfL0lMdy+KCnv+fmvIzySwaK5COwqVbWTQ==}
     dependencies:
@@ -2829,6 +2842,11 @@ packages:
     engines: {node: '>=12'}
     dev: true
 
+  /dotenv@16.1.4:
+    resolution: {integrity: sha512-m55RtE8AsPeJBpOIFKihEmqUcoVncQIwo7x9U8ZwLEZw9ZpXboz2c+rvog+jUaJvVrZ5kBOeYQBX5+8Aa/OZQw==}
+    engines: {node: '>=12'}
+    dev: true
+
   /double-ended-queue@2.1.0-0:
     resolution: {integrity: sha512-+BNfZ+deCo8hMNpDqDnvT+c0XpJ5cUa6mqYq89bho2Ifze4URTqRkcwR399hWoTrTkbZ/XJYDgP6rc7pRgffEQ==}
     dev: true
@@ -2838,6 +2856,14 @@ packages:
     dependencies:
       jsbn: 0.1.1
       safer-buffer: 2.1.2
+    dev: true
+
+  /edit-dotenv@1.0.4:
+    resolution: {integrity: sha512-te7XBIm7Z22JYln02y1T6L0RA2UioDKSxBUTVHBxPGyb7G9aq2QXc2ZaO1maMUBSjLk61M+hjgoUchU6XdARTA==}
+    engines: {node: '>= 4'}
+    dependencies:
+      eol: 0.9.1
+      escape-string-regexp: 1.0.5
     dev: true
 
   /ee-first@1.1.1:
@@ -2930,6 +2956,10 @@ packages:
   /env-paths@2.2.1:
     resolution: {integrity: sha512-+h1lkLKhZMTYjog1VEpJNG7NZJWcuc2DDk/qsqSTRRCOXiLjeQ1d1/udrUGhqMxUgAlwKNZ0cf2uqan5GLuS2A==}
     engines: {node: '>=6'}
+    dev: true
+
+  /eol@0.9.1:
+    resolution: {integrity: sha512-Ds/TEoZjwggRoz/Q2O7SE3i4Jm66mqTDfmdHdq/7DKVk3bro9Q8h6WdXKdPqFLMoqxrDK5SVRzHVPOS6uuGtrg==}
     dev: true
 
   /errno@0.1.8:
@@ -4655,6 +4685,11 @@ packages:
       graceful-fs: 4.2.11
     dev: true
 
+  /kleur@3.0.3:
+    resolution: {integrity: sha512-eTIzlVOSUR+JxdDFepEYcBMtZ9Qqdef+rnzWdRZuMbOywu5tO2w2N7rqjoANZ5k9vywhL6Br1VRjUIgTQx4E8w==}
+    engines: {node: '>=6'}
+    dev: true
+
   /kleur@4.1.5:
     resolution: {integrity: sha512-o+NO+8WrRiQEE4/7nwRJhN1HWpVmJm511pBHUxPLtp0BUISzlBplORYSmTclCnJvQq2tKu/sgl3xVpkc7ZWuQQ==}
     engines: {node: '>=6'}
@@ -6299,6 +6334,14 @@ packages:
     engines: {node: '>= 0.6.0'}
     dev: true
 
+  /prompts@2.4.2:
+    resolution: {integrity: sha512-NxNv/kLguCA7p3jE8oL2aEBsrJWgAakBpgmgK6lpPWV+WuOmY6r2/zbAVnP+T8bQlA0nzHXSJSJW0Hq7ylaD2Q==}
+    engines: {node: '>= 6'}
+    dependencies:
+      kleur: 3.0.3
+      sisteransi: 1.0.5
+    dev: true
+
   /prr@1.0.1:
     resolution: {integrity: sha512-yPw4Sng1gWghHQWj0B3ZggWUm4qVbPwPFcRG8KyxiU7J2OHFSoEHKS+EZ3fv5l1t9CyCiop6l/ZYeWbrgoQejw==}
     dev: true
@@ -6963,6 +7006,10 @@ packages:
       '@polka/url': 1.0.0-next.21
       mrmime: 1.0.1
       totalist: 3.0.1
+    dev: true
+
+  /sisteransi@1.0.5:
+    resolution: {integrity: sha512-bLGGlR1QxBcynn2d5YmDX4MGjlZvy2MRBDRNHLJ8VI6l6+9FUiyTFNJ0IveOSP0bcXgVDPRcfGqA0pjaqUpfVg==}
     dev: true
 
   /slash@3.0.0:

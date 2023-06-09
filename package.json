@@ -6,10 +6,11 @@
   "type": "module",
   "devDependencies": {
     "ldenv": "^0.3.5",
+    "ask-env": "^0.0.1",
     "syncpack": "^9.8.6"
   },
   "scripts": {
-    "preinstall": "npx only-allow pnpm && npx change-name@0.3.1 --ask jolly-roger",
+    "preinstall": "npx only-allow pnpm",
     "---------------------- INSTALL ----------------------": "",
     "boot": "npx change-name@0.3.1 --ask jolly-roger && pnpm i",
     "set-name": "npx change-name@0.3.1 --ask jolly-roger",
@@ -36,6 +37,7 @@
     "---------------------- DEPLOY ----------------------": "",
     "build": "ldenv -m sepolia pnpm run --filter ./contracts export -n @@MODE --ts ../indexer/src/contracts.ts,../web/src/lib/blockchain/data/contracts.ts ~~ pnpm run --filter ./common build ~~ pnpm run --filter ./indexer build ~~ pnpm run --filter ./web build ~~ @@",
     "contracts:deploy": "ldenv -m localhost pnpm _contracts:deploy @@",
+    "contracts:deploy:prepare": "ldenv -m localhost ask-env -f contracts/.env.local ETH_NODE_URI_@@MODE MNEMONIC_@@MODE ETHERSCAN_API_KEY:?:ETHERSCAN_API_KEY @@",
     "contracts:deploy:watch": "ldenv -m localhost pnpm _contracts:deploy:watch @@",
     "---------------------- RUN FULL LOCAL SETUP ----------------------": "",
     "start:wezterm": "wezterm --config-file wezterm.lua start $PWD",

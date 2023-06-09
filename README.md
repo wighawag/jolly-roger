@@ -8,13 +8,13 @@ We are assuming here that you already setup your env as specified in the [initia
 
 ### install dependencies
 
-Note here that while you can use `pnpm i`, we recommend you follow the instruction here so you can have verythign setup with your project's name.
+Note here that while you can use `pnpm i`, we recommend you follow the instruction here so you can have everything setup with your own project's name.
 
 ```bash
 pnpm boot
 ```
 
-This will set the app name to the folder nane (and change the files to reflect that) and then call `pnpm i`
+This will set the app name to the folder nane or the name you provide (and change the files to reflect that) and then call `pnpm i`
 
 You can also manually set the name yourself :
 
@@ -41,19 +41,43 @@ pnpm start:wezterm
 Or you can also launch each component in their own process
 
 ```bash
-pnpm start:local_node
+pnpm local_node
 ```
 
 ```bash
-pnpm start:contracts:deploy
+pnpm contracts:compile:watch
 ```
 
 ```bash
-pnpm start:indexer
+pnpm contracts:deploy:watch
 ```
 
 ```bash
-pnpm start:web
+pnpm indexer:dev
+```
+
+```bash
+pnpm web:dev
+```
+
+## Deploying to a network
+
+Just execute the following
+
+```bash
+pnpm contracts:deploy:prepare <network>
+```
+
+and it will ask you few questions and get your .env.local setup with the var needed to deploy on the network of your choice.
+
+You just need to have a endpoint url and mnemonic ready for it.
+
+You can of course configure it manually with more option if you need
+
+Then you can deploy your contract
+
+```bash
+pnpm contracts:deploy <network>
 ```
 
 ## Initial Setup
