@@ -9,10 +9,10 @@
     "syncpack": "^9.8.6"
   },
   "scripts": {
-    "preinstall": "npx only-allow pnpm",
+    "preinstall": "npx only-allow pnpm && npx change-name@0.3.1 --ask jolly-roger",
     "---------------------- INSTALL ----------------------": "",
-    "boot": "npx change-name jolly-roger && pnpm i",
-    "set-name": "npx change-name jolly-roger",
+    "boot": "npx change-name@0.3.1 --ask jolly-roger && pnpm i",
+    "set-name": "npx change-name@0.3.1 --ask jolly-roger",
     "template-test": "pnpm --filter ./contracts local_node & pnpm run --filter ./contracts deploy localhost ~~ pnpm export -n localhost --ts ../indexer/src/contracts.ts,../web/src/lib/blockchain/data/contracts.ts ~~ && pnpm run --filter ./common build && pnpm --filter ./indexer build",
     "sync-deps": "syncpack fix-mismatches && pnpm -r format:fix",
     "---------------------- FORMAT ----------------------": "",
