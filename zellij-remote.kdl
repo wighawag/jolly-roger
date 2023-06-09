@@ -3,15 +3,10 @@ layout {
 		pane {}
 		pane split_direction="vertical" {
 			pane command="bash"  {
-				args "-c" "pnpm local_node; ${SHELL-bash}"
+				args "-c" "pnpm contracts:compile:watch; cd contracts; ${SHELL-bash}"
 			}
-			pane {
-				pane command="bash"  {
-					args "-c" "pnpm contracts:compile:watch; cd contracts; ${SHELL-bash}"
-				}
-				pane command="bash"  {
-					args "-c" "pnpm contracts:deploy:watch; cd contracts; ${SHELL-bash}"
-				}
+			pane command="bash"  {
+				args "-c" "pnpm contracts:deploy:watch ${MODE}; cd contracts; ${SHELL-bash}"
 			}
 		}
 		pane split_direction="vertical" {

@@ -3,10 +3,10 @@ layout {
 		pane {}
 		pane split_direction="vertical" {
 			pane command="bash"  {
-				args "-c" "pnpm start:indexer; cd indexer; ${SHELL-bash}"
+				args "-c" "pnpm indexer:dev; cd indexer; ${SHELL-bash}"
 			}
 			pane command="bash"  {
-				args "-c" "pnpm start:web; cd web; ${SHELL-bash}"
+				args "-c" "pnpm web:dev; cd web; ${SHELL-bash}"
 			}
 		}
 	}
