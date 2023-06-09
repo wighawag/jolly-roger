@@ -51,8 +51,8 @@ importers:
         specifier: ^2.14.1
         version: 2.14.1(ts-node@10.9.1)(typescript@5.0.4)
       hardhat-rocketh:
-        specifier: ^0.5.6
-        version: 0.5.6(rocketh@0.5.2)
+        specifier: ^0.5.7
+        version: 0.5.7(rocketh@0.5.2)
       ldenv:
         specifier: ^0.3.5
         version: 0.3.5
@@ -3880,8 +3880,8 @@ packages:
       har-schema: 2.0.0
     dev: true
 
-  /hardhat-rocketh@0.5.6(rocketh@0.5.2):
-    resolution: {integrity: sha512-R95Kk9XyGjCLNRLJb5LD88sRN4i5Xm13jQrUcQvqWtEOVBL87R8Fv1vEw2CnGoBTCyTGURaj5tRcrp1mRp1GYw==}
+  /hardhat-rocketh@0.5.7(rocketh@0.5.2):
+    resolution: {integrity: sha512-DyZnqKTYPbCGW6RX6ZSltFwu5wd7o0zpUOqS2v6d/7JE7AYhPBO7lHfyK2K/0cTXvnIKs9Z6XPgoHIQAviA+Eg==}
     hasBin: true
     peerDependencies:
       rocketh: 0.5.2
