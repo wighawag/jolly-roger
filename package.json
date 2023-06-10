@@ -28,6 +28,8 @@
     "contracts:compile:watch": "pnpm --filter ./contracts watch_compile",
     "web:dev": "pnpm --filter ./web dev",
     "indexer:dev": "pnpm --filter ./indexer dev",
+    "common:dev": "pnpm --filter ./common dev",
+    "contracts:test": "pnpm --filter ./contracts test",
     "---------------------- WEB USING EXISTING DEPLOYMENT ----------------------": "",
     "zellij-attach": "zellij --layout zellij-attach.kdl a ${npm_package_name}-attach-$MODE || zellij --layout zellij-attach.kdl -s ${npm_package_name}-attach-$MODE",
     "attach": "ldenv -m localhost pnpm --filter ./contracts export -n @@MODE --ts ../indexer/src/contracts.ts,../web/src/data/contracts.ts ~~ pnpm run zellij-attach ~~ @@",

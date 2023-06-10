@@ -8,6 +8,7 @@
   "types": "dist/index.d.ts",
   "dependencies": {
     "ethereum-indexer-js-processor": "^0.6.3",
+    "jolly-roger-common": "workspace:*",
     "named-logs": "^0.2.2"
   },
   "devDependencies": {

@@ -10,6 +10,7 @@
     "chai": "^4.3.7",
     "hardhat": "^2.14.1",
     "hardhat-rocketh": "^0.5.7",
+    "jolly-roger-common": "workspace:*",
     "ldenv": "^0.3.7",
     "rocketh": "^0.5.2",
     "rocketh-deploy-proxy": "^0.5.3",

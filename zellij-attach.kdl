@@ -6,6 +6,9 @@ layout {
 				args "-c" "pnpm indexer:dev; cd indexer; ${SHELL-bash}"
 			}
 			pane command="bash"  {
+				args "-c" "pnpm common:dev; cd common; ${SHELL-bash}"
+			}
+			pane command="bash"  {
 				args "-c" "pnpm web:dev; cd web; ${SHELL-bash}"
 			}
 		}

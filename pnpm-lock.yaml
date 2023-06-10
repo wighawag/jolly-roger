@@ -56,6 +56,9 @@ importers:
       hardhat-rocketh:
         specifier: ^0.5.7
         version: 0.5.7(rocketh@0.5.2)
+      jolly-roger-common:
+        specifier: workspace:*
+        version: link:../common
       ldenv:
         specifier: ^0.3.7
         version: 0.3.7
@@ -95,6 +98,9 @@ importers:
       ethereum-indexer-js-processor:
         specifier: ^0.6.3
         version: 0.6.3(typescript@5.0.4)
+      jolly-roger-common:
+        specifier: workspace:*
+        version: link:../common
       named-logs:
         specifier: ^0.2.2
         version: 0.2.2
@@ -129,6 +135,9 @@ importers:
       ethereum-tx-observer:
         specifier: ^0.0.2
         version: 0.0.2
+      jolly-roger-common:
+        specifier: workspace:*
+        version: link:../common
       jolly-roger-indexer:
         specifier: workspace:*
         version: link:../indexer

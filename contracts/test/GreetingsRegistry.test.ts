@@ -1,6 +1,6 @@
 import {expect} from 'chai';
 import {loadFixture} from '@nomicfoundation/hardhat-network-helpers';
-
+import {prefix_str} from 'jolly-roger-common';
 import {Deployment, loadAndExecuteDeployments} from 'rocketh';
 
 import {walletClient, contract, publicClient, getAccounts} from './viem';
@@ -47,6 +47,12 @@ describe('Registry', function () {
 		it('Should set the right prefix', async function () {
 			const {registry, prefix} = await loadFixture(deployGreetingsWithHello);
 			expect(await registry.read.prefix()).to.equal(prefix);
+		});
+
+		it('specific prefix', async function () {
+			const myPrefix = prefix_str('');
+			const {registry} = await deployGreetings(myPrefix);
+			expect(await registry.read.prefix()).to.equal(myPrefix);
 		});
 	});
 });
