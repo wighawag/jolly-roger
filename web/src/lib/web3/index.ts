@@ -33,27 +33,9 @@ const stores = init({
 			const chainId = state.network.chainId;
 			const address = state.address;
 			await accountData.load(address, chainId, state.network.genesisHash);
-			// console.log({ chainId: state.network.chainId });
-			// console.log(`loading ${address} (${chainId})`);
-
-			// await wait(4);
-			// setLoadingMessage(`Require signature... ${address} (${chainId})`);
-			// await waitForStep();
-			// state.connection.provider.request({
-			// 	method: 'personal_sign',
-			// 	params: ['hello', state.address],
-			// });
-			// setLoadingMessage(`stage 2 ${address} (${chainId})`);
-			// await wait(4);
-			// setLoadingMessage(`stage 3 ${address} (${chainId})`);
-			// await wait(20);
-			// setLoadingMessage(`DONE loading for ${address} (${chainId})`);
 		},
 		async unload() {
 			await accountData.unload();
-			// console.log(`unloading ${tmp.address} (${tmp.chainId})`);
-			// await wait(6);
-			// console.log(`DONE unloading for ${tmp.address} (${tmp.chainId})`);
 		},
 	},
 	devNetwork:

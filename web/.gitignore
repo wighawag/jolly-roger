@@ -21,4 +21,4 @@ vite.config.ts.timestamp-*
 static/pwa
 
 # generated from contracts
-src/lib/blockchain/data/contracts.ts
+src/data/contracts.ts

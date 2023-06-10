@@ -26,11 +26,7 @@
 					class="btn btn-error">Cancel</button
 				>
 				<button
-					on:click={async () => {
-						console.log('switching...');
-						await network.switchTo($contractsInfos.chainId, getNetworkConfig($contractsInfos.chainId));
-						console.log('switched');
-					}}
+					on:click={() => network.switchTo($contractsInfos.chainId, getNetworkConfig($contractsInfos.chainId))}
 					class="btn">Switch</button
 				>
 			</div>

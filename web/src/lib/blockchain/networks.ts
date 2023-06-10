@@ -1,4 +1,4 @@
-import networks from './data/networks.json';
+import networks from '$data/networks.json';
 
 export type NetworkWalletData = {
 	rpcUrls?: string[];
