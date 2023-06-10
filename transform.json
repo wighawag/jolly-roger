@@ -2,14 +2,15 @@
 	{
 		"action": "remove",
 		"files": [
+			"transform.js",
 			"transform.json",
 			"LICENSE",
 			".github",
 			"TODO.md",
-			"web/TODO.md",
 			"publish.sh",
-			"transform.js",
-			"src/lib/components/jolly-roger"
+			"web/TODO.md",
+			"web/src/lib/components/jolly-roger",
+			"web/static/images/featured"
 		]
 	}
 ]

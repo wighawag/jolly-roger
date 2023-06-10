@@ -1,12 +1,14 @@
 node_modules
-cache
-artifacts
 .vscode/*
 !*.default
+*.local
+
+# rocketh
 generated
 deployments/localhost
 
-*.local
-
+# hardhat
 coverage
 coverage.json
+cache
+artifacts

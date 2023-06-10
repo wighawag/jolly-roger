@@ -10,7 +10,7 @@
     "named-logs": "^0.2.2"
   },
   "devDependencies": {
-    "ldenv": "^0.3.5",
+    "ldenv": "^0.3.7",
     "prettier": "^2.8.8",
     "tsup": "^6.7.0",
     "typescript": "^5.0.4"

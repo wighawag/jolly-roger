@@ -1,10 +1,7 @@
 # ###########################################
 # .gitignore
 #############################################
-# environment variables
 .env*.local
-
-# node modules
 node_modules
 
 # data generated
@@ -12,8 +9,5 @@ node_modules
 /ethereum-indexer-data
 /src/contracts.ts
 #############################################
-
-# Ignore npm files
-pnpm-lock.yaml
 package.json
-
+pnpm-lock.yaml

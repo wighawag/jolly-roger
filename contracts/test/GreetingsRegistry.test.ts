@@ -1,5 +1,5 @@
 import {expect} from 'chai';
-import {loadFixture, time} from '@nomicfoundation/hardhat-network-helpers';
+import {loadFixture} from '@nomicfoundation/hardhat-network-helpers';
 
 import {Deployment, loadAndExecuteDeployments} from 'rocketh';
 

@@ -10,7 +10,7 @@
     "chai": "^4.3.7",
     "hardhat": "^2.14.1",
     "hardhat-rocketh": "^0.5.7",
-    "ldenv": "^0.3.5",
+    "ldenv": "^0.3.7",
     "rocketh": "^0.5.2",
     "rocketh-deploy-proxy": "^0.5.3",
     "rocketh-export": "^0.5.5",

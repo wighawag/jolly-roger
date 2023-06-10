@@ -20,15 +20,9 @@ pnpm watch_compile
 
 ### deploy your contract
 
-- in memory only:
-
-  ```bash
-  pnpm run deploy void
-  ```
-
 - on localhost
 
-  This assume you have anvil running : `anvil`
+  This assume you have a local node running : `pnpm local_node`
 
   ```bash
   pnpm run deploy localhost
@@ -36,7 +30,7 @@ pnpm watch_compile
 
 - on a network of your choice
 
-  Just make sure you have `RPC_URL` or `RPC_URL_<network>` set for it either in `env.local` or `.env.<network>.local`
+  Just make sure you have your .env.local setup, see [.env](.env)
 
   ```bash
   pnpm run deploy <network>

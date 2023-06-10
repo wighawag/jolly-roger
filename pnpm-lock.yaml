@@ -8,8 +8,8 @@ importers:
         specifier: ^0.0.1
         version: 0.0.1
       ldenv:
-        specifier: ^0.3.5
-        version: 0.3.5
+        specifier: ^0.3.7
+        version: 0.3.7
       syncpack:
         specifier: ^9.8.6
         version: 9.8.6
@@ -21,8 +21,8 @@ importers:
         version: 0.2.2
     devDependencies:
       ldenv:
-        specifier: ^0.3.5
-        version: 0.3.5
+        specifier: ^0.3.7
+        version: 0.3.7
       prettier:
         specifier: ^2.8.8
         version: 2.8.8
@@ -57,8 +57,8 @@ importers:
         specifier: ^0.5.7
         version: 0.5.7(rocketh@0.5.2)
       ldenv:
-        specifier: ^0.3.5
-        version: 0.3.5
+        specifier: ^0.3.7
+        version: 0.3.7
       rocketh:
         specifier: ^0.5.2
         version: 0.5.2(typescript@5.0.4)
@@ -103,8 +103,8 @@ importers:
         specifier: ^0.6.6
         version: 0.6.6(typescript@5.0.4)
       ldenv:
-        specifier: ^0.3.5
-        version: 0.3.5
+        specifier: ^0.3.7
+        version: 0.3.7
       prettier:
         specifier: ^2.8.8
         version: 2.8.8
@@ -2837,11 +2837,6 @@ packages:
     engines: {node: '>=12'}
     dev: true
 
-  /dotenv@16.0.3:
-    resolution: {integrity: sha512-7GO6HghkA5fYG9TYnNxi14/7K9f5occMlp3zXAuSxn7CKCxt9xbNWG7yF8hTCSUchlfWSe3uLmlPfigevRItzQ==}
-    engines: {node: '>=12'}
-    dev: true
-
   /dotenv@16.1.4:
     resolution: {integrity: sha512-m55RtE8AsPeJBpOIFKihEmqUcoVncQIwo7x9U8ZwLEZw9ZpXboz2c+rvog+jUaJvVrZ5kBOeYQBX5+8Aa/OZQw==}
     engines: {node: '>=12'}
@@ -3255,7 +3250,7 @@ packages:
       koa-json: 2.0.2
       koa-logger: 3.2.1
       koa-router: 12.0.0
-      ldenv: 0.3.5
+      ldenv: 0.3.7
       named-logs: 0.2.2
       named-logs-console: 0.2.3
       pouchdb: 8.0.1
@@ -4848,15 +4843,15 @@ packages:
     resolution: {integrity: sha512-WsVOhnvQlsV6xmUaguq2J/JYza0XW30bj4okSxf+q4nFrnyMOYJEwVThpmikvXywll8TY3c03swgaL0SNVgCkg==}
     hasBin: true
     dependencies:
-      dotenv: 16.0.3
+      dotenv: 16.1.4
       dotenv-expand: 10.0.0
     dev: true
 
-  /ldenv@0.3.5:
-    resolution: {integrity: sha512-+mJ/nU6tdTxpDua8sJj06wc5sllPUPWAWkw1AMiQMCFvfdeyxQbzCOeft3HjDjGu9Y9a7v5GSndUyrYBm1Nw8Q==}
+  /ldenv@0.3.7:
+    resolution: {integrity: sha512-rUO+f3AbegMO3hFLFEPi4JyjgeLoQ5bWr+1AQs75wGAzDvr5V69b/a7yRDXplbT86wzPmD9V6KO1Oyx9ayMxbQ==}
     hasBin: true
     dependencies:
-      dotenv: 16.0.3
+      dotenv: 16.1.4
       dotenv-expand: 10.0.0
     dev: true
 
@@ -6712,7 +6707,7 @@ packages:
       commander: 10.0.1
       fs-extra: 11.1.1
       isomorphic-unfetch: 4.0.2
-      ldenv: 0.3.5
+      ldenv: 0.3.7
       qs: 6.11.2
       rocketh: 0.5.2(typescript@5.0.4)
     transitivePeerDependencies:
@@ -6733,7 +6728,7 @@ packages:
       esbuild: 0.17.18
       esbuild-register: 3.4.2(esbuild@0.17.18)
       figlet: 1.6.0
-      ldenv: 0.3.5
+      ldenv: 0.3.7
       viem: 0.3.50(typescript@5.0.4)
     transitivePeerDependencies:
       - bufferutil
