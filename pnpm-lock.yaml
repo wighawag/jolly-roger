@@ -34,6 +34,10 @@ importers:
         version: 5.0.4
 
   contracts:
+    dependencies:
+      '@types/chai-as-promised':
+        specifier: ^7.1.5
+        version: 7.1.5
     devDependencies:
       '@nomicfoundation/hardhat-network-helpers':
         specifier: ^1.0.8
@@ -50,6 +54,9 @@ importers:
       chai:
         specifier: ^4.3.7
         version: 4.3.7
+      chai-as-promised:
+        specifier: ^7.1.1
+        version: 7.1.1(chai@4.3.7)
       hardhat:
         specifier: ^2.14.1
         version: 2.14.1(ts-node@10.9.1)(typescript@5.0.4)
@@ -92,6 +99,9 @@ importers:
       viem:
         specifier: ^1.0.0
         version: 1.0.0(typescript@5.0.4)
+      viem-chai-matchers:
+        specifier: ^0.0.3
+        version: 0.0.3(@types/chai-as-promised@7.1.5)(chai-as-promised@7.1.1)(chai@4.3.7)(viem@1.0.0)
 
   indexer:
     dependencies:
@@ -1440,9 +1450,13 @@ packages:
       '@types/node': 20.1.2
     dev: true
 
+  /@types/chai-as-promised@7.1.5:
+    resolution: {integrity: sha512-jStwss93SITGBwt/niYrkf2C+/1KTeZCZl1LaeezTlqppAKeoQC7jxyqYuP72sxBGKCIbw7oHgbYssIRzT5FCQ==}
+    dependencies:
+      '@types/chai': 4.3.5
+
   /@types/chai@4.3.5:
     resolution: {integrity: sha512-mEo1sAde+UCE6b2hxn332f1g1E8WfYRu6p5SvTKr2ZKC1f7gFJXk4h5PyGP9Dt6gCaG8y8XhwnXWC6Iy2cmBng==}
-    dev: true
 
   /@types/cookie@0.5.1:
     resolution: {integrity: sha512-COUnqfB2+ckwXXSFInsFdOAWQzCCx+a5hq2ruyj+Vjund94RJQd4LG2u9hnvJrTgunKAaax7ancBYlDrNYxA0g==}
@@ -2199,6 +2213,15 @@ packages:
   /catering@2.1.1:
     resolution: {integrity: sha512-K7Qy8O9p76sL3/3m7/zLKbRkyOlSZAgzEaLhyj2mXS8PsCud2Eo4hAb8aLtZqHh0QGqLcb9dlJSu6lHRVENm1w==}
     engines: {node: '>=6'}
+    dev: true
+
+  /chai-as-promised@7.1.1(chai@4.3.7):
+    resolution: {integrity: sha512-azL6xMoi+uxu6z4rhWQ1jbdUhOMhis2PvscD/xjLqNMkv3BPPp2JyyuTHOrf9BOosGpNQ11v6BKv/g57RXbiaA==}
+    peerDependencies:
+      chai: '>= 2.1.2 < 5'
+    dependencies:
+      chai: 4.3.7
+      check-error: 1.0.2
     dev: true
 
   /chai@4.3.7:
@@ -7964,6 +7987,20 @@ packages:
       assert-plus: 1.0.0
       core-util-is: 1.0.2
       extsprintf: 1.3.0
+    dev: true
+
+  /viem-chai-matchers@0.0.3(@types/chai-as-promised@7.1.5)(chai-as-promised@7.1.1)(chai@4.3.7)(viem@1.0.0):
+    resolution: {integrity: sha512-Rw7nbPOwdR/f8rZhmjIJM+MnIcTNs4+zvsP1Voj2LHEd5VgHu3PSxX8zcvRUSTpJtGOnLo7wcQZfnBwAyLfG9g==}
+    peerDependencies:
+      '@types/chai-as-promised': ^7.1.5
+      chai: ^4.2.0
+      chai-as-promised: ^7.1.1
+      viem: ^1.0.0
+    dependencies:
+      '@types/chai-as-promised': 7.1.5
+      chai: 4.3.7
+      chai-as-promised: 7.1.1(chai@4.3.7)
+      viem: 1.0.0(typescript@5.0.4)
     dev: true
 
   /viem@0.1.26(typescript@5.0.4):

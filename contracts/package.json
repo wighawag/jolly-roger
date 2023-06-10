@@ -8,6 +8,7 @@
     "@types/mocha": "^10.0.1",
     "as-soon": "^0.0.4",
     "chai": "^4.3.7",
+    "chai-as-promised": "^7.1.1",
     "hardhat": "^2.14.1",
     "hardhat-rocketh": "^0.5.7",
     "jolly-roger-common": "workspace:*",
@@ -21,7 +22,8 @@
     "solidity-coverage": "^0.8.2",
     "solidity-proxy": "^0.0.0",
     "ts-node": "^10.9.1",
-    "viem": "^1.0.0"
+    "viem": "^1.0.0",
+    "viem-chai-matchers": "^0.0.3"
   },
   "scripts": {
     "prepare": "pnpm compile",
@@ -34,5 +36,8 @@
     "export": "rocketh-export",
     "start": "zellij --layout zellij.kdl a $npm_package_name || zellij --layout zellij.kdl -s $npm_package_name",
     "stop": "zellij kill-session $npm_package_name"
+  },
+  "dependencies": {
+    "@types/chai-as-promised": "^7.1.5"
   }
 }

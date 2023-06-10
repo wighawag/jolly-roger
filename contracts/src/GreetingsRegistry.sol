@@ -87,12 +87,27 @@ contract GreetingsRegistry is Proxied {
 	/// @param message the value to set as content.
 	/// @param dayTimeInSeconds the time of the day in seconds the message was written.
 	function setMessage(string calldata message, uint24 dayTimeInSeconds) external {
+		_setMessageFor(msg.sender, message, dayTimeInSeconds);
+	}
+
+	/// @notice set a new message for `msg.sender`.
+	/// @param account address which will have its greetings set
+	/// @param message the value to set as content.
+	/// @param dayTimeInSeconds the time of the day in seconds the message was written.
+	function setMessageFor(address account, string calldata message, uint24 dayTimeInSeconds) external {
+		// we could add delegation here
+		// we added this function to showcase test expecting errors
+		require(msg.sender == account, 'NOT_AUTHORIZED');
+		_setMessageFor(account, message, dayTimeInSeconds);
+	}
+
+	function _setMessageFor(address account, string calldata message, uint24 dayTimeInSeconds) internal {
 		string memory actualMessage = string(bytes.concat(bytes(_prefix), bytes(message)));
-		_messages[msg.sender] = Message({
+		_messages[account] = Message({
 			content: actualMessage,
 			timestamp: block.timestamp,
 			dayTimeInSeconds: dayTimeInSeconds
 		});
-		emit MessageChanged(msg.sender, block.timestamp, actualMessage, dayTimeInSeconds);
+		emit MessageChanged(account, block.timestamp, actualMessage, dayTimeInSeconds);
 	}
 }

@@ -1,4 +1,5 @@
-import {expect} from 'chai';
+import {expect} from './utils/chai';
+
 import {loadFixture} from '@nomicfoundation/hardhat-network-helpers';
 import {prefix_str} from 'jolly-roger-common';
 import {Deployment, loadAndExecuteDeployments} from 'rocketh';
@@ -53,6 +54,26 @@ describe('Registry', function () {
 			const myPrefix = prefix_str('');
 			const {registry} = await deployGreetings(myPrefix);
 			expect(await registry.read.prefix()).to.equal(myPrefix);
+		});
+
+		it('Should be able to set message', async function () {
+			const {registry, otherAccounts} = await loadFixture(deployGreetingsWithHello);
+			const txHash = await registry.write.setMessage(['hello', 1], {
+				account: otherAccounts[0],
+			});
+			expect(await publicClient.waitForTransactionReceipt({hash: txHash})).to.includeEvent(
+				registry.abi,
+				'MessageChanged'
+			);
+		});
+
+		it('Should not be able to set message for other account', async function () {
+			const {registry, otherAccounts} = await loadFixture(deployGreetingsWithHello);
+			await expect(
+				registry.write.setMessageFor([otherAccounts[1], 'hello', 1], {
+					account: otherAccounts[0],
+				})
+			).to.be.revertedWith('NOT_AUTHORIZED');
 		});
 	});
 });
