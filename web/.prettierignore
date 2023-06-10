@@ -27,10 +27,6 @@ static/robots.txt
 # generated from contracts
 src/data/contracts.ts
 #############################################
-
-# Ignore npm files
-pnpm-lock.yaml
 package.json
-
-#ignore static files
+pnpm-lock.yaml
 static/

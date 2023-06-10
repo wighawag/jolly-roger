@@ -38,6 +38,7 @@
     "remote": "ldenv pnpm run zellij-remote @@",
     "---------------------- DEPLOY ----------------------": "",
     "build": "ldenv -m sepolia pnpm run --filter ./contracts export -n @@MODE --ts ../indexer/src/contracts.ts,../web/src/data/contracts.ts ~~ pnpm run --filter ./common build ~~ pnpm run --filter ./indexer build ~~ pnpm run --filter ./web build ~~ @@",
+    "serve": "pnpm --filter ./web serve",
     "contracts:deploy": "ldenv -m localhost pnpm _contracts:deploy @@",
     "contracts:deploy:prepare": "ldenv -m localhost ask-env -f contracts/.env.local ETH_NODE_URI_@@MODE MNEMONIC_@@MODE ETHERSCAN_API_KEY:?:ETHERSCAN_API_KEY @@",
     "contracts:deploy:watch": "ldenv -m localhost pnpm _contracts:deploy:watch @@",
