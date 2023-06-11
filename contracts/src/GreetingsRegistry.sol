@@ -101,6 +101,10 @@ contract GreetingsRegistry is Proxied {
 		_setMessageFor(account, message, dayTimeInSeconds);
 	}
 
+	// ----------------------------------------------------------------------------------------------
+	// INTERNAL
+	// ----------------------------------------------------------------------------------------------
+
 	function _setMessageFor(address account, string calldata message, uint24 dayTimeInSeconds) internal {
 		string memory actualMessage = string(bytes.concat(bytes(_prefix), bytes(message)));
 		_messages[account] = Message({
