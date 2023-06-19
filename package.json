@@ -5,9 +5,9 @@
   "private": true,
   "type": "module",
   "devDependencies": {
-    "ldenv": "^0.3.7",
     "ask-env": "^0.0.1",
-    "syncpack": "^9.8.6"
+    "ldenv": "^0.3.7",
+    "syncpack": "^10.6.1"
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",

@@ -7,16 +7,16 @@
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "dependencies": {
-    "ethereum-indexer-js-processor": "^0.6.3",
+    "ethereum-indexer-js-processor": "^0.6.4",
     "jolly-roger-common": "workspace:*",
     "named-logs": "^0.2.2"
   },
   "devDependencies": {
-    "ethereum-indexer-server": "^0.6.6",
+    "ethereum-indexer-server": "^0.6.7",
     "ldenv": "^0.3.7",
     "prettier": "^2.8.8",
-    "tsup": "^6.7.0",
-    "typescript": "^5.0.4",
+    "tsup": "^7.0.0",
+    "typescript": "^5.1.3",
     "wait-on": "^7.0.1"
   },
   "scripts": {
