@@ -1,4 +1,4 @@
-import {expect} from './utils/chai';
+import {expect} from './utils/viem-chai';
 
 import {loadFixture} from '@nomicfoundation/hardhat-network-helpers';
 import {prefix_str} from 'jolly-roger-common';

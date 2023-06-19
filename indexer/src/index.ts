@@ -6,7 +6,7 @@ export type Data = {
 	greetings: {account: `0x${string}`; message: string}[];
 };
 
-const TinyRogerIndexerProcessor: JSProcessor<MergedAbis<typeof contractsInfo.contracts>, Data> = {
+const JollyRogerIndexerProcessor: JSProcessor<MergedAbis<typeof contractsInfo.contracts>, Data> = {
 	// version is automatically populated via version.cjs to let the browser knows to reindex on changes
 	version: '__VERSION_HASH__',
 	construct(): Data {
@@ -33,4 +33,4 @@ const TinyRogerIndexerProcessor: JSProcessor<MergedAbis<typeof contractsInfo.con
 	},
 };
 
-export const createProcessor = fromJSProcessor(() => TinyRogerIndexerProcessor);
+export const createProcessor = fromJSProcessor(() => JollyRogerIndexerProcessor);
