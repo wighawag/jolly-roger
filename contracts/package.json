@@ -10,6 +10,7 @@
     "as-soon": "^0.0.4",
     "chai": "^4.3.7",
     "chai-as-promised": "^7.1.1",
+    "eip-1193": "^0.4.7",
     "hardhat": "^2.15.0",
     "hardhat-rocketh": "^0.5.25",
     "jolly-roger-common": "workspace:*",
