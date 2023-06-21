@@ -36,6 +36,18 @@ pnpm watch_compile
   pnpm run deploy <network>
   ```
 
+### execute scripts
+
+The setup currently use hardhat run and so to pass argument we use env variables
+
+```bash
+MESSAGE="hello earth" pnpm hardhat --network localhost run scripts/setMessage.ts
+```
+
+```bash
+ACCOUNT=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 pnpm hardhat --network localhost run scripts/readMessage.ts
+```
+
 ### zellij
 
 [zellij](https://zellij.dev/) is a useful multiplexer (think tmux) for which we have included a [layout file](./zellij.kdl) to get started

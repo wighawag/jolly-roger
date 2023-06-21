@@ -13,11 +13,14 @@ async function main() {
 		context
 	);
 
+	const args = process.argv.slice(2);
+	const message = (args[0] || process.env.MESSAGE) as `0x${string}`;
+
 	const [address] = await walletClient.getAddresses();
 	const Registry = env.deployments.Registry as Deployment<typeof context.artifacts.GreetingsRegistry.abi>;
 	const RegistryContract = contract(Registry);
-	const hash = await RegistryContract.write.setMessage(['hello ', 1], {account: address});
+	const hash = await RegistryContract.write.setMessage([message, 1], {account: address});
 
-	console.log({hash});
+	console.log({hash, account: address});
 }
 main();
