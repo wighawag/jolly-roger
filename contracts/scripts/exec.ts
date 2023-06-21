@@ -2,8 +2,7 @@ import {Deployment, loadEnvironment} from 'rocketh';
 import {context} from '../deploy/_context';
 import {network} from 'hardhat';
 import {EIP1193ProviderWithoutEvents} from 'eip-1193';
-import {walletClient} from './viem';
-import {encodeFunctionData} from 'viem';
+import {contract, walletClient} from './viem';
 
 async function main() {
 	const env = await loadEnvironment(
@@ -14,15 +13,10 @@ async function main() {
 		context
 	);
 
-	const Registry = env.deployments.Registry;
 	const [address] = await walletClient.getAddresses();
-	const hash = await walletClient.writeContract({
-		abi: Registry.abi,
-		address: Registry.address,
-		account: address,
-		functionName: 'setMessage',
-		args: ['hello ', 1],
-	});
+	const Registry = env.deployments.Registry as Deployment<typeof context.artifacts.GreetingsRegistry.abi>;
+	const RegistryContract = contract(Registry);
+	const hash = await RegistryContract.write.setMessage(['hello ', 1], {account: address});
 
 	console.log({hash});
 }
