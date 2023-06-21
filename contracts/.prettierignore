@@ -16,5 +16,6 @@ coverage.json
 cache
 artifacts
 #############################################
+deployments
 package.json
 pnpm-lock.yaml
