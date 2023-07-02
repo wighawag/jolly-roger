@@ -48,7 +48,8 @@
 		<div class="flex flex-wrap justify-center pb-3">
 			{#each options as option}
 				<!-- TODO handle a11y-->
-				<!-- svelte-ignore a11y-click-events-have-key-events-->
+				<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-noninteractive-element-interactions
+permalink-->
 				<img
 					class="cursor-pointer p-2 m-2 border-2 h-12 w-12 object-contain"
 					alt={`Login with ${option.name}`}

@@ -12,8 +12,8 @@
   "devDependencies": {
     "ldenv": "^0.3.7",
     "prettier": "^2.8.8",
-    "tsup": "^7.0.0",
-    "typescript": "^5.1.3"
+    "tsup": "^7.1.0",
+    "typescript": "^5.1.6"
   },
   "scripts": {
     "build": "tsup src/index.ts --dts --format esm,cjs",

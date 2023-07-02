@@ -26,6 +26,8 @@
 {#if $serviceWorker.updateAvailable && $serviceWorker.registration}
 	<!-- svelte-ignore a11y-click-events-have-key-events-->
 	<div
+		role="button"
+		tabindex="0"
 		on:click={(e) => {
 			e.preventDefault();
 			e.stopPropagation();

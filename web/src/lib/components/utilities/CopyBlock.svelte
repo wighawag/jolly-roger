@@ -27,7 +27,13 @@
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
-<div class={`${boxClass} ${copyState ? copiedBackground : background}`} on:copied={onCopyClick} use:clipboard={text}>
+<div
+	role="button"
+	tabindex="0"
+	class={`${boxClass} ${copyState ? copiedBackground : background}`}
+	on:copied={onCopyClick}
+	use:clipboard={text}
+>
 	{#if copyState}
 		<code class={`${className} ${copiedColor}`}>Copied ✓</code>
 	{:else}
