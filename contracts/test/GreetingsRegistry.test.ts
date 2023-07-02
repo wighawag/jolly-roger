@@ -1,4 +1,5 @@
 import {expect, describe, it} from 'vitest';
+import './utils/viem-matchers.js';
 
 import {loadFixture} from '@nomicfoundation/hardhat-network-helpers';
 import {prefix_str} from 'jolly-roger-common';
@@ -67,11 +68,10 @@ describe('Registry', function () {
 			const txHash = await registry.write.setMessage(['hello', 1], {
 				account: otherAccounts[0],
 			});
-			// TODO
-			// expect(await publicClient.waitForTransactionReceipt({hash: txHash})).to.includeEvent(
-			// 	registry.abi,
-			// 	'MessageChanged'
-			// );
+			expect(await publicClient.waitForTransactionReceipt({hash: txHash})).to.includeEvent(
+				registry.abi,
+				'MessageChanged'
+			);
 		});
 
 		it('Should not be able to set message for other account', async function () {
