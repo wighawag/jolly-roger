@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import 'solidity-proxy/src/Proxied.sol';
+import 'solidity-proxy/solc_0.8/EIP1967/Proxied.sol';
 
 /// @notice a registry that let user send greetings to the world
 ///  It is used as a demo for jolly-roger,
