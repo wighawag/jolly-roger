@@ -2,14 +2,10 @@
   "name": "jolly-roger-contracts",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
   "devDependencies": {
     "@nomicfoundation/hardhat-network-helpers": "^1.0.8",
-    "@types/chai": "^4.3.5",
-    "@types/mocha": "^10.0.1",
-    "@types/node": "^20.3.3",
     "as-soon": "^0.0.4",
-    "chai": "^4.3.7",
-    "chai-as-promised": "^7.1.1",
     "eip-1193": "^0.4.7",
     "hardhat": "^2.16.1",
     "hardhat-rocketh": "^0.6.10",
@@ -23,10 +19,11 @@
     "set-defaults": "^0.0.1",
     "solidity-coverage": "^0.8.3",
     "solidity-proxy": "^0.2.3",
-    "ts-node": "^10.9.1",
     "typescript": "^5.1.6",
     "viem": "^1.2.7",
-    "viem-chai-matchers": "^0.0.3"
+    "viem-chai-matchers": "^0.0.3",
+    "vitest": "^0.32.2",
+    "vitest-solidity-coverage": "^0.1.1"
   },
   "scripts": {
     "prepare": "pnpm compile",
@@ -35,12 +32,10 @@
     "watch_compile": "as-soon -w src pnpm compile",
     "deploy": "ldenv hardhat --network @@MODE deploy @@",
     "watch_deploy": "as-soon -w generated -w deploy pnpm run deploy",
-    "test": "hardhat test",
+    "test": "vitest",
+    "coverage": "hardhat compile-for-coverage && vitest run --coverage && hardhat compile",
     "export": "rocketh-export",
     "start": "zellij --layout zellij.kdl a $npm_package_name || zellij --layout zellij.kdl -s $npm_package_name",
     "stop": "zellij kill-session $npm_package_name"
-  },
-  "dependencies": {
-    "@types/chai-as-promised": "^7.1.5"
   }
 }
