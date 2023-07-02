@@ -88,6 +88,8 @@
 
 {#if $modalStore.length > 0}
 	<div
+		role="button"
+		tabindex="0"
 		style="pointer-events: auto; visibility: visible; opacity: 1;"
 		class="modal modal-bottom sm:modal-middle cursor-pointer"
 		on:mousedown={onBackdropInteraction}
