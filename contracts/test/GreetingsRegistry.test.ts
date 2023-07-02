@@ -1,13 +1,13 @@
 import {expect, describe, it} from 'vitest';
-import './utils/viem-matchers.js';
+import './utils/viem-matchers';
 
 import {loadFixture} from '@nomicfoundation/hardhat-network-helpers';
 import {prefix_str} from 'jolly-roger-common';
 import {Deployment, loadAndExecuteDeployments} from 'rocketh';
 
-import {getConnection, fetchContract} from './connection.js';
+import {getConnection, fetchContract} from './connection';
 
-import artifacts from '../generated/artifacts.js';
+import artifacts from '../generated/artifacts';
 import {network} from 'hardhat';
 
 async function deployGreetings(prefix: string) {
