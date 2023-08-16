@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import {connection, account, pendingActions, network} from './';
 	import ImgBlockie from '$lib/components/ethereum/ImgBlockie.svelte';
 	import {contractsInfos} from '$lib/config';

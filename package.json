@@ -7,7 +7,7 @@
   "devDependencies": {
     "ask-env": "^0.0.1",
     "ldenv": "^0.3.7",
-    "syncpack": "^10.6.1"
+    "syncpack": "^11.2.1"
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
@@ -20,12 +20,12 @@
     "format": "prettier --write . && pnpm -r format",
     "format:check": "prettier --check . && pnpm -r format:check",
     "---------------------- INTERNAL ----------------------": "",
-    "_contracts:deploy:watch": "pnpm --filter ./contracts watch_deploy $MODE ~~ pnpm run export -n $MODE --ts ../indexer/src/contracts.ts,../web/src/data/contracts.ts ~~",
+    "_contracts:deploy:watch": "pnpm --filter ./contracts deploy:watch $MODE ~~ pnpm run export -n $MODE --ts ../indexer/src/contracts.ts,../web/src/data/contracts.ts ~~",
     "_contracts:deploy": "pnpm run --filter ./contracts deploy $MODE  ~~ pnpm run export -n $MODE  --ts ../indexer/src/contracts.ts,../web/src/data/contracts.ts ~~",
     "---------------------- UTILITIES ----------------------": "",
     "local_node": "ldenv pnpm --filter ./contracts local_node",
     "contracts:compile": "pnpm --filter ./contracts compile",
-    "contracts:compile:watch": "pnpm --filter ./contracts watch_compile",
+    "contracts:compile:watch": "pnpm --filter ./contracts compile:watch",
     "web:dev": "pnpm --filter ./web dev",
     "indexer:dev": "pnpm --filter ./indexer dev",
     "common:dev": "pnpm --filter ./common dev",
