@@ -53,6 +53,10 @@ pnpm contracts:deploy:watch
 ```
 
 ```bash
+pnpm common:dev
+```
+
+```bash
 pnpm indexer:dev
 ```
 
