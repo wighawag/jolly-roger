@@ -15,10 +15,10 @@ module.exports = {
 				hardhat: {
 					initialBaseFeePerGas: 0,
 					mining: {
-						interval: process.env['BLOCK_TIME'] ? parseInt(process.env['BLOCK_TIME']) : undefined,
+						interval: process.env['BLOCK_TIME'] ? parseInt(process.env['BLOCK_TIME']) * 1000 : undefined,
 					},
 				},
-			})
+			}),
 		),
 	paths: {
 		sources: 'src',

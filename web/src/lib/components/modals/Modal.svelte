@@ -1,6 +1,5 @@
 <script lang="ts">
-	import {onMount} from 'svelte';
-	import {onDestroy} from 'svelte/internal';
+	import {onMount, onDestroy} from 'svelte';
 	import {modalStore} from './stores';
 	import type {
 		ModalCancelationMode,
