@@ -14,7 +14,7 @@
     "daisyui": "^3.5.1",
     "eip-1193": "^0.4.7",
     "ipfs-gateway-emulator": "4.2.1-ipfs.2",
-    "postcss": "^8.4.28",
+    "postcss": "^8.4.31",
     "postcss-load-config": "^4.0.1",
     "prettier": "^3.0.2",
     "prettier-plugin-svelte": "^3.0.3",
