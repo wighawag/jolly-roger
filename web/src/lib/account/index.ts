@@ -12,7 +12,7 @@ export type AccountFunctions<AccountData, Action> = {
 		data: AccountData,
 		tx: EIP1193TransactionWithMetadata,
 		hash: `0x${string}`,
-		inclusion?: 'Broadcasted'
+		inclusion?: 'Broadcasted',
 	) => Action;
 };
 
@@ -35,7 +35,7 @@ export function initAccount<AccountData, Action>({
 		for (const actionData of actionsData) {
 			const pending_transaction: PendingTransaction = fromActionToPendingTransactions(
 				actionData.hash,
-				actionData.action
+				actionData.action,
 			);
 			pending_transactions.push(pending_transaction);
 		}

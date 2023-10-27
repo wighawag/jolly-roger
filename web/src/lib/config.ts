@@ -7,6 +7,7 @@ import {
 	PUBLIC_ETH_NODE_URI,
 	PUBLIC_LOCALHOST_BLOCK_TIME,
 	PUBLIC_DEV_NODE_URI,
+	PUBLIC_FUZD_URI,
 } from '$env/static/public';
 
 import _contractsInfos from '$data/contracts';
@@ -43,12 +44,21 @@ if (!defaultRPCURL) {
 	}
 }
 
+function noEndSlash(str: string) {
+	if (str.endsWith('/')) {
+		return str.slice(0, -1);
+	}
+	return str;
+}
+
+const FUZD_URI = noEndSlash(params.fuzd || PUBLIC_FUZD_URI);
+
 const localRPC =
 	isUsingLocalDevNetwork && PUBLIC_DEV_NODE_URI ? {chainId: contractsChainId, url: PUBLIC_DEV_NODE_URI} : undefined;
 
 const defaultRPC = defaultRPCURL ? {chainId: contractsChainId, url: defaultRPCURL} : undefined;
 
-export {defaultRPC, isUsingLocalDevNetwork, localRPC, blockTime};
+export {defaultRPC, isUsingLocalDevNetwork, localRPC, blockTime, FUZD_URI};
 
 let _setContractsInfos: any;
 export const contractsInfos = readable<NetworkConfig>(_contractsInfos, (set) => {
