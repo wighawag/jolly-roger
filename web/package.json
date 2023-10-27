@@ -41,7 +41,7 @@
     "radiate": "^0.0.1",
     "remote-account": "^0.0.4",
     "theme-change": "^2.5.0",
-    "tlock-js": "^0.7.0",
+    "tlock-js": "^0.6.1",
     "viem": "^1.16.6",
     "web3-connection": "^0.1.8",
     "web3-connection-viem": "^0.0.1"

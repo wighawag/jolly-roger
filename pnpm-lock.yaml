@@ -170,8 +170,8 @@ importers:
         specifier: ^2.5.0
         version: 2.5.0
       tlock-js:
-        specifier: ^0.7.0
-        version: 0.7.0
+        specifier: ^0.6.1
+        version: 0.6.2
       viem:
         specifier: ^1.16.6
         version: 1.16.6(typescript@5.2.2)
@@ -2999,12 +2999,11 @@ packages:
     resolution: {integrity: sha512-+BNfZ+deCo8hMNpDqDnvT+c0XpJ5cUa6mqYq89bho2Ifze4URTqRkcwR399hWoTrTkbZ/XJYDgP6rc7pRgffEQ==}
     dev: true
 
-  /drand-client@1.2.1:
-    resolution: {integrity: sha512-ht7ku30RfqJDFVv1jVE6EaHTfu8w6DQ4BZbviLRqn3ZCp+8kI38XFwr61Y3GFEFBM0cAwfnTtgjJ9f541XIBqQ==}
+  /drand-client@1.1.0:
+    resolution: {integrity: sha512-CszMNTfYxUafKp3eEJHbg5G4OO2Kh11XnWBQ8hnNYEfVybrxqsWLipagaLtT5mOXozB8aICoOCvZh3wYmTc8BQ==}
     engines: {node: '>= 10.4.0'}
     dependencies:
-      '@noble/curves': 1.2.0
-      buffer: 6.0.3
+      '@noble/bls12-381': 1.4.0
     dev: false
 
   /ecc-jsbn@0.1.2:
@@ -7523,15 +7522,15 @@ packages:
     engines: {node: '>=14.0.0'}
     dev: true
 
-  /tlock-js@0.7.0:
-    resolution: {integrity: sha512-Liwhm39z0uCokT9shOLaz37p2xWpN/4EFqB7xd9tJ+sR0J9eparfvz1HcG2EbU8NBuiCKppGJT8kYLj4EOwd+g==}
+  /tlock-js@0.6.2:
+    resolution: {integrity: sha512-d92DaEt8r4UboxzoGt9n0m64MI6bOnrSaMkIT0Zl5mcZH3y6mfuNJVUVEej2NzfdsJWxaB0AHD0nhfoFEXzJpw==}
     engines: {node: '>= 16.0.0'}
     dependencies:
       '@noble/bls12-381': 1.4.0
       '@noble/hashes': 1.3.2
       '@stablelib/chacha20poly1305': 1.0.1
       buffer: 6.0.3
-      drand-client: 1.2.1
+      drand-client: 1.1.0
     dev: false
 
   /tmp@0.0.33:
