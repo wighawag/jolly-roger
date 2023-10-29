@@ -5,7 +5,7 @@
 	import {status, state} from '$lib/blockchain/state/State';
 	import {pendingState} from '$lib/blockchain/state/PendingState';
 	import ImgBlockie from '$lib/components/ethereum/ImgBlockie.svelte';
-	import {encodeFunctionData, parseEther} from 'viem';
+	import {encodeFunctionData, formatEther, parseEther} from 'viem';
 	import {initialContractsInfos} from '$lib/config';
 	import {time} from '$lib/time';
 
@@ -92,6 +92,25 @@
 
 			const maxFeePerGas = parseEther('100', 'gwei');
 			const maxPriorityFeePerGas = parseEther('1', 'gwei');
+
+			const balanceAsHex = await connection.provider.request({
+				method: 'eth_getBalance',
+				params: [fuzd.remoteAccount],
+			});
+			const balance = BigInt(balanceAsHex);
+			if (balance < maxFeePerGas * gas) {
+				console.log(`balance (${formatEther(balance)}) < maxFeePerGas * gas (${formatEther(maxFeePerGas * gas)})`);
+				await connection.provider.request({
+					method: 'eth_sendTransaction',
+					params: [
+						{
+							from: account.address,
+							to: fuzd.remoteAccount,
+							value: '0x' + (maxFeePerGas * gas).toString(16),
+						},
+					],
+				});
+			}
 
 			const data = encodeFunctionData({
 				abi: contracts.Registry.abi,
