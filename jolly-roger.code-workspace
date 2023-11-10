@@ -17,6 +17,10 @@
 			"path": "./web"
 		},
 		{
+			"name": "docs",
+			"path": "./docs"
+		},
+		{
 			"name": "ROOT",
 			"path": "./"
 		}
@@ -28,8 +32,9 @@
 			"editor.defaultFormatter": "svelte.svelte-vscode"
 		},
 		"[solidity]": {
-			"editor.defaultFormatter": "NomicFoundation.hardhat-solidity"
+			"editor.defaultFormatter": "esbenp.prettier-vscode"
 		},
+		"prettier.documentSelectors": ["**/*.sol"],
 		"solidity.formatter": "prettier",
 		"npm.exclude": "**/lib/**"
 	},

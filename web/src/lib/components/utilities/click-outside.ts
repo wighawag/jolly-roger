@@ -30,7 +30,7 @@
 
 export type Action<T = any> = (
 	node: HTMLElement,
-	parameters?: T
+	parameters?: T,
 ) => {
 	update?: (parameters: T) => any | void;
 	destroy?: () => void;
@@ -38,7 +38,7 @@ export type Action<T = any> = (
 
 export function clickoutside(
 	node: HTMLElement,
-	params: {enabled: boolean; callback: (node: HTMLElement) => unknown}
+	params: {enabled: boolean; callback: (node: HTMLElement) => unknown},
 ): ReturnType<Action> {
 	const {enabled: initialEnabled, callback} = params;
 

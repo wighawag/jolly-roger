@@ -7,7 +7,9 @@
   "devDependencies": {
     "ask-env": "^0.0.1",
     "ldenv": "^0.3.7",
-    "syncpack": "^11.2.1"
+    "prettier": "^3.0.3",
+    "syncpack": "^11.2.1",
+    "vitepress": "1.0.0-rc.15"
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
@@ -30,6 +32,11 @@
     "indexer:dev": "pnpm --filter ./indexer dev",
     "common:dev": "pnpm --filter ./common dev",
     "contracts:test": "pnpm --filter ./contracts test",
+    "contracts:docs": "ldenv -m localhost pnpm run --filter ./contracts docgen @@MODE -o ../docs/contracts",
+    "---------------------- DOCS ----------------------": "",
+    "docs:dev": "pnpm contracts:docs && vitepress dev docs",
+    "docs:build": "pnpm contracts:docs && vitepress build docs",
+    "docs:preview": "vitepress preview docs",
     "---------------------- WEB USING EXISTING DEPLOYMENT ----------------------": "",
     "zellij-attach": "zellij --layout zellij-attach.kdl a ${npm_package_name}-attach-$MODE || zellij --layout zellij-attach.kdl -s ${npm_package_name}-attach-$MODE",
     "attach": "ldenv -m localhost pnpm --filter ./contracts export -n @@MODE --ts ../indexer/src/contracts.ts,../web/src/data/contracts.ts ~~ pnpm run zellij-attach ~~ @@",

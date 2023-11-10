@@ -14,8 +14,8 @@ export default execute(
 			},
 			{
 				owner: accounts.deployer,
-			}
+			},
 		);
 	},
-	{tags: ['Registry', 'Registry_deploy']}
+	{tags: ['Registry', 'Registry_deploy']},
 );
