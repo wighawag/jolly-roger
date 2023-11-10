@@ -13,3 +13,4 @@ deployments/localhost
 /coverage-data.json
 cache
 artifacts
+docs

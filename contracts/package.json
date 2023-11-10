@@ -15,6 +15,7 @@
     "prettier-plugin-solidity": "^1.2.0",
     "rocketh": "^0.6.20",
     "rocketh-deploy-proxy": "^0.6.26",
+    "rocketh-doc": "^0.6.20",
     "rocketh-export": "^0.6.22",
     "rocketh-signer": "^0.6.20",
     "rocketh-verifier": "^0.6.24",
@@ -29,6 +30,7 @@
   },
   "scripts": {
     "prepare": "pnpm compile",
+    "docgen": "ldenv -m localhost pnpm rocketh-doc -n @@MODE --except-suffix _Implementation,_Proxy,_Router,_Route -t docs_templates/{{contracts}}.hbs @@",
     "local_node": "rm -Rf deployments/localhost && hardhat node",
     "compile": "hardhat compile",
     "compile:watch": "as-soon -w src pnpm compile",
