@@ -17,6 +17,10 @@
 			"path": "./web"
 		},
 		{
+			"name": "docs",
+			"path": "./docs"
+		},
+		{
 			"name": "ROOT",
 			"path": "./"
 		}
