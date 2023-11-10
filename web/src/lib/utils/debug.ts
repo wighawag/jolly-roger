@@ -36,7 +36,7 @@ export async function enableAnvilLogging() {
 // TODO move in promise utitilies
 export type Execution<T> = {executing: boolean; error?: any; result?: T};
 export function createExecutor<T, F extends (...args: any[]) => Promise<T>>(
-	func: F
+	func: F,
 ): Readable<Execution<T>> & {
 	execute: F;
 	acknowledgeError: () => void;
