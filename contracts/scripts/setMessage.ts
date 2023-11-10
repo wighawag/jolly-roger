@@ -10,7 +10,7 @@ async function main() {
 			provider: network.provider as EIP1193ProviderWithoutEvents,
 			networkName: network.name,
 		},
-		context
+		context,
 	);
 
 	const args = process.argv.slice(2);

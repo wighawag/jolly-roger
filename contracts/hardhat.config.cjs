@@ -4,9 +4,28 @@ require('@nomicfoundation/hardhat-network-helpers');
 const {addForkConfiguration, addNetworksFromEnv} = require('hardhat-rocketh');
 require('vitest-solidity-coverage/hardhat');
 
-/** @type import('hardhat/config').HardhatUserConfig */
-module.exports = {
-	solidity: '0.8.20',
+const defaultVersion = '0.8.20';
+const defaultSettings = {
+	optimizer: {
+		enabled: true,
+		runs: 999999,
+	},
+	outputSelection: {
+		'*': {
+			'*': ['evm.methodIdentifiers'],
+		},
+	},
+};
+
+const config = {
+	solidity: {
+		compilers: [
+			{
+				version: defaultVersion,
+				settings: {...defaultSettings},
+			},
+		],
+	},
 	networks:
 		// this setup forking for netwoirk if env var HARDHAT_FORK is set
 		addForkConfiguration(
@@ -15,6 +34,7 @@ module.exports = {
 				hardhat: {
 					initialBaseFeePerGas: 0,
 					mining: {
+						auto: true,
 						interval: process.env['BLOCK_TIME'] ? parseInt(process.env['BLOCK_TIME']) * 1000 : undefined,
 					},
 				},
@@ -24,3 +44,5 @@ module.exports = {
 		sources: 'src',
 	},
 };
+
+module.exports = config;

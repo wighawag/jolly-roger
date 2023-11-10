@@ -4,6 +4,8 @@
 	"printWidth": 120,
 	"bracketSpacing": false,
 	"plugins": ["prettier-plugin-svelte"],
-	"pluginSearchDirs": ["."],
-	"overrides": [{"files": "*.svelte", "options": {"parser": "svelte"}}]
+	"overrides": [
+		{"files": "*.svelte", "options": {"parser": "svelte"}},
+		{"files": "*.ts", "options": {"parser": "typescript"}}
+	]
 }

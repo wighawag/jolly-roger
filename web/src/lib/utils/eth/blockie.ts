@@ -55,7 +55,7 @@ export class Blockie {
 		x: number,
 		y: number,
 		furtherScale: number,
-		options?: {offset?: number; border?: number}
+		options?: {offset?: number; border?: number},
 	): void {
 		const oldColor = ctx.fillStyle;
 		const appliedScale = this.scale * furtherScale;
@@ -78,7 +78,7 @@ export class Blockie {
 				Math.floor(x - appliedScale),
 				Math.floor(y - appliedScale),
 				Math.floor(appliedSize + appliedScale * 2),
-				Math.floor(appliedSize + appliedScale * 2)
+				Math.floor(appliedSize + appliedScale * 2),
 			);
 		}
 		// else if (border === 2) {
@@ -100,7 +100,7 @@ export class Blockie {
 				Math.floor(x),
 				Math.floor(y),
 				Math.floor(appliedSize + options.offset * 2),
-				Math.floor(appliedSize + options.offset * 2)
+				Math.floor(appliedSize + options.offset * 2),
 			);
 			x += options.offset;
 			y += options.offset;
@@ -118,7 +118,7 @@ export class Blockie {
 					Math.floor(x + col * appliedScale),
 					Math.floor(y + row * appliedScale),
 					Math.ceil(appliedScale),
-					Math.ceil(appliedScale)
+					Math.ceil(appliedScale),
 				);
 			}
 		}

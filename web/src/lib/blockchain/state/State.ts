@@ -35,7 +35,7 @@ function initialize(provider: EIP1193Provider) {
 		source: {
 			chainId: initialContractsInfos.chainId,
 			contracts: Object.keys(initialContractsInfos.contracts).map(
-				(name) => (initialContractsInfos as any).contracts[name]
+				(name) => (initialContractsInfos as any).contracts[name],
 			),
 		},
 	}).then((v) => {

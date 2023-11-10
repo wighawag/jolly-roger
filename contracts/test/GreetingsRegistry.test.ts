@@ -46,7 +46,7 @@ describe('Registry', function () {
 				provider: network.provider as any,
 			});
 			const registry = await fetchContract(
-				deployments['Registry'] as Deployment<typeof artifacts.GreetingsRegistry.abi>
+				deployments['Registry'] as Deployment<typeof artifacts.GreetingsRegistry.abi>,
 			);
 			const prefix = await registry.read.prefix();
 			expect(prefix).to.equal('');
@@ -70,7 +70,7 @@ describe('Registry', function () {
 			});
 			expect(await publicClient.waitForTransactionReceipt({hash: txHash})).to.includeEvent(
 				registry.abi,
-				'MessageChanged'
+				'MessageChanged',
 			);
 		});
 
@@ -79,7 +79,7 @@ describe('Registry', function () {
 			await expect(
 				registry.write.setMessageFor([otherAccounts[1], 'hello', 1], {
 					account: otherAccounts[0],
-				})
+				}),
 			).rejects.toThrow('NOT_AUTHORIZED');
 		});
 	});
