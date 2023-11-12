@@ -49,9 +49,9 @@ if (browser) {
 	network.subscribe(($network) => {
 		if ($network.chainId === initialContractsInfos.chainId) {
 			try {
-				if (!provider && connection.$state.provider) {
+				if (!provider && connection.$state.provider !== undefined) {
 					provider = connection.$state.provider;
-					initialize(provider);
+					initialize(connection.$state.provider);
 				}
 			} catch (err) {
 				console.error(`caught exception `, err);
