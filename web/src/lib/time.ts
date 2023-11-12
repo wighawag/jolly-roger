@@ -1,48 +1,81 @@
-import {derived, writable} from 'svelte/store';
+import {writable} from 'svelte/store';
 import {connection, devProvider} from './web3';
-// import {initialContractsInfos} from './config';
 
 let timestamp = Math.floor(Date.now() / 1000);
-const _time = writable({timestamp, synced: false}, (set) => {
-	let timeout: NodeJS.Timeout | undefined;
-	async function getTime() {
-		try {
-			if (typeof window !== 'undefined' && devProvider) {
-				// TODO offer option to use a contract's time or blockTime
-				// const rawTimestamp = await devProvider.request({
-				// 	method: 'eth_call',
-				// 	params: [{data: '0xb80777ea', to: initialContractsInfos.contracts.Dungeon.address}],
-				// });
-				// timestamp = parseInt(rawTimestamp.slice(2), 16);
 
+let synced = false;
+let lastFetchLocalTime = performance.now();
+let contract: `0x${string}` | undefined;
+
+async function getTime() {
+	if (typeof window !== 'undefined' && devProvider) {
+		if (connection.$state.provider) {
+			if (contract) {
+				const rawTimestamp = await devProvider.request({
+					method: 'eth_call',
+					params: [{data: '0xb80777ea', to: contract}],
+				});
+				const parsedTimestamp = parseInt(rawTimestamp.slice(2), 16);
+				timestamp = await connection.$state.provider?.syncTime(parsedTimestamp);
+				lastFetchLocalTime = performance.now();
+			} else {
 				const block = await devProvider.request({
 					method: 'eth_getBlockByNumber',
 					params: ['latest', false],
 				});
-				timestamp = (await connection.$state.provider?.syncTime(block)) || Math.floor(Date.now() / 1000);
-			} else {
-				// TODO offer option to use a contract's time or blockTime
-				// const rawTimestamp = await connection.$state.provider?.request({
-				// 	method: 'eth_call',
-				// 	params: [{data: '0xb80777ea', to: initialContractsInfos.contracts.Dungeon.address}],
-				// });
-				// if (rawTimestamp) {
-				// 	timestamp = parseInt(rawTimestamp.slice(2), 16);
-				// }
-
-				timestamp = connection.$state.provider?.currentTime() || Math.floor(Date.now() / 1000);
+				timestamp = await connection.$state.provider?.syncTime(block);
+				lastFetchLocalTime = performance.now();
 			}
+			synced = true;
+		} else {
+			synced = false;
+			timestamp = Math.floor(Date.now() / 1000);
+			lastFetchLocalTime = performance.now();
+		}
+	} else {
+		if (connection.$state.provider) {
+			if (contract) {
+				const rawTimestamp = await connection.$state.provider?.request({
+					method: 'eth_call',
+					params: [{data: '0xb80777ea', to: contract}],
+				});
+				timestamp = parseInt(rawTimestamp.slice(2), 16);
+				lastFetchLocalTime = performance.now();
+			} else {
+				timestamp = connection.$state.provider.currentTime();
+				lastFetchLocalTime = performance.now();
+			}
+			synced = true;
+		} else {
+			synced = false;
+			timestamp = Math.floor(Date.now() / 1000);
+			lastFetchLocalTime = performance.now();
+		}
+	}
+	return timestamp;
+}
 
+const _time = writable({timestamp, synced}, (set) => {
+	let timeout: NodeJS.Timeout | undefined;
+
+	async function fetchTime() {
+		const lastTimestamp = timestamp;
+		const lastSynced = synced;
+		try {
+			const timestamp = await getTime();
 			if (timestamp && !isNaN(timestamp)) {
-				set({timestamp, synced: true});
+				if (lastTimestamp != timestamp || lastSynced != synced) {
+					set({timestamp, synced});
+				}
 			}
 		} finally {
 			if (timeout) {
-				timeout = setTimeout(getTime, 3000);
+				timeout = setTimeout(fetchTime, 3000);
 			}
 		}
 	}
-	timeout = setTimeout(getTime, 3000);
+
+	timeout = setTimeout(fetchTime, 3000);
 	return () => {
 		clearTimeout(timeout);
 		timeout = undefined;
@@ -52,7 +85,11 @@ const _time = writable({timestamp, synced: false}, (set) => {
 export const time = {
 	subscribe: _time.subscribe,
 	get now() {
-		return timestamp;
+		let n = performance.now();
+		return timestamp + Math.floor((n - lastFetchLocalTime) / 1000);
+	},
+	setTimeKeeperContract(contractAddress: `0x${string}`) {
+		contract = contractAddress;
 	},
 };
 

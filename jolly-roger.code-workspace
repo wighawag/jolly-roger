@@ -38,7 +38,7 @@
 		"[solidity]": {
 			"editor.defaultFormatter": "esbenp.prettier-vscode"
 		},
-		"prettier.documentSelectors": ["**/*.sol"],
+		"prettier.documentSelectors": ["**/*.sol", "**/*.ts", "**/*.svelte"],
 		"solidity.formatter": "prettier",
 		"npm.exclude": "**/lib/**"
 	},
