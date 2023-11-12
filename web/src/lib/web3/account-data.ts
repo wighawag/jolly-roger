@@ -204,7 +204,7 @@ export function initAccountData() {
 		const remoteAccount = await fuzdClient.getRemoteAccount();
 		return {
 			remoteAccount,
-			submitExecution(
+			scheduleExecution(
 				execution: {
 					slot: string;
 					chainId: string;
@@ -219,7 +219,7 @@ export function initAccountData() {
 				if (!fuzdClient) {
 					throw new Error(`no fuzd client setup`);
 				}
-				return fuzdClient.submitExecution(execution, options);
+				return fuzdClient.scheduleExecution(execution, options);
 			},
 		};
 	}

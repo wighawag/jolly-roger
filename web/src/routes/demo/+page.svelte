@@ -119,7 +119,7 @@
 			});
 
 			const timeToBroadcastReveal = time.now + 60; // 60 s
-			const scheduleInfo = await fuzd.submitExecution(
+			const scheduleInfo = await fuzd.scheduleExecution(
 				{
 					slot: `${time.now}`,
 					broadcastSchedule: [{duration: 3600, maxFeePerGas, maxPriorityFeePerGas}],
