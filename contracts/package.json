@@ -23,7 +23,7 @@
     "solidity-coverage": "^0.8.5",
     "solidity-proxy": "^0.2.3",
     "typescript": "^5.2.2",
-    "viem": "^1.18.9",
+    "viem": "^1.19.0",
     "viem-chai-matchers": "^0.0.3",
     "vitest": "^0.34.6",
     "vitest-solidity-coverage": "^0.1.4"

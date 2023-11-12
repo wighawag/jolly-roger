@@ -103,11 +103,11 @@ importers:
         specifier: ^5.2.2
         version: 5.2.2
       viem:
-        specifier: ^1.18.9
-        version: 1.18.9(typescript@5.2.2)
+        specifier: ^1.19.0
+        version: 1.19.0(typescript@5.2.2)
       viem-chai-matchers:
         specifier: ^0.0.3
-        version: 0.0.3(@types/chai-as-promised@7.1.8)(chai-as-promised@7.1.1)(chai@4.3.10)(viem@1.18.9)
+        version: 0.0.3(@types/chai-as-promised@7.1.8)(chai-as-promised@7.1.1)(chai@4.3.10)(viem@1.19.0)
       vitest:
         specifier: ^0.34.6
         version: 0.34.6
@@ -124,7 +124,7 @@ importers:
         specifier: ^0.3.7
         version: 0.3.7
       node-cron:
-        specifier: 3.0.2
+        specifier: ^3.0.2
         version: 3.0.2
       set-defaults:
         specifier: ^0.0.1
@@ -142,8 +142,8 @@ importers:
   indexer:
     dependencies:
       ethereum-indexer-js-processor:
-        specifier: ^0.6.13
-        version: 0.6.13(typescript@5.2.2)
+        specifier: ^0.6.15
+        version: 0.6.15(typescript@5.2.2)
       jolly-roger-common:
         specifier: workspace:*
         version: link:../common
@@ -152,8 +152,8 @@ importers:
         version: 0.2.2
     devDependencies:
       ethereum-indexer-server:
-        specifier: ^0.6.14
-        version: 0.6.14(typescript@5.2.2)
+        specifier: ^0.6.16
+        version: 0.6.16(typescript@5.2.2)
       ldenv:
         specifier: ^0.3.7
         version: 0.3.7
@@ -176,8 +176,8 @@ importers:
         specifier: ^4.17.11
         version: 4.17.11
       ethereum-indexer-browser:
-        specifier: ^0.6.10
-        version: 0.6.10(typescript@5.2.2)
+        specifier: ^0.6.12
+        version: 0.6.12(typescript@5.2.2)
       ethereum-tx-observer:
         specifier: ^0.0.3
         version: 0.0.3
@@ -212,24 +212,24 @@ importers:
         specifier: ^0.6.1
         version: 0.6.2
       viem:
-        specifier: ^1.18.9
-        version: 1.18.9(typescript@5.2.2)
+        specifier: ^1.19.0
+        version: 1.19.0(typescript@5.2.2)
       web3-connection:
         specifier: ^0.1.8
-        version: 0.1.8(svelte@4.2.2)
+        version: 0.1.8(svelte@4.2.3)
       web3-connection-viem:
         specifier: ^0.0.1
-        version: 0.0.1(viem@1.18.9)
+        version: 0.0.1(viem@1.19.0)
     devDependencies:
       '@sveltejs/adapter-static':
         specifier: ^2.0.3
-        version: 2.0.3(@sveltejs/kit@1.27.4)
+        version: 2.0.3(@sveltejs/kit@1.27.5)
       '@sveltejs/kit':
-        specifier: 1.27.4
-        version: 1.27.4(svelte@4.2.2)(vite@4.5.0)
+        specifier: 1.27.5
+        version: 1.27.5(svelte@4.2.3)(vite@4.5.0)
       '@tailwindcss/forms':
-        specifier: ^0.5.6
-        version: 0.5.6(tailwindcss@3.3.5)
+        specifier: ^0.5.7
+        version: 0.5.7(tailwindcss@3.3.5)
       '@tailwindcss/typography':
         specifier: ^0.5.10
         version: 0.5.10(tailwindcss@3.3.5)
@@ -259,19 +259,19 @@ importers:
         version: 3.0.3
       prettier-plugin-svelte:
         specifier: ^3.1.0
-        version: 3.1.0(prettier@3.0.3)(svelte@4.2.2)
+        version: 3.1.0(prettier@3.0.3)(svelte@4.2.3)
       pwag:
         specifier: ^0.1.0
         version: 0.1.0
       svelte:
-        specifier: ^4.2.2
-        version: 4.2.2
+        specifier: ^4.2.3
+        version: 4.2.3
       svelte-check:
-        specifier: ^3.5.2
-        version: 3.5.2(postcss-load-config@4.0.1)(postcss@8.4.31)(svelte@4.2.2)
+        specifier: ^3.6.0
+        version: 3.6.0(postcss-load-config@4.0.1)(postcss@8.4.31)(svelte@4.2.3)
       svelte-preprocess:
         specifier: ^5.1.0
-        version: 5.1.0(postcss-load-config@4.0.1)(postcss@8.4.31)(svelte@4.2.2)(typescript@5.2.2)
+        version: 5.1.0(postcss-load-config@4.0.1)(postcss@8.4.31)(svelte@4.2.3)(typescript@5.2.2)
       tailwindcss:
         specifier: ^3.3.5
         version: 3.3.5
@@ -2009,16 +2009,16 @@ packages:
   /@stablelib/wipe@1.0.1:
     resolution: {integrity: sha512-WfqfX/eXGiAd3RJe4VU2snh/ZPwtSjLG4ynQ/vYzvghTh7dHFcI1wl+nrkWG6lGhukOxOsUHfv8dUXr58D0ayg==}
 
-  /@sveltejs/adapter-static@2.0.3(@sveltejs/kit@1.27.4):
+  /@sveltejs/adapter-static@2.0.3(@sveltejs/kit@1.27.5):
     resolution: {integrity: sha512-VUqTfXsxYGugCpMqQv1U0LIdbR3S5nBkMMDmpjGVJyM6Q2jHVMFtdWJCkeHMySc6mZxJ+0eZK3T7IgmUCDrcUQ==}
     peerDependencies:
       '@sveltejs/kit': ^1.5.0
     dependencies:
-      '@sveltejs/kit': 1.27.4(svelte@4.2.2)(vite@4.5.0)
+      '@sveltejs/kit': 1.27.5(svelte@4.2.3)(vite@4.5.0)
     dev: true
 
-  /@sveltejs/kit@1.27.4(svelte@4.2.2)(vite@4.5.0):
-    resolution: {integrity: sha512-Vxl8Jf0C1+/8i/slsxFOnwJntCBDLueO/O6GJ0390KUnyW3Zs+4ZiIinD+cEcYnJPQQ9CRzVSr9Bn6DbmTn4Dw==}
+  /@sveltejs/kit@1.27.5(svelte@4.2.3)(vite@4.5.0):
+    resolution: {integrity: sha512-+L1WPs/ZYNjXoBFoFARypD4aZOjkT51vFpRCtQI45+Fmmfi4Y0dH/8VFlmYD6VlGe89ViIPg7lgf/JpGQ2tr7A==}
     engines: {node: ^16.14 || >=18}
     hasBin: true
     requiresBuild: true
@@ -2026,7 +2026,7 @@ packages:
       svelte: ^3.54.0 || ^4.0.0-next.0 || ^5.0.0-next.0
       vite: ^4.0.0
     dependencies:
-      '@sveltejs/vite-plugin-svelte': 2.5.1(svelte@4.2.2)(vite@4.5.0)
+      '@sveltejs/vite-plugin-svelte': 2.5.2(svelte@4.2.3)(vite@4.5.0)
       '@types/cookie': 0.5.4
       cookie: 0.5.0
       devalue: 4.3.2
@@ -2037,7 +2037,7 @@ packages:
       sade: 1.8.1
       set-cookie-parser: 2.6.0
       sirv: 2.0.3
-      svelte: 4.2.2
+      svelte: 4.2.3
       tiny-glob: 0.2.9
       undici: 5.26.5
       vite: 4.5.0(@types/node@20.9.0)
@@ -2045,7 +2045,7 @@ packages:
       - supports-color
     dev: true
 
-  /@sveltejs/vite-plugin-svelte-inspector@1.0.4(@sveltejs/vite-plugin-svelte@2.5.1)(svelte@4.2.2)(vite@4.5.0):
+  /@sveltejs/vite-plugin-svelte-inspector@1.0.4(@sveltejs/vite-plugin-svelte@2.5.2)(svelte@4.2.3)(vite@4.5.0):
     resolution: {integrity: sha512-zjiuZ3yydBtwpF3bj0kQNV0YXe+iKE545QGZVTaylW3eAzFr+pJ/cwK8lZEaRp4JtaJXhD5DyWAV4AxLh6DgaQ==}
     engines: {node: ^14.18.0 || >= 16}
     peerDependencies:
@@ -2053,36 +2053,36 @@ packages:
       svelte: ^3.54.0 || ^4.0.0
       vite: ^4.0.0
     dependencies:
-      '@sveltejs/vite-plugin-svelte': 2.5.1(svelte@4.2.2)(vite@4.5.0)
+      '@sveltejs/vite-plugin-svelte': 2.5.2(svelte@4.2.3)(vite@4.5.0)
       debug: 4.3.4(supports-color@8.1.1)
-      svelte: 4.2.2
+      svelte: 4.2.3
       vite: 4.5.0(@types/node@20.9.0)
     transitivePeerDependencies:
       - supports-color
     dev: true
 
-  /@sveltejs/vite-plugin-svelte@2.5.1(svelte@4.2.2)(vite@4.5.0):
-    resolution: {integrity: sha512-ZD9MibRc1dZVxLwDKCdsv9SW1bTBSi+7cyqGWisT9qEOO076Ojw2DYhIF3UTa8iUchbOwvexjme0P4kvKR//7g==}
+  /@sveltejs/vite-plugin-svelte@2.5.2(svelte@4.2.3)(vite@4.5.0):
+    resolution: {integrity: sha512-Dfy0Rbl+IctOVfJvWGxrX/3m6vxPLH8o0x+8FA5QEyMUQMo4kGOVIojjryU7YomBAexOTAuYf1RT7809yDziaA==}
     engines: {node: ^14.18.0 || >= 16}
     peerDependencies:
       svelte: ^3.54.0 || ^4.0.0 || ^5.0.0-next.0
       vite: ^4.0.0
     dependencies:
-      '@sveltejs/vite-plugin-svelte-inspector': 1.0.4(@sveltejs/vite-plugin-svelte@2.5.1)(svelte@4.2.2)(vite@4.5.0)
+      '@sveltejs/vite-plugin-svelte-inspector': 1.0.4(@sveltejs/vite-plugin-svelte@2.5.2)(svelte@4.2.3)(vite@4.5.0)
       debug: 4.3.4(supports-color@8.1.1)
       deepmerge: 4.3.1
       kleur: 4.1.5
       magic-string: 0.30.5
-      svelte: 4.2.2
-      svelte-hmr: 0.15.3(svelte@4.2.2)
+      svelte: 4.2.3
+      svelte-hmr: 0.15.3(svelte@4.2.3)
       vite: 4.5.0(@types/node@20.9.0)
       vitefu: 0.2.5(vite@4.5.0)
     transitivePeerDependencies:
       - supports-color
     dev: true
 
-  /@tailwindcss/forms@0.5.6(tailwindcss@3.3.5):
-    resolution: {integrity: sha512-Fw+2BJ0tmAwK/w01tEFL5TiaJBX1NLT1/YbWgvm7ws3Qcn11kiXxzNTEQDMs5V3mQemhB56l3u0i9dwdzSQldA==}
+  /@tailwindcss/forms@0.5.7(tailwindcss@3.3.5):
+    resolution: {integrity: sha512-QE7X69iQI+ZXwldE+rzasvbJiyV/ju1FGHH0Qn2W3FKbuYtqp8LKcy6iSw79fVUT5/Vvf+0XgLCeYVG+UV6hOw==}
     peerDependencies:
       tailwindcss: '>=3.0.0 || >= 3.0.0-alpha.1'
     dependencies:
@@ -4111,10 +4111,10 @@ packages:
       '@scure/bip39': 1.2.1
     dev: true
 
-  /ethereum-indexer-browser@0.6.10(typescript@5.2.2):
-    resolution: {integrity: sha512-BpJT7JV86rU2gEk7Ah7Cgbjd7B5ZZhahdcBlf70JTVabEbO96lacYeYt7NLfRIgxaU18yOi70S8dVcig4vRVIA==}
+  /ethereum-indexer-browser@0.6.12(typescript@5.2.2):
+    resolution: {integrity: sha512-wPrO+GmxRJpG/y65u0pPs8sgItcuiAjmY3dZ+Xd5ltcA3yLheb8HYllHTuZYHMEd8tgLTHWG0mCOnJa38AJkFQ==}
     dependencies:
-      ethereum-indexer: 0.6.9(typescript@5.2.2)
+      ethereum-indexer: 0.6.11(typescript@5.2.2)
       idb-keyval: 6.2.1
       named-logs: 0.2.2
       sveltore: 0.0.2
@@ -4126,10 +4126,10 @@ packages:
       - zod
     dev: false
 
-  /ethereum-indexer-db-utils@0.6.9(typescript@5.2.2):
-    resolution: {integrity: sha512-gqApYb6PPhUbKhdY5BHFQ2hUGaxkw6napdFqa6RGDdvKiEU0vkzDttXqMt708wriYKn+4rzOb2GjltemARacjg==}
+  /ethereum-indexer-db-utils@0.6.11(typescript@5.2.2):
+    resolution: {integrity: sha512-xmM/feULJkQRMRW6fqG6wGQM0liO8pkYsVICnRpiPYRBX5PQj/gYzok4boENFOWiLkjdhaocIfhEBo67TpslFg==}
     dependencies:
-      ethereum-indexer: 0.6.9(typescript@5.2.2)
+      ethereum-indexer: 0.6.11(typescript@5.2.2)
       named-logs: 0.2.2
       pouchdb: 8.0.1
       pouchdb-find: 8.0.1
@@ -4141,11 +4141,11 @@ packages:
       - zod
     dev: true
 
-  /ethereum-indexer-fs-cache@0.6.9(typescript@5.2.2):
-    resolution: {integrity: sha512-CcWgnigT1rjInkEDMeDZUqIUYbzx5GN/hocwZYca8f+Br/7QoVsTdF9//c4wX1UZe1la2ImoUmvF1JURT6VVYg==}
+  /ethereum-indexer-fs-cache@0.6.11(typescript@5.2.2):
+    resolution: {integrity: sha512-WSuTDPyZSk0i6teSnYkV1n04BbNaWxW46R+Ryf6ceqeO8C2mKtnPrDi7MVVU7GnwjgzlYTiXl7cxFDfmyLQIrA==}
     dependencies:
       '@types/fs-extra': 11.0.4
-      ethereum-indexer: 0.6.9(typescript@5.2.2)
+      ethereum-indexer: 0.6.11(typescript@5.2.2)
       fs-extra: 11.1.1
       named-logs: 0.2.2
       pouchdb: 8.0.1
@@ -4158,10 +4158,10 @@ packages:
       - zod
     dev: true
 
-  /ethereum-indexer-js-processor@0.6.13(typescript@5.2.2):
-    resolution: {integrity: sha512-u4dbAt+u6FVfHHEA7Nj/OU0Qu7SJMWC2OpyLRwJTloD33i4FhJoyMB1uzull5bYjIPeXmFoxBS5H0NZ4BKWWJw==}
+  /ethereum-indexer-js-processor@0.6.15(typescript@5.2.2):
+    resolution: {integrity: sha512-P+asBfSGf6iFJuCfZZiZWbQPouCV1Hz/ICCBzpynOlgHa3aephlelYBnNOwJh9h0pPVor5uweSbZHWFTud9XQA==}
     dependencies:
-      ethereum-indexer: 0.6.9(typescript@5.2.2)
+      ethereum-indexer: 0.6.11(typescript@5.2.2)
       immer: 10.0.3
       named-logs: 0.2.2
     transitivePeerDependencies:
@@ -4171,16 +4171,16 @@ packages:
       - zod
     dev: false
 
-  /ethereum-indexer-server@0.6.14(typescript@5.2.2):
-    resolution: {integrity: sha512-LUdCw4Fs7iyLPKH6Ltxij6WBgZitrrbfJ4EhJbpMZTdFpgKFN/gfGW0KiWi07tCrygG5F1uObePWk3mpK1EXlw==}
+  /ethereum-indexer-server@0.6.16(typescript@5.2.2):
+    resolution: {integrity: sha512-CcMUPBemnHAquAN8MJAHniJotxnjXVV2YGmBsuXLs2Q1RIkjh/YGX3AStlxtWBmkvsflajfULSnfKjO57fSgRw==}
     hasBin: true
     dependencies:
       '@ethersproject/bignumber': 5.7.0
       commander: 10.0.1
       eip-1193-json-provider: 0.1.8
-      ethereum-indexer: 0.6.9(typescript@5.2.2)
-      ethereum-indexer-db-utils: 0.6.9(typescript@5.2.2)
-      ethereum-indexer-fs-cache: 0.6.9(typescript@5.2.2)
+      ethereum-indexer: 0.6.11(typescript@5.2.2)
+      ethereum-indexer-db-utils: 0.6.11(typescript@5.2.2)
+      ethereum-indexer-fs-cache: 0.6.11(typescript@5.2.2)
       ethereum-indexer-utils: 0.6.8
       figlet: 1.7.0
       koa: 2.14.2
@@ -4208,8 +4208,8 @@ packages:
       named-logs: 0.2.2
     dev: true
 
-  /ethereum-indexer@0.6.9(typescript@5.2.2):
-    resolution: {integrity: sha512-MQXyzgii7ev8n0XUVRvlQPXmb7oTAc4O05xcVRiu2x1X6LQI++4McUBZvWJjKJOASwMqcZn2SY93OzSKkGFFZg==}
+  /ethereum-indexer@0.6.11(typescript@5.2.2):
+    resolution: {integrity: sha512-11NTwW/cddhTlfQLeSGKn5T3KLgYnWVTKqmMirP7G7xYni7Vbx1hmR/PV65QauEDAeE93BhFVkn19HBmyzmHvg==}
     dependencies:
       named-logs: 0.2.2
       viem: 0.1.26(typescript@5.2.2)
@@ -4659,7 +4659,7 @@ packages:
       fuzd-executor: 0.1.5
       fuzd-scheduler: 0.1.7
       named-logs: 0.2.2
-      viem: 1.18.9(typescript@5.2.2)
+      viem: 1.19.0(typescript@5.2.2)
       wighawag-ono: 7.1.3
     transitivePeerDependencies:
       - bufferutil
@@ -7250,14 +7250,14 @@ packages:
       solidity-comments-extractor: 0.0.7
     dev: true
 
-  /prettier-plugin-svelte@3.1.0(prettier@3.0.3)(svelte@4.2.2):
+  /prettier-plugin-svelte@3.1.0(prettier@3.0.3)(svelte@4.2.3):
     resolution: {integrity: sha512-96+AZxs2ESqIFA9j+o+DHqY+BsUglezfl553LQd6VOtTyJq5GPuBEb3ElxF2cerFzKlYKttlH/VcVmRNj5oc3A==}
     peerDependencies:
       prettier: ^3.0.0
       svelte: ^3.2.0 || ^4.0.0-next.0 || ^5.0.0-next.0
     dependencies:
       prettier: 3.0.3
-      svelte: 4.2.2
+      svelte: 4.2.3
     dev: true
 
   /prettier@3.0.3:
@@ -7628,7 +7628,7 @@ packages:
       rocketh: 0.6.20(typescript@5.2.2)
       rocketh-deploy: 0.6.22(rocketh@0.6.20)(typescript@5.2.2)
       solidity-proxy: 0.2.3
-      viem: 1.18.9(typescript@5.2.2)
+      viem: 1.19.0(typescript@5.2.2)
     transitivePeerDependencies:
       - bufferutil
       - typescript
@@ -7643,7 +7643,7 @@ packages:
     dependencies:
       named-logs: 0.2.2
       rocketh: 0.6.20(typescript@5.2.2)
-      viem: 1.18.9(typescript@5.2.2)
+      viem: 1.19.0(typescript@5.2.2)
     transitivePeerDependencies:
       - bufferutil
       - typescript
@@ -7719,7 +7719,7 @@ packages:
       ldenv: 0.3.7
       named-logs: 0.2.2
       named-logs-console: 0.3.0
-      viem: 1.18.9(typescript@5.2.2)
+      viem: 1.19.0(typescript@5.2.2)
     transitivePeerDependencies:
       - bufferutil
       - encoding
@@ -8380,11 +8380,11 @@ packages:
     engines: {node: '>= 0.4'}
     dev: true
 
-  /svelte-check@3.5.2(postcss-load-config@4.0.1)(postcss@8.4.31)(svelte@4.2.2):
-    resolution: {integrity: sha512-5a/YWbiH4c+AqAUP+0VneiV5bP8YOk9JL3jwvN+k2PEPLgpu85bjQc5eE67+eIZBBwUEJzmO3I92OqKcqbp3fw==}
+  /svelte-check@3.6.0(postcss-load-config@4.0.1)(postcss@8.4.31)(svelte@4.2.3):
+    resolution: {integrity: sha512-8VfqhfuRJ1sKW+o8isH2kPi0RhjXH1nNsIbCFGyoUHG+ZxVxHYRKcb+S8eaL/1tyj3VGvWYx3Y5+oCUsJgnzcw==}
     hasBin: true
     peerDependencies:
-      svelte: ^3.55.0 || ^4.0.0-next.0 || ^4.0.0
+      svelte: ^3.55.0 || ^4.0.0-next.0 || ^4.0.0 || ^5.0.0-next.0
     dependencies:
       '@jridgewell/trace-mapping': 0.3.20
       chokidar: 3.5.3
@@ -8392,8 +8392,8 @@ packages:
       import-fresh: 3.3.0
       picocolors: 1.0.0
       sade: 1.8.1
-      svelte: 4.2.2
-      svelte-preprocess: 5.1.0(postcss-load-config@4.0.1)(postcss@8.4.31)(svelte@4.2.2)(typescript@5.2.2)
+      svelte: 4.2.3
+      svelte-preprocess: 5.1.0(postcss-load-config@4.0.1)(postcss@8.4.31)(svelte@4.2.3)(typescript@5.2.2)
       typescript: 5.2.2
     transitivePeerDependencies:
       - '@babel/core'
@@ -8407,16 +8407,16 @@ packages:
       - sugarss
     dev: true
 
-  /svelte-hmr@0.15.3(svelte@4.2.2):
+  /svelte-hmr@0.15.3(svelte@4.2.3):
     resolution: {integrity: sha512-41snaPswvSf8TJUhlkoJBekRrABDXDMdpNpT2tfHIv4JuhgvHqLMhEPGtaQn0BmbNSTkuz2Ed20DF2eHw0SmBQ==}
     engines: {node: ^12.20 || ^14.13.1 || >= 16}
     peerDependencies:
       svelte: ^3.19.0 || ^4.0.0
     dependencies:
-      svelte: 4.2.2
+      svelte: 4.2.3
     dev: true
 
-  /svelte-preprocess@5.1.0(postcss-load-config@4.0.1)(postcss@8.4.31)(svelte@4.2.2)(typescript@5.2.2):
+  /svelte-preprocess@5.1.0(postcss-load-config@4.0.1)(postcss@8.4.31)(svelte@4.2.3)(typescript@5.2.2):
     resolution: {integrity: sha512-EkErPiDzHAc0k2MF5m6vBNmRUh338h2myhinUw/xaqsLs7/ZvsgREiLGj03VrSzbY/TB5ZXgBOsKraFee5yceA==}
     engines: {node: '>= 14.10.0'}
     requiresBuild: true
@@ -8461,12 +8461,12 @@ packages:
       postcss-load-config: 4.0.1(postcss@8.4.31)
       sorcery: 0.11.0
       strip-indent: 3.0.0
-      svelte: 4.2.2
+      svelte: 4.2.3
       typescript: 5.2.2
     dev: true
 
-  /svelte@4.2.2:
-    resolution: {integrity: sha512-My2tytF2e2NnHSpn2M7/3VdXT4JdTglYVUuSuK/mXL2XtulPYbeBfl8Dm1QiaKRn0zoULRnL+EtfZHHP0k4H3A==}
+  /svelte@4.2.3:
+    resolution: {integrity: sha512-sqmG9KC6uUc7fb3ZuWoxXvqk6MI9Uu4ABA1M0fYDgTlFYu1k02xp96u6U9+yJZiVm84m9zge7rrA/BNZdFpOKw==}
     engines: {node: '>=16'}
     dependencies:
       '@ampproject/remapping': 2.2.1
@@ -9000,7 +9000,7 @@ packages:
       extsprintf: 1.3.0
     dev: true
 
-  /viem-chai-matchers@0.0.3(@types/chai-as-promised@7.1.8)(chai-as-promised@7.1.1)(chai@4.3.10)(viem@1.18.9):
+  /viem-chai-matchers@0.0.3(@types/chai-as-promised@7.1.8)(chai-as-promised@7.1.1)(chai@4.3.10)(viem@1.19.0):
     resolution: {integrity: sha512-Rw7nbPOwdR/f8rZhmjIJM+MnIcTNs4+zvsP1Voj2LHEd5VgHu3PSxX8zcvRUSTpJtGOnLo7wcQZfnBwAyLfG9g==}
     peerDependencies:
       '@types/chai-as-promised': ^7.1.5
@@ -9011,7 +9011,7 @@ packages:
       '@types/chai-as-promised': 7.1.8
       chai: 4.3.10
       chai-as-promised: 7.1.1(chai@4.3.10)
-      viem: 1.18.9(typescript@5.2.2)
+      viem: 1.19.0(typescript@5.2.2)
     dev: true
 
   /viem@0.1.26(typescript@5.2.2):
@@ -9049,8 +9049,8 @@ packages:
       - zod
     dev: true
 
-  /viem@1.18.9(typescript@5.2.2):
-    resolution: {integrity: sha512-eAXtoTwAFA3YEgjTYMb5ZTQrDC0UPx5qyZ4sv90TirVKepcM9mBPksTkC1SSWya0UdxhBmhEBL/CiYMjmGCTWg==}
+  /viem@1.19.0(typescript@5.2.2):
+    resolution: {integrity: sha512-Q4gU7D5KMZDK2rarQqjeqW7KmZRdfbDyP+bDlsu0Ia+IWR4Aali+dMbis1s3rC12OWdNfSR5MNmPCHoqoQa5ew==}
     peerDependencies:
       typescript: '>=5.0.4'
     peerDependenciesMeta:
@@ -9337,21 +9337,21 @@ packages:
     engines: {node: '>= 8'}
     dev: true
 
-  /web3-connection-viem@0.0.1(viem@1.18.9):
+  /web3-connection-viem@0.0.1(viem@1.19.0):
     resolution: {integrity: sha512-tMh+JjiDZLXmNLI3wY8sOlOTjoaySgFsm75zxDoi51r9PP7c6apVtyEXP/K0YL49do2zU1B+PWILaj/Hviyt/w==}
     peerDependencies:
       viem: ^1.0.0
     dependencies:
-      viem: 1.18.9(typescript@5.2.2)
+      viem: 1.19.0(typescript@5.2.2)
     dev: false
 
-  /web3-connection@0.1.8(svelte@4.2.2):
+  /web3-connection@0.1.8(svelte@4.2.3):
     resolution: {integrity: sha512-Rh0emnc5i3HkSWjmg3qnZcepVRrVZHuyLN+yTyRolY0UUfspMXUtSi55aEIeS5NdWs/y1i4ZAZh3gBJ5vHwyWg==}
     peerDependencies:
       svelte: ^4.0.0
     dependencies:
       named-logs: 0.2.2
-      svelte: 4.2.2
+      svelte: 4.2.3
     dev: false
 
   /web3-utils@1.10.3:
