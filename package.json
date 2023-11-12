@@ -33,6 +33,7 @@
     "common:dev": "pnpm --filter ./common dev",
     "contracts:test": "pnpm --filter ./contracts test",
     "contracts:docs": "ldenv -m localhost pnpm run --filter ./contracts docgen @@MODE -o ../docs/contracts",
+    "fuzd:dev": "pnpm --filter ./helper-services/fuzd dev",
     "---------------------- DOCS ----------------------": "",
     "docs:dev": "pnpm contracts:docs && vitepress dev docs",
     "docs:build": "pnpm contracts:docs && vitepress build docs",

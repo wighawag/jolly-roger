@@ -21,6 +21,10 @@
 			"path": "./docs"
 		},
 		{
+			"name": "helper-services",
+			"path": "./helper-services"
+		},
+		{
 			"name": "ROOT",
 			"path": "./"
 		}
