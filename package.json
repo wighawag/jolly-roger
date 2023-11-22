@@ -7,9 +7,9 @@
   "devDependencies": {
     "ask-env": "^0.0.1",
     "ldenv": "^0.3.7",
-    "prettier": "^3.0.3",
+    "prettier": "^3.1.0",
     "syncpack": "^11.2.1",
-    "vitepress": "1.0.0-rc.15"
+    "vitepress": "1.0.0-rc.29"
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
