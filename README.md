@@ -1,12 +1,36 @@
-# Jolly-Roger
+<h1 align="center"> Jolly Roger </h1>
 
-A template to develop decentralised applications
+<p align="center">
+  <a href="https://jolly-roger.eth.limo">
+    <img src="docs/public/icon.svg" alt="Jolly-Roger Logo" width="300">
+  </a>
+</p>
 
-## How to use?
+<p align="center">
+  <a href="https://twitter.com/jollyroger_eth">
+    <img alt="Twitter" src="https://img.shields.io/badge/Twitter-1DA1F2?logo=twitter&logoColor=white" />
+  </a>
+
+  <a href="https://github.com/wighawag/jolly-roger/commits">
+    <img alt="GitHub commit activity" src="https://img.shields.io/github/commit-activity/m/wighawag/jolly-roger">
+  </a>
+
+  <a href="https://github.com/wighawag/jolly-roger/issues">
+    <img alt="open issues" src="https://isitmaintained.com/badge/open/wighawag/jolly-roger.svg">
+  </a>
+</p>
+
+---
+
+# Build and Deploy for Eternity
+
+Jolly Roger is a production-ready template for decentralised applications.
+
+# How to use?
 
 We are assuming here that you already setup your env as specified in the [initial setup section](#initial-setup)
 
-### install dependencies
+## install dependencies
 
 Note here that while you can use `pnpm i`, we recommend you follow the instruction here so you can have everything setup with your own project's name.
 
@@ -22,7 +46,7 @@ You can also manually set the name yourself :
 pnpm set-name [<new name>] && pnpm i
 ```
 
-### start!
+## start!
 
 Then Assuming you have [zellij](https://zellij.dev/) installed
 
@@ -64,7 +88,7 @@ pnpm indexer:dev
 pnpm web:dev
 ```
 
-## Deploying to a network
+# Deploying to a network
 
 Just execute the following
 
@@ -84,7 +108,7 @@ Then you can deploy your contract
 pnpm contracts:deploy <network>
 ```
 
-## Initial Setup
+# Initial Setup
 
 You need to have these installed
 

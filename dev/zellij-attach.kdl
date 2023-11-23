@@ -2,13 +2,13 @@ layout {
 	pane {
 		pane {}
 		pane split_direction="vertical" {
-			pane command="bash"  {
+			pane name="INDEXER" command="bash"  {
 				args "-c" "pnpm indexer:dev; cd indexer; ${SHELL-bash}"
 			}
-			pane command="bash"  {
+			pane name="COMMON" command="bash"  {
 				args "-c" "pnpm common:dev; cd common; ${SHELL-bash}"
 			}
-			pane command="bash"  {
+			pane name="WEB" command="bash"  {
 				args "-c" "pnpm web:dev; cd web; ${SHELL-bash}"
 			}
 		}

@@ -8,10 +8,10 @@ wezterm.on('gui-startup', function(cmd)
 
 
   }
-  tab:set_title 'jolly-roger'
-  window:set_title 'jolly-roger'
+  tab:set_title 'stratagems'
+  window:set_title 'stratagems'
 
-  local pane_indexer = pane:split {
+	local pane_indexer = pane:split {
     args = {'bash', '-i', '-c', 'cd '.. cmd.args[1] .. '; sleep 1; pnpm indexer:dev; bash'},
     direction = 'Bottom'
   }

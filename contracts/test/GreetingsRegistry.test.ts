@@ -5,7 +5,7 @@ import {loadFixture} from '@nomicfoundation/hardhat-network-helpers';
 import {prefix_str} from 'jolly-roger-common';
 import {Deployment, loadAndExecuteDeployments} from 'rocketh';
 
-import {getConnection, fetchContract} from './connection';
+import {getConnection, fetchContract} from '../utils/connection';
 
 import artifacts from '../generated/artifacts';
 import {network} from 'hardhat';

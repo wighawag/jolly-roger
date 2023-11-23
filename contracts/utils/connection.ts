@@ -6,17 +6,17 @@ import {
 	createPublicClient,
 	createWalletClient,
 	custom,
+	defineChain,
 	getContract,
 } from 'viem';
 
 import hre from 'hardhat';
 import type {EIP1193ProviderWithoutEvents} from 'eip-1193';
-
-import {hardhat} from 'viem/chains';
+import {Chain} from 'viem';
 
 export type Connection = {
-	walletClient: WalletClient<CustomTransport, typeof hardhat>;
-	publicClient: PublicClient<CustomTransport, typeof hardhat>;
+	walletClient: WalletClient<CustomTransport, Chain>;
+	publicClient: PublicClient<CustomTransport, Chain>;
 	accounts: `0x${string}`[];
 	provider: EIP1193ProviderWithoutEvents;
 };
@@ -28,12 +28,29 @@ export async function getConnection(): Promise<Connection> {
 	}
 	const provider = hre.network.provider as EIP1193ProviderWithoutEvents;
 
+	const chainIdAsHex = await provider.request({method: 'eth_chainId'});
+	const chainIdAsNumber = parseInt(chainIdAsHex.slice(2), 16);
+	const chain = defineChain({
+		id: chainIdAsNumber,
+		name: hre.network.name,
+		network: hre.network.name,
+		nativeCurrency: {
+			decimals: 18,
+			name: 'Ether',
+			symbol: 'ETH',
+		},
+		rpcUrls: {
+			default: {http: []},
+			public: {http: []},
+		},
+	} as const);
+
 	const walletClient = createWalletClient({
-		chain: hardhat,
+		chain,
 		transport: custom(provider),
 	});
 	const publicClient = createPublicClient({
-		chain: hardhat,
+		chain,
 		transport: custom(provider),
 	});
 	return (cache.connection = {
@@ -52,3 +69,5 @@ export async function fetchContract<TAbi extends Abi>(contractInfo: {address: `0
 		publicClient,
 	});
 }
+
+export type ContractWithViemClient<TAbi extends Abi> = Awaited<ReturnType<typeof fetchContract<TAbi>>>;
