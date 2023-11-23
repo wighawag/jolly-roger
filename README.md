@@ -1,18 +1,20 @@
+<h1 align="center"> Jolly Roger </h1>
+
 <p align="center">
   <a href="https://jolly-roger.eth.limo">
-    <img src="docs/public/icon.svg" alt="Jolly-Roger Logo" width="500">
+    <img src="docs/public/icon.svg" alt="Jolly-Roger Logo" width="300">
   </a>
 </p>
+
 <p align="center">
   <a href="https://twitter.com/jollyroger_eth">
     <img alt="Twitter" src="https://img.shields.io/badge/Twitter-1DA1F2?logo=twitter&logoColor=white" />
   </a>
-  <a href="https://github.com/wighawag/jolly-roger#readme">
+
+  <a href="https://github.com/wighawag/jolly-roger/commits">
     <img alt="GitHub commit activity" src="https://img.shields.io/github/commit-activity/m/wighawag/jolly-roger">
   </a>
-  <a href="https://github.com/wighawag/jolly-roger/blob/main/LICENSE">
-    <img alt="License" src="https://img.shields.io/github/license/wighawag/jolly-roger.svg">
-  </a>
+
   <a href="https://github.com/wighawag/jolly-roger/issues">
     <img alt="open issues" src="https://isitmaintained.com/badge/open/wighawag/jolly-roger.svg">
   </a>
@@ -20,7 +22,9 @@
 
 ---
 
-A template to develop decentralised applications
+# Build and Deploy for Eternity
+
+Jolly Roger is a production-ready template for decentralised applications.
 
 # How to use?
 
