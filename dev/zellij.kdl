@@ -1,0 +1,28 @@
+layout {
+	pane {
+		pane {}
+		pane split_direction="vertical" {
+			pane name="NODE" command="bash"  {
+				args "-c" "pnpm local_node; ${SHELL-bash}"
+			}
+			pane name="COMPILE" command="bash"  {
+				args "-c" "pnpm contracts:compile:watch; cd contracts; ${SHELL-bash}"
+			}
+			pane name="DEPLOY" command="bash"  {
+				args "-c" "pnpm contracts:deploy:watch; cd contracts; ${SHELL-bash}"
+			}
+		}
+		pane split_direction="vertical" {
+			pane name="INDEXER" command="bash"  {
+				args "-c" "pnpm indexer:dev; cd indexer; ${SHELL-bash}"
+			}
+			pane name="COMMON" command="bash"  {
+				args "-c" "pnpm common:dev; cd common; ${SHELL-bash}"
+			}
+			pane name="WEB" command="bash"  {
+				args "-c" "pnpm web:dev; cd web; ${SHELL-bash}"
+			}
+		}
+	}
+
+}
