@@ -4,6 +4,7 @@
 		"files": [
 			"transform.js",
 			"transform.json",
+			"reset.sh",
 			"LICENSE",
 			".github",
 			"TODO.md",
