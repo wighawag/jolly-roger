@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-git clean -d --force
+git clean -x -d --force
