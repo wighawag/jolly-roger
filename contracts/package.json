@@ -22,9 +22,9 @@
     "set-defaults": "^0.0.2",
     "solidity-coverage": "^0.8.5",
     "solidity-proxy": "^0.2.4",
-    "tsx": "^4.2.0",
+    "tsx": "^4.4.0",
     "typescript": "^5.3.2",
-    "viem": "^1.19.6",
+    "viem": "^1.19.8",
     "viem-chai-matchers": "^0.0.3",
     "vitest": "^0.34.6",
     "vitest-solidity-coverage": "^0.1.4"
