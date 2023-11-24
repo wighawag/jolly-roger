@@ -8,6 +8,7 @@ env:
   NFT_STORAGE_API_TOKEN: ${{ secrets.NFT_STORAGE_API_TOKEN }}
   DWEBSERVICE_API_TOKEN: ${{ secrets.DWEBSERVICE_API_TOKEN }}
   DWEBSERVICE_UUID: ${{ secrets.DWEBSERVICE_UUID }}
+  ETH_NODE_URI_sepolia: ${{ secrets.ETH_NODE_URI_sepolia }}
 
 jobs:
   build_and_deploy:
@@ -15,7 +16,7 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        node-version: [18]
+        node-version: [20]
     steps:
       - uses: actions/checkout@v3
       - uses: pnpm/action-setup@v2
