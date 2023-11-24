@@ -30,7 +30,7 @@
   },
   "dependencies": {
     "@types/lodash-es": "^4.17.12",
-    "ethereum-indexer-browser": "^0.6.12",
+    "ethereum-indexer-browser": "^0.6.14",
     "ethereum-tx-observer": "^0.0.3",
     "fuzd-executor": "^0.1.5",
     "fuzd-scheduler": "^0.1.5",
