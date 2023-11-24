@@ -3,7 +3,7 @@ on:
   push
   pull_request
   schedule:
-    - cron: "0 9 * * *"
+    - cron: '0 9 * * *'
 
 env:
   ENS_NAME: ${{ vars.ENS_NAME }}
