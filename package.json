@@ -36,7 +36,7 @@
     "contracts:test": "pnpm --filter ./contracts test",
     "contracts:execute": "pnpm --filter ./contracts execute",
     "contracts:docs": "ldenv -m localhost pnpm run --filter ./contracts docgen @@MODE -o ../docs/contracts",
-    "indexer:index": "ldenv pnpm run contracts:export @@MODE ~~ pnpm --filter ./indexer index-to-file -n @@ETH_NODE_URI_:MODE,ETH_NODE_URI -d src/contracts.ts -f ../web/static/indexed-state-@@MODE@:.json ~~ @@",
+    "indexer:index": "ldenv pnpm run contracts:export @@MODE ~~ pnpm --filter ./indexer index-to-file -n @@ETH_NODE_URI_:MODE,ETH_NODE_URI@:''@: -d src/contracts.ts -f ../web/static/indexed-state-@@MODE@:.json ~~ @@",
     "---------------------- DOCS ----------------------": "",
     "docs:dev": "pnpm contracts:docs && vitepress dev docs",
     "docs:build": "pnpm contracts:docs && vitepress build docs",
