@@ -5,7 +5,7 @@ import {context} from './_context';
 export default execute(
 	context,
 	async ({deployViaProxy, accounts, artifacts}) => {
-		const contract = await deployViaProxy(
+		await deployViaProxy(
 			'Registry',
 			{
 				account: accounts.deployer,
