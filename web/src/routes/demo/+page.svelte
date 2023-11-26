@@ -76,9 +76,10 @@
 </div>
 <button
 	on:click={() =>
-		contracts.execute(async ({contracts, connection}) => {
+		contracts.execute(async ({contracts, connection, account}) => {
 			// we can add metadata to our tx that can get picked up
 			connection.provider.setNextMetadata({
+				type: 'message',
 				message: messageToSend,
 			});
 

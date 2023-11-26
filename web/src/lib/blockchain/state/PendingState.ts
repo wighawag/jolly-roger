@@ -15,74 +15,82 @@ const registry = new Registry();
  * This allow us to optimistically update the UI with pending messages from the user
  *
  */
-export const pendingState = derived([syncing, state, accountData.data], ([$syncing, $state, $accountData]) => {
-	logger.info(`num greetings: ${$state.greetings.length}`);
+export const pendingState = derived(
+	[syncing, state, accountData.onchainActions],
+	([$syncing, $state, $onchainActions]) => {
+		logger.info(`num greetings: ${$state.greetings.length}`);
 
-	const pendingMessages: {[from: `0x${string}`]: string} = {};
+		const pendingMessages: {[from: `0x${string}`]: string} = {};
 
-	const transactionsAlreadyIndexed: {[hash: string]: boolean} = {};
-	if ($syncing.lastSync && $syncing.lastSync.unconfirmedBlocks) {
-		for (const block of $syncing.lastSync.unconfirmedBlocks) {
-			for (const event of block.events) {
-				transactionsAlreadyIndexed[event.transactionHash] = true;
+		const transactionsAlreadyIndexed: {[hash: string]: boolean} = {};
+		if ($syncing.lastSync && $syncing.lastSync.unconfirmedBlocks) {
+			for (const block of $syncing.lastSync.unconfirmedBlocks) {
+				for (const event of block.events) {
+					transactionsAlreadyIndexed[event.transactionHash] = true;
+				}
 			}
 		}
-	}
 
-	if ($accountData) {
-		for (const hash of Object.keys($accountData.actions)) {
-			if (transactionsAlreadyIndexed[hash]) {
-				// if tx is already considered in the index, we can skip
-				continue;
-			}
-
-			const action = $accountData.actions[hash as `0x${string}`];
-			if (action.status === 'Failure') {
-				// tx failed so we can ignore it
-				// TODO? this failure can be picked up elsewhere to let the user know
-				//  but we could also modify the PendingState type to include information here
-				continue;
-			}
-
-			if (action.final) {
-				console.warn(`indexer still indexing, did not pick up tx ${hash} yet, TODO ?we can consider it not pending`);
-			}
-
-			switch (action.inclusion) {
-				case 'Cancelled':
-					// tx cancelled, we ignore it
+		if ($onchainActions) {
+			for (const hash of Object.keys($onchainActions)) {
+				if (transactionsAlreadyIndexed[hash]) {
+					// if tx is already considered in the index, we can skip
 					continue;
-				case 'BeingFetched':
-					// TODO add to state that loading is still going for txs....
-					// tx state is loading
+				}
+
+				const action = $onchainActions[hash as `0x${string}`];
+
+				if (action.status === 'Failure') {
+					// tx failed so we can ignore it
+					// TODO? this failure can be picked up elsewhere to let the user know
+					//  but we could also modify the PendingState type to include information here
 					continue;
-				case 'Included':
-				case 'NotFound':
-				case 'Broadcasted':
-				// else we consider it
-			}
-			if (action.tx.metadata && typeof action.tx.metadata === 'object' && 'message' in action.tx.metadata) {
-				const fromAccount = getAddress(action.tx.from);
-				pendingMessages[fromAccount] = action.tx.metadata.message as string;
+				}
+
+				if (action.final) {
+					// onchain Action is final, can track back from index
+					// we could check if indexer is up to speed though
+					// best is to simply skip here
+					// and if indexer is not up to speed, we can deal with it in the UI elsewere
+					continue;
+				}
+
+				switch (action.inclusion) {
+					case 'Cancelled':
+						// tx cancelled, we ignore it
+						continue;
+					case 'BeingFetched':
+						// TODO add to state that loading is still going for txs....
+						// tx state is loading
+						continue;
+					case 'Included':
+					case 'NotFound':
+					case 'Broadcasted':
+					// else we consider it
+				}
+				if (action.tx.metadata && typeof action.tx.metadata === 'object' && 'message' in action.tx.metadata) {
+					const fromAccount = getAddress(action.tx.from);
+					pendingMessages[fromAccount] = action.tx.metadata.message as string;
+				}
 			}
 		}
-	}
 
-	const accounts = Object.keys(pendingMessages);
-	if (accounts.length > 0) {
-		const pending = createDraft($state);
-		registry.handle(pending, true);
+		const accounts = Object.keys(pendingMessages);
+		if (accounts.length > 0) {
+			const pending = createDraft($state);
+			registry.handle(pending, true);
 
-		for (const from of accounts) {
-			const account = from as `0x${string}`;
-			registry.setMessageFor(account, pendingMessages[account], 0); // TODO dayTimeInSeconds ?
+			for (const from of accounts) {
+				const account = from as `0x${string}`;
+				registry.setMessageFor(account, pendingMessages[account], 0); // TODO dayTimeInSeconds ?
+			}
+
+			return finishDraft(pending);
+		} else {
+			return $state;
 		}
-
-		return finishDraft(pending);
-	} else {
-		return $state;
-	}
-});
+	},
+);
 
 if (typeof window !== 'undefined') {
 	(window as any).pendingState = pendingState;
