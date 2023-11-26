@@ -2,9 +2,13 @@ import {derived} from 'svelte/store';
 import {state, syncing} from './State';
 import {accountData} from '$lib/web3';
 import {getAddress} from 'viem';
+import {createDraft, finishDraft} from 'immer';
+import {Registry} from 'jolly-roger-common';
 
 import {logs} from 'named-logs';
 const logger = logs(`pending-state`);
+
+const registry = new Registry();
 
 /**
  * Here we are deriving a new state from the indexer state and the account data
@@ -14,42 +18,28 @@ const logger = logs(`pending-state`);
 export const pendingState = derived(
 	[syncing, state, accountData.onchainActions],
 	([$syncing, $state, $onchainActions]) => {
-		const pendingGreetings: {account: `0x${string}`; message: string; pending: boolean}[] = $state.greetings.map(
-			(v) => ({
-				message: v.message,
-				account: v.account,
-				pending: false,
-			}),
-		);
-
 		logger.info(`num greetings: ${$state.greetings.length}`);
-
-		const accountIndexes: {[from: `0x${string}`]: number} = {};
-		for (let i = 0; i < pendingGreetings.length; i++) {
-			accountIndexes[pendingGreetings[i].account] = i;
-			logger.info(`${i}: ${pendingGreetings[i].account}`);
-		}
 
 		const pendingMessages: {[from: `0x${string}`]: string} = {};
 
-		const pendingHashes: {[hash: string]: boolean} = {};
+		const transactionsAlreadyIndexed: {[hash: string]: boolean} = {};
 		if ($syncing.lastSync && $syncing.lastSync.unconfirmedBlocks) {
 			for (const block of $syncing.lastSync.unconfirmedBlocks) {
 				for (const event of block.events) {
-					pendingHashes[event.transactionHash] = true;
+					transactionsAlreadyIndexed[event.transactionHash] = true;
 				}
 			}
 		}
 
 		if ($onchainActions) {
 			for (const hash of Object.keys($onchainActions)) {
-				const action = $onchainActions[hash as `0x${string}`];
-				if (action.final) {
-					// in this case, the indexer will pick the correct state once synced up
-					// we can ignore the pending tx
-					// the tx-broadcaster should stop caring about this one
+				if (transactionsAlreadyIndexed[hash]) {
+					// if tx is already considered in the index, we can skip
 					continue;
 				}
+
+				const action = $onchainActions[hash as `0x${string}`];
+
 				if (action.status === 'Failure') {
 					// tx failed so we can ignore it
 					// TODO? this failure can be picked up elsewhere to let the user know
@@ -57,10 +47,10 @@ export const pendingState = derived(
 					continue;
 				}
 
-				if (pendingHashes[hash]) {
-					// if tx is already considered in the index, we can skip
-					continue;
+				if (action.final) {
+					console.warn(`indexer still indexing, did not pick up tx ${hash} yet, TODO ?we can consider it not pending`);
 				}
+
 				switch (action.inclusion) {
 					case 'Cancelled':
 						// tx cancelled, we ignore it
@@ -81,29 +71,20 @@ export const pendingState = derived(
 			}
 		}
 
-		for (const from of Object.keys(pendingMessages)) {
-			const account = from as `0x${string}`;
-			const i = accountIndexes[account];
-			if (isNaN(i)) {
-				logger.info(`new: ${account}`);
-				pendingGreetings.push({
-					account,
-					message: pendingMessages[account],
-					pending: true,
-				});
-			} else {
-				logger.info(`${pendingGreetings[i].message} and ${pendingMessages[account]}`);
-				// remove that when `if (indexer.includes(hash)) {continue;}` is implemented
-				if (pendingGreetings[i].message != pendingMessages[account]) {
-					pendingGreetings[i].message = pendingMessages[account];
-					pendingGreetings[i].pending = true;
-				}
-			}
-		}
+		const accounts = Object.keys(pendingMessages);
+		if (accounts.length > 0) {
+			const pending = createDraft($state);
+			registry.handle(pending, true);
 
-		return {
-			greetings: pendingGreetings,
-		};
+			for (const from of accounts) {
+				const account = from as `0x${string}`;
+				registry.setMessageFor(account, pendingMessages[account], 0); // TODO dayTimeInSeconds ?
+			}
+
+			return finishDraft(pending);
+		} else {
+			return $state;
+		}
 	},
 );
 

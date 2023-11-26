@@ -2,7 +2,6 @@ import {expect, describe, it} from 'vitest';
 import './utils/viem-matchers';
 
 import {loadFixture} from '@nomicfoundation/hardhat-network-helpers';
-import {prefix_str} from 'jolly-roger-common';
 import {Deployment, loadAndExecuteDeployments} from 'rocketh';
 
 import {getConnection, fetchContract} from '../utils/connection';
@@ -58,7 +57,7 @@ describe('Registry', function () {
 		});
 
 		it('specific prefix', async function () {
-			const myPrefix = prefix_str('');
+			const myPrefix = '';
 			const {registry} = await deployGreetings(myPrefix);
 			expect(await registry.read.prefix()).to.equal(myPrefix);
 		});

@@ -2,6 +2,8 @@ name = "fuzd-worker"
 main = "node_modules/fuzd-cf-worker/src/index.ts"
 compatibility_date = "2023-05-18"
 
+compatibility_flags = [ "nodejs_compat" ]
+
 [vars]
 
 # The necessary secrets are:

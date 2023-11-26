@@ -11,7 +11,6 @@ import {
 } from '$env/static/public';
 
 import _contractsInfos from '$data/contracts';
-import {prefix_str} from 'jolly-roger-common';
 export type NetworkConfig = typeof _contractsInfos;
 
 export const initialContractsInfos = _contractsInfos;
@@ -76,4 +75,4 @@ if (import.meta.hot) {
 	});
 }
 
-console.log(`${prefix_str('')} VERSION: ${version}`);
+console.log(`VERSION: ${version}`);
