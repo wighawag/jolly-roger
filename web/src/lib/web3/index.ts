@@ -11,6 +11,16 @@ export const accountData = initAccountData();
 
 // TODO we need to hook tx-observer with a provider and make it process tx
 
+// does not connect through node, so only enable devNetwork when in the browser
+const devNetwork =
+	typeof window != 'undefined' && localRPC
+		? {
+				url: localRPC.url,
+				chainId: localRPC.chainId,
+				checkCacheIssues: true,
+		  }
+		: undefined;
+
 const stores = init({
 	autoConnectUsingPrevious: true,
 	options: ['builtin'],
@@ -38,15 +48,7 @@ const stores = init({
 			await accountData.unload();
 		},
 	},
-	devNetwork:
-		// does not connect through node, so only enable devNetwork when in the browser
-		typeof window != 'undefined' && localRPC
-			? {
-					url: localRPC.url,
-					chainId: localRPC.chainId,
-					checkGenesis: true,
-			  }
-			: undefined,
+	devNetwork,
 });
 
 export const txObserver = initTransactionProcessor({finality: 12}); // TODO config.finality

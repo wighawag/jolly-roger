@@ -4,6 +4,8 @@
 	export let connection: typeof Connection;
 	import AlertWithSlot from '$lib/components/alert/AlertWithSlot.svelte';
 	import Alert from '$lib/components/alert/Alert.svelte';
+	import {url} from '$lib/utils/path';
+	import {resetIndexer} from '$lib/blockchain/state/State';
 
 	const builtin = connection.builtin;
 </script>
@@ -31,68 +33,55 @@
 	{:else} -->
 	<Alert data={$connection.error} onClose={connection.acknowledgeError} />
 	<!-- {/if} -->
-{:else if $network.genesisNotMatching}
+{:else if $network.nonceCached === 'BlockOutOfRangeError' || $network.genesisNotMatching || $network.blocksCached}
 	<AlertWithSlot>
-		<p class="m-2">Chain reset detected! Metamask need to have its account reset!</p>
-		<p class="m-2 font-black">
-			Click on your account icon, Go to Settings -&gt; Advanced -&gt; Clear Activity Tab Data
+		<p class="m-2">
+			{$builtin.vendor === 'Metamask' ? 'Block cache detected, Metamask  😭' : 'Block cache detected'}
 		</p>
-		<!-- <button
-			class="btn btn-sm"
-			on:click={async () => {
-				await network.notifyThatCacheHasBeenCleared();
-				accountData._reset();
-				location.reload();
-			}}>I have done it</button
-		> -->
+
+		<p class="m-2 font-black">You'll need to shutdown and reopen your browser</p>
+		<button class="btn block mt-3" tabindex="0" on:click={() => location.reload()}> Else Try Reload? </button>
 	</AlertWithSlot>
-{:else if $network.nonceCached === 'BlockOutOfRangeError'}
+{:else if $network.hasEncounteredBlocksCacheIssue}
 	<AlertWithSlot>
-		<p class="m-2">Block cache detected, Metamask need to have its account reset!</p>
-		<p class="m-2 font-black">
-			Click on your account icon, Go to Settings -&gt; Advanced -&gt; Clear Activity Tab Data
-		</p>
+		<p class="m-2">You seemed to have recovered from Block Cacke Issue</p>
+
+		<p class="m-2 font-black">You most likely need to clear any data dervided from the chain as it may be invalid.</p>
+		<button
+			class="btn block mt-3"
+			tabindex="0"
+			on:click={() => resetIndexer().then(() => network.acknowledgeBlockCacheIssue())}
+		>
+			Clear
+		</button>
 	</AlertWithSlot>
 {:else if $network.nonceCached === 'cache'}
 	<AlertWithSlot>
-		<p class="m-2">Nonce cache detected, Metamask need to have its account reset!</p>
-		<p class="m-2 font-black">
-			Click on your account icon, Go to Settings -&gt; Advanced -&gt; Clear Activity Tab Data
+		<p class="m-2">
+			{$builtin.vendor === 'Metamask'
+				? 'Nonce cache detected, Metamask need to have its accounts reset 😭'
+				: 'Nonce cache detected. Please clear your account data.'}
 		</p>
+		{#if $builtin.vendor === 'Metamask'}
+			<p class="m-2 font-black">
+				Click on the Metamask extension icon:
+				<img class="inline w-6 h-6 mx-2" src={url('/images/wallets/metamask.svg')} alt="Metamask extension" />
+				then open the menu
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke-width="1.5"
+					stroke="currentColor"
+					class="w-6 h-6 inline"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 12.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 18.75a.75.75 0 110-1.5.75.75 0 010 1.5z"
+					/>
+				</svg> &gt; Settings &gt; Advanced &gt; Clear Activity Tab Data
+			</p>
+		{/if}
 	</AlertWithSlot>
-{:else if $network.genesisChanged}
-	<div
-		style="width: auto; left: 0px; right: 0px; max-width: 100%;"
-		class="m-2 fixed z-50 top-0 alert alert-warning shadow-lg"
-	>
-		<div>
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				class="stroke-current flex-shrink-0 h-6 w-6"
-				fill="none"
-				viewBox="0 0 24 24"
-				><path
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					stroke-width="2"
-					d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-				/></svg
-			>
-			<span>Warning: Network Reset</span>
-		</div>
-
-		<!-- svelte-ignore a11y-click-events-have-key-events-->
-		<span
-			role="button"
-			tabindex="0"
-			class="absolute top-0 bottom-0 right-0 px-4 py-3"
-			on:click={() => network.acknowledgeNewGenesis()}
-		>
-			<svg class="fill-current h-6 w-6" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
-				><title>Close</title><path
-					d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z"
-				/></svg
-			>
-		</span>
-	</div>
 {/if}

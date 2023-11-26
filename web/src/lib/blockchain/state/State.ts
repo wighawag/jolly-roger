@@ -15,11 +15,21 @@ const remoteIndexedState = url(`/indexed-state-${initialContractsInfos.name}.jso
 /**
  * We setup the indexer and make it process the event continuously once connected to the right chain
  */
-export const {state, syncing, status, init, indexToLatest, indexMore, startAutoIndexing, indexMoreAndCatchupIfNeeded} =
-	createIndexerState(processor, {
-		trackNumRequests: true,
-		keepState: keepStateOnIndexedDB('jolly-roger', remoteIndexedState) as any, // TODO types
-	});
+export const {
+	state,
+	syncing,
+	status,
+	init,
+	reset: resetIndexer,
+	indexToLatest,
+	indexMore,
+	startAutoIndexing,
+	indexMoreAndCatchupIfNeeded,
+} = createIndexerState(processor, {
+	trackNumRequests: true,
+	// logRequests: true,
+	keepState: keepStateOnIndexedDB('jolly-roger', remoteIndexedState) as any, // TODO types
+});
 
 async function indexIfNotIndexing() {
 	await indexMoreAndCatchupIfNeeded();
@@ -42,6 +52,10 @@ function initialize(provider: EIP1193Provider) {
 			contracts: Object.keys(initialContractsInfos.contracts).map(
 				(name) => (initialContractsInfos as any).contracts[name],
 			),
+			genesisHash: initialContractsInfos.genesisHash,
+		},
+		config: {
+			logLevel: 1,
 		},
 	}).then((v) => {
 		namedLogger.log(`initialised`, v);
