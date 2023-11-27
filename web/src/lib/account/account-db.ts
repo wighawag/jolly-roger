@@ -6,31 +6,17 @@ import {randomBytes} from '@noble/ciphers/webcrypto/utils';
 import {base64url} from '@scure/base';
 import {compressToUint8Array, decompressFromUint8Array} from '$lib/utils/data';
 import {privateKeyToAccount, type PrivateKeyAccount} from 'viem/accounts';
-import {bytesToHex, hexToBytes} from 'viem';
+import {hexToBytes} from 'viem';
 import {time} from '$lib/time';
 
 import {logs} from 'named-logs';
+import type {AccountInfo, MergeFunction, SyncInfo} from './types';
 const logger = logs('AccountDB');
 
 const LOCAL_STORAGE_PRIVATE_ACCOUNT = '_account';
 function LOCAL_STORAGE_KEY(address: string, chainId: string, genesisHash: string) {
 	return `${LOCAL_STORAGE_PRIVATE_ACCOUNT}_${address.toLowerCase()}_${chainId}_${genesisHash}`;
 }
-
-export type AccountInfo = {
-	address: `0x${string}`;
-	chainId: string;
-	genesisHash: string;
-	localKey?: `0x${string}`;
-	doNotEncryptLocally?: boolean;
-};
-
-export type SyncInfo = {uri: string; enabled?: boolean};
-
-export type MergeFunction<T> = (
-	localData?: T,
-	remoteData?: T,
-) => {newData: T; newDataOnLocal: boolean; newDataOnRemote: boolean};
 
 export type SyncingState<T> = {
 	data?: T;
@@ -233,9 +219,8 @@ export class AccountDB<T extends Record<string, unknown>> implements Readable<Sy
 	// }
 
 	private async _getFromLocalStorage(): Promise<T | undefined> {
-		const fromStorage = await localCache.getItem(
-			LOCAL_STORAGE_KEY(this.accountInfo.address, this.accountInfo.chainId, this.accountInfo.genesisHash),
-		);
+		const key = LOCAL_STORAGE_KEY(this.accountInfo.address, this.accountInfo.chainId, this.accountInfo.genesisHash);
+		const fromStorage = await localCache.getItem(key);
 		if (fromStorage) {
 			try {
 				const decrypted = this.accountInfo.doNotEncryptLocally ? fromStorage : this._decrypt(fromStorage);

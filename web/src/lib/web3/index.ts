@@ -8,11 +8,12 @@ import {
 	env,
 	doNotEncryptLocally,
 } from '$lib/config';
-import {initAccountData} from '$lib/account/account-data';
+import {JollyRogerAccountData} from '$lib/account/account-data';
 import {initTransactionProcessor} from 'ethereum-tx-observer';
 import {initViemContracts} from 'web3-connection-viem';
 import {logs} from 'named-logs';
 import {stringToHex} from 'viem';
+import {get} from 'svelte/store';
 
 const logger = logs('jolly-roger');
 
@@ -22,11 +23,14 @@ const syncInfo = env.PUBLIC_SYNC_URI
 	  }
 	: undefined;
 
-export const accountData = initAccountData('jolly-roger', syncInfo);
+export const accountData = new JollyRogerAccountData();
 
-// TODO we need to hook tx-observer with a provider and make it process tx
-
-// does not connect through node, so only enable devNetwork when in the browser
+// devNetwork is used for different purposes:
+//  - allow to detect Metamask cache issue
+//  - allow to perform raw call like eth_setNextTimestamp, etc...
+// But note that Jolly-Roger is designed to work without external RPC
+// All other request will go through the user's wallet provider
+// This is of course configurable, see PUBLIC_ETH_NODE_URI and PUBLIC_ETH_NODE_URI_<network name>
 const devNetwork =
 	typeof window != 'undefined' && localRPC
 		? {
@@ -50,7 +54,7 @@ const stores = init({
 	},
 	observers: {
 		onTxSent(tx, hash) {
-			accountData.onTxSent(tx, hash as `0x{string}`); // TODO web3-connection 0x{string}
+			accountData.onTxSent(tx, hash as `0x${string}`); // TODO web3-connection 0x{string}
 		},
 	},
 	acccountData: {
@@ -136,11 +140,10 @@ const stores = init({
 					localKey: signature ? (signature.slice(0, 66) as `0x${string}`) : undefined,
 					doNotEncryptLocally,
 				},
-				remoteSyncEnabled,
+				remoteSyncEnabled ? syncInfo : undefined,
 			);
 		},
 		async unload() {
-			console.log({unloading: '...'});
 			await accountData.unload();
 		},
 	},
@@ -194,4 +197,6 @@ if (typeof window !== 'undefined') {
 	(window as any).pendingActions = pendingActions;
 
 	(window as any).accountData = accountData;
+	(window as any).txObserver = txObserver;
+	(window as any).get = get;
 }

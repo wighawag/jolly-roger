@@ -1,31 +1,25 @@
 import type {EIP1193TransactionWithMetadata} from 'web3-connection';
-import type {PendingTransaction, PendingTransactionState} from 'ethereum-tx-observer';
-import {initEmitter} from 'radiate';
-import {writable} from 'svelte/store';
-import {AccountDB, type AccountInfo, type SyncInfo, type SyncingState} from './account-db';
+import type {PendingTransaction} from 'ethereum-tx-observer';
+import {BaseAccountHandler, type OnChainAction, type OnChainActions} from './base';
 
 export type SendMessageMetadata = {
 	type: 'message';
 	message: string;
 };
-export type AnyMetadata = SendMessageMetadata;
+export type JollyRogerMetadata = SendMessageMetadata;
 
-export type JollyRogerTransaction<T = AnyMetadata> = EIP1193TransactionWithMetadata & {
-	metadata?: T;
+export type JollyRogerTransaction = EIP1193TransactionWithMetadata & {
+	metadata?: JollyRogerMetadata;
 };
-
-export type OnChainAction<T = AnyMetadata> = {
-	tx: JollyRogerTransaction<T>;
-} & PendingTransactionState;
-export type OnChainActions = {[hash: `0x${string}`]: OnChainAction};
 
 export type AccountData = {
-	onchainActions: OnChainActions;
+	onchainActions: OnChainActions<JollyRogerMetadata>;
 };
 
-const emptyAccountData: AccountData = {onchainActions: {}};
-
-function fromOnChainActionToPendingTransaction(hash: `0x${string}`, onchainAction: OnChainAction): PendingTransaction {
+function fromOnChainActionToPendingTransaction(
+	hash: `0x${string}`,
+	onchainAction: OnChainAction<JollyRogerMetadata>,
+): PendingTransaction {
 	return {
 		hash,
 		request: onchainAction.tx,
@@ -35,66 +29,14 @@ function fromOnChainActionToPendingTransaction(hash: `0x${string}`, onchainActio
 	} as PendingTransaction;
 }
 
-export function initAccountData(dbName: string, syncInfo?: SyncInfo) {
-	const emitter = initEmitter<{name: 'newTx'; txs: PendingTransaction[]} | {name: 'clear'}>();
-
-	const $onchainActions: OnChainActions = {};
-	const onchainActions = writable<OnChainActions>($onchainActions);
-
-	let accountDB: AccountDB<AccountData> | undefined;
-	let unsubscribeFromSync: (() => void) | undefined;
-
-	async function load(info: AccountInfo, remoteSyncEnabled?: boolean) {
-		const data = await _load(info, remoteSyncEnabled);
-
-		for (const hash in data.onchainActions) {
-			const onchainAction = (data.onchainActions as any)[hash];
-			($onchainActions as any)[hash] = onchainAction;
-		}
-		onchainActions.set($onchainActions);
-		handleTxs($onchainActions);
+export class JollyRogerAccountData extends BaseAccountHandler<AccountData, JollyRogerMetadata> {
+	constructor() {
+		super('jolly-roger', {onchainActions: {}}, fromOnChainActionToPendingTransaction);
 	}
 
-	function handleTxs(onChainActions: OnChainActions) {
-		const pending_transactions: PendingTransaction[] = [];
-		for (const hash in onChainActions) {
-			const onchainAction = (onChainActions as any)[hash];
-			const tx = fromOnChainActionToPendingTransaction(hash as `0x${string}`, onchainAction);
-			pending_transactions.push(tx);
-		}
-		emitter.emit({name: 'newTx', txs: pending_transactions});
-	}
-
-	async function unload() {
-		//save before unload
-		await save();
-
-		if (unsubscribeFromSync) {
-			unsubscribeFromSync();
-			unsubscribeFromSync = undefined;
-		}
-
-		accountDB?.destroy();
-		accountDB = undefined;
-
-		// delete all
-		for (const hash of Object.keys($onchainActions)) {
-			delete ($onchainActions as any)[hash];
-		}
-		onchainActions.set($onchainActions);
-
-		emitter.emit({name: 'clear'});
-	}
-
-	async function save() {
-		_save({
-			onchainActions: $onchainActions,
-		});
-	}
-
-	function _merge(
-		localData?: AccountData,
-		remoteData?: AccountData,
+	_merge(
+		localData?: AccountData | undefined,
+		remoteData?: AccountData | undefined,
 	): {newData: AccountData; newDataOnLocal: boolean; newDataOnRemote: boolean} {
 		let newDataOnLocal = false;
 		let newDataOnRemote = false;
@@ -137,123 +79,4 @@ export function initAccountData(dbName: string, syncInfo?: SyncInfo) {
 			newDataOnRemote,
 		};
 	}
-
-	async function _load(info: AccountInfo, remoteSyncEnabled?: boolean): Promise<AccountData> {
-		accountDB = new AccountDB(
-			dbName,
-			info,
-			_merge,
-			syncInfo
-				? {...syncInfo, enabled: remoteSyncEnabled === undefined ? syncInfo.enabled : remoteSyncEnabled}
-				: undefined,
-		);
-
-		unsubscribeFromSync = accountDB.subscribe(onSync);
-		return (await accountDB.requestSync(true)) || emptyAccountData;
-	}
-
-	function onSync(syncingState: SyncingState<AccountData>): void {
-		// TODO ?
-		// $onchainActions = syncingState.data?.onchainActions || {};
-		// onchainActions.set($onchainActions);
-		// $offchainState = syncingState.data?.offchainState;
-		// offchainState.set($offchainState);
-	}
-
-	async function _save(accountData: AccountData) {
-		if (accountDB) {
-			accountDB.save(accountData);
-		}
-	}
-
-	function addAction(tx: EIP1193TransactionWithMetadata, hash: `0x${string}`, inclusion?: 'Broadcasted') {
-		if (!tx.metadata) {
-			console.error(`no metadata on the tx, we still save it, but this will not let us know what this tx is about`);
-		} else if (typeof tx.metadata !== 'object') {
-			console.error(`metadata is not an object and so do not conform to Expected Metadata`);
-		} else {
-			if (!('type' in tx.metadata)) {
-				console.error(`no field "type" in the metadata and so do not conform to Expected Metadata`);
-			}
-		}
-
-		const onchainAction: OnChainAction = {
-			tx: tx as JollyRogerTransaction,
-			inclusion: inclusion || 'BeingFetched',
-			final: undefined,
-			status: undefined,
-		};
-
-		$onchainActions[hash] = onchainAction;
-		save();
-		onchainActions.set($onchainActions);
-
-		emitter.emit({
-			name: 'newTx',
-			txs: [fromOnChainActionToPendingTransaction(hash, onchainAction)],
-		});
-	}
-
-	function _updateTx(pendingTransaction: PendingTransaction): boolean {
-		const action = $onchainActions[pendingTransaction.hash];
-		if (action) {
-			if (
-				action.inclusion !== pendingTransaction.inclusion ||
-				action.status !== pendingTransaction.status ||
-				action.final !== pendingTransaction.final
-			) {
-				action.inclusion = pendingTransaction.inclusion;
-				action.status = pendingTransaction.status;
-				action.final = pendingTransaction.final;
-				return true;
-			}
-		}
-		return false;
-	}
-
-	function updateTx(pendingTransaction: PendingTransaction) {
-		if (_updateTx(pendingTransaction)) {
-			onchainActions.set($onchainActions);
-			save();
-		}
-	}
-
-	function updateTxs(pendingTransactions: PendingTransaction[]) {
-		let anyChanges = false;
-		for (const p of pendingTransactions) {
-			anyChanges = anyChanges || _updateTx(p);
-		}
-		if (anyChanges) {
-			onchainActions.set($onchainActions);
-			save();
-		}
-	}
-
-	// use with caution
-	async function _reset() {
-		await unload();
-		accountDB?.clearData();
-	}
-
-	return {
-		$onchainActions,
-		onchainActions: {
-			subscribe: onchainActions.subscribe,
-		},
-
-		load,
-		unload,
-		updateTx,
-		updateTxs,
-
-		onTxSent(tx: EIP1193TransactionWithMetadata, hash: `0x${string}`) {
-			addAction(tx, hash, 'Broadcasted');
-			save();
-		},
-
-		on: emitter.on,
-		off: emitter.off,
-
-		_reset,
-	};
 }
