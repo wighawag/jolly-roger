@@ -2,8 +2,7 @@ import type {EIP1193TransactionWithMetadata} from 'web3-connection';
 import type {PendingTransaction, PendingTransactionState} from 'ethereum-tx-observer';
 import {initEmitter} from 'radiate';
 import {writable} from 'svelte/store';
-import {bytesToHex, hexToBytes} from 'viem';
-import {AccountDB} from './account-db';
+import {AccountDB, type AccountInfo, type SyncInfo, type SyncingState} from './account-db';
 
 export type SendMessageMetadata = {
 	type: 'message';
@@ -36,26 +35,17 @@ function fromOnChainActionToPendingTransaction(hash: `0x${string}`, onchainActio
 	} as PendingTransaction;
 }
 
-export function initAccountData() {
+export function initAccountData(dbName: string, syncInfo?: SyncInfo) {
 	const emitter = initEmitter<{name: 'newTx'; txs: PendingTransaction[]} | {name: 'clear'}>();
 
 	const $onchainActions: OnChainActions = {};
 	const onchainActions = writable<OnChainActions>($onchainActions);
 
 	let accountDB: AccountDB<AccountData> | undefined;
-	async function load(info: {
-		address: `0x${string}`;
-		chainId: string;
-		genesisHash: string;
-		privateSignature: `0x${string}`;
-	}) {
-		const key = hexToBytes(info.privateSignature).slice(0, 32);
-		const data = await _load({
-			address: info.address,
-			chainId: info.chainId,
-			genesisHash: info.genesisHash,
-			key,
-		});
+	let unsubscribeFromSync: (() => void) | undefined;
+
+	async function load(info: AccountInfo, remoteSyncEnabled?: boolean) {
+		const data = await _load(info, remoteSyncEnabled);
 
 		for (const hash in data.onchainActions) {
 			const onchainAction = (data.onchainActions as any)[hash];
@@ -71,16 +61,6 @@ export function initAccountData() {
 			const onchainAction = (onChainActions as any)[hash];
 			const tx = fromOnChainActionToPendingTransaction(hash as `0x${string}`, onchainAction);
 			pending_transactions.push(tx);
-			if (onchainAction.revealTx) {
-				const tx = {
-					hash: onchainAction.revealTx.hash,
-					request: onchainAction.revealTx.request,
-					final: onchainAction.revealTx.final,
-					inclusion: onchainAction.revealTx.inclusion,
-					status: onchainAction.revealTx.status,
-				} as PendingTransaction;
-				pending_transactions.push(tx);
-			}
 		}
 		emitter.emit({name: 'newTx', txs: pending_transactions});
 	}
@@ -89,6 +69,12 @@ export function initAccountData() {
 		//save before unload
 		await save();
 
+		if (unsubscribeFromSync) {
+			unsubscribeFromSync();
+			unsubscribeFromSync = undefined;
+		}
+
+		accountDB?.destroy();
 		accountDB = undefined;
 
 		// delete all
@@ -106,15 +92,72 @@ export function initAccountData() {
 		});
 	}
 
-	async function _load(info: {
-		address: `0x${string}`;
-		chainId: string;
-		genesisHash: string;
-		key: Uint8Array;
-	}): Promise<AccountData> {
-		const privateKey = info.key;
-		accountDB = new AccountDB(info.address, info.chainId, info.genesisHash);
-		return (await accountDB.load()) || emptyAccountData;
+	function _merge(
+		localData?: AccountData,
+		remoteData?: AccountData,
+	): {newData: AccountData; newDataOnLocal: boolean; newDataOnRemote: boolean} {
+		let newDataOnLocal = false;
+		let newDataOnRemote = false;
+
+		let newData: AccountData;
+		if (!localData) {
+			newData = {
+				onchainActions: {},
+			};
+		} else {
+			newData = localData;
+		}
+
+		// hmm check if valid
+		if (!remoteData || !remoteData.onchainActions) {
+			remoteData = {
+				onchainActions: {},
+			};
+		}
+
+		for (const key of Object.keys(remoteData.onchainActions)) {
+			const txHash = key as `0x${string}`;
+			if (!newData.onchainActions[txHash]) {
+				newData.onchainActions[txHash] = remoteData.onchainActions[txHash];
+				newDataOnRemote = true;
+			}
+		}
+
+		for (const key of Object.keys(newData.onchainActions)) {
+			const txHash = key as `0x${string}`;
+			if (!remoteData.onchainActions[txHash]) {
+				newDataOnLocal = true;
+				break;
+			}
+		}
+
+		return {
+			newData,
+			newDataOnLocal,
+			newDataOnRemote,
+		};
+	}
+
+	async function _load(info: AccountInfo, remoteSyncEnabled?: boolean): Promise<AccountData> {
+		accountDB = new AccountDB(
+			dbName,
+			info,
+			_merge,
+			syncInfo
+				? {...syncInfo, enabled: remoteSyncEnabled === undefined ? syncInfo.enabled : remoteSyncEnabled}
+				: undefined,
+		);
+
+		unsubscribeFromSync = accountDB.subscribe(onSync);
+		return (await accountDB.requestSync(true)) || emptyAccountData;
+	}
+
+	function onSync(syncingState: SyncingState<AccountData>): void {
+		// TODO ?
+		// $onchainActions = syncingState.data?.onchainActions || {};
+		// onchainActions.set($onchainActions);
+		// $offchainState = syncingState.data?.offchainState;
+		// offchainState.set($offchainState);
 	}
 
 	async function _save(accountData: AccountData) {
@@ -151,27 +194,39 @@ export function initAccountData() {
 		});
 	}
 
-	function _updateTx(pendingTransaction: PendingTransaction) {
+	function _updateTx(pendingTransaction: PendingTransaction): boolean {
 		const action = $onchainActions[pendingTransaction.hash];
 		if (action) {
-			action.inclusion = pendingTransaction.inclusion;
-			action.status = pendingTransaction.status;
-			action.final = pendingTransaction.final;
+			if (
+				action.inclusion !== pendingTransaction.inclusion ||
+				action.status !== pendingTransaction.status ||
+				action.final !== pendingTransaction.final
+			) {
+				action.inclusion = pendingTransaction.inclusion;
+				action.status = pendingTransaction.status;
+				action.final = pendingTransaction.final;
+				return true;
+			}
 		}
+		return false;
 	}
 
 	function updateTx(pendingTransaction: PendingTransaction) {
-		_updateTx(pendingTransaction);
-		onchainActions.set($onchainActions);
-		save();
+		if (_updateTx(pendingTransaction)) {
+			onchainActions.set($onchainActions);
+			save();
+		}
 	}
 
 	function updateTxs(pendingTransactions: PendingTransaction[]) {
+		let anyChanges = false;
 		for (const p of pendingTransactions) {
-			_updateTx(p);
+			anyChanges = anyChanges || _updateTx(p);
 		}
-		onchainActions.set($onchainActions);
-		save();
+		if (anyChanges) {
+			onchainActions.set($onchainActions);
+			save();
+		}
 	}
 
 	// use with caution

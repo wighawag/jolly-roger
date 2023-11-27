@@ -154,6 +154,12 @@ importers:
 
   web:
     dependencies:
+      '@noble/ciphers':
+        specifier: ^0.4.0
+        version: 0.4.0
+      '@scure/base':
+        specifier: ^1.1.3
+        version: 1.1.3
       '@types/lodash-es':
         specifier: ^4.17.12
         version: 4.17.12
@@ -175,6 +181,9 @@ importers:
       lodash-es:
         specifier: ^4.17.21
         version: 4.17.21
+      lz-string:
+        specifier: ^1.5.0
+        version: 1.5.0
       named-logs:
         specifier: ^0.2.2
         version: 0.2.2
@@ -1364,6 +1373,10 @@ packages:
       tweetnacl: 1.0.3
       tweetnacl-util: 0.15.1
     dev: true
+
+  /@noble/ciphers@0.4.0:
+    resolution: {integrity: sha512-xaUaUUDWbHIFSxaQ/pIe+33VG2mfJp6N/KxKLmZr5biWdNznCAmfu24QRhX10BbVAuqOahAoyp0S4M9md6GPDw==}
+    dev: false
 
   /@noble/curves@1.1.0:
     resolution: {integrity: sha512-091oBExgENk/kGj3AZmtBDMpxQPDtxQABR2B9lb1JbVTs6ytdzZNwvhxQ4MWasRNEzlbEH8jCWFCwhF/Obj5AA==}
@@ -6161,6 +6174,11 @@ packages:
     transitivePeerDependencies:
       - supports-color
     dev: true
+
+  /lz-string@1.5.0:
+    resolution: {integrity: sha512-h5bgJWpxJNswbU7qCrV0tIKQCaS3blPDrqKWx+QxzuzL1zGUzij9XCWLrSLsJPu5t+eWA/ycetzYAO5IOMcWAQ==}
+    hasBin: true
+    dev: false
 
   /magic-string@0.27.0:
     resolution: {integrity: sha512-8UnnX2PeRAPZuN12svgR9j7M1uWMovg/CEnIwIG0LFkXSJJe4PdfUGiTGl8V9bsBHFUtfVINcSyYxd7q+kx9fA==}

@@ -1,6 +1,14 @@
 import {init} from 'web3-connection';
-import {contractsInfos, defaultRPC, initialContractsInfos, blockTime, localRPC} from '$lib/config';
-import {initAccountData} from './account-data';
+import {
+	contractsInfos,
+	defaultRPC,
+	initialContractsInfos,
+	blockTime,
+	localRPC,
+	env,
+	doNotEncryptLocally,
+} from '$lib/config';
+import {initAccountData} from '$lib/account/account-data';
 import {initTransactionProcessor} from 'ethereum-tx-observer';
 import {initViemContracts} from 'web3-connection-viem';
 import {logs} from 'named-logs';
@@ -8,7 +16,13 @@ import {stringToHex} from 'viem';
 
 const logger = logs('jolly-roger');
 
-export const accountData = initAccountData();
+const syncInfo = env.PUBLIC_SYNC_URI
+	? {
+			uri: env.PUBLIC_SYNC_URI,
+	  }
+	: undefined;
+
+export const accountData = initAccountData('jolly-roger', syncInfo);
 
 // TODO we need to hook tx-observer with a provider and make it process tx
 
@@ -44,77 +58,86 @@ const stores = init({
 			const chainId = state.network.chainId;
 			const address = state.address;
 
-			// REMOVE 0x0000000000000000000000000000000000000000000000000000000000000011 to enable signature
-			let signature: `0x${string}` | undefined = '0x0000000000000000000000000000000000000000000000000000000000000011';
+			let remoteSyncEnabled = false;
+			let signature: `0x${string}` | undefined;
+			if (syncInfo || !doNotEncryptLocally) {
+				const private_signature_storageKey = `__private_signature__${address.toLowerCase()}`;
+				try {
+					const fromStorage = localStorage.getItem(private_signature_storageKey);
+					if (fromStorage && fromStorage.startsWith('0x')) {
+						signature = fromStorage as `0x${string}`;
+					}
+				} catch (err) {}
 
-			const private_signature_storageKey = `__private_signature__${address.toLowerCase()}`;
-			try {
-				const fromStorage = localStorage.getItem(private_signature_storageKey);
-				if (fromStorage && fromStorage.startsWith('0x')) {
-					signature = fromStorage as `0x${string}`;
-				}
-			} catch (err) {}
+				if (!signature) {
+					async function signMessage() {
+						const msg = stringToHex(
+							'Welcome to Jolly-Roger, Please sign this message only on trusted frontend. This gives access to your local data that you are supposed to keep secret.',
+						);
+						const signature = await state.connection.provider
+							.request({
+								method: 'personal_sign',
+								params: [msg, address],
+							})
+							.catch((e: any) => {
+								account.rejectLoadingStep();
+							});
+						account.acceptLoadingStep(signature);
+					}
+					// setLoadingMessage('Please Sign The Authentication Message To Go Forward');
 
-			// let remoteSyncEnabled: boolean = true;
-			// const remoteSync_storageKey = `__remoteSync_${address.toLowerCase}`;
-			// try {
-			// 	const fromStorage = localStorage.getItem(remoteSync_storageKey);
-			// 	if (fromStorage === 'true') {
-			// 		remoteSyncEnabled = true;
-			// 	} else if (fromStorage === 'false') {
-			// 		remoteSyncEnabled = false;
-			// 	}
-			// } catch (err) {}
+					let doNotAskAgainSignature = false;
+					if (syncInfo) {
+						remoteSyncEnabled = true;
+						const remoteSync_storageKey = `__remoteSync_${address.toLowerCase}`;
+						try {
+							const fromStorage = localStorage.getItem(remoteSync_storageKey);
+							if (fromStorage === 'true') {
+								remoteSyncEnabled = true;
+							} else if (fromStorage === 'false') {
+								remoteSyncEnabled = false;
+							}
+						} catch (err) {}
+						console.log({remoteSyncEnabled});
+						const {doNotAskAgainSignature: saveSignature, remoteSyncEnabled: remoteSyncEnabledAsked} =
+							(await waitForStep('WELCOME', {
+								remoteSyncEnabled,
+							})) as {
+								remoteSyncEnabled: boolean;
+								doNotAskAgainSignature: boolean;
+							};
+						doNotAskAgainSignature = saveSignature;
+						remoteSyncEnabled = remoteSyncEnabledAsked;
+						try {
+							localStorage.setItem(remoteSync_storageKey, remoteSyncEnabled ? 'true' : 'false');
+						} catch (err) {}
+					} else {
+						const {doNotAskAgainSignature: saveSignature} = (await waitForStep('WELCOME')) as {
+							doNotAskAgainSignature: boolean;
+						};
+						doNotAskAgainSignature = saveSignature;
+					}
 
-			if (!signature) {
-				async function signMessage() {
-					const msg = stringToHex(
-						'Welcome to Jolly-Roger, Please sign this message only on trusted frontend. This gives access to your local data that you are supposed to keep secret.',
-					);
-					const signature = await state.connection.provider
-						.request({
-							method: 'personal_sign',
-							params: [msg, address],
-						})
-						.catch((e: any) => {
-							account.rejectLoadingStep();
-						});
-					account.acceptLoadingStep(signature);
-				}
-				// setLoadingMessage('Please Sign The Authentication Message To Go Forward');
-
-				////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-				// console.log({remoteSyncEnabled});
-				// const {doNotAskAgainSignature, remoteSyncEnabled: remoteSyncEnabledAsked} = (await waitForStep('WELCOME', {
-				// 	remoteSyncEnabled,
-				// })) as {
-				// 	remoteSyncEnabled: boolean;
-				// 	doNotAskAgainSignature: boolean;
-				// };
-				// remoteSyncEnabled = remoteSyncEnabledAsked;
-				// try {
-				// 	localStorage.setItem(remoteSync_storageKey, remoteSyncEnabled ? 'true' : 'false');
-				// } catch (err) {}
-
-				const {doNotAskAgainSignature} = (await waitForStep('WELCOME')) as {
-					doNotAskAgainSignature: boolean;
-				};
-				////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-				signMessage();
-				signature = (await waitForStep('SIGNING')) as `0x${string}`;
-				if (doNotAskAgainSignature) {
-					try {
-						localStorage.setItem(private_signature_storageKey, signature);
-					} catch (err) {}
+					signMessage();
+					signature = (await waitForStep('SIGNING')) as `0x${string}`;
+					if (doNotAskAgainSignature) {
+						try {
+							localStorage.setItem(private_signature_storageKey, signature);
+						} catch (err) {}
+					}
 				}
 			}
-			await accountData.load({
-				address,
-				chainId,
-				genesisHash: state.network.genesisHash || '',
-				privateSignature: signature,
-			});
+
+			await accountData.load(
+				{
+					address,
+					chainId,
+					genesisHash: state.network.genesisHash || '',
+					localKey: signature ? (signature.slice(0, 66) as `0x${string}`) : undefined,
+					doNotEncryptLocally,
+				},
+				remoteSyncEnabled,
+			);
 		},
 		async unload() {
 			console.log({unloading: '...'});

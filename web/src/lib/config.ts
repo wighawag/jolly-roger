@@ -9,6 +9,8 @@ import {
 	PUBLIC_DEV_NODE_URI,
 } from '$env/static/public';
 
+import {env} from '$env/dynamic/public';
+
 import _contractsInfos from '$data/contracts';
 export type NetworkConfig = typeof _contractsInfos;
 
@@ -47,7 +49,11 @@ const localRPC =
 
 const defaultRPC = defaultRPCURL ? {chainId: contractsChainId, url: defaultRPCURL} : undefined;
 
-export {defaultRPC, isUsingLocalDevNetwork, localRPC, blockTime};
+// This allow to debug what is written to local storage
+// Disable this if the data should remains private
+export const doNotEncryptLocally = true;
+
+export {defaultRPC, isUsingLocalDevNetwork, localRPC, blockTime, env};
 
 let _setContractsInfos: any;
 export const contractsInfos = readable<NetworkConfig>(_contractsInfos, (set) => {
