@@ -7,6 +7,7 @@ import {
 	PUBLIC_ETH_NODE_URI,
 	PUBLIC_LOCALHOST_BLOCK_TIME,
 	PUBLIC_DEV_NODE_URI,
+	PUBLIC_FUZD_URI,
 } from '$env/static/public';
 
 import {env} from '$env/dynamic/public';
@@ -44,6 +45,15 @@ if (!defaultRPCURL) {
 	}
 }
 
+function noEndSlash(str: string) {
+	if (str.endsWith('/')) {
+		return str.slice(0, -1);
+	}
+	return str;
+}
+
+const FUZD_URI = noEndSlash(params.fuzd || PUBLIC_FUZD_URI);
+
 const localRPC =
 	isUsingLocalDevNetwork && PUBLIC_DEV_NODE_URI ? {chainId: contractsChainId, url: PUBLIC_DEV_NODE_URI} : undefined;
 
@@ -51,9 +61,9 @@ const defaultRPC = defaultRPCURL ? {chainId: contractsChainId, url: defaultRPCUR
 
 // This allow to debug what is written to local storage
 // Disable this if the data should remains private
-export const doNotEncryptLocally = true;
+export const doNotEncryptLocally = !FUZD_URI;
 
-export {defaultRPC, isUsingLocalDevNetwork, localRPC, blockTime, env};
+export {defaultRPC, isUsingLocalDevNetwork, localRPC, blockTime, env, FUZD_URI};
 
 let _setContractsInfos: any;
 export const contractsInfos = readable<NetworkConfig>(_contractsInfos, (set) => {

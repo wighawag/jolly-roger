@@ -3,6 +3,8 @@ import type {PendingTransaction, PendingTransactionState} from 'ethereum-tx-obse
 import {initEmitter} from 'radiate';
 import {writable} from 'svelte/store';
 import {AccountDB, type AccountInfo, type SyncInfo, type SyncingState} from './account-db';
+import {createClient, mainnetClient} from '$lib/fuzd';
+import {FUZD_URI} from '$lib/config';
 
 export type SendMessageMetadata = {
 	type: 'message';
@@ -41,6 +43,8 @@ export function initAccountData(dbName: string, syncInfo?: SyncInfo) {
 	const $onchainActions: OnChainActions = {};
 	const onchainActions = writable<OnChainActions>($onchainActions);
 
+	let fuzdClient: ReturnType<typeof createClient> | undefined;
+
 	let accountDB: AccountDB<AccountData> | undefined;
 	let unsubscribeFromSync: (() => void) | undefined;
 
@@ -76,6 +80,8 @@ export function initAccountData(dbName: string, syncInfo?: SyncInfo) {
 
 		accountDB?.destroy();
 		accountDB = undefined;
+
+		fuzdClient = undefined;
 
 		// delete all
 		for (const hash of Object.keys($onchainActions)) {
@@ -147,6 +153,16 @@ export function initAccountData(dbName: string, syncInfo?: SyncInfo) {
 				? {...syncInfo, enabled: remoteSyncEnabled === undefined ? syncInfo.enabled : remoteSyncEnabled}
 				: undefined,
 		);
+		if (FUZD_URI) {
+			if (!info.localKey) {
+				throw new Error(`no local key, FUZD requires it`);
+			}
+			fuzdClient = createClient({
+				drand: mainnetClient(),
+				privateKey: info.localKey,
+				schedulerEndPoint: FUZD_URI,
+			});
+		}
 
 		unsubscribeFromSync = accountDB.subscribe(onSync);
 		return (await accountDB.requestSync(true)) || emptyAccountData;
@@ -235,6 +251,33 @@ export function initAccountData(dbName: string, syncInfo?: SyncInfo) {
 		accountDB?.clearData();
 	}
 
+	async function getFuzd() {
+		if (!fuzdClient) {
+			throw new Error(`no fuzd client setup`);
+		}
+		const remoteAccount = await fuzdClient.getRemoteAccount();
+		return {
+			remoteAccount,
+			scheduleExecution(
+				execution: {
+					slot: string;
+					chainId: string;
+					gas: bigint;
+					broadcastSchedule: [{duration: number; maxFeePerGas: bigint; maxPriorityFeePerGas: bigint}];
+					data: `0x${string}`;
+					to: `0x${string}`;
+					time: number;
+				},
+				options?: {fakeEncrypt?: boolean},
+			) {
+				if (!fuzdClient) {
+					throw new Error(`no fuzd client setup`);
+				}
+				return fuzdClient.scheduleExecution(execution, options);
+			},
+		};
+	}
+
 	return {
 		$onchainActions,
 		onchainActions: {
@@ -245,6 +288,8 @@ export function initAccountData(dbName: string, syncInfo?: SyncInfo) {
 		unload,
 		updateTx,
 		updateTxs,
+
+		getFuzd,
 
 		onTxSent(tx: EIP1193TransactionWithMetadata, hash: `0x${string}`) {
 			addAction(tx, hash, 'Broadcasted');

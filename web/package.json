@@ -34,6 +34,8 @@
     "@types/lodash-es": "^4.17.12",
     "ethereum-indexer-browser": "^0.6.28",
     "ethereum-tx-observer": "^0.0.3",
+    "fuzd-executor": "^0.1.5",
+    "fuzd-scheduler": "^0.1.5",
     "immer": "^10.0.3",
     "jolly-roger-common": "workspace:*",
     "jolly-roger-indexer": "workspace:*",
@@ -41,7 +43,9 @@
     "lz-string": "^1.5.0",
     "named-logs": "^0.2.2",
     "radiate": "^0.0.1",
+    "remote-account": "^0.0.4",
     "theme-change": "^2.5.0",
+    "tlock-js": "^0.6.1",
     "viem": "^1.19.9",
     "web3-connection": "^0.1.11",
     "web3-connection-viem": "^0.0.1"

@@ -1,0 +1,19 @@
+{
+    "name": "fuzd-service",
+    "devDependencies": {
+        "fuzd-cf-worker": "^0.0.20",
+        "ldenv": "^0.3.7",
+        "node-cron": "^3.0.2",
+        "set-defaults": "^0.0.2",
+        "toml": "^3.0.0",
+        "wait-on": "^7.0.1",
+        "wrangler": "^3.17.1"
+    },
+    "scripts": {
+        "prepare": "set-defaults .",
+        "dev:cron": "node cron.js",
+        "dev:worker": "wrangler dev -c ./wrangler.toml --port 34002",
+        "dev": "pnpm run /^dev:.*/",
+        "wrangler": "wrangler"
+    }
+}

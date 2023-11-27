@@ -21,6 +21,10 @@
 			"path": "./docs"
 		},
 		{
+			"name": "helper-services/fuzd",
+			"path": "helper-services/fuzd"
+		},
+		{
 			"name": "ROOT",
 			"path": "./"
 		}

@@ -38,6 +38,7 @@
     "contracts:docs": "ldenv -m localhost pnpm run --filter ./contracts docgen @@MODE -o ../docs/contracts",
     "indexer:build": "ldenv pnpm run contracts:export @@MODE ~~ pnpm run --filter ./common build ~~ pnpm run --filter ./indexer build ~~ @@",
     "indexer:index": "ldenv pnpm run indexer:build @@MODE ~~ pnpm --filter ./indexer index-to-file -n @@ETH_NODE_URI_:MODE,ETH_NODE_URI@:''@: -d src/contracts.ts -f ../web/static/indexed-state-@@MODE@:.json ~~ @@",
+    "fuzd:dev": "pnpm --filter ./helper-services/fuzd dev",
     "---------------------- DOCS ----------------------": "",
     "docs:dev": "pnpm contracts:docs && vitepress dev docs",
     "docs:build": "pnpm contracts:docs && vitepress build docs",

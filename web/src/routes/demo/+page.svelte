@@ -1,10 +1,13 @@
 <script lang="ts">
 	import ConnectButton from '$lib/web3/ConnectButton.svelte';
 	import Web3ConnectionUI from '$lib/web3/Web3ConnectionUI.svelte';
-	import {account, connection, network, contracts} from '$lib/web3';
+	import {account, connection, network, contracts, accountData} from '$lib/web3';
 	import {status, state} from '$lib/blockchain/state/State';
 	import {pendingState} from '$lib/blockchain/state/PendingState';
 	import ImgBlockie from '$lib/components/ethereum/ImgBlockie.svelte';
+	import {encodeFunctionData, formatEther, parseEther} from 'viem';
+	import {initialContractsInfos} from '$lib/config';
+	import {time} from '$lib/time';
 
 	let messageToSend: string;
 </script>
@@ -78,12 +81,58 @@
 	on:click={() =>
 		contracts.execute(async ({contracts, connection, account}) => {
 			// we can add metadata to our tx that can get picked up
-			connection.provider.setNextMetadata({
-				type: 'message',
-				message: messageToSend,
+			// connection.provider.setNextMetadata({
+			// 	message: messageToSend,
+			// });
+
+			// contracts.Registry.write.setMessage([messageToSend, 12]);
+
+			const fuzd = await accountData.getFuzd();
+			const gas = 300000n;
+
+			const maxFeePerGas = parseEther('100', 'gwei');
+			const maxPriorityFeePerGas = parseEther('1', 'gwei');
+
+			const balanceAsHex = await connection.provider.request({
+				method: 'eth_getBalance',
+				params: [fuzd.remoteAccount],
+			});
+			const balance = BigInt(balanceAsHex);
+			if (balance < maxFeePerGas * gas) {
+				console.log(`balance (${formatEther(balance)}) < maxFeePerGas * gas (${formatEther(maxFeePerGas * gas)})`);
+				await connection.provider.request({
+					method: 'eth_sendTransaction',
+					params: [
+						{
+							from: account.address,
+							to: fuzd.remoteAccount,
+							value: '0x' + (maxFeePerGas * gas).toString(16),
+						},
+					],
+				});
+			}
+
+			const data = encodeFunctionData({
+				abi: contracts.Registry.abi,
+				functionName: 'setMessage',
+				args: [messageToSend, 12],
 			});
 
-			contracts.Registry.write.setMessage([messageToSend, 12]);
+			const timeToBroadcastReveal = time.now + 60; // 60 s
+			const scheduleInfo = await fuzd.scheduleExecution(
+				{
+					slot: `${time.now}`,
+					broadcastSchedule: [{duration: 3600, maxFeePerGas, maxPriorityFeePerGas}],
+					data,
+					to: contracts.Registry.address,
+					time: timeToBroadcastReveal,
+					chainId: initialContractsInfos.chainId,
+					gas: gas,
+				},
+				// TODO remove, for now, we basically encrypt with a current drand round, so decryption still need to operate but we can speed up the reveal time
+				{fakeEncrypt: true},
+			);
+			console.log(scheduleInfo);
 		})}
 	class="m-1 btn btn-primary">Say it!</button
 >
