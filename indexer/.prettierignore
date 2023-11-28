@@ -8,6 +8,8 @@ node_modules
 /dist
 /ethereum-indexer-data
 /src/contracts.ts
+/indexed/
+
 #############################################
 package.json
 pnpm-lock.yaml

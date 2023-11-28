@@ -6,6 +6,8 @@ node_modules
 # rocketh
 generated
 deployments/localhost
+deployments/lan
+_metadata
 
 # hardhat
 /coverage
