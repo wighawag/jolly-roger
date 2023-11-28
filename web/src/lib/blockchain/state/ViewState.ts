@@ -15,7 +15,7 @@ const registry = new Registry();
  * This allow us to optimistically update the UI with pending messages from the user
  *
  */
-export const pendingState = derived(
+export const viewState = derived(
 	[syncing, state, accountData.onchainActions],
 	([$syncing, $state, $onchainActions]) => {
 		logger.info(`num greetings: ${$state.greetings.length}`);
@@ -43,7 +43,7 @@ export const pendingState = derived(
 				if (action.status === 'Failure') {
 					// tx failed so we can ignore it
 					// TODO? this failure can be picked up elsewhere to let the user know
-					//  but we could also modify the PendingState type to include information here
+					//  but we could also modify the ViewState type to include information here
 					continue;
 				}
 
@@ -93,5 +93,5 @@ export const pendingState = derived(
 );
 
 if (typeof window !== 'undefined') {
-	(window as any).pendingState = pendingState;
+	(window as any).viewState = viewState;
 }
