@@ -3,7 +3,7 @@
 	import Web3ConnectionUI from '$lib/web3/Web3ConnectionUI.svelte';
 	import {account, connection, network, contracts} from '$lib/web3';
 	import {status, state} from '$lib/blockchain/state/State';
-	import {pendingState} from '$lib/blockchain/state/PendingState';
+	import {viewState} from '$lib/blockchain/state/ViewState';
 	import ImgBlockie from '$lib/components/ethereum/ImgBlockie.svelte';
 
 	let messageToSend: string;
@@ -38,7 +38,7 @@
 	{:else if $status.state !== 'Loaded'}
 		<div>Loading Messages...</div>
 	{/if}
-	{#each $pendingState.greetings as greeting, index}
+	{#each $viewState.greetings as greeting, index}
 		<!-- <Blockie address={name.id} /> -->
 		<div
 			class={`flex flex-wrap items-center -mx-2 ${
