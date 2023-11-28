@@ -1,33 +1,28 @@
 import type {EIP1193TransactionWithMetadata} from 'web3-connection';
-import type {PendingTransaction, PendingTransactionState} from 'ethereum-tx-observer';
-import {initEmitter} from 'radiate';
-import {writable} from 'svelte/store';
-import {AccountDB, type AccountInfo, type SyncInfo, type SyncingState} from './account-db';
-import {createClient, mainnetClient} from '$lib/fuzd';
+import type {PendingTransaction} from 'ethereum-tx-observer';
+import {BaseAccountHandler, type OnChainAction, type OnChainActions} from './base';
+import {mainnetClient, createClient} from '$lib/fuzd';
+import type {AccountInfo, SyncInfo} from './types';
 import {FUZD_URI} from '$lib/config';
 
 export type SendMessageMetadata = {
 	type: 'message';
 	message: string;
 };
-export type AnyMetadata = SendMessageMetadata;
+export type JollyRogerMetadata = SendMessageMetadata;
 
-export type JollyRogerTransaction<T = AnyMetadata> = EIP1193TransactionWithMetadata & {
-	metadata?: T;
+export type JollyRogerTransaction = EIP1193TransactionWithMetadata & {
+	metadata?: JollyRogerMetadata;
 };
-
-export type OnChainAction<T = AnyMetadata> = {
-	tx: JollyRogerTransaction<T>;
-} & PendingTransactionState;
-export type OnChainActions = {[hash: `0x${string}`]: OnChainAction};
 
 export type AccountData = {
-	onchainActions: OnChainActions;
+	onchainActions: OnChainActions<JollyRogerMetadata>;
 };
 
-const emptyAccountData: AccountData = {onchainActions: {}};
-
-function fromOnChainActionToPendingTransaction(hash: `0x${string}`, onchainAction: OnChainAction): PendingTransaction {
+function fromOnChainActionToPendingTransaction(
+	hash: `0x${string}`,
+	onchainAction: OnChainAction<JollyRogerMetadata>,
+): PendingTransaction {
 	return {
 		hash,
 		request: onchainAction.tx,
@@ -37,70 +32,35 @@ function fromOnChainActionToPendingTransaction(hash: `0x${string}`, onchainActio
 	} as PendingTransaction;
 }
 
-export function initAccountData(dbName: string, syncInfo?: SyncInfo) {
-	const emitter = initEmitter<{name: 'newTx'; txs: PendingTransaction[]} | {name: 'clear'}>();
+export class JollyRogerAccountData extends BaseAccountHandler<AccountData, JollyRogerMetadata> {
+	fuzdClient: ReturnType<typeof createClient> | undefined;
 
-	const $onchainActions: OnChainActions = {};
-	const onchainActions = writable<OnChainActions>($onchainActions);
-
-	let fuzdClient: ReturnType<typeof createClient> | undefined;
-
-	let accountDB: AccountDB<AccountData> | undefined;
-	let unsubscribeFromSync: (() => void) | undefined;
-
-	async function load(info: AccountInfo, remoteSyncEnabled?: boolean) {
-		const data = await _load(info, remoteSyncEnabled);
-
-		for (const hash in data.onchainActions) {
-			const onchainAction = (data.onchainActions as any)[hash];
-			($onchainActions as any)[hash] = onchainAction;
-		}
-		onchainActions.set($onchainActions);
-		handleTxs($onchainActions);
+	constructor() {
+		super('jolly-roger', {onchainActions: {}}, fromOnChainActionToPendingTransaction);
 	}
 
-	function handleTxs(onChainActions: OnChainActions) {
-		const pending_transactions: PendingTransaction[] = [];
-		for (const hash in onChainActions) {
-			const onchainAction = (onChainActions as any)[hash];
-			const tx = fromOnChainActionToPendingTransaction(hash as `0x${string}`, onchainAction);
-			pending_transactions.push(tx);
+	async load(info: AccountInfo, syncInfo?: SyncInfo): Promise<void> {
+		if (FUZD_URI) {
+			if (!info.localKey) {
+				throw new Error(`no local key, FUZD requires it`);
+			}
+			this.fuzdClient = createClient({
+				drand: mainnetClient(),
+				privateKey: info.localKey,
+				schedulerEndPoint: FUZD_URI,
+			});
 		}
-		emitter.emit({name: 'newTx', txs: pending_transactions});
+		return super.load(info, syncInfo);
 	}
 
-	async function unload() {
-		//save before unload
-		await save();
-
-		if (unsubscribeFromSync) {
-			unsubscribeFromSync();
-			unsubscribeFromSync = undefined;
-		}
-
-		accountDB?.destroy();
-		accountDB = undefined;
-
-		fuzdClient = undefined;
-
-		// delete all
-		for (const hash of Object.keys($onchainActions)) {
-			delete ($onchainActions as any)[hash];
-		}
-		onchainActions.set($onchainActions);
-
-		emitter.emit({name: 'clear'});
+	unload() {
+		this.fuzdClient = undefined;
+		return super.unload();
 	}
 
-	async function save() {
-		_save({
-			onchainActions: $onchainActions,
-		});
-	}
-
-	function _merge(
-		localData?: AccountData,
-		remoteData?: AccountData,
+	_merge(
+		localData?: AccountData | undefined,
+		remoteData?: AccountData | undefined,
 	): {newData: AccountData; newDataOnLocal: boolean; newDataOnRemote: boolean} {
 		let newDataOnLocal = false;
 		let newDataOnRemote = false;
@@ -144,118 +104,12 @@ export function initAccountData(dbName: string, syncInfo?: SyncInfo) {
 		};
 	}
 
-	async function _load(info: AccountInfo, remoteSyncEnabled?: boolean): Promise<AccountData> {
-		accountDB = new AccountDB(
-			dbName,
-			info,
-			_merge,
-			syncInfo
-				? {...syncInfo, enabled: remoteSyncEnabled === undefined ? syncInfo.enabled : remoteSyncEnabled}
-				: undefined,
-		);
-		if (FUZD_URI) {
-			if (!info.localKey) {
-				throw new Error(`no local key, FUZD requires it`);
-			}
-			fuzdClient = createClient({
-				drand: mainnetClient(),
-				privateKey: info.localKey,
-				schedulerEndPoint: FUZD_URI,
-			});
-		}
-
-		unsubscribeFromSync = accountDB.subscribe(onSync);
-		return (await accountDB.requestSync(true)) || emptyAccountData;
-	}
-
-	function onSync(syncingState: SyncingState<AccountData>): void {
-		// TODO ?
-		// $onchainActions = syncingState.data?.onchainActions || {};
-		// onchainActions.set($onchainActions);
-		// $offchainState = syncingState.data?.offchainState;
-		// offchainState.set($offchainState);
-	}
-
-	async function _save(accountData: AccountData) {
-		if (accountDB) {
-			accountDB.save(accountData);
-		}
-	}
-
-	function addAction(tx: EIP1193TransactionWithMetadata, hash: `0x${string}`, inclusion?: 'Broadcasted') {
-		if (!tx.metadata) {
-			console.error(`no metadata on the tx, we still save it, but this will not let us know what this tx is about`);
-		} else if (typeof tx.metadata !== 'object') {
-			console.error(`metadata is not an object and so do not conform to Expected Metadata`);
-		} else {
-			if (!('type' in tx.metadata)) {
-				console.error(`no field "type" in the metadata and so do not conform to Expected Metadata`);
-			}
-		}
-
-		const onchainAction: OnChainAction = {
-			tx: tx as JollyRogerTransaction,
-			inclusion: inclusion || 'BeingFetched',
-			final: undefined,
-			status: undefined,
-		};
-
-		$onchainActions[hash] = onchainAction;
-		save();
-		onchainActions.set($onchainActions);
-
-		emitter.emit({
-			name: 'newTx',
-			txs: [fromOnChainActionToPendingTransaction(hash, onchainAction)],
-		});
-	}
-
-	function _updateTx(pendingTransaction: PendingTransaction): boolean {
-		const action = $onchainActions[pendingTransaction.hash];
-		if (action) {
-			if (
-				action.inclusion !== pendingTransaction.inclusion ||
-				action.status !== pendingTransaction.status ||
-				action.final !== pendingTransaction.final
-			) {
-				action.inclusion = pendingTransaction.inclusion;
-				action.status = pendingTransaction.status;
-				action.final = pendingTransaction.final;
-				return true;
-			}
-		}
-		return false;
-	}
-
-	function updateTx(pendingTransaction: PendingTransaction) {
-		if (_updateTx(pendingTransaction)) {
-			onchainActions.set($onchainActions);
-			save();
-		}
-	}
-
-	function updateTxs(pendingTransactions: PendingTransaction[]) {
-		let anyChanges = false;
-		for (const p of pendingTransactions) {
-			anyChanges = anyChanges || _updateTx(p);
-		}
-		if (anyChanges) {
-			onchainActions.set($onchainActions);
-			save();
-		}
-	}
-
-	// use with caution
-	async function _reset() {
-		await unload();
-		accountDB?.clearData();
-	}
-
-	async function getFuzd() {
-		if (!fuzdClient) {
+	async getFuzd() {
+		if (!this.fuzdClient) {
 			throw new Error(`no fuzd client setup`);
 		}
-		const remoteAccount = await fuzdClient.getRemoteAccount();
+		const remoteAccount = await this.fuzdClient.getRemoteAccount();
+		const self = this;
 		return {
 			remoteAccount,
 			scheduleExecution(
@@ -270,35 +124,11 @@ export function initAccountData(dbName: string, syncInfo?: SyncInfo) {
 				},
 				options?: {fakeEncrypt?: boolean},
 			) {
-				if (!fuzdClient) {
+				if (!self.fuzdClient) {
 					throw new Error(`no fuzd client setup`);
 				}
-				return fuzdClient.scheduleExecution(execution, options);
+				return self.fuzdClient.scheduleExecution(execution, options);
 			},
 		};
 	}
-
-	return {
-		$onchainActions,
-		onchainActions: {
-			subscribe: onchainActions.subscribe,
-		},
-
-		load,
-		unload,
-		updateTx,
-		updateTxs,
-
-		getFuzd,
-
-		onTxSent(tx: EIP1193TransactionWithMetadata, hash: `0x${string}`) {
-			addAction(tx, hash, 'Broadcasted');
-			save();
-		},
-
-		on: emitter.on,
-		off: emitter.off,
-
-		_reset,
-	};
 }

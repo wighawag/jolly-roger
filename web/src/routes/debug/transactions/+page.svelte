@@ -1,9 +1,8 @@
 <script lang="ts">
 	import {accountData} from '$lib/web3';
-	const data = accountData.data;
+	const actions = accountData.onchainActions;
 
-	$: actions = $data ? $data.actions : [];
-	$: transactions = Object.keys(actions).map((v) => ({hash: v, transaction: (actions as any)[v]}));
+	$: transactions = Object.keys($actions).map((v) => ({hash: v, transaction: ($actions as any)[v]}));
 </script>
 
 <ul>
