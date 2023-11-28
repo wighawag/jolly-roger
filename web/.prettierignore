@@ -26,6 +26,8 @@ static/robots.txt
 
 # generated from contracts
 src/data/contracts.ts
+static/indexed-state-*.json
+
 #############################################
 package.json
 pnpm-lock.yaml

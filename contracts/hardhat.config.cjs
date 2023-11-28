@@ -53,6 +53,13 @@ const config = {
 	paths: {
 		sources: 'src',
 	},
+	docgen: {
+		templates: 'docs_templates',
+		pages: 'files',
+	},
+	mocha: {
+		require: 'named-logs-console',
+	},
 };
 
 module.exports = config;

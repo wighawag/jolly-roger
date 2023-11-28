@@ -3,7 +3,7 @@ import adapter from '@sveltejs/adapter-static';
 import {vitePreprocess} from '@sveltejs/kit/vite';
 import {execSync} from 'child_process';
 
-function getVersion() {
+export function getVersion() {
 	try {
 		return execSync('git rev-parse --short HEAD').toString().trim();
 	} catch {
