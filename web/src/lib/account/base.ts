@@ -5,9 +5,7 @@ import {AccountDB} from './account-db';
 import {writable, type Readable, type Writable} from 'svelte/store';
 
 export type OnChainAction<T> = {
-	tx: EIP1193TransactionWithMetadata & {
-		metadata?: T;
-	};
+	tx: EIP1193TransactionWithMetadata<T>;
 } & PendingTransactionState;
 export type OnChainActions<T> = {[hash: `0x${string}`]: OnChainAction<T>};
 
@@ -27,9 +25,10 @@ export abstract class BaseAccountHandler<
 
 	private accountDB?: AccountDB<T>;
 	private unsubscribeFromSync: (() => void) | undefined;
-	public readonly $onchainActions: OnChainActions<Metadata> = {};
-	private _onchainActions: Writable<OnChainActions<Metadata>>;
+	protected readonly $data: T;
+	protected _onchainActions: Writable<OnChainActions<Metadata>>;
 	public readonly onchainActions: Readable<OnChainActions<Metadata>>;
+
 	constructor(
 		protected dbName: string,
 		protected emptyAccountData: T,
@@ -39,7 +38,8 @@ export abstract class BaseAccountHandler<
 		) => PendingTransaction,
 	) {
 		this.emitter = initEmitter();
-		this._onchainActions = writable(this.$onchainActions);
+		this.$data = emptyAccountData;
+		this._onchainActions = writable(this.$data.onchainActions);
 		this.onchainActions = {
 			subscribe: this._onchainActions.subscribe,
 		};
@@ -49,7 +49,7 @@ export abstract class BaseAccountHandler<
 
 	updateTx(pendingTransaction: PendingTransaction): void {
 		if (this._updateTx(pendingTransaction)) {
-			this._onchainActions.set(this.$onchainActions);
+			this._onchainActions.set(this.$data.onchainActions);
 			this._save();
 		}
 	}
@@ -59,7 +59,7 @@ export abstract class BaseAccountHandler<
 			anyChanges = anyChanges || this._updateTx(p);
 		}
 		if (anyChanges) {
-			this._onchainActions.set(this.$onchainActions);
+			this._onchainActions.set(this.$data.onchainActions);
 			this._save();
 		}
 	}
@@ -78,10 +78,10 @@ export abstract class BaseAccountHandler<
 
 		for (const hash in data.onchainActions) {
 			const onchainAction = (data.onchainActions as any)[hash];
-			(this.$onchainActions as any)[hash] = onchainAction;
+			(this.$data.onchainActions as any)[hash] = onchainAction;
 		}
-		this._onchainActions.set(this.$onchainActions);
-		this._handleTxs(this.$onchainActions);
+		this._onchainActions.set(this.$data.onchainActions);
+		this._handleTxs(this.$data.onchainActions);
 	}
 	async unload(): Promise<void> {
 		//save before unload
@@ -96,11 +96,11 @@ export abstract class BaseAccountHandler<
 		this.accountDB = undefined;
 
 		// delete all
-		for (const hash of Object.keys(this.$onchainActions)) {
-			delete (this.$onchainActions as any)[hash];
+		for (const hash of Object.keys(this.$data.onchainActions)) {
+			delete (this.$data.onchainActions as any)[hash];
 		}
 
-		this._onchainActions.set(this.$onchainActions);
+		this._onchainActions.set(this.$data.onchainActions);
 
 		this.emitter.emit({name: 'clear'});
 	}
@@ -108,7 +108,7 @@ export abstract class BaseAccountHandler<
 	/// ----------------
 
 	_updateTx(pendingTransaction: PendingTransaction): boolean {
-		const action = this.$onchainActions[pendingTransaction.hash];
+		const action = this.$data.onchainActions[pendingTransaction.hash];
 		if (action) {
 			if (
 				action.inclusion !== pendingTransaction.inclusion ||
@@ -142,9 +142,9 @@ export abstract class BaseAccountHandler<
 			status: undefined,
 		};
 
-		this.$onchainActions[hash] = onchainAction;
+		this.$data.onchainActions[hash] = onchainAction;
 		this._save();
-		this._onchainActions.set(this.$onchainActions);
+		this._onchainActions.set(this.$data.onchainActions);
 
 		this.emitter.emit({
 			name: 'newTx',
@@ -155,9 +155,7 @@ export abstract class BaseAccountHandler<
 	async _save() {
 		if (this.accountDB) {
 			try {
-				await this.accountDB.save({
-					onchainActions: this.$onchainActions,
-				} as T); // TODO save all extra info
+				await this.accountDB.save(this.$data);
 			} catch {}
 		}
 	}
