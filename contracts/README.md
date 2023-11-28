@@ -8,9 +8,27 @@ pnpm compile
 
 ### Test your contracts
 
+There is 2 flavors of test
+
+1. Using hardhat
+
 ```bash
 pnpm test
 ```
+
+2. Using foundry
+
+```bash
+forge test
+```
+
+This assumes you have `forge` installed and that you added forge-std in via the following command
+
+```bash
+git clone --recursive https://github.com/foundry-rs/forge-std.git lib/forge-std
+```
+
+You can also add it as a submodule if you prefers
 
 ### watch for changes and rebuild automatically
 

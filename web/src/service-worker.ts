@@ -1,3 +1,4 @@
+/// <reference types="@sveltejs/kit" />
 import {build, version, prerendered, files} from '$service-worker';
 // ------------------- CONFIG ---------------------------
 const DEV = true;
