@@ -49,7 +49,7 @@
   "scripts": {
     "prepare": "pwag static/icon.svg src/web-config.json",
     "dev": "echo 'waiting for src/data/contracts.ts...'; wait-on src/data/contracts.ts && vite dev",
-    "build": "npm run prepare && vite build",
+    "build": "npm run prepare && ldenv vite build",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
