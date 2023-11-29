@@ -31,7 +31,13 @@ function fromOnChainActionToPendingTransaction(
 
 export class JollyRogerAccountData extends BaseAccountHandler<AccountData, JollyRogerMetadata> {
 	constructor() {
-		super('jolly-roger', {onchainActions: {}}, fromOnChainActionToPendingTransaction);
+		super(
+			'jolly-roger',
+			() => ({
+				onchainActions: {},
+			}),
+			fromOnChainActionToPendingTransaction,
+		);
 	}
 
 	_merge(

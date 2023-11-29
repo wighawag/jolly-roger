@@ -25,20 +25,20 @@ export abstract class BaseAccountHandler<
 
 	private accountDB?: AccountDB<T>;
 	private unsubscribeFromSync: (() => void) | undefined;
-	protected readonly $data: T;
+	protected $data: T;
 	protected _onchainActions: Writable<OnChainActions<Metadata>>;
 	public readonly onchainActions: Readable<OnChainActions<Metadata>>;
 
 	constructor(
 		protected dbName: string,
-		protected emptyAccountData: T,
+		protected emptyAccountData: () => T,
 		protected fromOnChainActionToPendingTransaction: (
 			hash: `0x${string}`,
 			onchainAction: OnChainAction<Metadata>,
 		) => PendingTransaction,
 	) {
 		this.emitter = initEmitter();
-		this.$data = emptyAccountData;
+		this.$data = this.emptyAccountData();
 		this._onchainActions = writable(this.$data.onchainActions);
 		this.onchainActions = {
 			subscribe: this._onchainActions.subscribe,
@@ -96,9 +96,7 @@ export abstract class BaseAccountHandler<
 		this.accountDB = undefined;
 
 		// delete all
-		for (const hash of Object.keys(this.$data.onchainActions)) {
-			delete (this.$data.onchainActions as any)[hash];
-		}
+		this.$data = this.emptyAccountData();
 
 		this._onchainActions.set(this.$data.onchainActions);
 
@@ -174,7 +172,7 @@ export abstract class BaseAccountHandler<
 		this.accountDB = new AccountDB(this.dbName, info, this._merge, syncInfo);
 
 		this.unsubscribeFromSync = this.accountDB.subscribe(this._onSync);
-		return (await this.accountDB.requestSync(true)) || this.emptyAccountData;
+		return (await this.accountDB.requestSync(true)) || this.emptyAccountData();
 	}
 
 	_onSync() {}
