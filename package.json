@@ -54,6 +54,7 @@
     "contracts:deploy": "ldenv -m localhost pnpm _contracts:deploy @@",
     "contracts:deploy:prepare": "ldenv -m localhost ask-env -f contracts/.env.local ETH_NODE_URI_@@MODE MNEMONIC_@@MODE ETHERSCAN_API_KEY:?:ETHERSCAN_API_KEY @@",
     "contracts:deploy:watch": "ldenv -m localhost pnpm _contracts:deploy:watch @@",
+    "contracts:verify": "pnpm --filter ./contracts verify",
     "---------------------- RUN FULL LOCAL SETUP ----------------------": "",
     "start:wezterm": "wezterm --config-file dev/wezterm.lua start $PWD",
     "stop": "zellij kill-session $npm_package_name",

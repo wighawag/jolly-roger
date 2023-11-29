@@ -108,6 +108,26 @@ Then you can deploy your contract
 pnpm contracts:deploy <network>
 ```
 
+And you can verify the contract
+
+- on etherscan:
+
+```bash
+pnpm contracts:verify <network> etherscan
+```
+
+- using sourcify:
+
+```bash
+pnpm contracts:verify <network> sourcify
+```
+
+for etherscan if the network is not supported by default (no endpoint), you can provide your own:
+
+```bash
+pnpm contracts:verify <network> etherscan --endpoint <api endpoint url>
+```
+
 # Initial Setup
 
 You need to have these installed
