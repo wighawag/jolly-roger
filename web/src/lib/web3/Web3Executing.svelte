@@ -31,8 +31,8 @@
 				>
 			</div>
 		</Modal>
-	{:else if $account.loadingData}
-		<Modal cancelation={{cancelable: false}} settings={{type: 'info', message: $account.loadingData}} />
+	{:else if $account.isLoadingData}
+		<Modal cancelation={{cancelable: false}} settings={{type: 'info', message: $account.isLoadingData}} />
 		<!-- TODO account need to be connected -->
 	{:else if $account.state === 'Disconnected' && !$account.unlocking}
 		<Modal cancelation={{cancelable: false}}>
