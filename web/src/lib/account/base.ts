@@ -75,11 +75,7 @@ export abstract class BaseAccountHandler<
 	}
 	async load(info: AccountInfo, syncInfo?: SyncInfo): Promise<void> {
 		const data = await this._load(info, syncInfo);
-
-		for (const hash in data.onchainActions) {
-			const onchainAction = (data.onchainActions as any)[hash];
-			(this.$data.onchainActions as any)[hash] = onchainAction;
-		}
+		this.$data = data;
 		this._onchainActions.set(this.$data.onchainActions);
 		this._handleTxs(this.$data.onchainActions);
 	}
