@@ -2,9 +2,10 @@ import {writable} from 'svelte/store';
 import {connection, devProvider} from './web3';
 
 let timestamp = Math.floor(Date.now() / 1000);
-
-let synced = false;
 let lastFetchLocalTime = performance.now();
+
+let maxRead = 0;
+let synced = false;
 let contract: `0x${string}` | undefined;
 
 async function getTime() {
@@ -86,7 +87,14 @@ export const time = {
 	subscribe: _time.subscribe,
 	get now() {
 		let n = performance.now();
-		return timestamp + Math.floor((n - lastFetchLocalTime) / 1000);
+		const v = timestamp + Math.floor((n - lastFetchLocalTime) / 1000);
+		if (v < maxRead) {
+			return maxRead;
+		}
+		if (synced) {
+			maxRead = v;
+		}
+		return v;
 	},
 	setTimeKeeperContract(contractAddress: `0x${string}`) {
 		contract = contractAddress;
