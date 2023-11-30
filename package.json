@@ -6,7 +6,7 @@
   "type": "module",
   "devDependencies": {
     "ask-env": "^0.0.1",
-    "ldenv": "^0.3.8",
+    "ldenv": "^0.3.9",
     "prettier": "^3.1.0",
     "syncpack": "^11.2.1",
     "vitepress": "1.0.0-rc.31"

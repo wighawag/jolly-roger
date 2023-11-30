@@ -12,8 +12,8 @@ importers:
         specifier: ^0.0.1
         version: 0.0.1
       ldenv:
-        specifier: ^0.3.8
-        version: 0.3.8
+        specifier: ^0.3.9
+        version: 0.3.9
       prettier:
         specifier: ^3.1.0
         version: 3.1.0
@@ -31,8 +31,8 @@ importers:
         version: 0.2.2
     devDependencies:
       ldenv:
-        specifier: ^0.3.8
-        version: 0.3.8
+        specifier: ^0.3.9
+        version: 0.3.9
       prettier:
         specifier: ^3.1.0
         version: 3.1.0
@@ -64,8 +64,8 @@ importers:
         specifier: workspace:*
         version: link:../common
       ldenv:
-        specifier: ^0.3.8
-        version: 0.3.8
+        specifier: ^0.3.9
+        version: 0.3.9
       prettier:
         specifier: ^3.1.0
         version: 3.1.0
@@ -140,8 +140,8 @@ importers:
         specifier: ^0.6.26
         version: 0.6.26(typescript@5.3.2)
       ldenv:
-        specifier: ^0.3.8
-        version: 0.3.8
+        specifier: ^0.3.9
+        version: 0.3.9
       prettier:
         specifier: ^3.1.0
         version: 3.1.0
@@ -4169,7 +4169,7 @@ packages:
       eip-1193-json-provider: 0.2.1
       ethereum-indexer: 0.6.18(typescript@5.3.2)
       ethereum-indexer-utils: 0.6.11
-      ldenv: 0.3.8
+      ldenv: 0.3.9
       named-logs: 0.2.2
       named-logs-console: 0.3.0
     transitivePeerDependencies:
@@ -4241,7 +4241,7 @@ packages:
       koa-json: 2.0.2
       koa-logger: 3.2.1
       koa-router: 12.0.1
-      ldenv: 0.3.8
+      ldenv: 0.3.9
       named-logs: 0.2.2
       named-logs-console: 0.3.0
       pouchdb: 8.0.1
@@ -5771,8 +5771,8 @@ packages:
       dotenv-expand: 10.0.0
     dev: true
 
-  /ldenv@0.3.8:
-    resolution: {integrity: sha512-0dm7L0bgt2+wtT28z115mN5dM2pr2efyuNsgXyK9TXqmXX5pCah136VMsv15rYta3ih5QeunV+zArlFXQT/avg==}
+  /ldenv@0.3.9:
+    resolution: {integrity: sha512-ownfNPFd2jvn4Hme9i/Pj1qAczVsjtUynI8jXBvcP+tE7pZQniWqmcsbZS2QVCNBb4o/oEyFO2ht+TP87NnBMQ==}
     hasBin: true
     dependencies:
       dotenv: 16.3.1
@@ -7011,6 +7011,22 @@ packages:
       postcss: 8.4.31
     dev: true
 
+  /postcss-load-config@4.0.2:
+    resolution: {integrity: sha512-bSVhyJGL00wMVoPUzAVAnbEoWyqRxkjv64tUl427SKnPrENtq6hJwUojroMz2VB+Q1edmi4IfrAPpami5VVgMQ==}
+    engines: {node: '>= 14'}
+    peerDependencies:
+      postcss: '>=8.0.9'
+      ts-node: '>=9.0.0'
+    peerDependenciesMeta:
+      postcss:
+        optional: true
+      ts-node:
+        optional: true
+    dependencies:
+      lilconfig: 3.0.0
+      yaml: 2.3.4
+    dev: true
+
   /postcss-load-config@4.0.2(postcss@8.4.31):
     resolution: {integrity: sha512-bSVhyJGL00wMVoPUzAVAnbEoWyqRxkjv64tUl427SKnPrENtq6hJwUojroMz2VB+Q1edmi4IfrAPpami5VVgMQ==}
     engines: {node: '>= 14'}
@@ -7665,7 +7681,7 @@ packages:
       chalk: 5.3.0
       commander: 11.1.0
       fs-extra: 11.1.1
-      ldenv: 0.3.8
+      ldenv: 0.3.9
       qs: 6.11.2
       rocketh: 0.7.3(typescript@5.3.2)
     transitivePeerDependencies:
@@ -7685,7 +7701,7 @@ packages:
       esbuild: 0.19.7
       esbuild-register: 3.5.0(esbuild@0.19.7)
       figlet: 1.7.0
-      ldenv: 0.3.8
+      ldenv: 0.3.9
       named-logs: 0.2.2
       named-logs-console: 0.3.0
       viem: 1.19.9(typescript@5.3.2)
@@ -8767,7 +8783,7 @@ packages:
       execa: 5.1.1
       globby: 11.1.0
       joycon: 3.1.1
-      postcss-load-config: 4.0.2(postcss@8.4.31)
+      postcss-load-config: 4.0.2
       resolve-from: 5.0.0
       rollup: 4.5.1
       source-map: 0.8.0-beta.0
