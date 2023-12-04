@@ -43,7 +43,7 @@
     "radiate": "^0.0.1",
     "theme-change": "^2.5.0",
     "viem": "^1.19.9",
-    "web3-connection": "^0.1.11",
+    "web3-connection": "^0.1.12",
     "web3-connection-viem": "^0.0.1"
   },
   "scripts": {
