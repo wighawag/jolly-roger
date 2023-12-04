@@ -1,4 +1,3 @@
-import {version} from '$app/environment';
 import {base} from '$app/paths';
 
 class LocalCache {
@@ -6,11 +5,13 @@ class LocalCache {
 	constructor(version?: string) {
 		this._prefix = base.startsWith('/ipfs/') || base.startsWith('/ipns/') ? base.slice(6) : ''; // ensure local storage is not conflicting across web3w-based apps on ipfs gateways (require encryption for sensitive data)
 
-		const lastVersion = this.getItem('_version');
-		if (lastVersion !== version) {
-			this.clear();
-			if (version) {
-				this.setItem('_version', version);
+		if (version) {
+			const lastVersion = this.getItem('_version');
+			if (lastVersion !== version) {
+				this.clear();
+				if (version) {
+					this.setItem('_version', version);
+				}
 			}
 		}
 	}
@@ -47,4 +48,5 @@ class LocalCache {
 	}
 }
 
-export default new LocalCache(version);
+// can force version change
+export default new LocalCache();

@@ -36,7 +36,13 @@ export class JollyRogerAccountData extends BaseAccountHandler<AccountData, Jolly
 	fuzdClient: ReturnType<typeof createClient> | undefined;
 
 	constructor() {
-		super('jolly-roger', {onchainActions: {}}, fromOnChainActionToPendingTransaction);
+		super(
+			'jolly-roger',
+			() => ({
+				onchainActions: {},
+			}),
+			fromOnChainActionToPendingTransaction,
+		);
 	}
 
 	async load(info: AccountInfo, syncInfo?: SyncInfo): Promise<void> {

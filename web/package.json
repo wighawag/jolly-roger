@@ -47,14 +47,14 @@
     "theme-change": "^2.5.0",
     "tlock-js": "^0.6.1",
     "viem": "^1.19.9",
-    "web3-connection": "^0.1.11",
+    "web3-connection": "^0.1.12",
     "web3-connection-viem": "^0.0.1"
   },
   "scripts": {
     "prepare": "pwag static/icon.svg src/web-config.json",
-    "dev": "echo 'waiting for src/data/contracts.ts...'; wait-on src/data/contracts.ts && vite dev",
-    "build": "npm run prepare && vite build",
-    "preview": "vite preview",
+    "dev": "echo 'waiting for src/data/contracts.ts...'; wait-on src/data/contracts.ts && ldenv vite dev",
+    "build": "npm run prepare && ldenv vite build",
+    "preview": "ldenv vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "format:check": "prettier --check .",
