@@ -3,3 +3,5 @@
 
 # node modules
 node_modules/
+
+.dev.vars
