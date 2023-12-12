@@ -44,18 +44,19 @@ contract GreetingsRegistry is Proxied {
     /// @dev constructors
     /// @param initialPrefix the prefix that will be prepended to every user message goig forward
     constructor(string memory initialPrefix) {
-        // the proxied modifier from `hardhat-deploy` (see `postUpgrade` function)
-        //  ensure postUpgrade effect can only be used once when the contract is deployed without proxy.
         //  by calling that function in the constructor
         //  we ensure the contract behave the same whether it is deployed through a proxy or not.
         //  when the contract is deployed without proxy, the postUpgrade can never be called
-        postUpgrade(initialPrefix);
+        _postUpgrade(initialPrefix);
     }
 
-    //
     /// @dev called by the admin when the contract is deployed as a proxy
     /// @param initialPrefix the prefix that will be prepended to every user message goig forward
-    function postUpgrade(string memory initialPrefix) public proxied {
+    function postUpgrade(string calldata initialPrefix) external onlyProxyAdmin {
+        _postUpgrade(initialPrefix);
+    }
+
+    function _postUpgrade(string memory initialPrefix) internal {
         _prefix = initialPrefix;
     }
 
