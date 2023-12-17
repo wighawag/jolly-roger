@@ -1,0 +1,162 @@
+/* ------------------------------------------------- */
+/* BASIC RESET mostly from  */
+/* ------------------------------------------------- */
+
+/* border-box */
+
+/* the following do not work in web-components, see: https://konnorrogers.com/posts/2023/revisiting-box-sizing-best-practices/ */
+/* html {
+	box-sizing: border-box;
+}
+*,
+*:before,
+*:after {
+	box-sizing: inherit;
+} */
+/* so we use this */
+*,
+*:after,
+*:before {
+	box-sizing: border-box;
+}
+
+/* flush body */
+body {
+	margin: 0;
+	padding: 0;
+}
+
+/* Taming Overflows */
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	overflow-wrap: break-word;
+}
+p,
+ul,
+ol,
+blockquote,
+figure {
+	overflow-wrap: break-word;
+}
+
+/* we default to block element for some element */
+:where(img, svg, video, canvas, audio, iframe, embed, object) {
+	display: block;
+}
+/* plus by default we restrict their size */
+:where(img, svg, video) {
+	max-inline-size: 100%;
+	block-size: auto;
+}
+
+/* fix pointers */
+:where(
+		a[href],
+		area,
+		button,
+		input:not([type='text'], [type='email'], [type='number'], [type='password'], [type=''], [type='tel'], [type='url']),
+		label[for],
+		select,
+		summary,
+		[tabindex]:not([tabindex*='-'])
+	) {
+	cursor: pointer;
+}
+
+:where(a[href], area, button, input, label[for], select, summary, textarea, [tabindex]:not([tabindex*='-'])) {
+	touch-action: manipulation;
+	-webkit-tap-highlight-color: transparent;
+}
+
+/* form styling inherit */
+:where(input, button, textarea, select),
+:where(input[type='file'])::-webkit-file-upload-button {
+	font: inherit;
+	font-size: inherit;
+	color: inherit;
+	letter-spacing: inherit;
+}
+
+/* mobile font size fix */
+
+html {
+	-moz-text-size-adjust: none;
+	-webkit-text-size-adjust: none;
+	text-size-adjust: none;
+}
+
+/* we allow wrapper to use viewport height */
+html,
+body {
+	height: 100%;
+}
+
+/* ------------------------------------------------- */
+
+/* 
+taken from tailwind
+hide element so that only screen-reader can "see" them
+*/
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border-width: 0;
+}
+
+/* used for svg icon so they are by default the size of the font*/
+.font-icon {
+	min-height: 1rem;
+	min-width: 1rem;
+	display: inline-block;
+}
+
+/* ------------------------------------------------- */
+/* VARIABLES */
+/* ------------------------------------------------- */
+
+/* Colors */
+:root {
+	--color-text-base: white;
+	--color-background-base: hsl(231.43 15% 18%);
+
+	--color-background-base-1: hsl(231.43 15% 16%);
+
+	--color-text-primary: white;
+	--color-background-primary: hsl(325.52 100% 74%);
+
+	--color-link-base: white;
+}
+
+/* ------------------------------------------------- */
+
+/* ------------------------------------------------- */
+/* BASIC STYLES */
+/* ------------------------------------------------- */
+:root {
+	background-color: var(--color-background-base);
+	color: var(--color-text-base);
+}
+
+a {
+	color: var(--color-link-base);
+	text-decoration: underline;
+}
+a:visited {
+	color: var(--color-link-base);
+}
+a:hover {
+	/* font-weight: 900; */
+	text-decoration: initial;
+}
+/* ------------------------------------------------- */

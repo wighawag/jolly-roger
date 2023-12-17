@@ -3,17 +3,21 @@
 	import {route, isParentRoute, isSameRoute} from '$lib/utils/path';
 
 	export let href: string;
-	let className = '';
-	export {className as class};
-	export let whenSelected: string = '';
-	export let whenUnselected: string = '';
+
+	$: current = href === '/' ? isSameRoute($page.url.pathname, href) : isParentRoute($page.url.pathname, href);
 </script>
 
-<a
-	href={route(href)}
-	class={`${className} ${
-		(href === '/' ? isSameRoute($page.url.pathname, href) : isParentRoute($page.url.pathname, href))
-			? whenSelected
-			: whenUnselected
-	}`}><slot /></a
->
+<a class:current href={route(href)}><slot /></a>
+
+<style>
+	a {
+		display: inline-block;
+		padding: 0.5em;
+		color: var(--color-text-base);
+	}
+
+	.current {
+		color: var(--color-text-primary);
+		background-color: var(--color-background-primary);
+	}
+</style>

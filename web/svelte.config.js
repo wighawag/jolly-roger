@@ -1,4 +1,3 @@
-import preprocess from 'svelte-preprocess';
 import adapter from '@sveltejs/adapter-static';
 import {vitePreprocess} from '@sveltejs/kit/vite';
 import {execSync} from 'child_process';
@@ -16,14 +15,7 @@ const VERSION = getVersion();
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
-	preprocess: [
-		vitePreprocess(),
-		preprocess({
-			// postcss make use of tailwind
-			// we ensure it get processed, see postcss.config.cjs
-			postcss: true,
-		}),
-	],
+	preprocess: [vitePreprocess()],
 
 	kit: {
 		adapter: adapter(),
