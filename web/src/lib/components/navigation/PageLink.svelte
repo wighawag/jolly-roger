@@ -11,13 +11,27 @@
 
 <style>
 	a {
+		text-decoration: none;
 		display: inline-block;
-		padding: 0.5em;
 		color: var(--color-text-base);
+
+		font-size: 0.875rem;
+		border-top-left-radius: 8px;
+		border-top-right-radius: 8px;
+		padding-inline: 16px;
+		padding-block: 2px;
+		line-height: 2;
+
+		&:hover {
+			text-decoration: underline;
+		}
 	}
 
 	.current {
+		font-weight: bold;
 		color: var(--color-text-primary);
 		background-color: var(--color-background-primary);
+
+		pointer-events: none;
 	}
 </style>

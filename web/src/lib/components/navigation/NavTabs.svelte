@@ -1,5 +1,5 @@
 <script lang="ts">
-	import PageLink from '$lib/components/navigation/PageLink.svelte';
+	import PageLink from './PageLink.svelte';
 	export let pages: {pathname: string; title: string}[];
 </script>
 
@@ -15,9 +15,10 @@
 	nav ol {
 		display: flex;
 		justify-content: flex-start;
-		gap: 16px;
-		list-style-type: none;
-		padding: 0;
 		margin: 0;
+		list-style-type: none;
+		padding: 8px 8px 0px 0px;
+		background-color: var(--color-background-base);
+		border-bottom: 4px solid var(--color-background-primary);
 	}
 </style>

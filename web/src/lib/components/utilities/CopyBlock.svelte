@@ -6,12 +6,6 @@
 	const dispatch = createEventDispatcher<{copied: string}>();
 
 	export let text = '';
-	export let background = '';
-	export let copiedBackground = '';
-	export let boxClass = '';
-	let className = '';
-	export {className as class};
-	export let copiedColor = '';
 
 	// Local
 	let copyState = false;
@@ -27,16 +21,31 @@
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
-<div
-	role="button"
-	tabindex="0"
-	class={`${boxClass} ${copyState ? copiedBackground : background}`}
-	on:copied={onCopyClick}
-	use:clipboard={text}
->
+<div role="button" tabindex="0" on:copied={onCopyClick} use:clipboard={text}>
 	{#if copyState}
-		<code class={`${className} ${copiedColor}`}>Copied ✓</code>
+		<code class="copied">Copied ✓</code>
 	{:else}
-		<code class={className}>{text}</code>
+		<code class="tocopy">{text}</code>
 	{/if}
 </div>
+
+<style>
+	code {
+		display: block;
+		line-height: 1.7;
+		font-size: large;
+		font-weight: bold;
+		background-color: var(--color-background-base-1);
+		padding: 12px;
+		border-radius: 1em;
+	}
+
+	.copied {
+		background-color: hsl(135.18 94% 65%);
+		color: black;
+	}
+
+	.tocopy {
+		color: var(--color-background-primary);
+	}
+</style>

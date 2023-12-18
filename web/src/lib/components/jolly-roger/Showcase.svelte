@@ -9,31 +9,43 @@
 	export let source: string | undefined = undefined;
 </script>
 
-<div class="flex flex-col rounded-lg shadow-lg bg-base-200 overflow-hidden">
-	<div class="flex-shrink-0">
-		<a {href} target="_blank" rel="noreferrer"><img class="h-48 w-full object-cover" src={url(preview)} alt={name} /></a
-		>
+<div class="wrapper">
+	<div>
+		<a {href} target="_blank" rel="noreferrer"><img src={url(preview)} alt={name} /></a>
 	</div>
-	<div class="flex-1 p-6 flex flex-col justify-between">
-		<div class="flex-1">
-			<p class="text-xl font-medium">
-				<a {href} target="_blank" rel="noreferrer" class="link primary-link text-primary">
-					{name}
-				</a>
-			</p>
-			<div class="block mt-2">
-				<p class="text-xl font-semibold">
-					{title}
-				</p>
-				<p class="mt-3 text-base">
-					{description}
-				</p>
-				<p class="mt-3 text-base">
+	<div class="info-wrapper">
+		<div class="info">
+			<p><a {href} target="_blank" rel="noreferrer">{name}</a></p>
+			<div>
+				<p>{title}</p>
+				<p>{description}</p>
+				<p>
 					{#if source}
-						Check the <a href={source} target="_blank" rel="noreferrer" class="underline">source code</a>.
+						Check the <a href={source} target="_blank" rel="noreferrer">source code</a>.
 					{:else}Source code not yet available.{/if}
 				</p>
 			</div>
 		</div>
 	</div>
 </div>
+
+<style>
+	.wrapper {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+	}
+
+	.wrapper img {
+		object-fit: cover;
+	}
+
+	.info-wrapper {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.info {
+		flex: 1;
+	}
+</style>

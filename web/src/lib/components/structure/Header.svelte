@@ -1,5 +1,5 @@
 <script lang="ts">
-	import NavTabs from '$lib/components/daisyui/NavTabs.svelte';
+	import NavTabs from '$lib/components/navigation/NavTabs.svelte';
 </script>
 
 <header>
@@ -17,7 +17,5 @@
 	header {
 		top: 0;
 		position: sticky;
-		background-color: var(--color-background-base);
-		border-bottom: 2px solid var(--color-background-primary);
 	}
 </style>

@@ -6,7 +6,9 @@
 	import {url} from '$lib/utils/path';
 
 	import Install from '$lib/components/web/Install.svelte';
+	//TEMPLATE_REMOVE
 	import Footer from '$lib/components/structure/Footer.svelte';
+	//TEMPLATE_REMOVE
 	import Header from '$lib/components/structure/Header.svelte';
 
 	const host = canonicalURL.endsWith('/') ? canonicalURL : canonicalURL + '/';
@@ -56,9 +58,9 @@
 	<slot />
 
 	<!--TEMPLATE_REMOVE-->
-	<!-- <div id="footer"> -->
-	<Footer />
-	<!-- </div> -->
+	<!-- We use rootClass as a way to inject styling in the component -->
+	<!-- not recommended except for css properties that should not be managed by children (positionoing, etc..) -->
+	<Footer rootClass="footer" />
 	<!--TEMPLATE_REMOVE-->
 </div>
 
@@ -82,13 +84,10 @@
 		min-height: 100%;
 	}
 
-	/* This goes in <Footer so we marging-top */
-	/* Note we put it here rather than in Footer because Footer has no way to know how it will be placed */
-	/* Alternatively we could have wrapped Footer in yet another div, see below */
-	.wrapper :global(footer) {
+	/* This target the inner Footer element thanks to rootClass */
+	/* Svelte has no way to parametrize non-global class due to its strong encapsulation 8?
+	/* But with css we often need to affter child position from parents */
+	.wrapper :global(.footer) {
 		margin-top: auto;
 	}
-	/* #footer {
-		margin-top: auto;
-	} */
 </style>

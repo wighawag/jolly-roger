@@ -1,4 +1,8 @@
-<footer>
+<script lang="ts">
+	export let rootClass = '';
+</script>
+
+<footer class={rootClass}>
 	<div class="links">
 		<a href="https://twitter.com/wighawag" target="_blank" rel="noreferrer noopener">
 			<span class="sr-only">Twitter</span>
