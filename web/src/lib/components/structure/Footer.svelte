@@ -49,7 +49,8 @@
 
 <style>
 	footer {
-		padding: 10px;
+		padding-block: 32px;
+		padding-inline: 64px;
 		display: flex;
 		gap: 1rem;
 		flex-direction: row-reverse;
@@ -65,5 +66,23 @@
 		}
 
 		background-color: var(--color-background-base-1);
+	}
+
+	@media (max-width: 600px) {
+		footer {
+			flex-direction: column;
+			justify-content: center;
+		}
+		footer .author {
+			margin: auto;
+		}
+		footer .links {
+			margin: auto;
+		}
+	}
+
+	.font-icon {
+		width: 1.5em;
+		margin-inline: 0.5em;
 	}
 </style>
