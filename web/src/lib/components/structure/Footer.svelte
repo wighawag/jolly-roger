@@ -74,6 +74,7 @@
 			justify-content: center;
 		}
 		footer .author {
+			text-align: center;
 			margin: auto;
 		}
 		footer .links {
