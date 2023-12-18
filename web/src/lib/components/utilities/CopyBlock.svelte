@@ -31,6 +31,7 @@
 
 <style>
 	code {
+		text-align: center;
 		display: block;
 		line-height: 1.7;
 		font-size: large;

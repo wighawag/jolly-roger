@@ -2,15 +2,14 @@
 	export let address: string;
 	export let offset: number = 0;
 	export let style: string | undefined = undefined;
-	export let _class = '';
-	export {_class as class};
+	export let rootClass = '';
 
 	import {Blockie} from '$lib/utils/eth/blockie';
 
 	$: uri = Blockie.getURI(address, offset);
 </script>
 
-<img class={_class} {style} src={uri} alt={address} />
+<img class={rootClass} {style} src={uri} alt={address} />
 
 <style>
 	img {

@@ -2,8 +2,7 @@
 	// blockie generation code from https://github.com/stephensprinkle/react-blockies, itself referenced from https://github.com/alexvandesande/blockies
 	import {afterUpdate} from 'svelte';
 
-	export let _class = '';
-	export {_class as class};
+	export let rootClass = '';
 	export let address: string;
 	export let scale = 4;
 
@@ -85,7 +84,7 @@
 		color: string,
 		scale: number,
 		bgcolor: string,
-		spotcolor: string
+		spotcolor: string,
 	) {
 		const width = Math.sqrt(imageData.length);
 		const size = width * scale;
@@ -136,7 +135,7 @@
 	afterUpdate(update);
 </script>
 
-<canvas class={_class} bind:this={canvas} />
+<canvas class={rootClass} bind:this={canvas} />
 
 <style>
 	canvas {
