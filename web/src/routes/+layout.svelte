@@ -7,9 +7,9 @@
 
 	import Install from '$lib/components/web/Install.svelte';
 	//TEMPLATE_REMOVE
-	import Footer from '$lib/components/structure/Footer.svelte';
+	import Footer from '$lib/structure/Footer.svelte';
 	//TEMPLATE_REMOVE
-	import Header from '$lib/components/structure/Header.svelte';
+	import Header from '$lib/structure/Header.svelte';
 
 	const host = canonicalURL.endsWith('/') ? canonicalURL : canonicalURL + '/';
 	const previewImage = host + 'preview.png';

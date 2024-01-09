@@ -23,64 +23,184 @@
 
 <!-- <svelte:window on:click={skip} /> -->
 
-{#if $serviceWorker.updateAvailable && $serviceWorker.registration}
-	<!-- svelte-ignore a11y-click-events-have-key-events-->
-	<div
-		role="button"
-		tabindex="0"
-		on:click={(e) => {
-			e.preventDefault();
-			e.stopPropagation();
-		}}
-		class="z-50 fixed inset-0 flex items-end justify-center px-4 py-6 pointer-events-none sm:p-6 sm:items-start sm:justify-end"
-	>
-		<!--
-    Notification panel, show/hide based on alert state.
-
-    Entering: "transform ease-out duration-300 transition"
-      From: "translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
-      To: "translate-y-0 opacity-100 sm:translate-x-0"
-    Leaving: "transition ease-in duration-100"
-      From: "opacity-100"
-      To: "opacity-0"
-  -->
-		<div class={`max-w-sm w-full shadow-lg rounded-lg pointer-events-auto bg-base-300`}>
-			<div class="p-4">
-				<div class="flex items-start">
-					<div class="flex-shrink-0 pt-0.5">
-						<img class="h-16 w-16 rounded-box border-2 border-base-200" {src} {alt} />
+<!-- {#if $serviceWorker.updateAvailable && $serviceWorker.registration} -->
+<!-- svelte-ignore a11y-click-events-have-key-events-->
+<div
+	role="button"
+	tabindex="0"
+	on:click={(e) => {
+		e.preventDefault();
+		e.stopPropagation();
+	}}
+	class="wrapper"
+>
+	<div class="wrapper-2">
+		<div style="padding: 1rem">
+			<div class="wrapper-3">
+				<div class="image-container">
+					<img class="logo" {src} {alt} />
+				</div>
+				<div class="content">
+					<p class="text">A new version is available. Reload to get the update.</p>
+					<div class="buttons-container">
+						<button on:click={reload} type="button" class="button success"> Reload </button>
+						<button on:click={skip} type="button" class="button error"> Skip </button>
 					</div>
-					<div class="ml-3 w-0 flex-1">
-						<p class="text-base font-medium">A new version is available. Reload to get the update.</p>
-						<!-- <p class="mt-1 text-sm text-gray-500">
-            Install it for later
-          </p> -->
-						<div class="mt-4 flex">
-							<button on:click={reload} type="button" class="btn rounded-btn btn-success btn-sm m-1"> Reload </button>
-							<button on:click={skip} type="button" class="btn rounded-btn btn-error btn-sm m-1"> Skip </button>
-						</div>
-					</div>
-					<div class="ml-4 flex-shrink-0 flex">
-						<button on:click={skip} class="rounded-md inline-flex btn btn-active btn-sm">
-							<span class="sr-only">Close</span>
-							<!-- Heroicon name: solid/x -->
-							<svg
-								class="h-5 w-5"
-								xmlns="http://www.w3.org/2000/svg"
-								viewBox="0 0 20 20"
-								fill="currentColor"
-								aria-hidden="true"
-							>
-								<path
-									fill-rule="evenodd"
-									d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-									clip-rule="evenodd"
-								/>
-							</svg>
-						</button>
-					</div>
+				</div>
+				<div class="close-button-wrapper">
+					<button on:click={skip} class="button button-close">
+						<span class="sr-only">Close</span>
+						<!-- Heroicon name: solid/x -->
+						<svg
+							class="font-icon"
+							xmlns="http://www.w3.org/2000/svg"
+							viewBox="0 0 20 20"
+							fill="currentColor"
+							aria-hidden="true"
+						>
+							<path
+								fill-rule="evenodd"
+								d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+								clip-rule="evenodd"
+							/>
+						</svg>
+					</button>
 				</div>
 			</div>
 		</div>
 	</div>
-{/if}
+</div>
+
+<!-- {/if} -->
+
+<style lang="css">
+	.wrapper {
+		/* z-50 fixed inset-0 flex items-end justify-center px-4 py-6 pointer-events-none sm:p-6 sm:items-start sm:justify-end */
+		z-index: 9999;
+		position: fixed;
+		inset: 0;
+
+		display: flex;
+		align-items: flex-end;
+		justify-content: center;
+
+		padding-inline: 1rem;
+		padding-block: 1.5rem;
+
+		pointer-events: none;
+	}
+
+	@media (min-width: 640px) {
+		.wrapper {
+			padding: 1.5rem;
+
+			align-items: flex-start;
+			justify-content: flex-end;
+		}
+	}
+
+	.wrapper-2 {
+		/* max-w-sm w-full shadow-lg rounded-lg pointer-events-auto bg-base-300 */
+		max-width: 24rem;
+		width: 100%;
+		box-shadow:
+			0 10px 15px -3px rgba(0, 0, 0, 0.1),
+			0 4px 6px -2px rgba(0, 0, 0, 0.05);
+		border-radius: 0.5rem;
+		pointer-events: auto;
+		background-color: var(--color-background-base-3);
+		/* border: 1px solid white; */
+	}
+
+	.wrapper-3 {
+		/* flex items-start */
+		display: flex;
+		align-items: flex-start;
+	}
+
+	.image-container {
+		/* flex-shrink-0 pt-0.5 */
+		padding-top: 0.125rem;
+		flex-shrink: 0;
+	}
+
+	.logo {
+		/* h-16 w-16 rounded-box border-2 border-base-200 */
+		width: 4rem;
+		height: 4rem;
+		border-width: 2px;
+		border-radius: 1rem;
+		border-color: var(--color-background-base-2); /* TODO */
+	}
+
+	.content {
+		/* ml-3 w-0 flex-1 */
+		margin-left: 0.75rem;
+		flex: 1 1 0%;
+		width: 0;
+	}
+
+	.text {
+		/* text-base font-medium */
+		color: var(--color-text-base);
+		font-size: 1rem;
+		line-height: 1.5rem;
+		font-weight: 500;
+	}
+
+	.buttons-container {
+		/* mt-4 flex */
+		display: flex;
+		margin-top: 1rem;
+		gap: 1rem;
+	}
+
+	.button {
+		/* btn rounded-btn btn-success btn-sm m-1 */
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+
+		cursor: pointer;
+		-webkit-user-select: none;
+		user-select: none;
+
+		border-radius: 0.5rem;
+
+		line-height: 1em;
+		font-weight: 600;
+		text-decoration-line: none;
+
+		height: 2rem;
+		min-height: 2rem;
+		padding-inline: 0.75rem;
+		font-size: 0.875rem;
+	}
+
+	.success {
+		color: var(--color-text-success);
+		background-color: var(--color-background-success);
+	} /* TODO hover */
+
+	.error {
+		color: var(--color-text-error);
+		background-color: var(--color-background-error);
+	} /* TODO hover */
+
+	.close-button-wrapper {
+		/* ml-4 flex-shrink-0 flex */
+		display: flex;
+		flex-shrink: 0;
+		margin-left: 1rem;
+	}
+
+	.button-close {
+		color: var(--color-text-base);
+		background-color: var(--color-background-base);
+	}
+
+	.font-icon {
+		min-width: 1.2rem;
+		min-height: 1.2rem;
+	}
+</style>

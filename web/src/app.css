@@ -98,6 +98,28 @@ body {
 
 /* ------------------------------------------------- */
 
+/* ------------------------------------------------- */
+/* MORE RESET
+/* ------------------------------------------------- */
+
+button {
+	background: none;
+	color: inherit;
+	border: none;
+	padding: 0;
+	font: inherit;
+	cursor: pointer;
+	outline: inherit;
+}
+
+p {
+	margin: 0;
+}
+
+/* ------------------------------------------------- */
+/* UTILITIES */
+/* ------------------------------------------------- */
+
 /* 
 taken from tailwind
 hide element so that only screen-reader can "see" them
@@ -131,6 +153,8 @@ hide element so that only screen-reader can "see" them
 	--color-background-base: hsl(231.43 15% 18%);
 
 	--color-background-base-1: hsl(231.43 15% 16%);
+	--color-background-base-2: hsl(231.43 15% 16%); /* TODO */
+	--color-background-base-3: oklch(0.247877 0.019009 277.509);
 
 	--color-text-primary: black;
 	--color-background-primary: hsl(325.52 100% 74%);
@@ -143,6 +167,13 @@ hide element so that only screen-reader can "see" them
 	--color-background-secondary-1: hsl(264.71 54% 67%);
 
 	--color-link-base: white;
+
+	--color-error: hsl(0, 84%, 60%);
+	--color-success: hsl(160, 84%, 39%);
+	--color-background-error: hsl(0, 84%, 60%);
+	--color-background-success: hsl(160, 84%, 39%);
+	--color-text-error: white;
+	--color-text-success: white;
 }
 
 /* ------------------------------------------------- */
