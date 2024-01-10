@@ -23,63 +23,58 @@
 
 <!-- <svelte:window on:click={skip} /> -->
 
-<!-- {#if $serviceWorker.updateAvailable && $serviceWorker.registration} -->
-<!-- svelte-ignore a11y-click-events-have-key-events-->
-<div
-	role="button"
-	tabindex="0"
-	on:click={(e) => {
-		e.preventDefault();
-		e.stopPropagation();
-	}}
-	class="overlay"
->
-	<div class="wrapper-2">
-		<div style="padding: 1rem">
-			<div class="wrapper-3">
-				<div class="image-container">
-					<img class="logo" {src} {alt} />
-				</div>
-				<div class="content">
-					<div class="text">A new version is available. Reload to get the update.</div>
-					<div class="buttons-container">
-						<button on:click={reload} type="button" class="button success"> Reload </button>
-						<button on:click={skip} type="button" class="button error"> Skip </button>
-					</div>
-				</div>
-				<div class="close-button-wrapper">
-					<button on:click={skip} class="button button-close">
-						<span class="sr-only">Close</span>
-						<!-- Heroicon name: solid/x -->
-						<svg
-							class="font-icon"
-							xmlns="http://www.w3.org/2000/svg"
-							viewBox="0 0 20 20"
-							fill="currentColor"
-							aria-hidden="true"
-						>
-							<path
-								fill-rule="evenodd"
-								d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-								clip-rule="evenodd"
-							/>
-						</svg>
-					</button>
+{#if $serviceWorker.updateAvailable && $serviceWorker.registration}
+	<!-- svelte-ignore a11y-click-events-have-key-events-->
+	<!-- svelte-ignore a11y-no-noninteractive-tabindex -->
+	<!-- svelte-ignore a11y-no-static-element-interactions -->
+	<div
+		tabindex="0"
+		on:click={(e) => {
+			console.log(e);
+			e.preventDefault();
+			e.stopPropagation();
+		}}
+		class="overlay"
+	>
+		<div class="card">
+			<div class="image-container">
+				<img class="logo" {src} {alt} />
+			</div>
+			<div class="content">
+				<div class="text">A new version is available. Reload to get the update.</div>
+				<div class="buttons-container">
+					<button on:click={reload} type="button" class="button success"> Reload </button>
+					<button on:click={skip} type="button" class="button error"> Skip </button>
 				</div>
 			</div>
+			<button on:click={skip} class="button button-close">
+				<span class="sr-only">Close</span>
+				<!-- Heroicon name: solid/x -->
+				<svg
+					class="font-icon"
+					xmlns="http://www.w3.org/2000/svg"
+					viewBox="0 0 20 20"
+					fill="currentColor"
+					aria-hidden="true"
+				>
+					<path
+						fill-rule="evenodd"
+						d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+						clip-rule="evenodd"
+					/>
+				</svg>
+			</button>
 		</div>
 	</div>
-</div>
-
-<!-- {/if} -->
+{/if}
 
 <style lang="css">
 	.overlay {
-		/* z-50 fixed inset-0 flex items-end justify-center px-4 py-6 pointer-events-none sm:p-6 sm:items-start sm:justify-end */
 		z-index: 9999;
 		position: fixed;
 		inset: 0;
 		pointer-events: none;
+		/* cursor: revert; */
 
 		display: flex;
 		align-items: flex-end;
@@ -98,8 +93,7 @@
 		}
 	}
 
-	.wrapper-2 {
-		/* max-w-sm w-full shadow-lg rounded-lg pointer-events-auto bg-base-300 */
+	.card {
 		max-width: 24rem;
 		width: 100%;
 		box-shadow:
@@ -108,13 +102,11 @@
 		border-radius: 0.5rem;
 		pointer-events: auto;
 		background-color: var(--color-background-base-3);
-		/* border: 1px solid white; */
-	}
 
-	.wrapper-3 {
-		/* flex items-start */
 		display: flex;
 		align-items: flex-start;
+
+		padding: 1rem;
 	}
 
 	.image-container {
@@ -179,18 +171,17 @@
 	.success {
 		color: var(--color-text-success);
 		background-color: var(--color-background-success);
-	} /* TODO hover */
+	}
+	.success:hover {
+		background-color: var(--color-background-success-hover);
+	}
 
 	.error {
 		color: var(--color-text-error);
 		background-color: var(--color-background-error);
-	} /* TODO hover */
-
-	.close-button-wrapper {
-		/* ml-4 flex-shrink-0 flex */
-		display: flex;
-		flex-shrink: 0;
-		margin-left: 1rem;
+	}
+	.error:hover {
+		background-color: var(--color-background-error-hover);
 	}
 
 	.button-close {

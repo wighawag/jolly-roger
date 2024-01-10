@@ -165,9 +165,13 @@ hide element so that only screen-reader can "see" them
 	--color-link-base: white;
 
 	--color-error: hsl(0 85.48% 62.99%);
-	--color-success: hsl(135.18 66.47% 56.04%); /*oklab(0.783895 -0.16759 0.10462);*/
+	--color-error-100: hsl(0 85.48% 52.99%);
+	--color-success: hsl(135.18 66.47% 56.04%);
+	--color-success-100: hsl(135.18 66.47% 46.04%);
 	--color-background-error: var(--color-error);
+	--color-background-error-hover: var(--color-error-100);
 	--color-background-success: var(--color-success);
+	--color-background-success-hover: var(--color-success-100);
 	--color-text-error: black;
 	--color-text-success: black;
 }
