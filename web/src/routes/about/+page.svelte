@@ -4,34 +4,25 @@
 	import {name} from 'web-config';
 </script>
 
-<section class="py-2 px-4 text-center">
-	<div class="max-w-auto md:max-w-lg mx-auto">
-		<p class="!text-2xl flex justify-center space-x-2 font-black my-8">
+<section>
+	<div class="introduction">
+		<p class="first feature">
 			{name} is a template for building decentralised applications.
 		</p>
-		<p class="!text-xl flex justify-center space-x-2 my-8">
-			It can be used to quickly get a dev environment for hackathon or quick prototypes.
-		</p>
-		<p class="!text-xl flex justify-center space-x-2 my-8">
+		<p class="feature">It can be used to quickly get a dev environment for hackathon or quick prototypes.</p>
+		<p class="feature">
 			But it is also a good starting point for long term projects as it contains a set of best practises for web and
 			ipfs deployment.
 		</p>
-		<p class="!text-xl flex justify-center space-x-2 my-8">
+		<p class="feature">
 			{name} with its in-browser indexer, is also a great ally to ensure your application remains fully decentralised.
 		</p>
 	</div>
 
-	<div class="pt-3 pb-4">
-		<h1 class="m-4 font-semibold">Use it:</h1>
-		<CopyBlock
-			boxClass="p-2 rounded-box font-black text-primary max-w-xl mx-auto"
-			class="mb-5"
-			background="bg-reverse-primary"
-			copiedBackground="bg-success"
-			copiedColor="text-success-content"
-			text={`npx degit wighawag/jolly-roger your-app-folder`}
-		/>
-		<p class="mt-6 text-base-300">
+	<div class="actions">
+		<h1 class="use-it">Use it:</h1>
+		<CopyBlock text={`npx degit wighawag/jolly-roger your-app-folder`} />
+		<p class="more-info">
 			Find out more on
 			<a class="underline" href="https://github.com/wighawag/jolly-roger#readme" target="_blank" rel="noreferrer"
 				>github</a
@@ -39,3 +30,59 @@
 		</p>
 	</div>
 </section>
+
+<style>
+	section {
+		padding-top: 0.5rem;
+		padding-bottom: 0.5rem;
+		padding-left: 1rem;
+		padding-right: 1rem;
+		text-align: center;
+	}
+
+	.introduction {
+		max-width: fit-content;
+		margin-inline: auto;
+	}
+
+	@media (min-width: 768px) {
+		.introduction {
+			max-width: 32rem;
+		}
+	}
+
+	.feature {
+		/* text-xl flex justify-center space-x-2 my-8 */
+		display: flex;
+		margin-top: 2rem;
+		margin-bottom: 2rem;
+		margin-left: 0.5rem;
+		justify-content: center;
+		font-size: 1.25rem;
+		line-height: 1.75rem;
+	}
+
+	.first {
+		/* font-black my-8 */
+		margin-top: 2rem;
+		margin-bottom: 2rem;
+		font-weight: 900;
+	}
+
+	.actions {
+		/* pt-3 pb-4 */
+		padding-top: 0.75rem;
+		padding-bottom: 1rem;
+	}
+
+	.use-it {
+		/* m-4 font-semibold */
+		margin: 1rem;
+		font-weight: 600;
+	}
+
+	.more-info {
+		/* mt-6 text-base-300 */
+		margin-top: 1.5rem;
+	}
+</style>

@@ -1,0 +1,38 @@
+/* ------------------------------------------------- */
+/* VARIABLES */
+/* ------------------------------------------------- */
+
+/* Colors */
+:root {
+	--color-text-base: white;
+	--color-background-base: hsl(231.43 15% 18%);
+
+	--color-background-base-1: hsl(231.43 15% 16%);
+	--color-background-base-2: hsl(231.43 15% 16%); /* TODO */
+	--color-background-base-3: oklch(0.247877 0.019009 277.509);
+
+	--color-text-primary: black;
+	--color-background-primary: hsl(325.52 100% 74%);
+	--color-text-primary-1: black;
+	--color-background-primary-1: hsl(325.52 100% 64%);
+
+	--color-text-secondary: black;
+	--color-background-secondary: hsl(264.71 89% 78%);
+	--color-text-secondary-1: black;
+	--color-background-secondary-1: hsl(264.71 54% 67%);
+
+	--color-link-base: white;
+
+	--color-error: hsl(0 85.48% 62.99%);
+	--color-error-100: hsl(0 85.48% 52.99%);
+	--color-success: hsl(135.18 66.47% 56.04%);
+	--color-success-100: hsl(135.18 66.47% 46.04%);
+	--color-background-error: var(--color-error);
+	--color-background-error-hover: var(--color-error-100);
+	--color-background-success: var(--color-success);
+	--color-background-success-hover: var(--color-success-100);
+	--color-text-error: black;
+	--color-text-success: black;
+}
+
+/* ------------------------------------------------- */

@@ -1,0 +1,22 @@
+/* ------------------------------------------------- */
+/* BASIC STYLES */
+/* ------------------------------------------------- */
+:root {
+	background-color: var(--color-background-base);
+	color: var(--color-text-base);
+
+	font-family: 'Noto Sans', Verdana, sans-serif;
+}
+
+a {
+	color: var(--color-link-base);
+	text-decoration: underline;
+}
+a:visited {
+	color: var(--color-link-base);
+}
+a:hover {
+	/* font-weight: 900; */
+	text-decoration: initial;
+}
+/* ------------------------------------------------- */

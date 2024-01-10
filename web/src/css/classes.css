@@ -1,0 +1,42 @@
+/* ------------------------------------------------- */
+/* GLOBAL CLASSES */
+/* ------------------------------------------------- */
+
+.button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+
+	cursor: pointer;
+	-webkit-user-select: none;
+	user-select: none;
+
+	border-radius: 0.5rem;
+
+	line-height: 1em;
+	font-weight: 600;
+	text-decoration-line: none;
+
+	height: 2rem;
+	min-height: 2rem;
+	padding-inline: 0.75rem;
+	font-size: 0.875rem;
+}
+
+.success {
+	color: var(--color-text-success);
+	background-color: var(--color-background-success);
+}
+button.success:hover {
+	background-color: var(--color-background-success-hover);
+}
+
+.error {
+	color: var(--color-text-error);
+	background-color: var(--color-background-error);
+}
+button.error:hover {
+	background-color: var(--color-background-error-hover);
+}
+
+/* ------------------------------------------------- */

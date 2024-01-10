@@ -9,10 +9,44 @@
 	location.href = newURL;
 } -->
 
-<section class="py-2 px-4 text-center">
-	<div class="max-w-auto md:max-w-lg mx-auto">
-		<p class="!text-2xl flex justify-center space-x-2 font-black my-8">
+<section>
+	<div class="wrapper">
+		<p class="text">
 			Could not find the page {$page.params.notfound || ''}
 		</p>
 	</div>
 </section>
+
+<style>
+	section {
+		/* py-2 px-4 text-center */
+		padding-top: 0.5rem;
+		padding-bottom: 0.5rem;
+		padding-left: 1rem;
+		padding-right: 1rem;
+		text-align: center;
+	}
+	.wrapper {
+		/* max-w-auto md:max-w-lg mx-auto */
+		max-width: fit-content;
+		margin-inline: auto;
+	}
+
+	@media (min-width: 768px) {
+		.wrapper {
+			max-width: 32rem;
+		}
+	}
+
+	.text {
+		text-align: center;
+		margin-top: 2rem;
+		margin-bottom: 2rem;
+		margin-left: 0.5rem;
+
+		font-weight: 900;
+
+		font-size: 1.5rem;
+		line-height: 2rem;
+	}
+</style>
