@@ -24,4 +24,8 @@ hide element so that only screen-reader can "see" them
 	min-width: 1rem;
 	display: inline-block;
 }
+
+.invisible {
+	visibility: hidden;
+}
 /* ------------------------------------------------- */

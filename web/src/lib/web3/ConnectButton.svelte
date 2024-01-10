@@ -3,28 +3,41 @@
 	import ImgBlockie from '$lib/components/ethereum/ImgBlockie.svelte';
 	import {contractsInfos} from '$lib/config';
 	import {getNetworkConfig} from '$lib/blockchain/networks';
+
+	let open = false;
+
+	function disconnect() {
+		open = false;
+		connection.disconnect();
+	}
+
+	function switchMenu(e: Event) {
+		open = !open;
+		e.stopPropagation();
+		e.preventDefault();
+	}
+
+	function closeMenu() {
+		open = false;
+	}
 </script>
+
+<svelte:window on:click={(e) => closeMenu()} />
 
 {#if $account.state === 'Disconnected' || $account.locked}
 	{#if $account.locked}
-		<button class="m-1 btn btn-primary" disabled={$account.unlocking} on:click={() => account.unlock()}>unlock</button>
+		<button class="button primary" disabled={$account.unlocking} on:click={() => account.unlock()}>unlock</button>
 	{:else}
 		<button
 			disabled={$connection.connecting}
-			class={`${$connection.initialised ? '' : '!invisible'} m-1 btn btn-primary`}
+			class={`${$connection.initialised ? '' : 'invisible'} button primary`}
 			on:click={() => connection.connect()}>{$connection.connecting ? 'Connecting' : 'Connect'}</button
 		>
 	{/if}
 {:else}
-	<!-- <button class="m-2 btn btn-error" on:click={() => connection.disconnect()}>disconnect</button>
-			<div class="btn btn-ghost btn-circle avatar">
-				<div class="w-10 rounded-full">
-					<ImgBlockie address={$account.address || ''} />
-				</div>
-			</div> -->
-	<!-- svelte-ignore a11y-no-noninteractive-tabindex -->
-	<!-- svelte-ignore a11y-label-has-associated-control -->
 	{#if $network.notSupported}
+		<!-- svelte-ignore a11y-no-noninteractive-tabindex -->
+		<!-- svelte-ignore a11y-label-has-associated-control -->
 		<!-- svelte-ignore a11y-click-events-have-key-events -->
 		<svg
 			role="button"
@@ -35,7 +48,7 @@
 			viewBox="0 0 24 24"
 			stroke-width="1.5"
 			stroke="currentColor"
-			class="w-6 h-6"
+			class="font-icon"
 		>
 			<path
 				stroke-linecap="round"
@@ -44,23 +57,64 @@
 			/>
 		</svg>
 	{/if}
-	<div class="dropdown dropdown-end">
-		<div class="indicator">
-			{#if $pendingActions.list.length > 0}
-				<span style="--tw-translate-x: 10;" class="indicator-item badge badge-secondary" />
-			{/if}
-			<button class="btn btn-ghost btn-circle avatar">
-				<div class="w-10 rounded-full">
-					<ImgBlockie address={$account.address || ''} />
-				</div>
-			</button>
-		</div>
-		<!-- svelte-ignore a11y-no-noninteractive-tabindex -->
-		<ul tabindex="0" class="menu menu-compact dropdown-content mt-3 p-2 shadow bg-base-200 rounded-box w-52">
-			<li>
-				<button class="m-1 btn btn-error text-error-content" on:click={() => connection.disconnect()}>disconnect</button
-				>
-			</li>
-		</ul>
+	<div class="dropdown">
+		<!-- TODO -->
+		<!-- {#if $pendingActions.list.length > 0}
+			<span style="--tw-translate-x: 10;" class="indicator-item badge badge-secondary" />
+		{/if} -->
+		<button class="blockie-button" on:click={(e) => switchMenu(e)}>
+			<div class="blockie-wrapper">
+				<ImgBlockie rootClass="blockie" address={$account.address || ''} />
+			</div>
+		</button>
+		{#if open}
+			<!-- svelte-ignore a11y-no-noninteractive-tabindex -->
+			<ul tabindex="0" class="menu">
+				<li>
+					<button class="button error" on:click={() => disconnect()}>disconnect</button>
+				</li>
+			</ul>
+		{/if}
 	</div>
 {/if}
+
+<style>
+	.menu {
+		/* visibility: hidden; */
+		position: absolute;
+		display: flex;
+		justify-content: end;
+		right: 0;
+		list-style: none;
+		/* menu menu-compact dropdown-content mt-3 p-2 shadow bg-base-200 rounded-box w-52 */
+		padding: 0.5rem;
+		margin-top: 0.75rem;
+		width: 13rem;
+		box-shadow:
+			0 1px 3px 0 rgba(0, 0, 0, 0.1),
+			0 1px 2px 0 rgba(0, 0, 0, 0.06);
+	}
+
+	.blockie-button {
+		/* btn btn-ghost btn-circle avatar */
+		width: 3rem;
+		height: 3rem;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+	}
+	.blockie-wrapper {
+		/* w-10 rounded-full */
+		border-radius: 9999px;
+		overflow: hidden;
+
+		aspect-ratio: 1 / 1;
+		width: 2.5rem;
+	}
+
+	.blockie-wrapper :global(.blockie) {
+		object-fit: cover;
+		height: 100%;
+		width: 100%;
+	}
+</style>

@@ -50,7 +50,7 @@
 			0 4px 6px -2px rgba(0, 0, 0, 0.05);
 		border-radius: 0.5rem;
 		pointer-events: auto;
-		background-color: var(--color-background-base-3);
+		background-color: var(--color-background-base-300);
 
 		display: flex;
 		align-items: flex-start;
@@ -70,7 +70,7 @@
 		height: 4rem;
 		border-width: 2px;
 		border-radius: 1rem;
-		border-color: var(--color-background-base-2); /* TODO */
+		border-color: var(--color-background-base-200); /* TODO */
 	}
 
 	.content {

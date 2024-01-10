@@ -23,6 +23,23 @@
 	font-size: 0.875rem;
 }
 
+.primary {
+	background-color: var(--color-background-primary);
+	color: var(--color-text-primary);
+
+	&:hover {
+		background-color: var(--color-background-primary-100);
+	}
+}
+.secondary {
+	background-color: var(--color-background-secondary);
+	color: var(--color-text-secondary);
+
+	&:hover {
+		background-color: var(--color-background-secondary-100);
+	}
+}
+
 .success {
 	color: var(--color-text-success);
 	background-color: var(--color-background-success);

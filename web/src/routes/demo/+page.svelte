@@ -9,12 +9,12 @@
 	let messageToSend: string;
 </script>
 
-<div class="navbar bg-base-100">
-	<div class="navbar-start">
-		<span class="normal-case text-xl">Demo</span>
+<div class="top-bar">
+	<div>
+		<span class="title">Demo</span>
 	</div>
-	<div class="navbar-center hidden lg:flex" />
-	<div class="navbar-end">
+
+	<div>
 		<ConnectButton />
 	</div>
 </div>
@@ -89,3 +89,17 @@
 >
 
 <Web3ConnectionUI />
+
+<style>
+	.top-bar {
+		display: flex;
+		justify-content: space-between;
+		padding: 0.5rem;
+	}
+
+	.title {
+		font-size: 1.25rem;
+		line-height: 1.75rem;
+		text-transform: none;
+	}
+</style>

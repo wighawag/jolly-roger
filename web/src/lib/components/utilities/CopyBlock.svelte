@@ -36,7 +36,7 @@
 		line-height: 1.7;
 		font-size: large;
 		font-weight: bold;
-		background-color: var(--color-background-base-1);
+		background-color: var(--color-background-base-100);
 		padding: 12px;
 		border-radius: 1em;
 	}

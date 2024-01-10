@@ -181,22 +181,9 @@
 		font-weight: bold;
 
 		border-radius: 10px;
-	}
-	.primary {
-		background-color: var(--color-background-primary);
-		color: var(--color-text-primary);
 
-		&:hover {
-			background-color: var(--color-background-primary-1);
-		}
-	}
-	.secondary {
-		background-color: var(--color-background-secondary);
-		color: var(--color-text-secondary);
-
-		&:hover {
-			background-color: var(--color-background-secondary-1);
-		}
+		height: 3rem;
+		min-height: 3rem;
 	}
 
 	.use h2 {
