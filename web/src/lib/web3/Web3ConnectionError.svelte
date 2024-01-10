@@ -11,44 +11,23 @@
 </script>
 
 {#if $connection.error}
-	<!-- TODO remove or retest-->
-	<!-- {#if $connection.error?.code == 7221}
-		<AlertWithSlot onClose={connection.acknowledgeError}>
-			{#if $builtin.vendor === 'Metamask'}
-				<p>
-					Metamask is not responding. See <a
-						class="link"
-						href="https://github.com/MetaMask/metamask-extension/issues/7221"
-						target="_blank"
-						rel="noreferrer">github issue</a
-					>. Please
-					<a class="link" on:click={() => location.reload()} href=".">reload</a>
-				</p>
-			{:else}
-				<p>
-					Your Wallet is not responding. Please <a class="link" on:click={() => location.reload()} href=".">reload.</a>
-				</p>
-			{/if}
-		</AlertWithSlot>
-	{:else} -->
 	<Alert data={$connection.error} onClose={connection.acknowledgeError} />
-	<!-- {/if} -->
 {:else if $network.nonceCached === 'BlockOutOfRangeError' || $network.genesisNotMatching || $network.blocksCached}
 	<AlertWithSlot>
-		<p class="m-2">
+		<p class="main-message">
 			{$builtin.vendor === 'Metamask' ? 'Block cache detected, Metamask  😭' : 'Block cache detected'}
 		</p>
 
-		<p class="m-2 font-black">You'll need to shutdown and reopen your browser</p>
-		<button class="btn block mt-3" tabindex="0" on:click={() => location.reload()}> Else Try Reload? </button>
+		<p class="message">You'll need to shutdown and reopen your browser</p>
+		<button class="button" tabindex="0" on:click={() => location.reload()}> Else Try Reload? </button>
 	</AlertWithSlot>
 {:else if $network.hasEncounteredBlocksCacheIssue}
 	<AlertWithSlot>
-		<p class="m-2">You seemed to have recovered from Block Cacke Issue</p>
+		<p class="main-message">You seemed to have recovered from Block Cacke Issue</p>
 
-		<p class="m-2 font-black">You most likely need to clear any data dervided from the chain as it may be invalid.</p>
+		<p class="message">You most likely need to clear any data dervided from the chain as it may be invalid.</p>
 		<button
-			class="btn block mt-3"
+			class="button"
 			tabindex="0"
 			on:click={() => resetIndexer().then(() => network.acknowledgeBlockCacheIssue())}
 		>
@@ -57,15 +36,15 @@
 	</AlertWithSlot>
 {:else if $network.nonceCached === 'cache'}
 	<AlertWithSlot>
-		<p class="m-2">
+		<p class="main-message">
 			{$builtin.vendor === 'Metamask'
 				? 'Nonce cache detected, Metamask need to have its accounts reset 😭'
 				: 'Nonce cache detected. Please clear your account data.'}
 		</p>
 		{#if $builtin.vendor === 'Metamask'}
-			<p class="m-2 font-black">
+			<p class="message">
 				Click on the Metamask extension icon:
-				<img class="inline w-6 h-6 mx-2" src={url('/images/wallets/metamask.svg')} alt="Metamask extension" />
+				<img class="icon" src={url('/images/wallets/metamask.svg')} alt="Metamask extension" />
 				then open the menu
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
@@ -73,7 +52,7 @@
 					viewBox="0 0 24 24"
 					stroke-width="1.5"
 					stroke="currentColor"
-					class="w-6 h-6 inline"
+					class="font-icon"
 				>
 					<path
 						stroke-linecap="round"
@@ -85,3 +64,30 @@
 		{/if}
 	</AlertWithSlot>
 {/if}
+
+<style>
+	.main-message {
+		margin: 0.5rem;
+	}
+
+	.message {
+		margin: 0.5rem;
+		font-weight: 900;
+	}
+
+	.icon {
+		display: inline;
+		margin-left: 0.5rem;
+		margin-right: 0.5rem;
+		width: 1.5rem;
+		height: 1.5rem;
+		vertical-align: bottom;
+	}
+
+	.font-icon {
+		display: inline;
+		width: 1.5rem;
+		height: 1.5rem;
+		vertical-align: bottom;
+	}
+</style>

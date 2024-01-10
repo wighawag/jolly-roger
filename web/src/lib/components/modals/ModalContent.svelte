@@ -26,31 +26,29 @@
 
 <div bind:this={element} use:focusTrap={true}>
 	{#if showCancelButton}
-		<button
-			on:click={() => (onResponse ? onResponse(false) : modalStore.close())}
-			class="btn btn-sm btn-circle absolute right-2 top-2">✕</button
+		<button on:click={() => (onResponse ? onResponse(false) : modalStore.close())} class="button close-button">✕</button
 		>
 	{/if}
 	{#if settings?.type && settings.type !== 'custom'}
 		{#if settings.type === 'info'}
 			{#if settings.title}
-				<h3 class="text-lg font-bold">{settings.title}</h3>
+				<h3 class="title">{settings.title}</h3>
 			{/if}
-			<p class="py-4">
+			<p class="message">
 				{settings.message}
 			</p>
 		{:else if settings.type === 'confirm'}
 			{#if settings.title}
-				<h3 class="font-bold text-lg">{settings.title}</h3>
+				<h3 class="title">{settings.title}</h3>
 			{/if}
-			<p class="py-4">
+			<p class="message">
 				{settings.message}
 			</p>
-			<div class="modal-action">
-				<button on:click={() => (onResponse ? onResponse(false) : modalStore.close())} class="btn btn-error"
+			<div class="actions">
+				<button on:click={() => (onResponse ? onResponse(false) : modalStore.close())} class="button error"
 					>Cancel</button
 				>
-				<button on:click={() => (onResponse ? onResponse(true) : modalStore.close())} class="btn btn-success"
+				<button on:click={() => (onResponse ? onResponse(true) : modalStore.close())} class="button success"
 					>Confirm</button
 				>
 			</div>
@@ -62,3 +60,27 @@
 		<slot />
 	{/if}
 </div>
+
+<style>
+	.close-button {
+		/* btn btn-sm btn-circle absolute right-2 top-2 */
+		position: absolute;
+		top: 0.5rem;
+		right: 0.5rem;
+	}
+
+	.title {
+		/* font-bold text-lg */
+		font-size: 1.125rem;
+		line-height: 1.75rem;
+		font-weight: 700;
+	}
+
+	.message {
+		padding-top: 1rem;
+		padding-bottom: 1rem;
+	}
+
+	.actions {
+	}
+</style>

@@ -90,14 +90,13 @@
 	<div
 		role="button"
 		tabindex="0"
-		style="pointer-events: auto; visibility: visible; opacity: 1;"
-		class="modal modal-bottom sm:modal-middle cursor-pointer"
+		class="overlay"
 		on:mousedown={onBackdropInteraction}
 		on:touchstart={onBackdropInteraction}
 		transition:fade={{duration}}
 	>
 		<div
-			class="modal-box relative"
+			class="modal"
 			style="--tw-translate-y:0;"
 			transition:fly={{duration, opacity: flyOpacity, x: flyX, y: flyY}}
 			bind:this={content}
@@ -108,3 +107,15 @@
 		</div>
 	</div>
 {/if}
+
+<style>
+	.overlay {
+		pointer-events: auto;
+		visibility: visible;
+		opacity: 1;
+		cursor: pointer;
+	}
+
+	.modal {
+	}
+</style>
