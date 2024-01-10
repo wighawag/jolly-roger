@@ -32,7 +32,7 @@
 		e.preventDefault();
 		e.stopPropagation();
 	}}
-	class="wrapper"
+	class="overlay"
 >
 	<div class="wrapper-2">
 		<div style="padding: 1rem">
@@ -41,7 +41,7 @@
 					<img class="logo" {src} {alt} />
 				</div>
 				<div class="content">
-					<p class="text">A new version is available. Reload to get the update.</p>
+					<div class="text">A new version is available. Reload to get the update.</div>
 					<div class="buttons-container">
 						<button on:click={reload} type="button" class="button success"> Reload </button>
 						<button on:click={skip} type="button" class="button error"> Skip </button>
@@ -74,11 +74,12 @@
 <!-- {/if} -->
 
 <style lang="css">
-	.wrapper {
+	.overlay {
 		/* z-50 fixed inset-0 flex items-end justify-center px-4 py-6 pointer-events-none sm:p-6 sm:items-start sm:justify-end */
 		z-index: 9999;
 		position: fixed;
 		inset: 0;
+		pointer-events: none;
 
 		display: flex;
 		align-items: flex-end;
@@ -86,16 +87,14 @@
 
 		padding-inline: 1rem;
 		padding-block: 1.5rem;
-
-		pointer-events: none;
 	}
 
 	@media (min-width: 640px) {
-		.wrapper {
-			padding: 1.5rem;
-
+		.overlay {
 			align-items: flex-start;
 			justify-content: flex-end;
+
+			padding: 1.5rem;
 		}
 	}
 
