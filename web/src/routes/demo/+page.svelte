@@ -23,7 +23,7 @@
 	/>
 </symbol>
 
-<section class="py-8 px-4">
+<section class="messages-section">
 	<!-- {#if !$messages.step}
 		<div>Messages not loaded</div>
 	{:else if $messages.error}
@@ -39,19 +39,19 @@
 	{#each $viewState.greetings as greeting, index}
 		<!-- <Blockie address={name.id} /> -->
 		<div
-			class={`flex flex-wrap items-center -mx-2 ${
+			class={`message ${
 				$account.address && greeting.account.toLowerCase() === $account.address ? 'font-bold' : 'font-normal'
 			}`}
 		>
 			<!-- <div class="px-2 mb-6">
 						<h2 class="text-xl">{`${name.id.slice(0, 4)}...${name.id.slice(name.id.length - 4)}`} :</h2>
 					</div> -->
-			<ImgBlockie address={greeting.account} />
-			<span class="px-2">
+			<ImgBlockie address={greeting.account} rootClass="blockie" />
+			<span class="message-text">
 				<p>
 					{greeting.message}
 					{#if greeting.pending}
-						<svg class="fill-current animate-spin inline h-4 w-4"><use xlink:href="#icon-spinner6" /></svg>
+						<svg class="spinner"><use xlink:href="#icon-spinner6" /></svg>
 					{/if}
 				</p>
 			</span>
@@ -60,17 +60,11 @@
 	<!-- {/if} -->
 </section>
 
-<div class="inline-block form-control w-full max-w-xs">
-	<label for="message" class="label !inline">
-		<span class="label-text">Say something to the world</span>
+<div class="message-input">
+	<label for="message">
+		<span>Say something to the world</span>
 	</label>
-	<input
-		id="message"
-		type="text"
-		bind:value={messageToSend}
-		placeholder="Type here"
-		class="!inline input input-bordered w-full max-w-xs"
-	/>
+	<input id="message" type="text" bind:value={messageToSend} placeholder="Type here" class="input" />
 </div>
 <button
 	on:click={() =>
@@ -83,12 +77,61 @@
 
 			contracts.Registry.write.setMessage([messageToSend, 12]);
 		})}
-	class="m-1 btn btn-primary">Say it!</button
+	class="button primary">Say it!</button
 >
 
 <Web3ConnectionUI />
 
 <style>
+	.messages-section {
+		padding-left: 1rem;
+		padding-right: 1rem;
+		padding-top: 2rem;
+		padding-bottom: 2rem;
+	}
+
+	.message {
+		display: flex;
+		margin-left: -0.5rem;
+		margin-right: -0.5rem;
+		flex-wrap: wrap;
+		align-items: center;
+	}
+
+	.message :global(.blockie) {
+		width: 1rem;
+		aspect-ratio: 1 / 1;
+	}
+
+	.message-text {
+		padding-left: 0.5rem;
+		padding-right: 0.5rem;
+	}
+
+	@keyframes spin {
+		from {
+			transform: rotate(0deg);
+		}
+		to {
+			transform: rotate(360deg);
+		}
+	}
+
+	.spinner {
+		display: inline;
+		width: 1rem;
+		height: 1rem;
+		animation: spin 1s linear infinite;
+		fill: currentColor;
+	}
+
+	.font-bold {
+		font-weight: bold;
+	}
+
+	.font-normal {
+		font-weight: normal;
+	}
 	.top-bar {
 		display: flex;
 		justify-content: space-between;
@@ -99,5 +142,27 @@
 		font-size: 1.25rem;
 		line-height: 1.75rem;
 		text-transform: none;
+	}
+
+	.message-input {
+		padding-left: 1rem;
+		padding-right: 1rem;
+		padding-top: 2rem;
+		padding-bottom: 2rem;
+
+		display: inline-block;
+		width: 100%;
+		max-width: 20rem;
+	}
+
+	.input {
+		background-color: black;
+		color: white;
+		width: 100%;
+		max-width: 20rem;
+	}
+
+	.button {
+		max-width: 20rem;
 	}
 </style>
