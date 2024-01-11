@@ -35,50 +35,65 @@
 		>
 	{/if}
 {:else}
-	{#if $network.notSupported}
-		<!-- svelte-ignore a11y-no-noninteractive-tabindex -->
-		<!-- svelte-ignore a11y-label-has-associated-control -->
-		<!-- svelte-ignore a11y-click-events-have-key-events -->
-		<svg
-			role="button"
-			tabindex="0"
-			on:click={() => network.switchTo($contractsInfos.chainId, getNetworkConfig($contractsInfos.chainId))}
-			xmlns="http://www.w3.org/2000/svg"
-			fill="none"
-			viewBox="0 0 24 24"
-			stroke-width="1.5"
-			stroke="currentColor"
-			class="font-icon"
-		>
-			<path
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
-			/>
-		</svg>
-	{/if}
-	<div class="dropdown">
-		<!-- TODO -->
-		<!-- {#if $pendingActions.list.length > 0}
+	<div class="connected">
+		{#if $network.notSupported}
+			<!-- svelte-ignore a11y-no-noninteractive-tabindex -->
+			<!-- svelte-ignore a11y-label-has-associated-control -->
+			<!-- svelte-ignore a11y-click-events-have-key-events -->
+			<svg
+				role="button"
+				tabindex="0"
+				on:click={() => network.switchTo($contractsInfos.chainId, getNetworkConfig($contractsInfos.chainId))}
+				xmlns="http://www.w3.org/2000/svg"
+				fill="none"
+				viewBox="0 0 24 24"
+				stroke-width="1.5"
+				stroke="currentColor"
+				class="font-icon"
+			>
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+				/>
+			</svg>
+		{/if}
+		<div class="dropdown">
+			<!-- TODO -->
+			<!-- {#if $pendingActions.list.length > 0}
 			<span style="--tw-translate-x: 10;" class="indicator-item badge badge-secondary" />
 		{/if} -->
-		<button class="blockie-button" on:click={(e) => switchMenu(e)}>
-			<div class="blockie-wrapper">
-				<ImgBlockie rootClass="blockie" address={$account.address || ''} />
-			</div>
-		</button>
-		{#if open}
-			<!-- svelte-ignore a11y-no-noninteractive-tabindex -->
-			<ul tabindex="0" class="menu">
-				<li>
-					<button class="button error" on:click={() => disconnect()}>disconnect</button>
-				</li>
-			</ul>
-		{/if}
+			<button class="blockie-button" on:click={(e) => switchMenu(e)}>
+				<div class="blockie-wrapper">
+					<ImgBlockie rootClass="blockie" address={$account.address || ''} />
+				</div>
+			</button>
+			{#if open}
+				<!-- svelte-ignore a11y-no-noninteractive-tabindex -->
+				<ul tabindex="0" class="menu">
+					<li>
+						<button class="button error" on:click={() => disconnect()}>disconnect</button>
+					</li>
+				</ul>
+			{/if}
+		</div>
 	</div>
 {/if}
 
 <style>
+	.connected {
+		text-align: right;
+		width: 5.5rem;
+	}
+
+	.dropdown {
+		display: inline;
+	}
+
+	.font-icon {
+		width: 2rem;
+		height: 2rem;
+	}
 	.menu {
 		/* visibility: hidden; */
 		position: absolute;

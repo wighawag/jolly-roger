@@ -14,9 +14,7 @@
 		<span class="title">Demo</span>
 	</div>
 
-	<div>
-		<ConnectButton />
-	</div>
+	<ConnectButton />
 </div>
 
 <symbol id="icon-spinner6" viewBox="0 0 32 32">
@@ -48,7 +46,7 @@
 			<!-- <div class="px-2 mb-6">
 						<h2 class="text-xl">{`${name.id.slice(0, 4)}...${name.id.slice(name.id.length - 4)}`} :</h2>
 					</div> -->
-			<ImgBlockie address={greeting.account} class="m-1 h-6 w-6" />
+			<ImgBlockie address={greeting.account} />
 			<span class="px-2">
 				<p>
 					{greeting.message}

@@ -12,7 +12,7 @@
 		{$execution.error}
 		<button class="button error" on:click={() => execution.acknowledgeError()}>Ok</button>
 	{:else}
-		<button disabled={$execution.executing} class="button success" on:click={() => execution.execute(args)}
+		<button disabled={$execution.executing} class="button success" on:click={() => execution.execute(...args)}
 			><slot /></button
 		>
 	{/if}
