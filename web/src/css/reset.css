@@ -110,3 +110,11 @@ button {
 	outline: inherit;
 }
 /* ------------------------------------------------- */
+
+/* smooth scrolling */
+
+@media (prefers-reduced-motion: no-preference) {
+	html {
+		scroll-behavior: smooth;
+	}
+}
