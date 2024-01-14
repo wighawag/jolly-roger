@@ -30,6 +30,10 @@
 </div>
 
 <style>
+	p {
+		margin-block: 24px;
+	}
+
 	.wrapper {
 		display: flex;
 		flex-direction: column;

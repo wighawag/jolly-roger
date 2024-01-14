@@ -52,7 +52,7 @@
 	<meta name="apple-mobile-web-app-title" content={name} />
 </svelte:head>
 
-<div class="wrapper">
+<div class="page">
 	<Header />
 
 	<slot />
@@ -78,7 +78,7 @@
 	/* This use flex flex-direction column to put each element vertically 
 		And use min-height to ensure all speace is taken */
 	/* This assumes html, body and any other anecsotr of .wrapper have height:100% */
-	.wrapper {
+	.page {
 		display: flex;
 		flex-direction: column;
 		min-height: 100%;
@@ -87,7 +87,7 @@
 	/* This target the inner Footer element thanks to rootClass */
 	/* Svelte has no way to parametrize non-global class due to its strong encapsulation 8?
 	/* But with css we often need to affter child position from parents */
-	.wrapper :global(.footer) {
+	.page :global(.footer) {
 		margin-top: auto;
 	}
 </style>

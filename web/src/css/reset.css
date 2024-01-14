@@ -3,25 +3,14 @@
 /* ------------------------------------------------- */
 
 /* border-box */
-
-/* the following do not work in web-components, see: https://konnorrogers.com/posts/2023/revisiting-box-sizing-best-practices/ */
-/* html {
-	box-sizing: border-box;
-}
-*,
-*:before,
-*:after {
-	box-sizing: inherit;
-} */
-/* so we use this */
 *,
 *:after,
 *:before {
 	box-sizing: border-box;
 }
 
-/* flush body */
-body {
+/* remove default margin and padding */
+* {
 	margin: 0;
 	padding: 0;
 }
@@ -96,25 +85,3 @@ body {
 	height: 100%;
 }
 /* ------------------------------------------------- */
-
-/* ------------------------------------------------- */
-/* MORE RESET
-/* ------------------------------------------------- */
-button {
-	background: none;
-	color: inherit;
-	border: none;
-	padding: 0;
-	font: inherit;
-	cursor: pointer;
-	outline: inherit;
-}
-/* ------------------------------------------------- */
-
-/* smooth scrolling */
-
-@media (prefers-reduced-motion: no-preference) {
-	html {
-		scroll-behavior: smooth;
-	}
-}

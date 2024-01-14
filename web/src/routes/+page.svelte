@@ -141,6 +141,11 @@
 		font-size: 3.75rem;
 		background-image: linear-gradient(to right bottom, rgb(219, 39, 119), rgb(219, 39, 119), rgb(147, 51, 234));
 	}
+
+	p,
+	h2 {
+		margin-block: 24px;
+	}
 	.text-build-deploy-eternity {
 		font-size: x-large;
 	}

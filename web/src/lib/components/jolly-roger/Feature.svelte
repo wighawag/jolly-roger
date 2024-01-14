@@ -12,3 +12,10 @@
 		</p>
 	</div>
 </div>
+
+<style>
+	p,
+	h3 {
+		margin-block: 24px;
+	}
+</style>

@@ -1,5 +1,5 @@
 @import 'css/reset.css';
-@import 'css/variables.css';
-@import 'css/utilities.css';
+@import 'css/palette.css';
 @import 'css/base.css';
+@import 'css/utilities.css';
 @import 'css/classes.css';
