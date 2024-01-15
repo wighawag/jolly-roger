@@ -14,3 +14,9 @@
 		{/each}
 	</ul>
 </DebugWrapper>
+
+<style>
+	ul {
+		margin-left: 1rem;
+	}
+</style>
