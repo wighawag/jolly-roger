@@ -1,18 +1,8 @@
 <script lang="ts">
 	import {createEventDispatcher} from 'svelte';
-	import {fade, fly} from 'svelte/transition';
 	import ModalContent from './ModalContent.svelte';
 	import {modalStore} from './stores';
 	import type {ModalCancelationMode, ModalContentSettings} from './types';
-
-	// ----------------------------------------------------------------------------------------------
-	// EXPORTS
-	// ----------------------------------------------------------------------------------------------
-	export let duration = 150;
-	export let flyOpacity = 0;
-	export let flyX = 0;
-	export let flyY = 100;
-	// ----------------------------------------------------------------------------------------------
 
 	const dispatch = createEventDispatcher();
 
@@ -48,7 +38,7 @@
 		if (!(event.target instanceof Element)) {
 			return;
 		}
-		if (event.target.classList.contains('modal')) {
+		if (event.target.classList.contains('overlay')) {
 			cancel('clickOutside');
 		}
 		/** @event {{ event }} backdrop - Fires on backdrop interaction.  */
@@ -87,35 +77,53 @@
 <svelte:window on:keydown={onKeyDown} />
 
 {#if $modalStore.length > 0}
-	<div
-		role="button"
-		tabindex="0"
-		class="overlay"
-		on:mousedown={onBackdropInteraction}
-		on:touchstart={onBackdropInteraction}
-		transition:fade={{duration}}
-	>
-		<div
-			class="modal"
-			style="--tw-translate-y:0;"
-			transition:fly={{duration, opacity: flyOpacity, x: flyX, y: flyY}}
-			bind:this={content}
-		>
-			{#if settings}
-				<ModalContent {settings} onResponse={confirmAndClose} />
-			{/if}
-		</div>
+	<!-- svelte-ignore a11y-no-static-element-interactions -->
+	<div class="overlay" on:mousedown={onBackdropInteraction} on:touchstart={onBackdropInteraction}></div>
+	<div class="modal" bind:this={content}>
+		{#if settings}
+			<ModalContent {settings} onResponse={confirmAndClose} />
+		{/if}
 	</div>
 {/if}
 
 <style>
 	.overlay {
-		pointer-events: auto;
-		visibility: visible;
-		opacity: 1;
-		cursor: pointer;
+		position: fixed;
+
+		inset: 0;
+		margin: auto;
+		width: 100%;
+		height: 100%;
+		background-color: black;
+		opacity: 0.6;
+
+		/* display: grid;
+		place-content: center;
+		grid-template-columns: 1fr; */
 	}
 
 	.modal {
+		background-color: red;
+
+		position: fixed;
+
+		left: 50%;
+		transform: translate(-50%, 0%);
+		bottom: 0;
+		width: 100%;
+
+		height: 400px;
+		max-height: 100%;
+	}
+
+	@media (min-width: 640px) {
+		.modal {
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+
+			width: 600px;
+			max-width: 100%;
+		}
 	}
 </style>

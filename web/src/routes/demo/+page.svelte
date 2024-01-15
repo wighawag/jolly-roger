@@ -94,9 +94,9 @@
 			class="button primary">Say it!</button
 		>
 	</form>
-
-	<Web3ConnectionUI />
 </main>
+
+<Web3ConnectionUI />
 
 <style>
 	.warning {
