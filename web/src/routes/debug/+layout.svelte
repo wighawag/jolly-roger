@@ -1,6 +1,5 @@
 <script lang="ts">
 	import NavTabs from '$lib/components/navigation/NavTabs.svelte';
-	import ConnectButton from '$lib/web3/ConnectButton.svelte';
 	import Web3ConnectionUI from '$lib/web3/Web3ConnectionUI.svelte';
 </script>
 
@@ -13,18 +12,8 @@
 			{pathname: '/debug/utilities/', title: 'Utilities'},
 		]}
 	/>
-
-	<div class="connect">
-		<ConnectButton />
-	</div>
 </div>
 
 <slot />
 
 <Web3ConnectionUI />
-
-<style>
-	.connect {
-		float: right;
-	}
-</style>

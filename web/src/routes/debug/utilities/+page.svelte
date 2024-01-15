@@ -2,6 +2,7 @@
 	import Executor from '$lib/components/utilities/Executor.svelte';
 	import {time} from '$lib/time';
 	import {createExecutor, enableAnvilLogging, increaseBlockTime} from '$lib/utils/debug';
+	import DebugWrapper from '../DebugWrapper.svelte';
 
 	let error: any;
 	let state: 'addTime' | undefined;
@@ -23,9 +24,8 @@
 	const execute_increaseBlockTime = createExecutor(increaseBlockTime);
 </script>
 
-<div class="wrapper">
-	<label class="m-2 font-bold" for="date">Date/Time</label>
-	<p class="m-2" id="date">{date.toLocaleDateString() + `  ` + date.toLocaleTimeString()}</p>
+<DebugWrapper>
+	<p slot="title">Date/Time: {date.toLocaleDateString() + `  ` + date.toLocaleTimeString()}</p>
 
 	{#if error}
 		{error.message}
@@ -39,14 +39,11 @@
 			<Executor func={increaseBlockTime} args={[hours * 3600]}>Add {hours} hours</Executor>
 		</form>
 	{/if}
-</div>
+</DebugWrapper>
 
 <!-- <Executor func={enableAnvilLogging}>Enable Anvil Logging</Executor> -->
 
 <style>
-	.wrapper {
-		margin: 1em;
-	}
 	.add-x-hours {
 		display: flex;
 		flex-wrap: wrap;
