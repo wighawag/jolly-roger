@@ -8,8 +8,8 @@
 	--color-background-base: hsl(231.43 15% 18%);
 
 	--color-background-base-100: hsl(231.43 15% 16%);
-	--color-background-base-200: hsl(231.43 15% 16%); /* TODO */
-	--color-background-base-300: oklch(0.247877 0.019009 277.509);
+	--color-background-base-200: hsl(231.43 15% 16%);
+	--color-background-base-300: hsl(231.43 16% 14%);
 
 	--color-text-primary: black;
 	--color-background-primary: hsl(325.52 100% 74%);
