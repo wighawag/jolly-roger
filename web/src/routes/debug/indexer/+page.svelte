@@ -1,5 +1,6 @@
 <script lang="ts">
 	import {status, state, syncing} from '$lib/blockchain/state/State';
+	import RadialProgress from '$lib/components/progress/RadialProgress.svelte';
 	import DebugWrapper from '../DebugWrapper.svelte';
 
 	// import JSONTree from 'svelte-json-tree';
@@ -21,35 +22,23 @@
 
 <DebugWrapper>
 	<p slot="title">Indexer State</p>
-	<div
-		class={`radial-progress m-2 ${
-			$syncing.loading ? 'text-green-400' : $status.state === 'Idle' ? 'text-red-400' : 'text-green-400'
-		}`}
-		style={`--value:${$syncing.lastSync?.syncPercentage || 0};`}
-	>
-		{$syncing.lastSync?.syncPercentage
-			? $syncing.lastSync?.syncPercentage === 100
-				? $status.state
-				: `${$syncing.lastSync?.syncPercentage}%`
-			: '0%'}
-	</div>
 
-	<!-- <progress value={($syncing.lastSync?.syncPercentage || 0) / 100} style="width:100%;" /> -->
+	<RadialProgress value={$syncing.lastSync?.syncPercentage || 0} />
 
-	<p class="m-1">status: {$status.state}</p>
-	<p class="m-1">catchingUp: {$syncing.catchingUp}</p>
-	<p class="m-1">autoIndexing: {$syncing.autoIndexing}</p>
-	<p class="m-1">fetchingLogs: {$syncing.fetchingLogs}</p>
-	<p class="m-1">processingFetchedLogs: {$syncing.processingFetchedLogs}</p>
+	<p>status: {$status.state}</p>
+	<p>catchingUp: {$syncing.catchingUp}</p>
+	<p>autoIndexing: {$syncing.autoIndexing}</p>
+	<p>fetchingLogs: {$syncing.fetchingLogs}</p>
+	<p>processingFetchedLogs: {$syncing.processingFetchedLogs}</p>
 
 	{#if $syncing.numRequests !== undefined}
-		<p class="m-1">requests sent: {$syncing.numRequests}</p>
+		<p>requests sent: {$syncing.numRequests}</p>
 	{/if}
-	<p class="m-1">
+	<p>
 		block processed: {$syncing.lastSync?.numBlocksProcessedSoFar?.toLocaleString() || 0}
 	</p>
 
-	<p class="m-1">
+	<p>
 		latestBlock: {$syncing.lastSync?.latestBlock || 0}
 	</p>
 
@@ -63,3 +52,9 @@
 		{JSON.stringify($syncing)}
 	{/if}
 </DebugWrapper>
+
+<style>
+	p {
+		margin-block: 1rem;
+	}
+</style>
