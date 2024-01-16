@@ -43,13 +43,13 @@
 </section>
 
 <section class="bottom">
-	<div>
-		<h2>Showcase</h2>
-		<p>
+	<div class="bottom-header">
+		<h2 class="bottom-header-title">Showcase</h2>
+		<p class="bottom-header-description">
 			Here are examples of apps built using "{name}"
 		</p>
 	</div>
-	<div>
+	<div class="showcase-list">
 		<Showcase
 			href="https://bleeps.art"
 			preview="/images/featured/bleeps-preview-small.webp"
@@ -77,10 +77,10 @@
 		/>
 	</div>
 
-	<div>
+	<div class="features-wrapper">
 		<h2>Features</h2>
-		<div>
-			<div>
+		<div class="features-list-wrapper">
+			<div class="features-list">
 				<Feature title="All Included">
 					This template include setup for smart contracts, indexer and frontend. All runs locally for the best-in-class
 					developer experience.
@@ -138,6 +138,102 @@
 
 	section.bottom {
 		max-width: 1280px;
+	}
+
+	.bottom-header {
+		text-align: center;
+	}
+
+	.bottom-header-title {
+		font-size: 1.875rem;
+		line-height: 2.25rem;
+		font-weight: 800;
+		letter-spacing: -0.025em;
+	}
+
+	@media (min-width: 640px) {
+		.bottom-header-title {
+			font-size: 2.25rem;
+			line-height: 2.5rem;
+		}
+	}
+
+	.bottom-header-description {
+		margin-top: 0.75rem;
+		max-width: 42rem;
+		font-size: 1.25rem;
+		line-height: 1.75rem;
+		margin-inline: auto;
+	}
+
+	@media (min-width: 640px) {
+		.bottom-header-description {
+			margin-top: 1rem;
+		}
+	}
+
+	.showcase-list {
+		display: grid;
+		margin-top: 3rem;
+		gap: 1.25rem;
+		max-width: 32rem;
+		margin-inline: auto;
+	}
+
+	@media (min-width: 1024px) {
+		.showcase-list {
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+			max-width: none;
+		}
+	}
+
+	.features-wrapper {
+		padding-bottom: 1rem;
+		padding-top: 4rem;
+	}
+
+	.features-wrapper > h2 {
+		font-size: 1.875rem;
+		line-height: 2.25rem;
+		font-weight: 800;
+		letter-spacing: -0.025em;
+	}
+
+	@media (min-width: 640px) {
+		.features-wrapper > h2 {
+			font-size: 2.25rem;
+			line-height: 2.5rem;
+		}
+	}
+
+	.features-list-wrapper {
+		padding-left: 1rem;
+		padding-right: 1rem;
+		max-width: 36rem;
+		margin-inline: auto;
+	}
+
+	@media (min-width: 640px) {
+		.features-list-wrapper {
+			padding-left: 1.5rem;
+			padding-right: 1.5rem;
+		}
+	}
+
+	@media (min-width: 1024px) {
+		.features-list-wrapper {
+			padding-left: 2rem;
+			padding-right: 2rem;
+			max-width: 1280px;
+		}
+	}
+
+	@media (min-width: 1024px) {
+		.features-list {
+			display: grid;
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+			gap: 2rem;
+		}
 	}
 
 	section > img {

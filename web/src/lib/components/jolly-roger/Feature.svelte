@@ -14,6 +14,10 @@
 </div>
 
 <style>
+	h3 {
+		color: var(--color-background-primary-100);
+	}
+
 	p,
 	h3 {
 		margin-block: 24px;
