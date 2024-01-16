@@ -5,8 +5,8 @@ import {
 	initialContractsInfos,
 	blockTime,
 	localRPC,
-	env,
 	doNotEncryptLocally,
+	syncInfo,
 } from '$lib/config';
 import {JollyRogerAccountData} from '$lib/account/account-data';
 import {initTransactionProcessor} from 'ethereum-tx-observer';
@@ -16,12 +16,6 @@ import {stringToHex} from 'viem';
 import {get} from 'svelte/store';
 
 const logger = logs('jolly-roger');
-
-const syncInfo = env.PUBLIC_SYNC_URI
-	? {
-			uri: env.PUBLIC_SYNC_URI,
-	  }
-	: undefined;
 
 export const accountData = new JollyRogerAccountData();
 
