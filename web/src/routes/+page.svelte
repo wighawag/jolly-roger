@@ -128,6 +128,22 @@
 </section>
 
 <style>
+	/* Structure */
+	section {
+		text-align: center;
+		margin-inline: auto;
+		max-width: 600px;
+		padding-inline: 16px;
+	}
+
+	section.bottom {
+		max-width: 1280px;
+	}
+
+	section > img {
+		margin-inline: auto;
+	}
+
 	/* Style */
 	.text-gradient {
 		background-clip: text;
@@ -194,21 +210,5 @@
 	.use h2 {
 		margin-top: 48px;
 		font-size: medium;
-	}
-
-	/* Structure */
-	section {
-		text-align: center;
-		margin-inline: auto;
-		max-width: 600px;
-		padding-inline: 16px;
-	}
-
-	section.bottom {
-		max-width: 1280px;
-	}
-
-	section > img {
-		margin-inline: auto;
 	}
 </style>

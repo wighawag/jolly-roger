@@ -3,54 +3,82 @@
 	import {route, url} from '$lib/utils/path';
 </script>
 
-<section class="py-2 px-4 text-center">
-	<div class="max-w-auto md:max-w-lg mx-auto">
-		<img
-			class="mb-1 mx-auto"
-			src={url('/icon.svg')}
-			alt={name}
-			style="width:256px;height:256px;"
-			width="256px"
-			height="256px"
-		/>
-		<h2
-			class="mb-2 text-title font-black bg-gradient-to-br from-pink-600 via-pink-600 to-purple-600 bg-clip-text text-transparent box-decoration-clone"
-		>
-			{name}
-		</h2>
-		<div class="!text-xl flex justify-center space-x-2">
-			<h3>
-				<span class="bg-gradient-to-br from-blue-500 to-cyan-300 bg-clip-text text-transparent box-decoration-clone"
-					>Build</span
-				>
-			</h3>
-			<h3>and</h3>
-			<h3>
-				<span class="bg-gradient-to-br from-red-500 to-yellow-500 bg-clip-text text-transparent box-decoration-clone"
-					>Deploy</span
-				>
-			</h3>
-			<h3>for</h3>
-			<h3>
-				<span class="bg-gradient-to-br from-pink-500 to-violet-500 bg-clip-text text-transparent box-decoration-clone"
-					>Eternity.</span
-				>
-			</h3>
-		</div>
-		<p class="my-6 m-6 !text-3xl font-black">Welcome to your <span id="spin" />!</p>
-		<div class="max-w-md mx-auto pt-1 mt-5 space-y-3 md:m-8 md:space-y-5">
-			<div class="space-y-5 sm:flex sm:justify-center sm:space-y-0 sm:space-x-3">
-				<a class="btn btn-primary btn-wide" href={route('/demo/')} aria-label="Try the Demo!">Demo</a>
-			</div>
+<section class="top">
+	<img src={url('/icon.svg')} alt={name} style="width:256px;height:256px;" width="256px" height="256px" />
+	<h1 class="text-gradient">
+		{name}
+	</h1>
+	<h2 class="text-build-deploy-eternity">
+		<span class="text-gradient text-build">Build</span>
+		<span>and</span>
+		<span class="text-gradient text-deploy">Deploy</span>
+		<span>for</span>
+		<span class="text-gradient text-eternity">Eternity.</span>
+	</h2>
+	<p class="welcome">Welcome to your <span class="spin" />!</p>
+	<div class="wrapper">
+		<div class="button-wrapper">
+			<a class="button primary" href={route('/demo/')} aria-label="Try the Demo!">Demo</a>
 		</div>
 	</div>
 </section>
 
 <style>
-	#spin {
+	/* Structure */
+	section {
+		text-align: center;
+		margin-inline: auto;
+		max-width: 600px;
+		padding-inline: 16px;
+	}
+
+	section > img {
+		margin-inline: auto;
+	}
+
+	/* Style */
+	.text-gradient {
+		background-clip: text;
+		color: rgba(0, 0, 0, 0);
+		background-image: linear-gradient(to right bottom, rgb(219, 39, 119), rgb(219, 39, 119), rgb(147, 51, 234));
+	}
+
+	h1 {
+		margin-top: 4px;
+		margin-bottom: 32px;
+		font-size: 3.75rem;
+		background-image: linear-gradient(to right bottom, rgb(219, 39, 119), rgb(219, 39, 119), rgb(147, 51, 234));
+	}
+
+	p,
+	h2 {
+		margin-block: 24px;
+	}
+	.text-build-deploy-eternity {
+		font-size: x-large;
+	}
+	.text-build {
+		background-image: linear-gradient(to right bottom, rgb(59, 130, 246), rgb(103, 232, 249));
+	}
+	.text-deploy {
+		background-image: linear-gradient(to right bottom, rgb(239, 68, 68), rgb(234, 179, 8));
+	}
+	.text-eternity {
+		background-image: linear-gradient(to right bottom, rgb(236, 72, 153), rgb(139, 92, 246));
+	}
+
+	.welcome {
+		margin: 1.5rem;
+		margin-top: 1.5rem;
+		margin-bottom: 1.5rem;
+		font-weight: 900;
+		font-size: 1.875rem;
+		line-height: 2.25rem;
+	}
+	.spin {
 		color: #db2777;
 	}
-	#spin:after {
+	.spin:after {
 		content: 'Idea';
 		animation: spin 4s linear infinite;
 	}
@@ -64,5 +92,42 @@
 		66% {
 			content: 'App';
 		}
+	}
+
+	.wrapper {
+		padding-top: 0.25rem;
+		margin-top: 1.25rem;
+		margin-top: 0.75rem;
+		margin-top: 0.875rem;
+		max-width: 28rem;
+	}
+
+	@media (min-width: 768px) {
+		.wrapper {
+			margin: 2rem;
+			margin-top: 1.25rem;
+		}
+	}
+
+	.button-wrapper {
+		margin-top: 1.25rem;
+	}
+
+	@media (min-width: 640px) {
+		.button-wrapper {
+			display: flex;
+			margin-left: 0.75rem;
+			margin-left: 0.875rem;
+			margin-top: 0;
+			justify-content: center;
+		}
+	}
+
+	.button {
+		height: 3rem;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		padding-inline: 2rem;
 	}
 </style>
