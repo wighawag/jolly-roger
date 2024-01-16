@@ -5,8 +5,8 @@
   "type": "module",
   "private": true,
   "devDependencies": {
-    "@sveltejs/adapter-static": "^3.0.1",
-    "@sveltejs/kit": "2.3.3",
+    "@sveltejs/adapter-static": "^2.0.3",
+    "@sveltejs/kit": "^1.30.3",
     "@tailwindcss/forms": "^0.5.7",
     "@tailwindcss/typography": "^0.5.10",
     "abitype": "^0.10.3",
@@ -25,7 +25,7 @@
     "tailwindcss": "^3.4.1",
     "tslib": "^2.6.2",
     "typescript": "^5.3.3",
-    "vite": "^5.0.11",
+    "vite": "^4.5.1",
     "wait-on": "^7.2.0"
   },
   "dependencies": {
