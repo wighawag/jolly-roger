@@ -42,16 +42,15 @@
 
 {#if $connection.requireSelection}
 	<Modal onResponse={() => connection.cancel()}>
-		<div class="text-center">
+		<div class="title">
 			<p>How do you want to connect ?</p>
 		</div>
-		<div class="flex flex-wrap justify-center pb-3">
+		<div class="options-list">
 			{#each options as option}
 				<!-- TODO handle a11y-->
 				<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-noninteractive-element-interactions
 permalink-->
 				<img
-					class="cursor-pointer p-2 m-2 border-2 h-12 w-12 object-contain"
 					alt={`Login with ${option.name}`}
 					src={url(`/${option.img}`)}
 					on:click={() => connection.select(option.id)}
@@ -59,17 +58,56 @@ permalink-->
 			{/each}
 		</div>
 		{#if builtinNeedInstalation}
-			<div class="text-center">OR</div>
-			<div class="flex justify-center">
-				<a href="https://metamask.io/download.html" class="m-4 w-max-content btn btn-primary">
-					<img
-						class="cursor-pointer p-0 mx-2 h-10 w-10 object-contain"
-						alt={`Download Metamask}`}
-						src={url('/images/metamask.svg')}
-					/>
+			<div class="title">OR</div>
+			<div class="download">
+				<a href="https://metamask.io/download.html" class="button primary">
+					<img alt={`Download Metamask}`} src={url('/images/wallets/metamask.svg')} />
 					Download metamask
 				</a>
 			</div>
 		{/if}
 	</Modal>
 {/if}
+
+<style>
+	.title {
+		text-align: center;
+	}
+
+	.options-list {
+		display: flex;
+		padding-bottom: 0.75rem;
+		flex-wrap: wrap;
+		justify-content: center;
+	}
+
+	.options-list img {
+		object-fit: contain;
+		padding: 0.5rem;
+		margin: 0.5rem;
+		width: 3rem;
+		height: 3rem;
+		border-width: 2px;
+		cursor: pointer;
+	}
+
+	.download {
+		display: flex;
+		justify-content: center;
+	}
+
+	.download a {
+		margin: 1rem;
+		width: max-content;
+		height: 3rem;
+	}
+	.download img {
+		object-fit: contain;
+		padding: 0;
+		margin-left: 0.5rem;
+		margin-right: 0.5rem;
+		width: 2.5rem;
+		height: 2.5rem;
+		cursor: pointer;
+	}
+</style>

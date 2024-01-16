@@ -96,14 +96,17 @@
 		height: 100%;
 		background-color: black;
 		opacity: 0.6;
-
-		/* display: grid;
-		place-content: center;
-		grid-template-columns: 1fr; */
 	}
 
 	.modal {
-		background-color: red;
+		background-color: var(--color-background-base-300);
+		border-radius: 1rem;
+		padding: 1rem;
+
+		display: grid;
+		place-content: center;
+		grid-template-columns: 1fr;
+		text-align: center;
 
 		position: fixed;
 

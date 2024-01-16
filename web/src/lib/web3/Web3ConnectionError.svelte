@@ -6,12 +6,19 @@
 	import Alert from '$lib/components/alert/Alert.svelte';
 	import {url} from '$lib/utils/path';
 	import {resetIndexer} from '$lib/blockchain/state/State';
+	import NeedAWallet from './NeedAWallet.svelte';
 
 	const builtin = connection.builtin;
+
+	$: console.log($connection.error);
 </script>
 
 {#if $connection.error}
-	<Alert data={$connection.error} onClose={connection.acknowledgeError} />
+	{#if $connection.error.id === 'NoBuiltinWallet'}
+		<NeedAWallet />
+	{:else}
+		<Alert data={$connection.error} onClose={connection.acknowledgeError} />
+	{/if}
 {:else if $network.nonceCached === 'BlockOutOfRangeError' || $network.genesisNotMatching || $network.blocksCached}
 	<AlertWithSlot>
 		<p class="main-message">

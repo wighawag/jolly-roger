@@ -33,11 +33,11 @@
 		cancelation={{button: true, clickOutside: false}}
 	>
 		{#if $pendingActions.list[0].item.metadata && $pendingActions.list[0].item.metadata.title}
-			<h3 class="text-lg font-bold">
+			<h3 class="title">
 				{$pendingActions.list[0].item.metadata.title}
 			</h3>
 		{/if}
-		<p class="py-4">
+		<p class="message">
 			{#if $pendingActions.list[0].item.metadata && $pendingActions.list[0].item.metadata.description}
 				{$pendingActions.list[0].item.metadata.description}
 			{:else}
@@ -46,3 +46,16 @@
 		</p>
 	</Modal>
 {/if}
+
+<style>
+	.title {
+		font-size: 1.125rem;
+		line-height: 1.75rem;
+		font-weight: 700;
+	}
+
+	.message {
+		padding-top: 1rem;
+		padding-bottom: 1rem;
+	}
+</style>

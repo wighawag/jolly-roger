@@ -13,8 +13,8 @@
 {#if $execution.executing}
 	{#if $network.notSupported}
 		<Modal cancelation={{cancelable: false}}>
-			<h3 class="text-lg font-bold">You are connected to unsupported network</h3>
-			<p class="py-4">
+			<h3 class="title">You are connected to unsupported network</h3>
+			<p class="message">
 				Proceed to switch to {getNetworkConfig($contractsInfos.chainId)?.chainName ||
 					`the network with chainID: ${$contractsInfos.chainId}`}.
 			</p>
@@ -23,11 +23,11 @@
 					on:click={async () => {
 						await execution.cancel();
 					}}
-					class="btn btn-error">Cancel</button
+					class="button error">Cancel</button
 				>
 				<button
 					on:click={() => network.switchTo($contractsInfos.chainId, getNetworkConfig($contractsInfos.chainId))}
-					class="btn">Switch</button
+					class="button success">Switch</button
 				>
 			</div>
 		</Modal>
@@ -36,20 +36,33 @@
 		<!-- TODO account need to be connected -->
 	{:else if $account.state === 'Disconnected' && !$account.unlocking}
 		<Modal cancelation={{cancelable: false}}>
-			<h3 class="text-lg font-bold">To proceed, you need to connect to a wallet.</h3>
+			<h3 class="title">To proceed, you need to connect to a wallet.</h3>
 			<div class="modal-action">
 				<button
 					on:click={async () => {
 						await execution.cancel();
 					}}
-					class="btn btn-error">Cancel</button
+					class="button error">Cancel</button
 				>
 				<button
 					disabled={$connection.connecting}
-					class={`${$connection.initialised ? '' : '!invisible'} m-1 btn btn-primary`}
+					class={`${$connection.initialised ? '' : '!invisible'} m-1 button primary`}
 					on:click={() => connection.connect()}>{$connection.connecting ? 'Connecting' : 'Connect'}</button
 				>
 			</div>
 		</Modal>
 	{/if}
 {/if}
+
+<style>
+	.title {
+		font-size: 1.125rem;
+		line-height: 1.75rem;
+		font-weight: 700;
+	}
+
+	.message {
+		padding-top: 1rem;
+		padding-bottom: 1rem;
+	}
+</style>
