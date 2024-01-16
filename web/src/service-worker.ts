@@ -5,19 +5,19 @@ const DEV = true;
 const OFFLINE_CACHE = 'all';
 // ------------------------------------------------------
 
-let URLS_TO_PRE_CACHE: string[] = [];
+let urlsToPreCache: string[] = [];
 if (OFFLINE_CACHE === 'all') {
-	URLS_TO_PRE_CACHE = build.concat(prerendered).concat(files.filter((v) => v.indexOf('pwa/') === -1));
+	urlsToPreCache = build.concat(prerendered).concat(files.filter((v) => v.indexOf('pwa/') === -1));
 } // TODO support more offline option
 
 let _logEnabled = true; // TODO false
-function log(...args) {
+function log(...args: any[]) {
 	if (_logEnabled) {
 		console.debug(...args);
 	}
 }
 
-const CACHE_NAME = 'cache-name' + version;
+const CACHE_NAME = 'cache-name-2' + version;
 
 self.addEventListener('message', function (event) {
 	if (event.data && event.data.type === 'debug') {
@@ -29,17 +29,12 @@ self.addEventListener('message', function (event) {
 	}
 });
 
-const pathname = self.location.pathname;
-const base = pathname.substr(0, pathname.length - 18); // assume service worker is named `service-worker.js` // name's length = 17
-
-const urlsToPreCache = URLS_TO_PRE_CACHE.map((v) => base + v);
-
 const regexesOnlineFirst: string[] = [];
 if (DEV) {
 	regexesOnlineFirst.push('localhost');
 }
 
-const regexesOnlineOnly = [];
+const regexesOnlineOnly: string[] = [];
 
 const regexesCacheFirst = [
 	self.location.origin,
@@ -49,7 +44,7 @@ const regexesCacheFirst = [
 	'.*\\.svg$',
 ];
 
-const regexesCacheOnly = [];
+const regexesCacheOnly: string[] = [];
 
 // If the url doesn't match any of those regexes, it will do online first
 
@@ -90,7 +85,7 @@ self.addEventListener('activate', (event: any) => {
 	);
 });
 
-const update = (request, cache) => {
+const update = (request: Request, cache?: Response) => {
 	return fetch(request)
 		.then((response) => {
 			return caches.open(CACHE_NAME).then((cache) => {
@@ -107,7 +102,7 @@ const update = (request, cache) => {
 };
 
 const cacheFirst = {
-	method: (request, cache) => {
+	method: (request: Request, cache?: Response) => {
 		log(`[Service Worker] Cache first: ${request.url}`);
 		const fun = update(request, cache);
 		return cache || fun;
@@ -116,7 +111,7 @@ const cacheFirst = {
 };
 
 const cacheOnly = {
-	method: (request, cache) => {
+	method: (request: Request, cache?: Response) => {
 		log(`[Service Worker] Cache only: ${request.url}`);
 		return cache || update(request, cache);
 	},
@@ -124,7 +119,7 @@ const cacheOnly = {
 };
 
 const onlineFirst = {
-	method: (request, cache) => {
+	method: (request: Request, cache?: Response) => {
 		log(`[Service Worker] Online first: ${request.url}`);
 		return update(request, cache);
 	},
@@ -132,14 +127,14 @@ const onlineFirst = {
 };
 
 const onlineOnly = {
-	method: (request) => {
+	method: (request: Request) => {
 		log(`[Service Worker] Online only: ${request.url}`);
 		return fetch(request);
 	},
 	regexes: regexesOnlineOnly,
 };
 
-async function getResponse(event: {request: Request}): Promise<Response> {
+async function getResponse(event: {request: Request}): Promise<Response | undefined> {
 	const request = event.request;
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const registration = (self as any).registration as ServiceWorkerRegistration;

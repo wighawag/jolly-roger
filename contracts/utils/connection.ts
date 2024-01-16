@@ -65,8 +65,7 @@ export async function fetchContract<TAbi extends Abi>(contractInfo: {address: `0
 	const {walletClient, publicClient} = await getConnection();
 	return getContract({
 		...contractInfo,
-		walletClient,
-		publicClient,
+		client: {wallet: walletClient, public: publicClient},
 	});
 }
 

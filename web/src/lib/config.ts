@@ -7,9 +7,8 @@ import {
 	PUBLIC_ETH_NODE_URI,
 	PUBLIC_LOCALHOST_BLOCK_TIME,
 	PUBLIC_DEV_NODE_URI,
+	PUBLIC_SYNC_URI,
 } from '$env/static/public';
-
-import {env} from '$env/dynamic/public';
 
 import _contractsInfos from '$data/contracts';
 export type NetworkConfig = typeof _contractsInfos;
@@ -53,7 +52,13 @@ const defaultRPC = defaultRPCURL ? {chainId: contractsChainId, url: defaultRPCUR
 // Disable this if the data should remains private
 export const doNotEncryptLocally = true;
 
-export {defaultRPC, isUsingLocalDevNetwork, localRPC, blockTime, env};
+const syncInfo = PUBLIC_SYNC_URI
+	? {
+			uri: PUBLIC_SYNC_URI,
+	  }
+	: undefined;
+
+export {defaultRPC, isUsingLocalDevNetwork, localRPC, blockTime, syncInfo};
 
 let _setContractsInfos: any;
 export const contractsInfos = readable<NetworkConfig>(_contractsInfos, (set) => {
