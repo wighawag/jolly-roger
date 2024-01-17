@@ -26,11 +26,11 @@
 
 {#if $account.state === 'Disconnected' || $account.locked}
 	{#if $account.locked}
-		<button class="button primary" disabled={$account.unlocking} on:click={() => account.unlock()}>unlock</button>
+		<button class="primary" disabled={$account.unlocking} on:click={() => account.unlock()}>unlock</button>
 	{:else}
 		<button
 			disabled={$connection.connecting}
-			class={`${$connection.initialised ? '' : 'invisible'} button primary`}
+			class={`${$connection.initialised ? '' : 'invisible'} primary`}
 			on:click={() => connection.connect()}>{$connection.connecting ? 'Connecting' : 'Connect'}</button
 		>
 	{/if}
@@ -72,7 +72,7 @@
 				<!-- svelte-ignore a11y-no-noninteractive-tabindex -->
 				<ul tabindex="0" class="menu">
 					<li>
-						<button class="button error" on:click={() => disconnect()}>disconnect</button>
+						<button class="error" on:click={() => disconnect()}>disconnect</button>
 					</li>
 				</ul>
 			{/if}
@@ -110,7 +110,7 @@
 			4px 6px 3px 0 rgb a(1, 0, 0, 0.1),
 			4px 6px 2px 0 rgba(0, 0, 0, 0.06);
 
-		background-color: var(--color-background-base-300);
+		background-color: var(--color-surface-800);
 	}
 
 	.menu button {
@@ -124,6 +124,7 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
+		padding-inline: revert;
 	}
 	.blockie-wrapper {
 		/* w-10 rounded-full */

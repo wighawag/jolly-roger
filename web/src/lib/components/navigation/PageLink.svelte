@@ -13,7 +13,7 @@
 	a {
 		text-decoration: none;
 		display: inline-block;
-		color: var(--color-text-base);
+		color: var(--color-text-on-surface);
 
 		font-size: 0.875rem;
 		border-top-left-radius: 8px;
@@ -29,8 +29,8 @@
 
 	.current {
 		font-weight: bold;
-		color: var(--color-text-primary);
-		background-color: var(--color-background-primary);
+		color: var(--color-text-on-primary-500);
+		background-color: var(--color-primary-500);
 
 		pointer-events: none;
 	}

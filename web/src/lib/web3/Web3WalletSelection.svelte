@@ -60,7 +60,7 @@ permalink-->
 		{#if builtinNeedInstalation}
 			<div class="title">OR</div>
 			<div class="download">
-				<a href="https://metamask.io/download.html" class="button primary">
+				<a href="https://metamask.io/download.html" role="button" class="primary">
 					<img alt={`Download Metamask}`} src={url('/images/wallets/metamask.svg')} />
 					Download metamask
 				</a>

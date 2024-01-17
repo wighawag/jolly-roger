@@ -36,17 +36,17 @@
 		line-height: 1.7;
 		font-size: large;
 		font-weight: bold;
-		background-color: var(--color-background-base-100);
+		background-color: var(--color-surface-600);
 		padding: 12px;
 		border-radius: 1em;
 	}
 
 	.copied {
-		background-color: hsl(135.18 94% 65%);
+		background-color: var(--color-success-500);
 		color: black;
 	}
 
 	.tocopy {
-		color: var(--color-background-primary);
+		color: var(--color-primary-500);
 	}
 </style>

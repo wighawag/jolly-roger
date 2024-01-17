@@ -2,59 +2,52 @@
 /* GLOBAL CLASSES */
 /* ------------------------------------------------- */
 
-.button {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-
-	cursor: pointer;
-	-webkit-user-select: none;
-	user-select: none;
-
-	border-radius: 0.5rem;
-
-	line-height: 1em;
-	font-weight: 600;
-	text-decoration-line: none;
-
-	height: 2rem;
-	min-height: 2rem;
-	padding-inline: 0.75rem;
-	font-size: 0.875rem;
-}
-
 .primary {
-	background-color: var(--color-background-primary);
-	color: var(--color-text-primary);
-
-	&:hover {
-		background-color: var(--color-background-primary-100);
-	}
+	background-color: var(--color-primary-500);
+	color: var(--color-text-on-primary-500);
+}
+button.primary:hover,
+a[role='button'].primary:hover {
+	background-color: var(--color-primary-600);
+}
+a[role='button'].primary:visited {
+	color: var(--color-text-on-primary-500);
 }
 
 .secondary {
-	background-color: var(--color-background-secondary);
-	color: var(--color-text-secondary);
-
-	&:hover {
-		background-color: var(--color-background-secondary-100);
-	}
+	background-color: var(--color-secondary-500);
+	color: var(--color-text-on-secondary-500);
+}
+button.secondary:hover,
+a[role='button'].secondary:hover {
+	background-color: var(--color-secondary-600);
+}
+a[role='button'].secondary:visited {
+	color: var(--color-text-on-secondary-500);
 }
 
 .success {
-	color: var(--color-text-success);
-	background-color: var(--color-background-success);
+	color: var(--color-text-on-success-500);
+	background-color: var(--color-success-500);
 }
-button.success:hover {
-	background-color: var(--color-background-success-hover);
+button.success:hover,
+a[role='button'].success:hover {
+	background-color: var(--color-success-600);
+}
+a[role='button'].success:visited {
+	color: var(--color-text-on-success-500);
 }
 
 .error {
-	color: var(--color-text-error);
-	background-color: var(--color-background-error);
+	color: var(--color-text-on-error-500);
+	background-color: var(--color-error-500);
 }
-button.error:hover {
-	background-color: var(--color-background-error-hover);
+button.error:hover,
+a[role='button'].error:hover {
+	background-color: var(--color-error-600);
+}
+a[role='button'].error:visited {
+	color: var(--color-text-on-error-500);
 }
 
 /* ------------------------------------------------- */

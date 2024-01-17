@@ -7,7 +7,7 @@
 <Modal onResponse={() => connection.cancel()}>
 	<div class="title">You need to a web3 wallet to continue</div>
 	<div class="download">
-		<a href="https://metamask.io/download.html" class="button primary">
+		<a href="https://metamask.io/download.html" role="button" class="primary">
 			<img alt={`Download Metamask}`} src={url('/images/wallets/metamask.svg')} />
 			Download metamask
 		</a>

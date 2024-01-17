@@ -14,15 +14,15 @@
 	<div class="content">
 		<div class="text"><slot /></div>
 		<div class="buttons-container">
-			<button on:click={() => dispatch('accept')} type="button" class="button success"
+			<button on:click={() => dispatch('accept')} type="button" class="success"
 				><slot name="accept">Accept</slot></button
 			>
-			<button on:click={() => dispatch('reject')} type="button" class="button error"
+			<button on:click={() => dispatch('reject')} type="button" class="error"
 				><slot name="reject">Reject</slot>
 			</button>
 		</div>
 	</div>
-	<button on:click={() => dispatch('reject')} class="button button-close">
+	<button on:click={() => dispatch('reject')} class="button-close">
 		<span class="sr-only">Close</span>
 		<!-- Heroicon name: solid/x -->
 		<svg
@@ -50,7 +50,7 @@
 			0 4px 6px -2px rgba(0, 0, 0, 0.05);
 		border-radius: 0.5rem;
 		pointer-events: auto;
-		background-color: var(--color-background-base-300);
+		background-color: var(--color-surface-800);
 
 		display: flex;
 		align-items: flex-start;
@@ -70,7 +70,7 @@
 		height: 4rem;
 		border-width: 2px;
 		border-radius: 1rem;
-		border-color: var(--color-background-base-200); /* TODO */
+		border-color: var(--color-surface-700); /* TODO */
 	}
 
 	.content {
@@ -82,7 +82,7 @@
 
 	.text {
 		/* text-base font-medium */
-		color: var(--color-text-base);
+		color: var(--color-text-on-surface);
 		font-size: 1rem;
 		line-height: 1.5rem;
 		font-weight: 500;
@@ -96,8 +96,8 @@
 	}
 
 	.button-close {
-		color: var(--color-text-base);
-		background-color: var(--color-background-base);
+		color: var(--color-text-on-surface);
+		background-color: var(--color-surface-500);
 	}
 
 	.font-icon {

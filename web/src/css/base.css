@@ -2,18 +2,18 @@
 /* BASIC STYLES */
 /* ------------------------------------------------- */
 :root {
-	background-color: var(--color-background-base);
-	color: var(--color-text-base);
+	background-color: var(--color-surface-500);
+	color: var(--color-text-on-surface);
 
 	font-family: 'Noto Sans', Verdana, sans-serif;
 }
 
 a {
-	color: var(--color-link-base);
+	color: var(--color-text-for-links);
 	text-decoration: underline;
 }
 a:visited {
-	color: var(--color-link-base);
+	color: var(--color-text-for-links);
 }
 a:hover {
 	/* font-weight: 900; */
@@ -22,7 +22,7 @@ a:hover {
 /* ------------------------------------------------- */
 
 /* ------------------------------------------------- */
-/* remove button style
+/* buttons
 /* ------------------------------------------------- */
 button {
 	background: none;
@@ -32,6 +32,28 @@ button {
 	font: inherit;
 	cursor: pointer;
 	outline: inherit;
+}
+
+button,
+a[role='button'] {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+
+	cursor: pointer;
+	-webkit-user-select: none;
+	user-select: none;
+
+	border-radius: 0.5rem;
+
+	line-height: 1em;
+	font-weight: 600;
+	text-decoration-line: none;
+
+	height: 2rem;
+	min-height: 2rem;
+	padding-inline: 0.75rem;
+	font-size: 0.875rem;
 }
 /* ------------------------------------------------- */
 

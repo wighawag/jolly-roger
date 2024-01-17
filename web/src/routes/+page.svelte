@@ -20,9 +20,10 @@
 	</h2>
 	<p class="description">Production-Ready Template To Build Decentralised Applications</p>
 	<div class="actions">
-		<a class="button primary" href={route('/demo/')} aria-label="Try the Demo!">Demo</a>
+		<a role="button" class="primary" href={route('/demo/')} aria-label="Try the Demo!">Demo</a>
 		<a
-			class="button secondary"
+			role="button"
+			class="secondary"
 			target="_blank"
 			rel="noreferrer"
 			href="https://github.com/wighawag/jolly-roger"
@@ -291,7 +292,7 @@
 		}
 	}
 
-	.button {
+	a[role='button'] {
 		padding: 10px;
 		padding-inline: 64px;
 		text-decoration: none;

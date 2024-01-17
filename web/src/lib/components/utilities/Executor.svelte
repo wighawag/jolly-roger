@@ -10,16 +10,15 @@
 <div>
 	{#if $execution.error}
 		{$execution.error}
-		<button class="button error" on:click={() => execution.acknowledgeError()}>Ok</button>
+		<button class="error" on:click={() => execution.acknowledgeError()}>Ok</button>
 	{:else}
-		<button disabled={$execution.executing} class="button success" on:click={() => execution.execute(...args)}
-			><slot /></button
+		<button disabled={$execution.executing} class="success" on:click={() => execution.execute(...args)}><slot /></button
 		>
 	{/if}
 </div>
 
 <style>
-	.button {
+	button {
 		margin: 0.5rem;
 	}
 </style>

@@ -19,8 +19,8 @@
 		</label>
 	</div>
 	<div class="actions">
-		<button on:click={() => account.rejectLoadingStep()} class="button error">Cancel</button>
-		<button on:click={() => account.acceptLoadingStep({doNotAskAgainSignature})} class="button success">Sign</button>
+		<button on:click={() => account.rejectLoadingStep()} class="error">Cancel</button>
+		<button on:click={() => account.acceptLoadingStep({doNotAskAgainSignature})} class="success">Sign</button>
 	</div>
 </Modal>
 

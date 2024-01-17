@@ -23,11 +23,11 @@
 					on:click={async () => {
 						await execution.cancel();
 					}}
-					class="button error">Cancel</button
+					class="error">Cancel</button
 				>
 				<button
 					on:click={() => network.switchTo($contractsInfos.chainId, getNetworkConfig($contractsInfos.chainId))}
-					class="button success">Switch</button
+					class="success">Switch</button
 				>
 			</div>
 		</Modal>
@@ -42,7 +42,7 @@
 					on:click={async () => {
 						await execution.cancel();
 					}}
-					class="button error">Cancel</button
+					class="error">Cancel</button
 				>
 				<button
 					disabled={$connection.connecting}

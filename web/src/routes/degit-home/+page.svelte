@@ -18,7 +18,7 @@
 	<p class="welcome">Welcome to your <span class="spin" />!</p>
 	<div class="wrapper">
 		<div class="button-wrapper">
-			<a class="button primary" href={route('/demo/')} aria-label="Try the Demo!">Demo</a>
+			<a role="button" class="primary" href={route('/demo/')} aria-label="Try the Demo!">Demo</a>
 		</div>
 	</div>
 </section>
@@ -123,7 +123,7 @@
 		}
 	}
 
-	.button {
+	a[role='button'] {
 		height: 3rem;
 		display: flex;
 		justify-content: center;

@@ -26,18 +26,14 @@
 		</p>
 
 		<p class="message">You'll need to shutdown and reopen your browser</p>
-		<button class="button" tabindex="0" on:click={() => location.reload()}> Else Try Reload? </button>
+		<button tabindex="0" on:click={() => location.reload()}> Else Try Reload? </button>
 	</AlertWithSlot>
 {:else if $network.hasEncounteredBlocksCacheIssue}
 	<AlertWithSlot>
 		<p class="main-message">You seemed to have recovered from Block Cacke Issue</p>
 
 		<p class="message">You most likely need to clear any data dervided from the chain as it may be invalid.</p>
-		<button
-			class="button"
-			tabindex="0"
-			on:click={() => resetIndexer().then(() => network.acknowledgeBlockCacheIssue())}
-		>
+		<button tabindex="0" on:click={() => resetIndexer().then(() => network.acknowledgeBlockCacheIssue())}>
 			Clear
 		</button>
 	</AlertWithSlot>

@@ -22,7 +22,7 @@
 			<h3 class="title">Welcome to Jolly-Roger</h3>
 			<p class="message">Sign the message to access to your data.</p>
 			<div class="modal-action">
-				<button on:click={() => account.rejectLoadingStep()} class="button error">Cancel</button>
+				<button on:click={() => account.rejectLoadingStep()} class="error">Cancel</button>
 			</div>
 		</Modal>
 	{:else if $account.loadingStep.id == 'WELCOME'}
@@ -32,8 +32,8 @@
 			<h3 class="title">{$account.loadingStep.id}</h3>
 			<p class="message">{$account.loadingStep.id}</p>
 			<div class="modal-action">
-				<button on:click={() => account.rejectLoadingStep()} class="button error">Cancel</button>
-				<button on:click={() => account.acceptLoadingStep()} class="button success">Continue</button>
+				<button on:click={() => account.rejectLoadingStep()} class="error">Cancel</button>
+				<button on:click={() => account.acceptLoadingStep()} class="success">Continue</button>
 			</div>
 		</Modal>
 	{/if}

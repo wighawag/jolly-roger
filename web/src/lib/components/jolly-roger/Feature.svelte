@@ -15,7 +15,7 @@
 
 <style>
 	h3 {
-		color: var(--color-background-primary-100);
+		color: var(--color-primary-600);
 	}
 
 	p,

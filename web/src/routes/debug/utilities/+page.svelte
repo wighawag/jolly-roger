@@ -29,7 +29,7 @@
 
 	{#if error}
 		{error.message}
-		<button class={`btn btn-error m-2`} on:click={() => (error = undefined)}>OK</button>
+		<button class="error" on:click={() => (error = undefined)}>OK</button>
 	{:else}
 		<Executor func={increaseBlockTime} args={[1 * 3600]}>Add 1 hours</Executor>
 		<Executor func={increaseBlockTime} args={[23 * 3600]}>Add 23 hours</Executor>

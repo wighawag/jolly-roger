@@ -26,8 +26,7 @@
 
 <div bind:this={element} use:focusTrap={true}>
 	{#if showCancelButton}
-		<button on:click={() => (onResponse ? onResponse(false) : modalStore.close())} class="button close-button">✕</button
-		>
+		<button on:click={() => (onResponse ? onResponse(false) : modalStore.close())} class="close-button">✕</button>
 	{/if}
 	{#if settings?.type && settings.type !== 'custom'}
 		{#if settings.type === 'info'}
@@ -45,12 +44,8 @@
 				{settings.message}
 			</p>
 			<div class="actions">
-				<button on:click={() => (onResponse ? onResponse(false) : modalStore.close())} class="button error"
-					>Cancel</button
-				>
-				<button on:click={() => (onResponse ? onResponse(true) : modalStore.close())} class="button success"
-					>Confirm</button
-				>
+				<button on:click={() => (onResponse ? onResponse(false) : modalStore.close())} class="error">Cancel</button>
+				<button on:click={() => (onResponse ? onResponse(true) : modalStore.close())} class="success">Confirm</button>
 			</div>
 		{:else}
 			<!-- TODO more -->
@@ -79,8 +74,5 @@
 	.message {
 		padding-top: 1rem;
 		padding-bottom: 1rem;
-	}
-
-	.actions {
 	}
 </style>

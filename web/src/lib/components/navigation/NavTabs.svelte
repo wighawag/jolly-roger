@@ -18,7 +18,7 @@
 		margin: 0;
 		list-style-type: none;
 		padding: 8px 8px 0px 0px;
-		background-color: var(--color-background-base);
-		border-bottom: 4px solid var(--color-background-primary);
+		background-color: var(--color-surface-500);
+		border-bottom: 4px solid var(--color-primary-500);
 	}
 </style>

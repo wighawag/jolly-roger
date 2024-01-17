@@ -91,7 +91,7 @@
 
 					contracts.Registry.write.setMessage([messageToSend, 12]);
 				})}
-			class="button primary">Say it!</button
+			class="primary">Say it!</button
 		>
 	</form>
 </main>
@@ -181,8 +181,8 @@
 	.input {
 		line-height: 1;
 		height: 2.25rem;
-		background-color: var(--color-background-base-300);
-		color: white;
+		background-color: var(--color-surface-800);
+		color: var(--color-text-on-surface);
 		width: 90%;
 		max-width: 15rem;
 		border: 2px solid black;

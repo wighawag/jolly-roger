@@ -4,35 +4,72 @@
 
 /* Colors */
 :root {
-	--color-text-base: white;
-	--color-background-base: hsl(231.43 15% 18%);
+	--color-surface: 231.43 15%;
+	--color-surface-lightness: 18%;
+	--color-on-surface: 0 0%;
+	--color-on-surface-lightness: 100%;
 
-	--color-background-base-100: hsl(231.43 15% 16%);
-	--color-background-base-200: hsl(231.43 15% 16%);
-	--color-background-base-300: hsl(231.43 16% 14%);
+	--color-lighness-direction: -1;
 
-	--color-text-primary: black;
-	--color-background-primary: hsl(325.52 100% 74%);
-	--color-text-primary-100: black;
-	--color-background-primary-100: hsl(325.52 100% 64%);
+	--color-primary: 325.52 100%;
+	--color-primary-lightness: 74%;
+	--color-on-primary: 0 0%;
+	--color-on-primary-lightness: 0%;
 
-	--color-text-secondary: black;
-	--color-background-secondary: hsl(264.71 89% 78%);
-	--color-text-secondary-100: black;
-	--color-background-secondary-100: hsl(264.71 54% 67%);
+	--color-secondary: 264.71 89%;
+	--color-secondary-lightness: 78%;
+	--color-on-secondary: 0 0%;
+	--color-on-secondary-lightness: 0%;
 
-	--color-link-base: white;
+	--color-error: 0 85.48%;
+	--color-error-lightness: 62.99%;
+	--color-on-error: 0 0%;
+	--color-on-error-lightness: 0%;
 
-	--color-error: hsl(0 85.48% 62.99%);
-	--color-error-100: hsl(0 85.48% 52.99%);
-	--color-success: hsl(135.18 66.47% 56.04%);
-	--color-success-100: hsl(135.18 66.47% 46.04%);
-	--color-background-error: var(--color-error);
-	--color-background-error-hover: var(--color-error-100);
-	--color-background-success: var(--color-success);
-	--color-background-success-hover: var(--color-success-100);
-	--color-text-error: black;
-	--color-text-success: black;
+	--color-success: 135.18 66.47%;
+	--color-success-lightness: 56.04%;
+	--color-on-success: 0 0%;
+	--color-on-success-lightness: 0%;
+
+	--color-text-on-surface: hsl(var(--color-on-surface) var(--color-on-surface-lightness));
+	--color-text-for-links: hsl(var(--color-on-surface) var(--color-on-surface-lightness));
+
+	--color-surface-500: hsl(var(--color-surface) var(--color-surface-lightness));
+	--color-surface-600: hsl(
+		var(--color-surface) calc(var(--color-surface-lightness) + var(--color-lighness-direction) * 2%)
+	);
+	--color-surface-700: hsl(
+		var(--color-surface) calc(var(--color-surface-lightness) + var(--color-lighness-direction) * 3%)
+	);
+	--color-surface-800: hsl(
+		var(--color-surface) calc(var(--color-surface-lightness) + var(--color-lighness-direction) * 4%)
+	);
+
+	--color-primary-500: hsl(var(--color-primary) var(--color-primary-lightness));
+	--color-primary-600: hsl(
+		var(--color-primary) calc(var(--color-primary-lightness) + var(--color-lighness-direction) * 10%)
+	);
+	--color-text-on-primary-500: hsl(var(--color-on-primary) var(--color-on-primary-lightness));
+	--color-text-on-primary-600: hsl(var(--color-on-primary) var(--color-on-primary-lightness));
+
+	--color-secondary-500: hsl(var(--color-secondary) var(--color-secondary-lightness));
+	--color-secondary-600: hsl(
+		var(--color-secondary) calc(var(--color-secondary-lightness) + var(--color-lighness-direction) * 11%)
+	);
+	--color-text-on-secondary-500: hsl(var(--color-on-secondary) var(--color-on-secondary-lightness));
+	--color-text-on-secondary-600: hsl(var(--color-on-secondary) var(--color-on-secondary-lightness));
+
+	--color-error-500: hsl(var(--color-error) var(--color-error-lightness));
+	--color-error-600: hsl(var(--color-error) calc(var(--color-error-lightness) + var(--color-lighness-direction) * 10%));
+	--color-text-on-error-500: hsl(var(--color-on-error) var(--color-on-error-lightness));
+	--color-text-on-error-600: hsl(var(--color-on-error) var(--color-on-error-lightness));
+
+	--color-success-500: hsl(var(--color-success) var(--color-success-lightness));
+	--color-success-600: hsl(
+		var(--color-success) calc(var(--color-success-lightness) + var(--color-lighness-direction) * 10%)
+	);
+	--color-text-on-success-500: hsl(var(--color-on-success) var(--color-on-success-lightness));
+	--color-text-on-success-600: hsl(var(--color-on-success) var(--color-on-success-lightness));
 }
 
 /* ------------------------------------------------- */

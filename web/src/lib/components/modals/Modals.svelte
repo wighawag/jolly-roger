@@ -99,7 +99,7 @@
 	}
 
 	.modal {
-		background-color: var(--color-background-base-300);
+		background-color: var(--color-surface-800);
 		border-radius: 1rem;
 		padding: 1rem;
 

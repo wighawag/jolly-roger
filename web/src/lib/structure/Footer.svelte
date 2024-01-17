@@ -65,7 +65,7 @@
 			align-items: center;
 		}
 
-		background-color: var(--color-background-base-100);
+		background-color: var(--color-surface-600);
 	}
 
 	@media (max-width: 600px) {
