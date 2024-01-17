@@ -11,10 +11,10 @@
     "abitype": "^0.10.3",
     "eip-1193": "^0.4.7",
     "ipfs-gateway-emulator": "4.2.1-ipfs.2",
-    "prettier": "^3.2.3",
+    "prettier": "^3.2.4",
     "prettier-plugin-svelte": "^3.1.2",
     "pwag": "0.2.0",
-    "svelte": "^4.2.8",
+    "svelte": "^4.2.9",
     "svelte-check": "^3.6.3",
     "tslib": "^2.6.2",
     "typescript": "^5.3.3",
@@ -37,7 +37,7 @@
     "theme-change": "^2.5.0",
     "viem": "^2.1.1",
     "web3-connection": "^0.1.12",
-    "web3-connection-viem": "^0.1.0"
+    "web3-connection-viem": "^0.1.3"
   },
   "scripts": {
     "prepare": "pwag static/icon.svg src/web-config.json",
