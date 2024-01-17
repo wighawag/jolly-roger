@@ -35,16 +35,7 @@
 		padding-bottom: 1rem;
 	}
 
-	.checkbox {
-	}
-
 	label {
 		cursor: pointer;
-	}
-
-	.label-text {
-	}
-
-	.actions {
 	}
 </style>

@@ -59,29 +59,25 @@
 	}
 
 	.image-container {
-		/* flex-shrink-0 pt-0.5 */
 		padding-top: 0.125rem;
 		flex-shrink: 0;
 	}
 
 	.logo {
-		/* h-16 w-16 rounded-box border-2 border-base-200 */
 		width: 4rem;
 		height: 4rem;
 		border-width: 2px;
 		border-radius: 1rem;
-		border-color: var(--color-surface-700); /* TODO */
+		border-color: var(--color-surface-700);
 	}
 
 	.content {
-		/* ml-3 w-0 flex-1 */
 		margin-left: 0.75rem;
 		flex: 1 1 0%;
 		width: 0;
 	}
 
 	.text {
-		/* text-base font-medium */
 		color: var(--color-text-on-surface);
 		font-size: 1rem;
 		line-height: 1.5rem;
@@ -89,7 +85,6 @@
 	}
 
 	.buttons-container {
-		/* mt-4 flex */
 		display: flex;
 		margin-top: 1rem;
 		gap: 1rem;

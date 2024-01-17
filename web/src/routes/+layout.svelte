@@ -85,8 +85,8 @@
 	}
 
 	/* This target the inner Footer element thanks to rootClass */
-	/* Svelte has no way to parametrize non-global class due to its strong encapsulation 8?
-	/* But with css we often need to affter child position from parents */
+	/* Svelte has no way to parametrize non-global class due to its strong encapsulation
+	/* But with css we often need to alter child position from parents */
 	.page :global(.footer) {
 		margin-top: auto;
 	}

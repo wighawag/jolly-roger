@@ -88,7 +88,6 @@
 
 	.dropdown {
 		display: inline;
-		/* background-color: var(--color-background-base-300); */
 	}
 
 	.font-icon {
@@ -96,16 +95,13 @@
 		height: 2rem;
 	}
 	.menu {
-		/* visibility: hidden; */
 		position: absolute;
 		display: flex;
 		justify-content: center;
 		right: 0;
 		list-style: none;
-		/* menu menu-compact dropdown-content mt-3 p-2 shadow bg-base-200 rounded-box w-52 */
 		padding: 16px;
 		border-radius: 16px;
-		/* width: 13rem; */
 		box-shadow:
 			4px 6px 3px 0 rgb a(1, 0, 0, 0.1),
 			4px 6px 2px 0 rgba(0, 0, 0, 0.06);
@@ -118,7 +114,6 @@
 	}
 
 	.blockie-button {
-		/* btn btn-ghost btn-circle avatar */
 		width: 3rem;
 		height: 3rem;
 		display: inline-flex;
@@ -127,7 +122,6 @@
 		padding-inline: revert;
 	}
 	.blockie-wrapper {
-		/* w-10 rounded-full */
 		border-radius: 9999px;
 		overflow: hidden;
 

@@ -286,7 +286,7 @@
 		.actions {
 			display: initial;
 		}
-		.button {
+		a[role='button'] {
 			display: block;
 			margin-bottom: 16px;
 		}

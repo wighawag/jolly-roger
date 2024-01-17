@@ -19,7 +19,6 @@
 
 <style>
 	section {
-		/* py-2 px-4 text-center */
 		padding-top: 0.5rem;
 		padding-bottom: 0.5rem;
 		padding-left: 1rem;
@@ -27,7 +26,6 @@
 		text-align: center;
 	}
 	.wrapper {
-		/* max-w-auto md:max-w-lg mx-auto */
 		max-width: fit-content;
 		margin-inline: auto;
 	}

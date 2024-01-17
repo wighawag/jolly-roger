@@ -58,14 +58,12 @@
 
 <style>
 	.close-button {
-		/* btn btn-sm btn-circle absolute right-2 top-2 */
 		position: absolute;
 		top: 0.5rem;
 		right: 0.5rem;
 	}
 
 	.title {
-		/* font-bold text-lg */
 		font-size: 1.125rem;
 		line-height: 1.75rem;
 		font-weight: 700;

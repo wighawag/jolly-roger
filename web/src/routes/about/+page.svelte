@@ -52,7 +52,6 @@
 	}
 
 	.feature {
-		/* text-xl flex justify-center space-x-2 my-8 */
 		display: flex;
 		margin-top: 2rem;
 		margin-bottom: 2rem;
@@ -63,26 +62,22 @@
 	}
 
 	.first {
-		/* font-black my-8 */
 		margin-top: 2rem;
 		margin-bottom: 2rem;
 		font-weight: 900;
 	}
 
 	.actions {
-		/* pt-3 pb-4 */
 		padding-top: 0.75rem;
 		padding-bottom: 1rem;
 	}
 
 	.use-it {
-		/* m-4 font-semibold */
 		margin: 1rem;
 		font-weight: 600;
 	}
 
 	.more-info {
-		/* mt-6 text-base-300 */
 		margin-top: 1.5rem;
 	}
 </style>

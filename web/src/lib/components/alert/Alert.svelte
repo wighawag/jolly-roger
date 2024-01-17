@@ -33,8 +33,6 @@
 		max-width: 100%;
 		z-index: 1001;
 
-		/* fixed top-0 px-4 py-3 m-2 border-2 rounded-box */
-
 		position: fixed;
 		top: 0;
 		margin: 0.5rem;
@@ -55,14 +53,12 @@
 	}
 
 	.font-icon {
-		/* fill-current h-6 w-6 */
 		width: 1.5rem;
 		height: 1.5rem;
 		fill: currentColor;
 	}
 
 	.close-button {
-		/* absolute top-0 bottom-0 right-0 px-4 py-3 */
 		position: absolute;
 		top: 0;
 		right: 0;
