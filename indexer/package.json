@@ -15,7 +15,7 @@
     "ethereum-indexer-cli": "^0.6.24",
     "ethereum-indexer-server": "^0.6.27",
     "ldenv": "^0.3.9",
-    "prettier": "^3.2.2",
+    "prettier": "^3.2.3",
     "tsup": "^8.0.1",
     "typescript": "^5.3.3",
     "wait-on": "^7.2.0"
