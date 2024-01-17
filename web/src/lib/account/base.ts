@@ -1,6 +1,6 @@
 import type {PendingTransaction, EIP1193TransactionWithMetadata, PendingTransactionState} from 'ethereum-tx-observer';
 import type {AccountHandler, AccountInfo, OnPendingTransaction, SyncInfo} from './types';
-import {initEmitter} from 'radiate';
+import {initEmitter, type Emitter} from 'radiate';
 import {AccountDB} from './account-db';
 import {writable, type Readable, type Writable} from 'svelte/store';
 
@@ -8,13 +8,6 @@ export type OnChainAction<T> = {
 	tx: EIP1193TransactionWithMetadata<T>;
 } & PendingTransactionState;
 export type OnChainActions<T> = {[hash: `0x${string}`]: OnChainAction<T>};
-
-// TODO export this type in radiate
-type Emitter<T> = {
-	on: (func: (v: T) => void) => () => void;
-	off: (func: (v: T) => void) => void;
-	emit(v: T): void;
-};
 
 export abstract class BaseAccountHandler<
 	T extends {onchainActions: OnChainActions<Metadata>},

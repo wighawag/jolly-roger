@@ -334,7 +334,6 @@ export class AccountDB<T extends Record<string, unknown>> implements Readable<Sy
 			throw new Error(`no sync URI`);
 		}
 		return fetch(this.syncURI, {
-			// TODO env variable
 			method: 'POST',
 			body: JSON.stringify({
 				method,
