@@ -32,7 +32,7 @@ return the last message from the given `user`.
 
 *Signature*: messages(address)
 
-function messages(address user) view returns (tuple(string content, uint256 timestamp, uint24 dayTimeInSeconds) userMsg)
+function messages(address user) view returns ((string content, uint256 timestamp, uint24 dayTimeInSeconds) userMsg)
 
 | Name | Description 
 | ---- | ----------- 
