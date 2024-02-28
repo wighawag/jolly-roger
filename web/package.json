@@ -47,7 +47,7 @@
     "web3-connection-viem": "^0.0.1"
   },
   "scripts": {
-    "prepare": "pwag static/icon.svg src/web-config.json",
+    "prepare": "pwag static/icon.svg src/web-config.json && cp static/pwa/favicon-512.png static/maskable_icon_512x512.png",
     "dev": "echo 'waiting for src/data/contracts.ts...'; wait-on src/data/contracts.ts && ldenv vite dev",
     "build": "npm run prepare && ldenv vite build",
     "preview": "ldenv vite preview",
