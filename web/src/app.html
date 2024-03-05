@@ -46,12 +46,6 @@
 		</script>
 
 		%sveltekit.head%
-		<!-- ensure theme is considered right away, no flash -->
-		<script>
-			try {
-				document.documentElement.setAttribute('data-theme', localStorage.getItem('theme'));
-			} catch (e) {}
-		</script>
 	</head>
 
 	<body data-sveltekit-preload-data="hover">
