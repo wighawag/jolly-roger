@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import '../app.postcss';
 	import ThemeChanger from '$lib/components/daisyui/ThemeChanger.svelte';
 	import NavTabs from '$lib/components/daisyui/NavTabs.svelte';
