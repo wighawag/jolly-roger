@@ -3,3 +3,4 @@ packages:
   - 'contracts'
   - 'indexer'
   - 'web'
+  - 'helper-services/*'

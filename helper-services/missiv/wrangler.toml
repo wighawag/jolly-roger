@@ -1,0 +1,19 @@
+name = "missiv-worker"
+main = "node_modules/missiv-server/src/worker.ts"
+compatibility_date = "2023-05-18"
+
+
+[[d1_databases]]
+binding = "DB"
+database_name = "missiv-db"
+database_id = "accc2885-d412-447d-a1ed-daf6758cb8e4"
+
+[durable_objects]
+bindings = [
+  { name = "ROOMS", class_name = "ChatRoom" },
+  { name = "LIMITERS", class_name = "RateLimiter" }
+]
+
+[[migrations]]
+tag = "v1"
+new_classes = ["ChatRoom", "RateLimiter"]

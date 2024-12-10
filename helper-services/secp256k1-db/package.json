@@ -1,0 +1,11 @@
+{
+    "name": "secp256k1-db-service",
+    "devDependencies": {
+        "secp256k1-db": "^0.0.1",
+        "wrangler": "^3.60.1"
+    },
+    "scripts": {
+        "dev": "wrangler dev -c ./wrangler.toml --port 34001",
+        "wrangler": "wrangler"
+    }
+}

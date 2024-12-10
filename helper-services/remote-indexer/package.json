@@ -1,0 +1,12 @@
+{
+    "name": "remote-indexer-service",
+    "devDependencies": {
+        "ethereum-indexer-cli": "^0.6.30",
+        "ethereum-indexer-server": "^0.6.32",
+        "jolly-roger-indexer": "workspace:*"
+    },
+    "scripts": {
+        "dev": "eis -p jolly-roger-indexer -d ../../contracts/deployments/localhost -n http://127.0.0.1:8545 --port 34003",
+        "generate": "ei -f data.json -p jolly-roger-indexer -d ../../contracts/deployments/localhost -n http://127.0.0.1:8545--port 34003"
+    }
+}

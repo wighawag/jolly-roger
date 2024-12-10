@@ -1,0 +1,9 @@
+name = "secp256k1-db"
+main = "node_modules/secp256k1-db/src/index.ts"
+compatibility_date = "2023-05-18"
+
+[[kv_namespaces]]
+binding = "PRIVATE_STORE"
+id = "6a9b71a2c97d41fcb298a9ed9726f1f2"
+preview_id = "a6327ec076ba42f589d1791afa537cf5"
+

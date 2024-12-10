@@ -1,0 +1,16 @@
+{
+    "name": "missiv-service",
+    "devDependencies": {
+        "ldenv": "^0.3.10",
+        "missiv-server": "^0.0.11",
+        "set-defaults": "^0.0.2",
+        "wait-on": "^7.2.0",
+        "wrangler": "^3.60.1"
+    },
+    "scripts": {
+        "prepare": "set-defaults .",
+        "dev:worker": "wrangler d1 execute missiv-db --local --file=./node_modules/missiv-server/schema.sql && wrangler dev -c ./wrangler.toml --port 34003",
+        "dev": "pnpm run /^dev:.*/",
+        "wrangler": "wrangler"
+    }
+}
