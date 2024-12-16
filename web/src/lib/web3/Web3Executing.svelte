@@ -4,10 +4,19 @@
 	import Modal from '$lib/components/modals/Modal.svelte';
 	import type {connection as Connection, execution as Execution, network as Network, account as Account} from './';
 
-	export let connection: typeof Connection;
-	export let account: typeof Account;
-	export let execution: typeof Execution;
-	export let network: typeof Network;
+	interface Props {
+		connection: typeof Connection;
+		account: typeof Account;
+		execution: typeof Execution;
+		network: typeof Network;
+	}
+
+	let {
+		connection,
+		account,
+		execution,
+		network
+	}: Props = $props();
 </script>
 
 {#if $execution.executing}
@@ -20,13 +29,13 @@
 			</p>
 			<div class="modal-action">
 				<button
-					on:click={async () => {
+					onclick={async () => {
 						await execution.cancel();
 					}}
 					class="btn btn-error">Cancel</button
 				>
 				<button
-					on:click={() => network.switchTo($contractsInfos.chainId, getNetworkConfig($contractsInfos.chainId))}
+					onclick={() => network.switchTo($contractsInfos.chainId, getNetworkConfig($contractsInfos.chainId))}
 					class="btn">Switch</button
 				>
 			</div>
@@ -39,7 +48,7 @@
 			<h3 class="text-lg font-bold">To proceed, you need to connect to a wallet.</h3>
 			<div class="modal-action">
 				<button
-					on:click={async () => {
+					onclick={async () => {
 						await execution.cancel();
 					}}
 					class="btn btn-error">Cancel</button
@@ -47,7 +56,7 @@
 				<button
 					disabled={$connection.connecting}
 					class={`${$connection.initialised ? '' : '!invisible'} m-1 btn btn-primary`}
-					on:click={() => connection.connect()}>{$connection.connecting ? 'Connecting' : 'Connect'}</button
+					onclick={() => connection.connect()}>{$connection.connecting ? 'Connecting' : 'Connect'}</button
 				>
 			</div>
 		</Modal>

@@ -1,11 +1,13 @@
 <script lang="ts">
 	// blockie generation code from https://github.com/stephensprinkle/react-blockies, itself referenced from https://github.com/alexvandesande/blockies
-	import {afterUpdate} from 'svelte';
 
-	export let _class = '';
-	export {_class as class};
-	export let address: string;
-	export let scale = 4;
+	interface Props {
+		rootClass?: string;
+		address: string;
+		scale?: number;
+	}
+
+	let {rootClass = '', address, scale = 4}: Props = $props();
 
 	let lastOptions:
 		| {
@@ -85,7 +87,7 @@
 		color: string,
 		scale: number,
 		bgcolor: string,
-		spotcolor: string
+		spotcolor: string,
 	) {
 		const width = Math.sqrt(imageData.length);
 		const size = width * scale;
@@ -133,10 +135,12 @@
 		setCanvas(canvas, imageData, color, scale, bgcolor, spotcolor);
 	}
 
-	afterUpdate(update);
+	$effect(() => {
+		update();
+	});
 </script>
 
-<canvas class={_class} bind:this={canvas} />
+<canvas class={rootClass} bind:this={canvas}></canvas>
 
 <style>
 	canvas {

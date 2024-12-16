@@ -1,16 +1,20 @@
 <script lang="ts">
 	import type {connection as Connection} from './';
-	export let connection: typeof Connection;
 	import {url} from '$lib/utils/path';
 	import Modal from '$lib/components/modals/Modal.svelte';
+	interface Props {
+		connection: typeof Connection;
+	}
+
+	let { connection }: Props = $props();
 
 	const builtin = connection.builtin;
 
-	$: builtinNeedInstalation =
-		(connection.options.filter((v) => v === 'builtin').length > 0 || connection.options.length === 0) &&
-		!$builtin.available;
+	let builtinNeedInstalation =
+		$derived((connection.options.filter((v) => v === 'builtin').length > 0 || connection.options.length === 0) &&
+		!$builtin.available);
 
-	$: options = connection.options
+	let options = $derived(connection.options
 		.filter((v) => v !== 'builtin' || $builtin.available)
 		.map((v) => {
 			return {
@@ -37,7 +41,7 @@
 				id: v,
 				name: v,
 			};
-		});
+		}));
 </script>
 
 {#if $connection.requireSelection}
@@ -48,13 +52,13 @@
 		<div class="flex flex-wrap justify-center pb-3">
 			{#each options as option}
 				<!-- TODO handle a11y-->
-				<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-noninteractive-element-interactions
+				<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions
 permalink-->
 				<img
 					class="cursor-pointer p-2 m-2 border-2 h-12 w-12 object-contain"
 					alt={`Login with ${option.name}`}
 					src={url(`/${option.img}`)}
-					on:click={() => connection.select(option.id)}
+					onclick={() => connection.select(option.id)}
 				/>
 			{/each}
 		</div>

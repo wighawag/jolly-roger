@@ -7,12 +7,12 @@
 
 {#if $account.state === 'Disconnected' || $account.locked}
 	{#if $account.locked}
-		<button class="m-1 btn btn-primary" disabled={$account.unlocking} on:click={() => account.unlock()}>unlock</button>
+		<button class="m-1 btn btn-primary" disabled={$account.unlocking} onclick={() => account.unlock()}>unlock</button>
 	{:else}
 		<button
 			disabled={$connection.connecting}
 			class={`${$connection.initialised ? '' : '!invisible'} m-1 btn btn-primary`}
-			on:click={() => connection.connect()}>{$connection.connecting ? 'Connecting' : 'Connect'}</button
+			onclick={() => connection.connect()}>{$connection.connecting ? 'Connecting' : 'Connect'}</button
 		>
 	{/if}
 {:else}
@@ -22,14 +22,14 @@
 					<ImgBlockie address={$account.address || ''} />
 				</div>
 			</div> -->
-	<!-- svelte-ignore a11y-no-noninteractive-tabindex -->
-	<!-- svelte-ignore a11y-label-has-associated-control -->
+	<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+	<!-- svelte-ignore a11y_label_has_associated_control -->
 	{#if $network.notSupported}
-		<!-- svelte-ignore a11y-click-events-have-key-events -->
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<svg
 			role="button"
 			tabindex="0"
-			on:click={() => network.switchTo($contractsInfos.chainId, getNetworkConfig($contractsInfos.chainId))}
+			onclick={() => network.switchTo($contractsInfos.chainId, getNetworkConfig($contractsInfos.chainId))}
 			xmlns="http://www.w3.org/2000/svg"
 			fill="none"
 			viewBox="0 0 24 24"
@@ -47,7 +47,7 @@
 	<div class="dropdown dropdown-end">
 		<div class="indicator">
 			{#if $pendingActions.list.length > 0}
-				<span style="--tw-translate-x: 10;" class="indicator-item badge badge-secondary" />
+				<span style="--tw-translate-x: 10;" class="indicator-item badge badge-secondary"></span>
 			{/if}
 			<button class="btn btn-ghost btn-circle avatar">
 				<div class="w-10 rounded-full">
@@ -55,10 +55,10 @@
 				</div>
 			</button>
 		</div>
-		<!-- svelte-ignore a11y-no-noninteractive-tabindex -->
+		<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 		<ul tabindex="0" class="menu menu-compact dropdown-content mt-3 p-2 shadow bg-base-200 rounded-box w-52">
 			<li>
-				<button class="m-1 btn btn-error text-error-content" on:click={() => connection.disconnect()}>disconnect</button
+				<button class="m-1 btn btn-error text-error-content" onclick={() => connection.disconnect()}>disconnect</button
 				>
 			</li>
 		</ul>

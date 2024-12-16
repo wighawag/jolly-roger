@@ -3,18 +3,31 @@
 	import {createEventDispatcher} from 'svelte';
 	import {clipboard} from './clipboard';
 
+	// TODO move to function callback
 	const dispatch = createEventDispatcher<{copied: string}>();
 
-	export let text = '';
-	export let background = '';
-	export let copiedBackground = '';
-	export let boxClass = '';
-	let className = '';
-	export {className as class};
-	export let copiedColor = '';
+	
+	interface Props {
+		text?: string;
+		background?: string;
+		copiedBackground?: string;
+		boxClass?: string;
+		class?: string;
+		copiedColor?: string;
+		copied?: (str: string) => void;
+	}
+
+	let {
+		text = '',
+		background = '',
+		copiedBackground = '',
+		boxClass = '',
+		class: className = '',
+		copiedColor = ''
+	}: Props = $props();
 
 	// Local
-	let copyState = false;
+	let copyState = $state(false);
 	function onCopyClick(event: CustomEvent<string>) {
 		copyState = true;
 		setTimeout(() => {
@@ -26,12 +39,12 @@
 	}
 </script>
 
-<!-- svelte-ignore a11y-click-events-have-key-events -->
+<!-- svelte-ignore a11y_click_events_have_key_events -->
 <div
 	role="button"
 	tabindex="0"
 	class={`${boxClass} ${copyState ? copiedBackground : background}`}
-	on:copied={onCopyClick}
+	oncopied={onCopyClick}
 	use:clipboard={text}
 >
 	{#if copyState}

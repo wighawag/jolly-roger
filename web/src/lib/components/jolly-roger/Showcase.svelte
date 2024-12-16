@@ -1,12 +1,23 @@
 <script lang="ts">
 	import {url} from '$lib/utils/path';
 
-	export let href: string;
-	export let preview: string;
-	export let name: string;
-	export let title: string;
-	export let description: string;
-	export let source: string | undefined = undefined;
+	interface Props {
+		href: string;
+		preview: string;
+		name: string;
+		title: string;
+		description: string;
+		source?: string | undefined;
+	}
+
+	let {
+		href,
+		preview,
+		name,
+		title,
+		description,
+		source = undefined
+	}: Props = $props();
 </script>
 
 <div class="flex flex-col rounded-lg shadow-lg bg-base-200 overflow-hidden">

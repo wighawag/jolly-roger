@@ -1,13 +1,22 @@
 <script lang="ts">
-	export let address: string;
-	export let offset: number = 0;
-	export let style: string | undefined = undefined;
-	export let _class = '';
-	export {_class as class};
+	
 
 	import {Blockie} from '$lib/utils/eth/blockie';
+	interface Props {
+		address: string;
+		offset?: number;
+		style?: string | undefined;
+		class?: string;
+	}
 
-	$: uri = Blockie.getURI(address, offset);
+	let {
+		address,
+		offset = 0,
+		style = undefined,
+		class: _class = ''
+	}: Props = $props();
+
+	let uri = $derived(Blockie.getURI(address, offset));
 </script>
 
 <img class={_class} {style} src={uri} alt={address} />

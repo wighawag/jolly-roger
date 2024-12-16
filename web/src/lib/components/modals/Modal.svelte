@@ -11,13 +11,24 @@
 
 	// ----------------------------------------------------------------------------------------------
 	// EXPORTS
-	// ----------------------------------------------------------------------------------------------
-	export let onResponse: ModalResponseCallback | undefined = undefined;
-	export let settings: ModalContentSettings | undefined = undefined;
-	export let cancelation: ModalCancellationOptions | undefined = undefined;
+	
+	interface Props {
+		// ----------------------------------------------------------------------------------------------
+		onResponse?: ModalResponseCallback | undefined;
+		settings?: ModalContentSettings | undefined;
+		cancelation?: ModalCancellationOptions | undefined;
+		children?: import('svelte').Snippet;
+	}
+
+	let {
+		onResponse = undefined,
+		settings = undefined,
+		cancelation = undefined,
+		children
+	}: Props = $props();
 	// ----------------------------------------------------------------------------------------------
 
-	let element: HTMLElement;
+	let element: HTMLElement = $state();
 	onMount(() => {
 		modalStore.trigger({
 			element,
@@ -55,5 +66,5 @@
 </script>
 
 <ModalContent {settings} {cancelation} {onResponse} bind:element>
-	<slot />
+	{@render children?.()}
 </ModalContent>

@@ -1,5 +1,10 @@
 <script lang="ts">
-	export let title: string;
+	interface Props {
+		title: string;
+		children?: import('svelte').Snippet;
+	}
+
+	let { title, children }: Props = $props();
 </script>
 
 <div class="rounded-base border-base">
@@ -8,7 +13,7 @@
 			{title}
 		</h3>
 		<p class="mt-2 leading-6">
-			<slot />
+			{@render children?.()}
 		</p>
 	</div>
 </div>

@@ -7,39 +7,51 @@
 
 	// ----------------------------------------------------------------------------------------------
 	// EXPORTS
-	// ----------------------------------------------------------------------------------------------
-	export let duration = 150;
-	export let flyOpacity = 0;
-	export let flyX = 0;
-	export let flyY = 100;
+	
+	interface Props {
+		// ----------------------------------------------------------------------------------------------
+		duration?: number;
+		flyOpacity?: number;
+		flyX?: number;
+		flyY?: number;
+	}
+
+	let {
+		duration = 150,
+		flyOpacity = 0,
+		flyX = 0,
+		flyY = 100
+	}: Props = $props();
 	// ----------------------------------------------------------------------------------------------
 
 	const dispatch = createEventDispatcher();
 
-	let content: HTMLDivElement;
-	let settings: ModalContentSettings | undefined = undefined;
-	$: if (content && $modalStore[0]) {
-		const modal = $modalStore[0];
-		if ('element' in modal) {
-			if (modal.element.parentNode !== content) {
-				while (content.firstChild) {
-					content.removeChild(content.firstChild);
+	let content: HTMLDivElement = $state() as HTMLDivElement;
+	let settings: ModalContentSettings | undefined = $state(undefined);
+	$effect(() => {
+		if (content && $modalStore[0]) {
+			const modal = $modalStore[0];
+			if ('element' in modal) {
+				if (modal.element.parentNode !== content) {
+					while (content.firstChild) {
+						content.removeChild(content.firstChild);
+					}
+					content.appendChild(modal.element);
 				}
-				content.appendChild(modal.element);
+				settings = undefined;
+			} else {
+				settings = modal.content;
 			}
-			settings = undefined;
-		} else {
-			settings = modal.content;
-		}
-		for (let i = 1; i < $modalStore.length; i++) {
-			const toRemove = $modalStore[i];
-			if ('element' in toRemove) {
-				if (toRemove.element.parentNode) {
-					toRemove.element.parentNode.removeChild(toRemove.element);
+			for (let i = 1; i < $modalStore.length; i++) {
+				const toRemove = $modalStore[i];
+				if ('element' in toRemove) {
+					if (toRemove.element.parentNode) {
+						toRemove.element.parentNode.removeChild(toRemove.element);
+					}
 				}
 			}
 		}
-	}
+	});
 
 	// ----------------------------------------------------------------------------------------------
 	// Event Handlers
@@ -84,7 +96,7 @@
 	// ----------------------------------------------------------------------------------------------
 </script>
 
-<svelte:window on:keydown={onKeyDown} />
+<svelte:window onkeydown={onKeyDown} />
 
 {#if $modalStore.length > 0}
 	<div
@@ -92,8 +104,8 @@
 		tabindex="0"
 		style="pointer-events: auto; visibility: visible; opacity: 1;"
 		class="modal modal-bottom sm:modal-middle cursor-pointer"
-		on:mousedown={onBackdropInteraction}
-		on:touchstart={onBackdropInteraction}
+		onmousedown={onBackdropInteraction}
+		ontouchstart={onBackdropInteraction}
 		transition:fade={{duration}}
 	>
 		<div

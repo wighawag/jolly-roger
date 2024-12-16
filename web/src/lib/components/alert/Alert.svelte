@@ -1,7 +1,11 @@
 <script lang="ts">
-	export let data: {title?: string; message: string; code?: number};
-	export let onClose: (() => void) | undefined = undefined;
-	export let bgBorderText = 'bg-error border-error-content text-error-content';
+	interface Props {
+		data: {title?: string; message: string; code?: number};
+		onClose?: (() => void) | undefined;
+		bgBorderText?: string;
+	}
+
+	let { data, onClose = undefined, bgBorderText = 'bg-error border-error-content text-error-content' }: Props = $props();
 </script>
 
 <div
@@ -19,12 +23,12 @@
 	{/if}
 
 	{#if onClose}
-		<!-- svelte-ignore a11y-click-events-have-key-events-->
+		<!-- svelte-ignore a11y_click_events_have_key_events-->
 		<span
 			role="button"
 			tabindex="0"
 			class="absolute top-0 bottom-0 right-0 px-4 py-3"
-			on:click={() => onClose && onClose()}
+			onclick={() => onClose && onClose()}
 		>
 			<svg class="fill-current h-6 w-6" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
 				><title>Close</title><path

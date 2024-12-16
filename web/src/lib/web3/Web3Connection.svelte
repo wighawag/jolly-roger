@@ -12,11 +12,21 @@
 	import Web3AccountInfo from './Web3AccountInfo.svelte';
 	import Web3Executing from './Web3Executing.svelte';
 
-	export let execution: typeof Execution;
-	export let account: typeof Account;
-	export let connection: typeof Connection;
-	export let pendingActions: typeof PendingActions;
-	export let network: typeof Network;
+	interface Props {
+		execution: typeof Execution;
+		account: typeof Account;
+		connection: typeof Connection;
+		pendingActions: typeof PendingActions;
+		network: typeof Network;
+	}
+
+	let {
+		execution,
+		account,
+		connection,
+		pendingActions,
+		network
+	}: Props = $props();
 </script>
 
 <Web3ConnectionError {connection} {network} />

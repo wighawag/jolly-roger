@@ -1,9 +1,9 @@
 <script lang="ts">
 	import {network} from '$lib/web3';
 
-	$: contractList = $network.contracts
+	let contractList = $derived($network.contracts
 		? Object.keys($network.contracts).map((v) => ({name: v, contract: ($network.contracts as any)[v]}))
-		: undefined;
+		: undefined);
 </script>
 
 {#if contractList}

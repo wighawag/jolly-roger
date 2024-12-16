@@ -1,17 +1,21 @@
 <script lang="ts">
 	import localCache from '$lib/utils/localCache';
 
-	export let src: string;
-	export let alt: string;
+	interface Props {
+		src: string;
+		alt: string;
+	}
+
+	let { src, alt }: Props = $props();
 
 	type BeforeInstallPromptEvent = Event & {
 		prompt: () => void;
 		userChoice: Promise<{outcome: string}>;
 	};
 
-	let show = false;
+	let show = $state(false);
 
-	let deferredPrompt: BeforeInstallPromptEvent;
+	let deferredPrompt: BeforeInstallPromptEvent | undefined = $state();
 	function getVisited() {
 		return localCache.getItem('install-prompt') === 'true';
 	}
@@ -32,8 +36,8 @@
 	function install() {
 		show = false;
 		setVisited();
-		deferredPrompt.prompt();
-		deferredPrompt.userChoice.then(() => {
+		deferredPrompt?.prompt();
+		deferredPrompt?.userChoice.then(() => {
 			// (choice) => {}
 			// TODO ?
 		});
@@ -45,14 +49,14 @@
 	}
 </script>
 
-<svelte:window on:beforeinstallprompt={beforeinstallprompt} on:click={skip} on:scroll={trigger} />
+<svelte:window onbeforeinstallprompt={beforeinstallprompt} onclick={skip} onscroll={trigger} />
 
 {#if deferredPrompt && show}
-	<!-- svelte-ignore a11y-click-events-have-key-events-->
+	<!-- svelte-ignore a11y_click_events_have_key_events-->
 	<div
 		role="button"
 		tabindex="0"
-		on:click={(e) => {
+		onclick={(e) => {
 			e.preventDefault();
 			e.stopPropagation();
 		}}
@@ -80,12 +84,12 @@
             Install it for later
           </p> -->
 						<div class="mt-4 flex">
-							<button on:click={install} type="button" class="btn rounded-btn btn-success btn-sm m-1"> Install </button>
-							<button on:click={decline} type="button" class="btn rounded-btn btn-error btn-sm m-1"> Decline </button>
+							<button onclick={install} type="button" class="btn rounded-btn btn-success btn-sm m-1"> Install </button>
+							<button onclick={decline} type="button" class="btn rounded-btn btn-error btn-sm m-1"> Decline </button>
 						</div>
 					</div>
 					<div class="ml-4 flex-shrink-0 flex">
-						<button on:click={decline} class="rounded-md inline-flex btn btn-active btn-sm">
+						<button onclick={decline} class="rounded-md inline-flex btn btn-active btn-sm">
 							<span class="sr-only">Close</span>
 							<!-- Heroicon name: solid/x -->
 							<svg

@@ -2,11 +2,22 @@
 	import {page} from '$app/stores';
 	import {route, isParentRoute, isSameRoute} from '$lib/utils/path';
 
-	export let href: string;
-	let className = '';
-	export {className as class};
-	export let whenSelected: string = '';
-	export let whenUnselected: string = '';
+	
+	interface Props {
+		href: string;
+		class?: string;
+		whenSelected?: string;
+		whenUnselected?: string;
+		children?: import('svelte').Snippet;
+	}
+
+	let {
+		href,
+		class: className = '',
+		whenSelected = '',
+		whenUnselected = '',
+		children
+	}: Props = $props();
 </script>
 
 <a
@@ -15,5 +26,5 @@
 		(href === '/' ? isSameRoute($page.url.pathname, href) : isParentRoute($page.url.pathname, href))
 			? whenSelected
 			: whenUnselected
-	}`}><slot /></a
+	}`}>{@render children?.()}</a
 >

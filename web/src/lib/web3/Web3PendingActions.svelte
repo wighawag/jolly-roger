@@ -1,8 +1,12 @@
 <script lang="ts">
 	import type {pendingActions as PendingActions} from './';
-	export let pendingActions: typeof PendingActions;
 	import Modal from '$lib/components/modals/Modal.svelte';
 	import {modalStore} from '$lib/components/modals/stores';
+	interface Props {
+		pendingActions: typeof PendingActions;
+	}
+
+	let { pendingActions }: Props = $props();
 </script>
 
 {#if $pendingActions.list.length > 0}

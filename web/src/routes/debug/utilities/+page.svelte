@@ -4,16 +4,16 @@
 	import {createExecutor, enableAnvilLogging, increaseBlockTime} from '$lib/utils/debug';
 	// import {increaseDungeonTime} from '$lib/utils/dungeon';
 
-	let error: any;
-	let state: 'addTime' | undefined;
+	let error: any = $state();
+	let currentState: 'addTime' | undefined = $state();
 
 	async function addTime(numHours: number) {
 		try {
-			state = 'addTime';
+			currentState = 'addTime';
 			await increaseBlockTime(numHours * 3600);
 		} catch (err) {
 		} finally {
-			state = undefined;
+			currentState = undefined;
 		}
 	}
 
@@ -27,9 +27,9 @@
 	// 	}
 	// }
 
-	$: date = new Date($time.timestamp * 1000);
+	let date = $derived(new Date($time.timestamp * 1000));
 
-	let hours = 1;
+	let hours = $state(1);
 
 	// const execute_increaseBlockTime = createExecutor(increaseDungeonTime);
 	const execute_increaseBlockTime = createExecutor(increaseBlockTime);
@@ -40,16 +40,16 @@
 
 {#if error}
 	{error.message}
-	<button class={`btn btn-error m-2`} on:click={() => (error = undefined)}>OK</button>
+	<button class={`btn btn-error m-2`} onclick={() => (error = undefined)}>OK</button>
 {:else}
-	<button class={`btn btn-secondary ${state ? 'btn-disabled' : ''} m-2`} on:click={() => addTime(1)}>Add 1 hour</button>
-	<button class={`btn btn-secondary ${state ? 'btn-disabled' : ''} m-2`} on:click={() => addTime(23)}
+	<button class={`btn btn-secondary ${currentState ? 'btn-disabled' : ''} m-2`} onclick={() => addTime(1)}>Add 1 hour</button>
+	<button class={`btn btn-secondary ${currentState ? 'btn-disabled' : ''} m-2`} onclick={() => addTime(23)}
 		>Add 23 hour</button
 	>
 	<form>
-		<label for="hours" />
+		<label for="hours"></label>
 		<input id="hours" type="number" bind:value={hours} />
-		<button class={`btn btn-secondary ${state ? 'btn-disabled' : ''} m-2`} type="submit" on:click={() => addTime(hours)}
+		<button class={`btn btn-secondary ${currentState ? 'btn-disabled' : ''} m-2`} type="submit" onclick={() => addTime(hours)}
 			>Add {hours} hours</button
 		>
 	</form>

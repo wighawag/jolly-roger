@@ -1,11 +1,15 @@
 <script lang="ts">
 	import type {connection as Connection, network as Network} from './';
-	export let network: typeof Network;
-	export let connection: typeof Connection;
 	import AlertWithSlot from '$lib/components/alert/AlertWithSlot.svelte';
 	import Alert from '$lib/components/alert/Alert.svelte';
 	import {url} from '$lib/utils/path';
 	import {resetIndexer} from '$lib/blockchain/state/State';
+	interface Props {
+		network: typeof Network;
+		connection: typeof Connection;
+	}
+
+	let { network, connection }: Props = $props();
 
 	const builtin = connection.builtin;
 </script>
@@ -40,7 +44,7 @@
 		</p>
 
 		<p class="m-2 font-black">You'll need to shutdown and reopen your browser</p>
-		<button class="btn block mt-3" tabindex="0" on:click={() => location.reload()}> Else Try Reload? </button>
+		<button class="btn block mt-3" tabindex="0" onclick={() => location.reload()}> Else Try Reload? </button>
 	</AlertWithSlot>
 {:else if $network.hasEncounteredBlocksCacheIssue}
 	<AlertWithSlot>
@@ -50,7 +54,7 @@
 		<button
 			class="btn block mt-3"
 			tabindex="0"
-			on:click={() => resetIndexer().then(() => network.acknowledgeBlockCacheIssue())}
+			onclick={() => resetIndexer().then(() => network.acknowledgeBlockCacheIssue())}
 		>
 			Clear
 		</button>

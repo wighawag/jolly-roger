@@ -15,7 +15,7 @@
 		}
 		return n;
 	}
-	$: stateDisplayed = $state && addLengthToFields($state);
+	let stateDisplayed = $derived($state && addLengthToFields($state));
 </script>
 
 <div

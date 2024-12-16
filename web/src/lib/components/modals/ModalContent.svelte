@@ -5,29 +5,41 @@
 
 	// ----------------------------------------------------------------------------------------------
 	// EXPORTS
-	// ----------------------------------------------------------------------------------------------
-	export let element: HTMLElement | undefined = undefined;
-	export let onResponse: ModalResponseCallback | undefined;
-	export let settings:
+	
+	interface Props {
+		// ----------------------------------------------------------------------------------------------
+		element?: HTMLElement | undefined;
+		onResponse: ModalResponseCallback | undefined;
+		settings?: 
 		| ModalContentSettings
 		| {
 				type: 'custom';
 		  }
-		| undefined = undefined;
-	export let cancelation: ModalCancellationOptions | undefined = undefined;
+		| undefined;
+		cancelation?: ModalCancellationOptions | undefined;
+		children?: import('svelte').Snippet;
+	}
 
-	$: showCancelButton =
-		!(cancelation && (cancelation as any).cancelable === false) &&
+	let {
+		element = $bindable(undefined),
+		onResponse,
+		settings = undefined,
+		cancelation = undefined,
+		children
+	}: Props = $props();
+
+	let showCancelButton =
+		$derived(!(cancelation && (cancelation as any).cancelable === false) &&
 		cancelation &&
 		'button' in cancelation &&
-		cancelation.button;
+		cancelation.button);
 	// ----------------------------------------------------------------------------------------------
 </script>
 
 <div bind:this={element} use:focusTrap={true}>
 	{#if showCancelButton}
 		<button
-			on:click={() => (onResponse ? onResponse(false) : modalStore.close())}
+			onclick={() => (onResponse ? onResponse(false) : modalStore.close())}
 			class="btn btn-sm btn-circle absolute right-2 top-2">✕</button
 		>
 	{/if}
@@ -47,18 +59,18 @@
 				{settings.message}
 			</p>
 			<div class="modal-action">
-				<button on:click={() => (onResponse ? onResponse(false) : modalStore.close())} class="btn btn-error"
+				<button onclick={() => (onResponse ? onResponse(false) : modalStore.close())} class="btn btn-error"
 					>Cancel</button
 				>
-				<button on:click={() => (onResponse ? onResponse(true) : modalStore.close())} class="btn btn-success"
+				<button onclick={() => (onResponse ? onResponse(true) : modalStore.close())} class="btn btn-success"
 					>Confirm</button
 				>
 			</div>
 		{:else}
 			<!-- TODO more -->
-			<slot />
+			{@render children?.()}
 		{/if}
 	{:else}
-		<slot />
+		{@render children?.()}
 	{/if}
 </div>

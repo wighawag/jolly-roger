@@ -8,6 +8,11 @@
 	import NoInstallPrompt from '$lib/components/web/NoInstallPrompt.svelte';
 	import {url} from '$lib/utils/path';
 	import Install from '$lib/components/web/Install.svelte';
+	interface Props {
+		children?: import('svelte').Snippet;
+	}
+
+	let { children }: Props = $props();
 
 	const host = canonicalURL.endsWith('/') ? canonicalURL : canonicalURL + '/';
 	const previewImage = host + 'preview.png';
@@ -78,7 +83,7 @@
 <div class="-my-20 flex flex-col min-h-screen justify-between">
 	<!--div to revert -my-20-->
 	<div class="mt-20">
-		<slot />
+		{@render children?.()}
 	</div>
 	<!--TEMPLATE_REMOVE-->
 	<footer class="bg-base-200">

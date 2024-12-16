@@ -2,7 +2,7 @@
 	import {accountData} from '$lib/web3';
 	const actions = accountData.onchainActions;
 
-	$: transactions = Object.keys($actions).map((v) => ({hash: v, transaction: ($actions as any)[v]}));
+	let transactions = $derived(Object.keys($actions).map((v) => ({hash: v, transaction: ($actions as any)[v]})));
 </script>
 
 <ul>

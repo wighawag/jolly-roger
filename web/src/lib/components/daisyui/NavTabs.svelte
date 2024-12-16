@@ -1,13 +1,23 @@
 <script lang="ts">
 	import PageLink from '$lib/components/navigation/PageLink.svelte';
 
-	let className = 'bg-base-100 tabs-boxed';
-	export {className as class};
-	export let tabClass: string = 'tab text-base-content';
-	export let whenSelected: string = 'tab-active font-black';
-	export let whenUnselected: string = '';
+	
 
-	export let pages: {pathname: string; title: string}[];
+	interface Props {
+		class?: string;
+		tabClass?: string;
+		whenSelected?: string;
+		whenUnselected?: string;
+		pages: {pathname: string; title: string}[];
+	}
+
+	let {
+		class: className = 'bg-base-100 tabs-boxed',
+		tabClass = 'tab text-base-content',
+		whenSelected = 'tab-active font-black',
+		whenUnselected = '',
+		pages
+	}: Props = $props();
 </script>
 
 <div class={`tabs ${className}`}>

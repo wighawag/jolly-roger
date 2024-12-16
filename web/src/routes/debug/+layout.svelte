@@ -2,6 +2,11 @@
 	import NavTabs from '$lib/components/daisyui/NavTabs.svelte';
 	import ConnectButton from '$lib/web3/ConnectButton.svelte';
 	import Web3ConnectionUI from '$lib/web3/Web3ConnectionUI.svelte';
+	interface Props {
+		children?: import('svelte').Snippet;
+	}
+
+	let { children }: Props = $props();
 </script>
 
 <div>
@@ -22,6 +27,6 @@
 	</div>
 </div>
 
-<slot />
+{@render children?.()}
 
 <Web3ConnectionUI />

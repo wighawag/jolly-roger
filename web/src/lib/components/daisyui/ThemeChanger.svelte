@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	// from https://github.com/saadeghi/daisyui/blob/41c8b5ba8ba2e7b484bd21b87e5185c577c07fe1/src/docs/src/components/ThemeChange.svelte
 	import {onMount} from 'svelte';
 	import {themes} from './themes';
@@ -6,12 +6,16 @@
 	onMount(() => {
 		themeChange(false);
 	});
-	export let dropdownClasses = '';
-	export let btnClasses = 'btn-ghost';
-	export let contentClasses = 'mt-16';
+	interface Props {
+		dropdownClasses?: string;
+		btnClasses?: string;
+		contentClasses?: string;
+	}
+
+	let { dropdownClasses = '', btnClasses = 'btn-ghost', contentClasses = 'mt-16' }: Props = $props();
 </script>
 
-<!-- svelte-ignore a11y-no-noninteractive-tabindex -->
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 
 <div title="Change Theme" class={`dropdown dropdown-end ${dropdownClasses}`}>
 	<div tabindex="0" class={`btn gap-1 normal-case ${btnClasses}`}>
@@ -65,10 +69,10 @@
 									{theme.name}
 								</div>
 								<div class="flex flex-shrink-0 flex-wrap gap-1 h-full">
-									<div class="bg-primary w-2 rounded" />
-									<div class="bg-secondary w-2 rounded" />
-									<div class="bg-accent w-2 rounded" />
-									<div class="bg-neutral w-2 rounded" />
+									<div class="bg-primary w-2 rounded"></div>
+									<div class="bg-secondary w-2 rounded"></div>
+									<div class="bg-accent w-2 rounded"></div>
+									<div class="bg-neutral w-2 rounded"></div>
 								</div>
 							</div>
 						</div>

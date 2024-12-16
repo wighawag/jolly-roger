@@ -1,9 +1,13 @@
 <script lang="ts">
 	import Modal from '$lib/components/modals/Modal.svelte';
 	import type {account as Account} from './';
-	export let account: typeof Account;
+	interface Props {
+		account: typeof Account;
+	}
 
-	let doNotAskAgainSignature: boolean = false;
+	let { account }: Props = $props();
+
+	let doNotAskAgainSignature: boolean = $state(false);
 </script>
 
 <Modal>
@@ -19,7 +23,7 @@
 		</label>
 	</div>
 	<div class="modal-action">
-		<button on:click={() => account.rejectLoadingStep()} class="btn btn-error">Cancel</button>
-		<button on:click={() => account.acceptLoadingStep({doNotAskAgainSignature})} class="btn">Sign</button>
+		<button onclick={() => account.rejectLoadingStep()} class="btn btn-error">Cancel</button>
+		<button onclick={() => account.acceptLoadingStep({doNotAskAgainSignature})} class="btn">Sign</button>
 	</div>
 </Modal>

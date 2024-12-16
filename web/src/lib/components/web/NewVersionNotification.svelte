@@ -1,8 +1,12 @@
 <script lang="ts">
 	import {serviceWorker} from '$lib/web/serviceWorker';
 
-	export let src: string;
-	export let alt: string;
+	interface Props {
+		src: string;
+		alt: string;
+	}
+
+	let { src, alt }: Props = $props();
 
 	function skip() {
 		$serviceWorker.updateAvailable = false;
@@ -24,11 +28,11 @@
 <!-- <svelte:window on:click={skip} /> -->
 
 {#if $serviceWorker.updateAvailable && $serviceWorker.registration}
-	<!-- svelte-ignore a11y-click-events-have-key-events-->
+	<!-- svelte-ignore a11y_click_events_have_key_events-->
 	<div
 		role="button"
 		tabindex="0"
-		on:click={(e) => {
+		onclick={(e) => {
 			e.preventDefault();
 			e.stopPropagation();
 		}}
@@ -56,12 +60,12 @@
             Install it for later
           </p> -->
 						<div class="mt-4 flex">
-							<button on:click={reload} type="button" class="btn rounded-btn btn-success btn-sm m-1"> Reload </button>
-							<button on:click={skip} type="button" class="btn rounded-btn btn-error btn-sm m-1"> Skip </button>
+							<button onclick={reload} type="button" class="btn rounded-btn btn-success btn-sm m-1"> Reload </button>
+							<button onclick={skip} type="button" class="btn rounded-btn btn-error btn-sm m-1"> Skip </button>
 						</div>
 					</div>
 					<div class="ml-4 flex-shrink-0 flex">
-						<button on:click={skip} class="rounded-md inline-flex btn btn-active btn-sm">
+						<button onclick={skip} class="rounded-md inline-flex btn btn-active btn-sm">
 							<span class="sr-only">Close</span>
 							<!-- Heroicon name: solid/x -->
 							<svg
