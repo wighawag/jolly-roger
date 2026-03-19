@@ -105,7 +105,7 @@
     "---------------------- RUN FULL LOCAL SETUP ----------------------": "",
     "start:wezterm": "wezterm --config-file dev/wezterm.lua start $PWD",
     "stop": "zellij kill-session $npm_package_name",
-		"start": "rm helper-services/fuzd/contracts.json; zellij-launcher --layout dev/zellij.kdl a $npm_package_name || zellij --layout dev/zellij.kdl -s $npm_package_name",
+		"start": "rm helper-services/fuzd/contracts.json; zellij-launcher a $npm_package_name || zellij -n dev/zellij.kdl -s $npm_package_name",
 		"clean:start": "rm -Rf contracts/deployments/localhost && pnpm start"
   }
 }

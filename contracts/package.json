@@ -5,7 +5,7 @@
   "type": "module",
   "devDependencies": {
     "@nomicfoundation/hardhat-network-helpers": "^1.0.10",
-    "as-soon": "^0.0.4",
+    "as-soon": "^0.1.5",
     "eip-1193": "^0.4.7",
     "hardhat": "^2.19.4",
     "hardhat-rocketh": "^1.0.4",
