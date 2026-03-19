@@ -11,7 +11,7 @@ const namedLogger = logs('state');
 
 export const processor = createProcessor();
 
-const remoteIndexedState = url(`/indexed-state-${initialContractsInfos.name}.json`);
+const remoteIndexedState = url(`/indexed-states/${initialContractsInfos.name}`);
 /**
  * We setup the indexer and make it process the event continuously once connected to the right chain
  */
