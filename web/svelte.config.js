@@ -45,6 +45,9 @@ const config = {
 			// this is to make it work on ipfs (on an unknown path)
 			relative: true,
 		},
+		output: {
+			bundleStrategy: 'single', // less files, better for some ipfs gateways
+		},
 	},
 };
 
