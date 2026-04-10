@@ -196,10 +196,10 @@ importers:
     devDependencies:
       ethereum-indexer-cli:
         specifier: ^0.6.30
-        version: 0.6.30(typescript@5.7.2)
+        version: 0.6.30(typescript@5.7.2)(zod@3.24.0)
       ethereum-indexer-server:
         specifier: ^0.6.32
-        version: 0.6.32(typescript@5.7.2)
+        version: 0.6.32(typescript@5.7.2)(zod@3.24.0)
       jolly-roger-indexer:
         specifier: workspace:*
         version: link:../../indexer
@@ -217,7 +217,7 @@ importers:
     dependencies:
       ethereum-indexer-js-processor:
         specifier: ^0.6.27
-        version: 0.6.27(typescript@5.3.3)
+        version: 0.6.27(typescript@5.3.3)(zod@3.24.0)
       jolly-roger-common:
         specifier: workspace:*
         version: link:../common
@@ -227,10 +227,10 @@ importers:
     devDependencies:
       ethereum-indexer-cli:
         specifier: ^0.6.24
-        version: 0.6.24(typescript@5.3.3)
+        version: 0.6.24(typescript@5.3.3)(zod@3.24.0)
       ethereum-indexer-server:
         specifier: ^0.6.27
-        version: 0.6.27(typescript@5.3.3)
+        version: 0.6.27(typescript@5.3.3)(zod@3.24.0)
       ldenv:
         specifier: ^0.3.9
         version: 0.3.9
@@ -300,10 +300,10 @@ importers:
     devDependencies:
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
-        version: 3.0.10(@sveltejs/kit@2.55.0(@sveltejs/vite-plugin-svelte@7.0.0(svelte@5.54.0)(vite@8.0.1(@types/node@20.11.4)(jiti@1.21.0)))(svelte@5.54.0)(typescript@5.7.2)(vite@8.0.1(@types/node@20.11.4)(jiti@1.21.0)))
+        version: 3.0.10(@sveltejs/kit@2.57.1(@sveltejs/vite-plugin-svelte@7.0.0(svelte@5.54.0)(vite@8.0.1(@types/node@20.11.4)(jiti@1.21.0)))(svelte@5.54.0)(typescript@5.7.2)(vite@8.0.1(@types/node@20.11.4)(jiti@1.21.0)))
       '@sveltejs/kit':
-        specifier: ^2.55.0
-        version: 2.55.0(@sveltejs/vite-plugin-svelte@7.0.0(svelte@5.54.0)(vite@8.0.1(@types/node@20.11.4)(jiti@1.21.0)))(svelte@5.54.0)(typescript@5.7.2)(vite@8.0.1(@types/node@20.11.4)(jiti@1.21.0))
+        specifier: ^2.57.1
+        version: 2.57.1(@sveltejs/vite-plugin-svelte@7.0.0(svelte@5.54.0)(vite@8.0.1(@types/node@20.11.4)(jiti@1.21.0)))(svelte@5.54.0)(typescript@5.7.2)(vite@8.0.1(@types/node@20.11.4)(jiti@1.21.0))
       '@sveltejs/vite-plugin-svelte':
         specifier: ^7.0.0
         version: 7.0.0(svelte@5.54.0)(vite@8.0.1(@types/node@20.11.4)(jiti@1.21.0))
@@ -579,6 +579,7 @@ packages:
 
   '@effect/schema@0.69.0':
     resolution: {integrity: sha512-dqVnriWqM8TT8d+5vgg1pH4ZOXfs7tQBVAY5N7PALzIOlZamsBKQCdwvMMqremjSkKITckF8/cIj1eQZHQeg7Q==}
+    deprecated: this package has been merged into the main effect package
     peerDependencies:
       effect: ^3.5.7
 
@@ -1549,9 +1550,6 @@ packages:
   '@jridgewell/sourcemap-codec@1.4.15':
     resolution: {integrity: sha512-eF2rxCRulEKXHTRiDrDy6erMYWqNw4LPdQ8UQA4huuxaQsVeRPFl2oM8oDGxMFhJUWZf9McpLtJasDDZb/Bpeg==}
 
-  '@jridgewell/sourcemap-codec@1.5.0':
-    resolution: {integrity: sha512-gv3ZRaISU3fjPAgNsriBRqGWQL6quFx04YMPW/zD8XMLsU32mhCCbfbO6KZFLjvYpCZ8zyDEgqsgf+PwPaM7GQ==}
-
   '@jridgewell/sourcemap-codec@1.5.5':
     resolution: {integrity: sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og==}
 
@@ -2339,15 +2337,15 @@ packages:
     peerDependencies:
       '@sveltejs/kit': ^2.0.0
 
-  '@sveltejs/kit@2.55.0':
-    resolution: {integrity: sha512-MdFRjevVxmAknf2NbaUkDF16jSIzXMWd4Nfah0Qp8TtQVoSp3bV4jKt8mX7z7qTUTWvgSaxtR0EG5WJf53gcuA==}
+  '@sveltejs/kit@2.57.1':
+    resolution: {integrity: sha512-VRdSbB96cI1EnRh09CqmnQqP/YJvET5buj8S6k7CxaJqBJD4bw4fRKDjcarAj/eX9k2eHifQfDH8NtOh+ZxxPw==}
     engines: {node: '>=18.13'}
     hasBin: true
     peerDependencies:
       '@opentelemetry/api': ^1.0.0
       '@sveltejs/vite-plugin-svelte': ^3.0.0 || ^4.0.0-next.1 || ^5.0.0 || ^6.0.0-next.0 || ^7.0.0
       svelte: ^4.0.0 || ^5.0.0-next.0
-      typescript: ^5.3.3
+      typescript: ^5.3.3 || ^6.0.0
       vite: ^5.0.3 || ^6.0.0 || ^7.0.0-beta.0 || ^8.0.0
     peerDependenciesMeta:
       '@opentelemetry/api':
@@ -2686,10 +2684,12 @@ packages:
   abstract-leveldown@6.2.3:
     resolution: {integrity: sha512-BsLm5vFMRUrrLeCcRc+G0t2qOaTzpoJQLOubq2XM72eNpjF5UdU5o/5NvlNhx95XHcAvcl8OMXr4mlg/fRgUXQ==}
     engines: {node: '>=6'}
+    deprecated: Superseded by abstract-level (https://github.com/Level/community#faq)
 
   abstract-leveldown@6.3.0:
     resolution: {integrity: sha512-TU5nlYgta8YrBMNpc9FwQzRbiXsj49gsALsXadbGHt9CROPzX5fB0rWDR5mtdpOOKa5XqRFpbj1QroPAoPzVjQ==}
     engines: {node: '>=6'}
+    deprecated: Superseded by abstract-level (https://github.com/Level/community#faq)
 
   accepts@1.3.8:
     resolution: {integrity: sha512-PYAthTa2m2VKxuvSD3DPC/Gy+U+sOA1LAuT8mkmRuvw+NACSaeXEQ+NHcVF7rONl6qcaxV3Uuemwawk+7+SJLw==}
@@ -3431,13 +3431,14 @@ packages:
   deferred-leveldown@5.3.0:
     resolution: {integrity: sha512-a59VOT+oDy7vtAbLRCZwWgxu2BaCfd5Hk7wxJd48ei7I+nsg8Orlb9CLG0PMZienk9BSUKgeAqkO2+Lw+1+Ukw==}
     engines: {node: '>=6'}
+    deprecated: Superseded by abstract-level (https://github.com/Level/community#faq)
 
   define-data-property@1.1.1:
     resolution: {integrity: sha512-E7uGkTzkk1d0ByLeSc6ZsFS79Axg+m1P/VsgYsxHgiuc3tFSj+MjMIwe90FC4lOAZzNBdY7kkO2P2wKdsQ1vgQ==}
     engines: {node: '>= 0.4'}
 
-  defu@6.1.4:
-    resolution: {integrity: sha512-mEQCMmwJu317oSz8CwdIOdwf3xMif1ttiM8LTufzc3g6kR+9Pe236twL8j3IYT1F7GfRgGcW6MWxzZjLIkuHIg==}
+  defu@6.1.7:
+    resolution: {integrity: sha512-7z22QmUWiQ/2d0KkdYmANbRUVABpZ9SNYyH5vx6PZ+nE5bcC0l7uFvEfHlyld/HcGBFTL536ClDt3DEcSlEJAQ==}
 
   delayed-stream@1.0.0:
     resolution: {integrity: sha512-ZySD7Nf91aLB0RxL4KGrKHBXl7Eds1DAmEdcoVawXnLD7SDhpNgtuII2aAkg7a7QS41jxPSZ17p4VdGnMHk3MQ==}
@@ -3480,6 +3481,9 @@ packages:
 
   devalue@5.6.4:
     resolution: {integrity: sha512-Gp6rDldRsFh/7XuouDbxMH3Mx8GMCcgzIb1pDTvNyn8pZGQ22u+Wa+lGV9dQCltFQ7uVw0MhRyb8XDskNFOReA==}
+
+  devalue@5.7.1:
+    resolution: {integrity: sha512-MUbZ586EgQqdRnC4yDrlod3BEdyvE4TapGYHMW2CiaW+KkkFmWEFqBUaLltEZCGi0iFXCEjRF0OjF0DV2QHjOA==}
 
   devlop@1.1.0:
     resolution: {integrity: sha512-RWmIqhcFf1lRYBvNmr7qTNuyCt/7/ns2jbpp1+PalgE/rDQcBT0fioSMUpJ93irlUhC5hrg4cYqe6U+0ImW0rA==}
@@ -3596,6 +3600,7 @@ packages:
   encoding-down@6.3.0:
     resolution: {integrity: sha512-QKrV0iKR6MZVJV08QY0wp1e7vF6QbhnbQhb07bwpEyuz4uZiZgPlEGdkCROuFkUwdxlFaiPIhjyarH1ee/3vhw==}
     engines: {node: '>=6'}
+    deprecated: Superseded by abstract-level (https://github.com/Level/community#faq)
 
   end-stream@0.1.0:
     resolution: {integrity: sha512-Brl10T8kYnc75IepKizW6Y9liyW8ikz1B7n/xoHrJxoVSSjoqPn30sb7XVFfQERK4QfUMYRGs9dhWwtt2eu6uA==}
@@ -3778,6 +3783,7 @@ packages:
 
   ethereumjs-abi@0.6.8:
     resolution: {integrity: sha512-Tx0r/iXI6r+lRsdvkFDlut0N08jWMnKRZ6Gkq+Nmw75lZe4e6o3EkSnkaBP5NF6+m5PTGAr9JP43N3LyeoglsA==}
+    deprecated: This library has been deprecated and usage is discouraged.
 
   ethereumjs-util@6.2.1:
     resolution: {integrity: sha512-W2Ktez4L01Vexijrm5EB6w7dg4n/TgpoYU4avuT5T3Vmnw/eCRtiBrJfQYS/DCSvDIOLn2k57GcHdeBcgVxAqw==}
@@ -4055,19 +4061,24 @@ packages:
   glob@10.3.10:
     resolution: {integrity: sha512-fa46+tv1Ak0UPK1TOy/pZrIybNNt4HCv7SDzwyfiOZkvZLEbjsZkJBPtDHVshZjbecAoAGSC20MjLDG/qr679g==}
     engines: {node: '>=16 || 14 >=14.17'}
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
     hasBin: true
 
   glob@5.0.15:
     resolution: {integrity: sha512-c9IPMazfRITpmAAKi22dK1VKxGDX9ehhqfABDriL/lzO92xcUKEJPQHrVA/2YHSNFB4iFlykVmWvwo48nr3OxA==}
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   glob@7.1.6:
     resolution: {integrity: sha512-LwaxwyZ72Lk7vZINtNNrywX0ZuLyStrdDtabefZKAY5ZGJhVtgdznluResxNmPitE0SAO+O26sWTHeKSI2wMBA==}
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   glob@7.2.0:
     resolution: {integrity: sha512-lmLf6gtyrPq8tTjSmrO94wBeQbFR3HbLHbuyD69wuyQkImp2hWqMGB47OX65FBkPffO641IP9jWa1z4ivqG26Q==}
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   glob@7.2.3:
     resolution: {integrity: sha512-nFR0zLpU2YCaRxwoCJvL6UvCH2JFyFVIvwTLsIf21AuHlMskA1hhTdk+LlYJtOlYt9v6dvszD2BGRqBL+iQK9Q==}
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   global-modules@2.0.0:
     resolution: {integrity: sha512-NGbfmJBp9x8IxyJSd1P+otYK8vonoJactOogrVfFRIAEY1ukil8RSKDz2Yo7wh1oihl51l/r6W4epkeKJHqL8A==}
@@ -4290,6 +4301,7 @@ packages:
 
   inflight@1.0.6:
     resolution: {integrity: sha512-k92I/b08q4wvFscXCLvqfsHCrjrF7yiXsQuIVvVE7N82W3+aqpzuUdBbfhWcy/FZR3/4IgflMgKLOsvPDrGCJA==}
+    deprecated: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
 
   inherits@2.0.3:
     resolution: {integrity: sha512-x00IRNXNy63jwGkJmzPigoySHbaqpNuzKbBOmzK+g2OdZpQ9w+sxCN+VSB3ja7IAge2OP2qpfxTjeNcyjmW1uw==}
@@ -4595,6 +4607,7 @@ packages:
   koa-router@12.0.1:
     resolution: {integrity: sha512-gaDdj3GtzoLoeosacd50kBBTnnh3B9AYxDThQUo4sfUyXdOhY6ku1qyZKW88tQCRgc3Sw6ChXYXWZwwgjOxE0w==}
     engines: {node: '>= 12'}
+    deprecated: 'Please use @koa/router instead, starting from v9! '
 
   koa-send@5.0.1:
     resolution: {integrity: sha512-tmcyQ/wXXuxpDxyNXv5yNNkdAMdFRqwtegBXUaowiQzUKqJehttS0x2j0eOZDQAyloAth5w6wwBImnFzkUz3pQ==}
@@ -4623,14 +4636,17 @@ packages:
   level-codec@9.0.2:
     resolution: {integrity: sha512-UyIwNb1lJBChJnGfjmO0OR+ezh2iVu1Kas3nvBS/BzGnx79dv6g7unpKIDNPMhfdTEGoc7mC8uAu51XEtX+FHQ==}
     engines: {node: '>=6'}
+    deprecated: Superseded by level-transcoder (https://github.com/Level/community#faq)
 
   level-concat-iterator@2.0.1:
     resolution: {integrity: sha512-OTKKOqeav2QWcERMJR7IS9CUo1sHnke2C0gkSmcR7QuEtFNLLzHQAvnMw8ykvEcv0Qtkg0p7FOwP1v9e5Smdcw==}
     engines: {node: '>=6'}
+    deprecated: Superseded by abstract-level (https://github.com/Level/community#faq)
 
   level-errors@2.0.1:
     resolution: {integrity: sha512-UVprBJXite4gPS+3VznfgDSU8PTRuVX0NXwoWW50KLxd2yw4Y1t2JUR5In1itQnudZqRMT9DlAM3Q//9NCjCFw==}
     engines: {node: '>=6'}
+    deprecated: Superseded by abstract-level (https://github.com/Level/community#faq)
 
   level-iterator-stream@4.0.2:
     resolution: {integrity: sha512-ZSthfEqzGSOMWoUGhTXdX9jv26d32XJuHz/5YnuHZzH6wldfWMOVwI9TBtKcya4BKTyTt3XVA0A3cF3q5CY30Q==}
@@ -4638,10 +4654,12 @@ packages:
 
   level-js@5.0.2:
     resolution: {integrity: sha512-SnBIDo2pdO5VXh02ZmtAyPP6/+6YTJg2ibLtl9C34pWvmtMEmRTWpra+qO/hifkUtBTOtfx6S9vLDjBsBK4gRg==}
+    deprecated: Superseded by browser-level (https://github.com/Level/community#faq)
 
   level-packager@5.1.1:
     resolution: {integrity: sha512-HMwMaQPlTC1IlcwT3+swhqf/NUO+ZhXVz6TY1zZIIZlIR0YSn8GtAAWmIvKjNY16ZkEg/JcpAuQskxsXqC0yOQ==}
     engines: {node: '>=6'}
+    deprecated: Superseded by abstract-level (https://github.com/Level/community#faq)
 
   level-supports@1.0.1:
     resolution: {integrity: sha512-rXM7GYnW8gsl1vedTJIbzOrRv85c/2uCMpiiCzO2fndd06U/kUXEEU9evYn4zFggBOg36IsBW8LzqIpETwwQzg==}
@@ -4669,10 +4687,12 @@ packages:
   leveldown@5.6.0:
     resolution: {integrity: sha512-iB8O/7Db9lPaITU1aA2txU/cBEXAt4vWwKQRrrWuS6XDgbP4QZGj9BL2aNbwb002atoQ/lIotJkfyzz+ygQnUQ==}
     engines: {node: '>=8.6.0'}
+    deprecated: Superseded by classic-level (https://github.com/Level/community#faq)
 
   levelup@4.4.0:
     resolution: {integrity: sha512-94++VFO3qN95cM/d6eBXvd894oJE0w3cInq9USsyQzzoJxmiYzPAocNcuGCPGGjoXqDVJcr3C1jzt1TSjyaiLQ==}
     engines: {node: '>=6'}
+    deprecated: Superseded by abstract-level (https://github.com/Level/community#faq)
 
   levn@0.3.0:
     resolution: {integrity: sha512-0OO4y2iOHix2W6ujICbKIaEQXvFQHue65vUG3pb5EUomzPI90z9hsA1VsO/dbIIpC53J8gxM9Q4Oho0jrCM/yA==}
@@ -4820,8 +4840,8 @@ packages:
   lodash@4.17.21:
     resolution: {integrity: sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==}
 
-  lodash@4.17.23:
-    resolution: {integrity: sha512-LgVTMpQtIopCi79SJeDiP0TfWi5CNEc/L/aRdTh3yIvmZXTnheWpKjSZhnvMl8iXbC1tFg9gdHHDMLoV7CnG+w==}
+  lodash@4.18.1:
+    resolution: {integrity: sha512-dMInicTPVE8d1e5otfwmmjlxkZoUpiVLwyeTdUsi/Caj/gfzzblBcCE5sRHV/AsjuCmxWrte2TNGSYuCeCq+0Q==}
 
   log-symbols@4.1.0:
     resolution: {integrity: sha512-8XPvpAA8uyhfteu8pIvQxpJZ7SYYdpUivZpGy6sFsBuKRY/7rQGavedeB8aK+Zkyq6upMFVL/9AW6vOYzfRyLg==}
@@ -4926,9 +4946,6 @@ packages:
 
   magic-string@0.25.9:
     resolution: {integrity: sha512-RmF0AsMzgt25qzqqLc1+MbHmhdx0ojF2Fvs4XnOqz2ZOBXzzkEwc/dJQZCYHAn7v1jbVOjAZfK8msRn4BxO4VQ==}
-
-  magic-string@0.30.15:
-    resolution: {integrity: sha512-zXeaYRgZ6ldS1RJJUrMrYgNJ4fdwnyI6tVqoiIhyCyv5IVTK9BU8Ic2l253GGETQHxI4HNUwhJ3fjDhKqEoaAw==}
 
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
@@ -5190,6 +5207,7 @@ packages:
   node-domexception@1.0.0:
     resolution: {integrity: sha512-/jKZoMpw0F8GRwl4/eLROPA3cfcXtLApP0QzLmUT/HuPCZWyB7IY9ZrMeKw2O/nFIqPQB3PVM9aYm0F312AXDQ==}
     engines: {node: '>=10.5.0'}
+    deprecated: Use your platform's native DOMException instead
 
   node-emoji@1.11.0:
     resolution: {integrity: sha512-wo2DpQkQp7Sjm2A0cq+sN7EHKO6Sl0ctXeBdFZrL9T9+UywORbufTcTZxom8YqpLQt/FqNMUkOpkZrJVYSKD3A==}
@@ -5225,6 +5243,7 @@ packages:
   node-version-matches@2.0.1:
     resolution: {integrity: sha512-oqk6+05FC0dNVY5NuXuhPEMq+m1b9ZjS9SIhVE9EjwCHZspnmjSO8npbKAEieinR8GeEgbecoQcYIvI/Kwcf6Q==}
     engines: {node: '>=8'}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
 
   nopt@3.0.6:
     resolution: {integrity: sha512-4GUt3kSEYmk4ITxzB/b9vaIDfUVWN/Ml1Fwl11IlnIG2iaJ9O6WXZ9SrYM9NLI8OCBieN2Y8SWC2oJV0RQ7qYg==}
@@ -5883,6 +5902,7 @@ packages:
 
   rimraf@2.7.1:
     resolution: {integrity: sha512-uWjbaKIK3T1OSVptzX7Nl6PvQ3qAGtKEtVRjRuazjfL3Bx5eI409VZSqgND+4UNnmzLVdPj9FqFJNPqBZFve4w==}
+    deprecated: Rimraf versions prior to v4 are no longer supported
     hasBin: true
 
   ripemd160@2.0.2:
@@ -6046,8 +6066,8 @@ packages:
     resolution: {integrity: sha512-/d9r8bqJlFQcwy0a0nb1KnWAA+Mno+V+VaoKocdkbW5aXKRQd/+4bfnRhQRQr6uEoYwTRJ4xgztOyCJvWcpBpQ==}
     engines: {node: '>= 0.8.0'}
 
-  set-cookie-parser@3.0.1:
-    resolution: {integrity: sha512-n7Z7dXZhJbwuAHhNzkTti6Aw9QDDjZtm3JTpTGATIdNzdQz5GuFs22w90BcvF4INfnrL5xrX3oGsuqO5Dx3A1Q==}
+  set-cookie-parser@3.1.0:
+    resolution: {integrity: sha512-kjnC1DXBHcxaOaOXBHBeRtltsDG2nUiUni+jP92M9gYdW12rsmx92UsfpH7o5tDRs7I1ZZPSQJQGv3UaRfCiuw==}
 
   set-defaults@0.0.2:
     resolution: {integrity: sha512-xPlIV4pUxF9BDOXqds9RL6BxJmzDfywBl98qHPD4D9rJjBGpLosYJerfI3xU0HY7BDmHTUkfHAplfdN7PamBFA==}
@@ -6160,6 +6180,7 @@ packages:
   source-map@0.8.0-beta.0:
     resolution: {integrity: sha512-2ymg6oRBpebeZi9UUNsgQ89bhx01TcTkmNTGnNO88imTmbSgy4nfujrgVEFKWpMTEGA11EDkTt7mqObTPdigIA==}
     engines: {node: '>= 8'}
+    deprecated: The work that was done in this beta branch won't be included in future versions
 
   sourcemap-codec@1.4.8:
     resolution: {integrity: sha512-9NykojV5Uih4lgo5So5dtw+f0JgJX30KCNI8gwhz2J9A15wD0Ml6tjHKwf6fTSa6fAdVBdZeNOs9eJ71qCk8vA==}
@@ -8274,14 +8295,12 @@ snapshots:
 
   '@jridgewell/sourcemap-codec@1.4.15': {}
 
-  '@jridgewell/sourcemap-codec@1.5.0': {}
-
   '@jridgewell/sourcemap-codec@1.5.5': {}
 
   '@jridgewell/trace-mapping@0.3.19':
     dependencies:
       '@jridgewell/resolve-uri': 3.1.1
-      '@jridgewell/sourcemap-codec': 1.5.0
+      '@jridgewell/sourcemap-codec': 1.4.15
 
   '@jridgewell/trace-mapping@0.3.31':
     dependencies:
@@ -9021,11 +9040,11 @@ snapshots:
     dependencies:
       acorn: 8.16.0
 
-  '@sveltejs/adapter-static@3.0.10(@sveltejs/kit@2.55.0(@sveltejs/vite-plugin-svelte@7.0.0(svelte@5.54.0)(vite@8.0.1(@types/node@20.11.4)(jiti@1.21.0)))(svelte@5.54.0)(typescript@5.7.2)(vite@8.0.1(@types/node@20.11.4)(jiti@1.21.0)))':
+  '@sveltejs/adapter-static@3.0.10(@sveltejs/kit@2.57.1(@sveltejs/vite-plugin-svelte@7.0.0(svelte@5.54.0)(vite@8.0.1(@types/node@20.11.4)(jiti@1.21.0)))(svelte@5.54.0)(typescript@5.7.2)(vite@8.0.1(@types/node@20.11.4)(jiti@1.21.0)))':
     dependencies:
-      '@sveltejs/kit': 2.55.0(@sveltejs/vite-plugin-svelte@7.0.0(svelte@5.54.0)(vite@8.0.1(@types/node@20.11.4)(jiti@1.21.0)))(svelte@5.54.0)(typescript@5.7.2)(vite@8.0.1(@types/node@20.11.4)(jiti@1.21.0))
+      '@sveltejs/kit': 2.57.1(@sveltejs/vite-plugin-svelte@7.0.0(svelte@5.54.0)(vite@8.0.1(@types/node@20.11.4)(jiti@1.21.0)))(svelte@5.54.0)(typescript@5.7.2)(vite@8.0.1(@types/node@20.11.4)(jiti@1.21.0))
 
-  '@sveltejs/kit@2.55.0(@sveltejs/vite-plugin-svelte@7.0.0(svelte@5.54.0)(vite@8.0.1(@types/node@20.11.4)(jiti@1.21.0)))(svelte@5.54.0)(typescript@5.7.2)(vite@8.0.1(@types/node@20.11.4)(jiti@1.21.0))':
+  '@sveltejs/kit@2.57.1(@sveltejs/vite-plugin-svelte@7.0.0(svelte@5.54.0)(vite@8.0.1(@types/node@20.11.4)(jiti@1.21.0)))(svelte@5.54.0)(typescript@5.7.2)(vite@8.0.1(@types/node@20.11.4)(jiti@1.21.0))':
     dependencies:
       '@standard-schema/spec': 1.1.0
       '@sveltejs/acorn-typescript': 1.0.9(acorn@8.16.0)
@@ -9033,12 +9052,12 @@ snapshots:
       '@types/cookie': 0.6.0
       acorn: 8.16.0
       cookie: 0.6.0
-      devalue: 5.6.4
+      devalue: 5.7.1
       esm-env: 1.2.2
       kleur: 4.1.5
       magic-string: 0.30.21
       mrmime: 2.0.1
-      set-cookie-parser: 3.0.1
+      set-cookie-parser: 3.1.0
       sirv: 3.0.2
       svelte: 5.54.0
       vite: 8.0.1(@types/node@20.11.4)(jiti@1.21.0)
@@ -9282,7 +9301,7 @@ snapshots:
       '@vue/compiler-ssr': 3.5.13
       '@vue/shared': 3.5.13
       estree-walker: 2.0.2
-      magic-string: 0.30.15
+      magic-string: 0.30.21
       postcss: 8.4.49
       source-map-js: 1.2.1
 
@@ -10139,7 +10158,7 @@ snapshots:
       gopd: 1.0.1
       has-property-descriptors: 1.0.1
 
-  defu@6.1.4: {}
+  defu@6.1.7: {}
 
   delayed-stream@1.0.0: {}
 
@@ -10167,6 +10186,8 @@ snapshots:
       - supports-color
 
   devalue@5.6.4: {}
+
+  devalue@5.7.1: {}
 
   devlop@1.1.0:
     dependencies:
@@ -10544,11 +10565,11 @@ snapshots:
       - utf-8-validate
       - zod
 
-  ethereum-indexer-cli@0.6.24(typescript@5.3.3):
+  ethereum-indexer-cli@0.6.24(typescript@5.3.3)(zod@3.24.0):
     dependencies:
       commander: 11.1.0
       eip-1193-jsonrpc-provider: 0.3.0
-      ethereum-indexer: 0.6.18(typescript@5.3.3)
+      ethereum-indexer: 0.6.18(typescript@5.3.3)(zod@3.24.0)
       ethereum-indexer-utils: 0.6.11
       ldenv: 0.3.11
       named-logs: 0.2.4
@@ -10559,11 +10580,11 @@ snapshots:
       - utf-8-validate
       - zod
 
-  ethereum-indexer-cli@0.6.30(typescript@5.7.2):
+  ethereum-indexer-cli@0.6.30(typescript@5.7.2)(zod@3.24.0):
     dependencies:
       commander: 11.1.0
       eip-1193-jsonrpc-provider: 0.3.0
-      ethereum-indexer: 0.6.21(typescript@5.7.2)
+      ethereum-indexer: 0.6.21(typescript@5.7.2)(zod@3.24.0)
       ethereum-indexer-utils: 0.6.13
       ldenv: 0.3.11
       named-logs: 0.2.4
@@ -10574,9 +10595,9 @@ snapshots:
       - utf-8-validate
       - zod
 
-  ethereum-indexer-db-utils@0.6.18(typescript@5.3.3):
+  ethereum-indexer-db-utils@0.6.18(typescript@5.3.3)(zod@3.24.0):
     dependencies:
-      ethereum-indexer: 0.6.18(typescript@5.3.3)
+      ethereum-indexer: 0.6.18(typescript@5.3.3)(zod@3.24.0)
       named-logs: 0.2.4
       pouchdb: 8.0.1
       pouchdb-find: 8.0.1
@@ -10587,9 +10608,9 @@ snapshots:
       - utf-8-validate
       - zod
 
-  ethereum-indexer-db-utils@0.6.21(typescript@5.7.2):
+  ethereum-indexer-db-utils@0.6.21(typescript@5.7.2)(zod@3.24.0):
     dependencies:
-      ethereum-indexer: 0.6.21(typescript@5.7.2)
+      ethereum-indexer: 0.6.21(typescript@5.7.2)(zod@3.24.0)
       named-logs: 0.2.4
       pouchdb: 8.0.1
       pouchdb-find: 8.0.1
@@ -10600,10 +10621,10 @@ snapshots:
       - utf-8-validate
       - zod
 
-  ethereum-indexer-fs-cache@0.6.18(typescript@5.3.3):
+  ethereum-indexer-fs-cache@0.6.18(typescript@5.3.3)(zod@3.24.0):
     dependencies:
       '@types/fs-extra': 11.0.4
-      ethereum-indexer: 0.6.18(typescript@5.3.3)
+      ethereum-indexer: 0.6.18(typescript@5.3.3)(zod@3.24.0)
       fs-extra: 11.2.0
       named-logs: 0.2.4
       pouchdb: 8.0.1
@@ -10615,10 +10636,10 @@ snapshots:
       - utf-8-validate
       - zod
 
-  ethereum-indexer-fs-cache@0.6.21(typescript@5.7.2):
+  ethereum-indexer-fs-cache@0.6.21(typescript@5.7.2)(zod@3.24.0):
     dependencies:
       '@types/fs-extra': 11.0.4
-      ethereum-indexer: 0.6.21(typescript@5.7.2)
+      ethereum-indexer: 0.6.21(typescript@5.7.2)(zod@3.24.0)
       fs-extra: 11.2.0
       named-logs: 0.2.4
       pouchdb: 8.0.1
@@ -10630,9 +10651,9 @@ snapshots:
       - utf-8-validate
       - zod
 
-  ethereum-indexer-js-processor@0.6.27(typescript@5.3.3):
+  ethereum-indexer-js-processor@0.6.27(typescript@5.3.3)(zod@3.24.0):
     dependencies:
-      ethereum-indexer: 0.6.18(typescript@5.3.3)
+      ethereum-indexer: 0.6.18(typescript@5.3.3)(zod@3.24.0)
       immer: 10.0.3
       named-logs: 0.2.4
     transitivePeerDependencies:
@@ -10641,14 +10662,14 @@ snapshots:
       - utf-8-validate
       - zod
 
-  ethereum-indexer-server@0.6.27(typescript@5.3.3):
+  ethereum-indexer-server@0.6.27(typescript@5.3.3)(zod@3.24.0):
     dependencies:
       '@ethersproject/bignumber': 5.7.0
       commander: 11.1.0
       eip-1193-jsonrpc-provider: 0.3.0
-      ethereum-indexer: 0.6.18(typescript@5.3.3)
-      ethereum-indexer-db-utils: 0.6.18(typescript@5.3.3)
-      ethereum-indexer-fs-cache: 0.6.18(typescript@5.3.3)
+      ethereum-indexer: 0.6.18(typescript@5.3.3)(zod@3.24.0)
+      ethereum-indexer-db-utils: 0.6.18(typescript@5.3.3)(zod@3.24.0)
+      ethereum-indexer-fs-cache: 0.6.18(typescript@5.3.3)(zod@3.24.0)
       ethereum-indexer-utils: 0.6.11
       figlet: 1.7.0
       koa: 2.14.2
@@ -10669,14 +10690,14 @@ snapshots:
       - utf-8-validate
       - zod
 
-  ethereum-indexer-server@0.6.32(typescript@5.7.2):
+  ethereum-indexer-server@0.6.32(typescript@5.7.2)(zod@3.24.0):
     dependencies:
       '@ethersproject/bignumber': 5.7.0
       commander: 11.1.0
       eip-1193-jsonrpc-provider: 0.3.0
-      ethereum-indexer: 0.6.21(typescript@5.7.2)
-      ethereum-indexer-db-utils: 0.6.21(typescript@5.7.2)
-      ethereum-indexer-fs-cache: 0.6.21(typescript@5.7.2)
+      ethereum-indexer: 0.6.21(typescript@5.7.2)(zod@3.24.0)
+      ethereum-indexer-db-utils: 0.6.21(typescript@5.7.2)(zod@3.24.0)
+      ethereum-indexer-fs-cache: 0.6.21(typescript@5.7.2)(zod@3.24.0)
       ethereum-indexer-utils: 0.6.13
       figlet: 1.7.0
       koa: 2.14.2
@@ -10705,7 +10726,7 @@ snapshots:
     dependencies:
       named-logs: 0.2.4
 
-  ethereum-indexer@0.6.18(typescript@5.3.3):
+  ethereum-indexer@0.6.18(typescript@5.3.3)(zod@3.24.0):
     dependencies:
       named-logs: 0.2.4
       viem: 1.21.4(typescript@5.3.3)(zod@3.24.0)
@@ -10725,7 +10746,7 @@ snapshots:
       - utf-8-validate
       - zod
 
-  ethereum-indexer@0.6.21(typescript@5.7.2):
+  ethereum-indexer@0.6.21(typescript@5.7.2)(zod@3.24.0):
     dependencies:
       named-logs: 0.2.4
       viem: 1.21.4(typescript@5.7.2)(zod@3.24.0)
@@ -11592,7 +11613,7 @@ snapshots:
       cli-cursor: 3.1.0
       cli-width: 3.0.0
       figures: 3.2.0
-      lodash: 4.17.23
+      lodash: 4.18.1
       mute-stream: 0.0.8
       ora: 5.4.1
       run-async: 2.4.1
@@ -12160,7 +12181,7 @@ snapshots:
 
   lodash@4.17.21: {}
 
-  lodash@4.17.23: {}
+  lodash@4.18.1: {}
 
   log-symbols@4.1.0:
     dependencies:
@@ -12293,10 +12314,6 @@ snapshots:
     dependencies:
       sourcemap-codec: 1.4.8
 
-  magic-string@0.30.15:
-    dependencies:
-      '@jridgewell/sourcemap-codec': 1.5.0
-
   magic-string@0.30.21:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.5
@@ -12394,7 +12411,7 @@ snapshots:
   miniflare@3.20241205.0:
     dependencies:
       '@cspotcode/source-map-support': 0.8.1
-      acorn: 8.11.3
+      acorn: 8.16.0
       acorn-walk: 8.3.2
       capnp-ts: 0.7.0
       exit-hook: 2.2.1
@@ -12467,7 +12484,7 @@ snapshots:
 
   mlly@1.5.0:
     dependencies:
-      acorn: 8.11.3
+      acorn: 8.16.0
       pathe: 1.1.2
       pkg-types: 1.0.3
       ufo: 1.3.2
@@ -13600,7 +13617,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  set-cookie-parser@3.0.1: {}
+  set-cookie-parser@3.1.0: {}
 
   set-defaults@0.0.2:
     dependencies:
@@ -14269,7 +14286,7 @@ snapshots:
 
   unenv-nightly@2.0.0-20241204-140205-a5d5190:
     dependencies:
-      defu: 6.1.4
+      defu: 6.1.7
       ohash: 1.1.6
       pathe: 1.1.2
       ufo: 1.6.3
