@@ -32,4 +32,10 @@ export default defineConfig({
 		minify: false,
 		sourcemap: true,
 	},
+	server: {
+		// make it available across the network
+		host: '0.0.0.0',
+		// allowed any domain
+		allowedHosts: true,
+	},
 });
