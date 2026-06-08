@@ -27,7 +27,7 @@
     "typescript": "^5.3.3",
     "viem": "^2.1.1",
     "viem-chai-matchers": "^0.0.4",
-    "vitest": "^1.2.0",
+    "vitest": "^3.2.6",
     "vitest-solidity-coverage": "^0.1.5"
   },
   "scripts": {
