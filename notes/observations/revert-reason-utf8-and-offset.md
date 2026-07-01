@@ -53,3 +53,13 @@ when doing the fix.
 
 - `web/src/routes/explorer/lib/services/transactionDecoder.ts` (parseStandardRevertReason, parsePanicError)
 - `web/test/routes/explorer/transactionDecoder.test.ts`
+
+## Update (2026-07-01): FIXED
+
+Fixed in commit `4a60437`. Both hand-rolled parses now use viem's
+`decodeAbiParameters` (`[{type:'string'}]` for `Error(string)`,
+`[{type:'uint256'}]` for `Panic(uint256)`), which honours the ABI offset and
+decodes UTF-8 correctly. Added a non-ASCII (`café ✓ 日本語`) round-trip test; the
+pre-existing ASCII / known-panic-code characterization tests confirm the rest of
+the behaviour is preserved. Malformed short data now safely returns null via the
+existing try/catch instead of parsing garbage.
