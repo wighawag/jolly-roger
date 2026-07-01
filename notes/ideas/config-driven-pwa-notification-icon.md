@@ -21,3 +21,20 @@ fallback if the config value is absent.
 
 Fits the template's "rename in one place" goal. Captured while sweeping template
 TODOs (was two `// TODO template it ?` on the icon/badge lines).
+
+## Update (2026-07-01): value is smaller than first stated
+
+On closer look, `pwag static/icon.svg src/web-config.json` REGENERATES
+`static/pwa/favicon-512.png` from the fork's `web-config.json` `icon`, and
+`static/pwa/manifest.webmanifest` also references `favicon-512.png`. So a fork
+that rebrands its icon DOES get its own image on push notifications: the
+file CONTENT is already config-driven. The only hardcoded thing is the
+filename `/pwa/favicon-512.png`, which pwag always emits.
+
+So the remaining improvement is cosmetic: replace the two magic-string paths in
+`src/service-worker/index.ts` with a single named constant (or a value read from
+the generated manifest) so the icon filename lives in one place. Deletion test:
+the constant is used in exactly one place (the default-push fallback), so it is a
+shallow rename, not a real seam. Deliberately NOT implemented for that reason;
+revisit only if pwag's output naming becomes configurable or a second consumer
+of the notification icon appears.
