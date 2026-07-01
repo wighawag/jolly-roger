@@ -1,9 +1,14 @@
 ---
 title: setMessage tx can fail with maxFeePerGas < maxPriorityFeePerGas on a fresh local node (pre-existing)
 type: observation
-status: spotted
+status: resolved
 spotted: 2026-07-01
 ---
+
+> **Resolved 2026-07-01:** `balance-check-store` now sets BOTH `maxFeePerGas`
+> and `maxPriorityFeePerGas` (from the chosen gas-fee tier), so the invariant
+> `maxFeePerGas >= maxPriorityFeePerGas` always holds. Regression-tested in
+> `test/lib/core/transaction/balance-check-store.test.ts`. Details below.
 
 # `maxFeePerGas` cannot be less than `maxPriorityFeePerGas` on a fresh local node
 
