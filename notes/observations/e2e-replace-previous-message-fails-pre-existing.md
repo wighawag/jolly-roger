@@ -41,3 +41,21 @@ account/state) to see if the cross-test account reuse is the cause, and make the
 assertion robust (unique account per test, or assert on the account's single
 current message rather than a specific card). Not fixed here to keep the
 refactor commits behaviour-preserving and scoped.
+
+## Update (2026-07-01): root-caused and FIXED
+
+Root cause confirmed: the cross-test account reuse hypothesis was right, and
+sharper than "reuse". All demo greeting tests submit from the SAME impersonated
+burner account, and `playwright.config.ts` runs them with `fullyParallel: true`.
+Since GreetingsRegistry keeps one message per account, the parallel tests
+overwrote each other's message mid-assertion. See the finding
+`findings/e2e-demo-tests-share-one-burner-account.md` for the ground truth.
+
+Fixed in commit `9001865`: the greeting describe now runs serially
+(`describe.configure({mode: 'serial'})`) so no concurrent write can clobber the
+account's message during a test, and the replace test asserts on message text
+(`getByText`) plus the real one-message-per-account invariant instead of the
+brittle class-substring card locator.
+
+Verified by running the full e2e suite: **25 passed** (previously 24 passed / 1
+failed on exactly this test).
