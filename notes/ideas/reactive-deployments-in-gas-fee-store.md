@@ -1,24 +1,43 @@
 ---
-title: Feed the reactive deployments store into the gas-fee store (HMR-aware)
+title: Snapshot-vs-reactive deployments in the context stores (HMR staleness)
 slug: reactive-deployments-in-gas-fee-store
 type: idea
 status: incubating
 created: 2026-07-01
 ---
 
-# Make the gas-fee store react to deployment/chain changes
+# Snapshot-vs-reactive deployments in the context stores
 
-In `src/lib/context/index.ts` the gas-fee store is created with a one-shot
-snapshot of deployments (`deployments.get()`), not the reactive `deployments`
-store. So if the chain/deployment info changes at runtime (notably via the HMR
-deployments-store update path in `src/lib/deployments-store.ts`), the gas-fee
-store keeps its stale chain config.
+Originally: the gas-fee store was created with a one-shot `deployments.get()`
+snapshot, so it would keep stale chain config if deployments changed at runtime
+(notably via the HMR deployments-store update path in
+`src/lib/deployments-store.ts`).
 
-Idea: pass the reactive deployments store (or a derived chain-info readable)
-into `createGasFeeStore` so gas estimation follows chain changes. Check whether
-other context stores built from `deployments.get()` (balance, rpcHealth, ...)
-have the same snapshot-vs-reactive question and want the same treatment.
+## Update (2026-07-01): gas-fee part resolved, real question relocated
 
-Low urgency (chain rarely changes mid-session outside HMR), but it is the kind
-of subtle staleness that surprises later. Captured while sweeping template TODOs
-(was `// TODO use reactive deployment store ?`).
+Investigating this showed `createGasFeeStore` never actually READ the
+`deployments` it was given: gas estimation uses only `publicClient` (plus the
+optional `expectedWorstGasPrice`). So there was no chain config to go stale. The
+unused param was removed in commit `d739e31`, which makes the gas-fee angle moot.
+
+The genuine snapshot-vs-reactive staleness question survives in the stores that
+DO close over a `deployments.get()` snapshot:
+
+- `src/lib/onchain/state.ts` (`createOnchainState`): reads
+  `deployments.contracts.GreetingsRegistry` (address + abi) from the snapshot.
+- `src/lib/account/AccountData.ts` (`createAccountData`): builds a storage key
+  from `deployments.chain.id`, `deployments.chain.genesisHash` and the
+  GreetingsRegistry address from the snapshot.
+
+If the chain/deployment changes mid-session (HMR redeploy, or a future
+chain-switch UI), these keep pointing at the old contract/chain. `balance` and
+`gasFee` are unaffected (they take no deployments).
+
+## Idea (deferred)
+
+Feed the reactive `deployments` store (or a derived chain-info/contract readable)
+into `createOnchainState` and `createAccountData` so they follow deployment
+changes, or explicitly document that a deployment change requires a full context
+rebuild. Low urgency outside HMR, but it is subtle staleness that surprises
+later. Decide per-store: does it want to react, or is rebuild-on-change the
+intended contract?
