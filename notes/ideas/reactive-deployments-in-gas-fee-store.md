@@ -47,7 +47,7 @@ intended contract?
 This grew past an idea: the ambitious version (a chain change that does NOT force
 a full page reload) needs a store's setup to depend on another store and a
 context-slice rebuild/rescope strategy. Captured as
-`work/notes/prds/reactive-deployments-without-full-reload.md`, which also records
+`work/prds/proposed/reactive-deployments-without-full-reload.md`, which also records
 the gasFee caveat (gas config may re-enter via deployments.ts and should come in
 as an injected derived readable, not a raw snapshot). Keep this idea note as the
 breadcrumb; the PRD is the working document.
