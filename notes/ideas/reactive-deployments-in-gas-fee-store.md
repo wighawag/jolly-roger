@@ -49,5 +49,11 @@ a full page reload) needs a store's setup to depend on another store and a
 context-slice rebuild/rescope strategy. Captured as
 `work/prds/proposed/reactive-deployments-without-full-reload.md`, which also records
 the gasFee caveat (gas config may re-enter via deployments.ts and should come in
-as an injected derived readable, not a raw snapshot). Keep this idea note as the
-breadcrumb; the PRD is the working document.
+as an injected derived readable, not a raw snapshot).
+
+Split (2026-07-01): the small, worthwhile slice (onchainState following
+deployments changes via the polling-store `source` primitive) is carved out as
+`work/tasks/backlog/onchainstate-refetch-on-deployments-change.md` and can be done
+now. The ambitious no-full-reload chain-switch part stays DEFERRED in the PRD
+pending a real use case (chain-switcher UI). Keep this idea note as the
+breadcrumb.
