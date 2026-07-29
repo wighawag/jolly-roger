@@ -1,0 +1,4 @@
+# Custom 404 page for unknown routes
+# This is evaluated only when the path doesn't exist in the DAG
+# and no previous rules matched
+/* /404.html 404

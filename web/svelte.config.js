@@ -37,6 +37,7 @@ const config = {
 		adapter: adapter({
 			assets: 'build',
 			pages: 'build',
+			fallback: '404.html', // SPA fallback - serves as 404 page on IPFS/static hosts
 		}),
 		serviceWorker: {
 			// we handle it ourselves here : src/service-worker-handler.ts
@@ -45,6 +46,9 @@ const config = {
 		paths: {
 			// this is to make it work on ipfs (on an unknown path)
 			relative: true,
+		},
+		output: {
+			bundleStrategy: 'single', // less files, better for some ipfs gateways
 		},
 	},
 };
