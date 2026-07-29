@@ -27,7 +27,7 @@
 
 	let overrides: Props = $props();
 
-	let isHome = overrides.home || false;
+	let isHome = $derived(overrides.home || false);
 
 	let metadata = $derived({
 		type: overrides.type || 'website',
