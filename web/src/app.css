@@ -1,3 +1,12 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/forms';
 @plugin '@tailwindcss/typography';
+
+/* @tailwindcss/typography 0.5.20 (with Tailwind v4) drops the standard
+   max-width/height rule for .prose img, so inline markdown images render
+   at their natural width and escape the .prose container.
+   Restore the missing constraint here. */
+.prose img {
+	max-width: 100%;
+	height: auto;
+}
