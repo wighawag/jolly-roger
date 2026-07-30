@@ -147,8 +147,8 @@ importers:
         specifier: ^0.0.9
         version: 0.0.9(viem@2.55.10(typescript@6.0.3)(zod@4.4.3))
       '@etherplay/connect':
-        specifier: ^0.0.50
-        version: 0.0.50(@types/node@26.1.2)(lightningcss@1.33.0)(svelte@5.56.8)
+        specifier: ^0.1.0
+        version: 0.1.0(@types/node@26.1.2)(lightningcss@1.33.0)(svelte@5.56.8)
       '@internationalized/date':
         specifier: ^3.12.0
         version: 3.12.2
@@ -627,11 +627,11 @@ packages:
     peerDependencies:
       viem: ^2.46.3
 
-  '@etherplay/connect-core@0.0.0':
-    resolution: {integrity: sha512-ztcQaybfcpjxmy6U12ZaQ1+E4WbFwdtJNyWg3bSbhB62r13fiLmJoTs95RmN86U3dEZVn3jRexjacq7G40Yx8g==}
+  '@etherplay/connect-core@0.1.0':
+    resolution: {integrity: sha512-ENw/mX3FfMI8HjqsUVyYrPJhHeZ+AyC3sgJOzWXihbXJDjlJNkg4D+bVbMNTS56tiNBObPt6G57TosvkoqSZCQ==}
 
-  '@etherplay/connect@0.0.50':
-    resolution: {integrity: sha512-hUztJo5UrnKreKZD4ftVZgUg7KD0BkmKzqqjdScNO8mB5ME6pJ0tv1fUnvPefvIuE2Fgao6/Ru0lUvqtyhgA6g==}
+  '@etherplay/connect@0.1.0':
+    resolution: {integrity: sha512-0XFLGhO9BZbfEyNzy36iR3Ht6WNRw2eOnvhJg/hOTbY9KsjF2vAJQzBwyQR0VXLJhBDdsvBSBpj+BvAlKEjgKQ==}
     peerDependencies:
       svelte: ^5.0.0
 
@@ -4893,17 +4893,18 @@ snapshots:
       radiate: 0.3.2
       viem: 2.55.10(typescript@6.0.3)(zod@4.4.3)
 
-  '@etherplay/connect-core@0.0.0':
+  '@etherplay/connect-core@0.1.0':
     dependencies:
+      '@etherplay/wallet-connector': 0.0.5
       '@noble/curves': 1.9.7
       '@noble/hashes': 1.8.0
       '@noble/secp256k1': 2.3.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
 
-  '@etherplay/connect@0.0.50(@types/node@26.1.2)(lightningcss@1.33.0)(svelte@5.56.8)':
+  '@etherplay/connect@0.1.0(@types/node@26.1.2)(lightningcss@1.33.0)(svelte@5.56.8)':
     dependencies:
-      '@etherplay/connect-core': 0.0.0
+      '@etherplay/connect-core': 0.1.0
       '@etherplay/wallet-connector': 0.0.5
       '@etherplay/wallet-connector-ethereum': 0.0.11(@types/node@26.1.2)(lightningcss@1.33.0)
       svelte: 5.56.8

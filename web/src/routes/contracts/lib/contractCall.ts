@@ -7,6 +7,7 @@ import {get} from 'svelte/store';
 import type {BalanceCheckStore} from '$lib/core/transaction/balance-check-store';
 import type {ExecutorStore} from '$lib/core/connection/executor';
 import {InsufficientFundsError} from '$lib/core/transaction';
+import {isUserRejectionError} from '$lib/core/transaction/user-rejection';
 import {convertInputValues} from './utils';
 
 /**
@@ -70,7 +71,16 @@ export async function executeContractWrite(params: {
 
 	const args = convertInputValues(abiItem.inputs, inputValues);
 
-	await connection.ensureConnected();
+	try {
+		await connection.ensureConnected();
+	} catch (e) {
+		// Rejecting or dismissing the wallet prompt is a cancellation, not an
+		// error worth surfacing (setGreeting treats it the same way). Before
+		// @etherplay/connect 0.1.0 this call never settled at all, so there was
+		// nothing to catch and the flow just hung here.
+		if (isUserRejectionError(e)) return {status: 'cancelled'};
+		throw e;
+	}
 
 	const $executor = get(executor);
 	if ($executor.status === 'cannot-send') return {status: 'cannot-send'};
