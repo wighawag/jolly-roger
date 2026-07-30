@@ -31,49 +31,49 @@ importers:
     devDependencies:
       '@nomicfoundation/hardhat-keystore':
         specifier: ^3.0.8
-        version: 3.0.12(hardhat@3.11.1)
+        version: 3.0.12(hardhat@3.12.0)
       '@nomicfoundation/hardhat-network-helpers':
         specifier: ^3.0.7
-        version: 3.0.11(hardhat@3.11.1)
+        version: 3.0.11(hardhat@3.12.0)
       '@nomicfoundation/hardhat-node-test-runner':
-        specifier: ^3.0.14
-        version: 3.0.17(hardhat@3.11.1)
+        specifier: ^3.1.0
+        version: 3.1.0(hardhat@3.12.0)
       '@nomicfoundation/hardhat-viem':
         specifier: ^3.0.6
-        version: 3.0.9(hardhat@3.11.1)(viem@2.55.10(typescript@5.9.3)(zod@3.25.76))
+        version: 3.0.9(hardhat@3.12.0)(viem@2.55.10(typescript@6.0.3)(zod@3.25.76))
       '@rocketh/deploy':
         specifier: ^0.19.9
-        version: 0.19.10(typescript@5.9.3)(zod@3.25.76)
+        version: 0.19.10(typescript@6.0.3)(zod@3.25.76)
       '@rocketh/doc':
         specifier: ^0.19.8
-        version: 0.19.10(@rocketh/node@0.19.10(rocketh@0.19.9(typescript@5.9.3)(zod@3.25.76))(typescript@5.9.3)(zod@3.25.76))(typescript@5.9.3)(zod@3.25.76)
+        version: 0.19.10(@rocketh/node@0.19.10(rocketh@0.19.9(typescript@6.0.3)(zod@3.25.76))(typescript@6.0.3)(zod@3.25.76))(typescript@6.0.3)(zod@3.25.76)
       '@rocketh/export':
         specifier: ^0.19.9
-        version: 0.19.11(@rocketh/node@0.19.10(rocketh@0.19.9(typescript@5.9.3)(zod@3.25.76))(typescript@5.9.3)(zod@3.25.76))(rocketh@0.19.9(typescript@5.9.3)(zod@3.25.76))(typescript@5.9.3)(zod@3.25.76)
+        version: 0.19.11(@rocketh/node@0.19.10(rocketh@0.19.9(typescript@6.0.3)(zod@3.25.76))(typescript@6.0.3)(zod@3.25.76))(rocketh@0.19.9(typescript@6.0.3)(zod@3.25.76))(typescript@6.0.3)(zod@3.25.76)
       '@rocketh/node':
         specifier: ^0.19.8
-        version: 0.19.10(rocketh@0.19.9(typescript@5.9.3)(zod@3.25.76))(typescript@5.9.3)(zod@3.25.76)
+        version: 0.19.10(rocketh@0.19.9(typescript@6.0.3)(zod@3.25.76))(typescript@6.0.3)(zod@3.25.76)
       '@rocketh/proxy':
         specifier: ^0.19.15
-        version: 0.19.16(typescript@5.9.3)(zod@3.25.76)
+        version: 0.19.16(typescript@6.0.3)(zod@3.25.76)
       '@rocketh/read-execute':
         specifier: ^0.19.4
-        version: 0.19.5(typescript@5.9.3)(zod@3.25.76)
+        version: 0.19.5(typescript@6.0.3)(zod@3.25.76)
       '@rocketh/router':
         specifier: ^0.19.11
-        version: 0.19.12(typescript@5.9.3)(zod@3.25.76)
+        version: 0.19.12(typescript@6.0.3)(zod@3.25.76)
       '@rocketh/signer':
         specifier: ^0.19.4
-        version: 0.19.5(typescript@5.9.3)(zod@3.25.76)
+        version: 0.19.5(typescript@6.0.3)(zod@3.25.76)
       '@rocketh/verifier':
         specifier: ^0.19.8
-        version: 0.19.11(@rocketh/node@0.19.10(rocketh@0.19.9(typescript@5.9.3)(zod@3.25.76))(typescript@5.9.3)(zod@3.25.76))(typescript@5.9.3)(zod@3.25.76)
+        version: 0.19.11(@rocketh/node@0.19.10(rocketh@0.19.9(typescript@6.0.3)(zod@3.25.76))(typescript@6.0.3)(zod@3.25.76))(typescript@6.0.3)(zod@3.25.76)
       '@rocketh/viem':
         specifier: ^0.19.4
-        version: 0.19.5(typescript@5.9.3)(viem@2.55.10(typescript@5.9.3)(zod@3.25.76))(zod@3.25.76)
+        version: 0.19.5(typescript@6.0.3)(viem@2.55.10(typescript@6.0.3)(zod@3.25.76))(zod@3.25.76)
       '@types/node':
-        specifier: ^25.5.0
-        version: 25.9.5
+        specifier: ^26.1.2
+        version: 26.1.2
       as-soon:
         specifier: ^0.1.6
         version: 0.1.6
@@ -85,22 +85,22 @@ importers:
         version: 2.0.0
       faucet-server:
         specifier: ^0.0.7
-        version: 0.0.7(@libsql/core@0.17.4)(hono@4.12.32)(typescript@5.9.3)(zod@3.25.76)
+        version: 0.0.7(@libsql/core@0.17.4)(hono@4.12.32)(typescript@6.0.3)(zod@3.25.76)
       forge-std:
         specifier: github:foundry-rs/forge-std#v1.9.4
         version: https://codeload.github.com/foundry-rs/forge-std/tar.gz/1eea5bae12ae557d589f9f0f0edae2faa47cb262
       hardhat:
-        specifier: ^3.4.4
-        version: 3.11.1
+        specifier: ^3.12.0
+        version: 3.12.0
       hardhat-deploy:
         specifier: ^2.0.6
-        version: 2.0.10(@rocketh/node@0.19.10(rocketh@0.19.9(typescript@5.9.3)(zod@3.25.76))(typescript@5.9.3)(zod@3.25.76))(hardhat@3.11.1)(rocketh@0.19.9(typescript@5.9.3)(zod@3.25.76))
+        version: 2.0.10(@rocketh/node@0.19.10(rocketh@0.19.9(typescript@6.0.3)(zod@3.25.76))(typescript@6.0.3)(zod@3.25.76))(hardhat@3.12.0)(rocketh@0.19.9(typescript@6.0.3)(zod@3.25.76))
       hardhat-external-artifacts:
         specifier: ^0.0.6
-        version: 0.0.6(hardhat@3.11.1)(typescript@5.9.3)(zod@3.25.76)
+        version: 0.0.6(hardhat@3.12.0)(typescript@6.0.3)(zod@3.25.76)
       ldenv:
-        specifier: ^0.5.0
-        version: 0.5.0
+        specifier: ^0.6.0
+        version: 0.6.0
       prettier:
         specifier: ^3.8.0
         version: 3.9.6
@@ -109,10 +109,10 @@ importers:
         version: 2.3.1(prettier@3.9.6)
       purgatory:
         specifier: ^0.0.7
-        version: 0.0.7(@libsql/core@0.17.4)(hono@4.12.32)(typescript@5.9.3)(zod@3.25.76)
+        version: 0.0.7(@libsql/core@0.17.4)(hono@4.12.32)(typescript@6.0.3)(zod@3.25.76)
       rocketh:
         specifier: ^0.19.8
-        version: 0.19.9(typescript@5.9.3)(zod@3.25.76)
+        version: 0.19.9(typescript@6.0.3)(zod@3.25.76)
       set-defaults:
         specifier: ^0.0.5
         version: 0.0.5
@@ -123,11 +123,11 @@ importers:
         specifier: ^4.21.0
         version: 4.23.1
       typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
+        specifier: ~6.0.3
+        version: 6.0.3
       viem:
         specifier: ^2.47.6
-        version: 2.55.10(typescript@5.9.3)(zod@3.25.76)
+        version: 2.55.10(typescript@6.0.3)(zod@3.25.76)
       wait-on:
         specifier: ^9.0.4
         version: 9.1.0
@@ -159,8 +159,8 @@ importers:
         specifier: ^0.3.1
         version: 0.3.1(svelte@5.56.8)
       '@playwright/test':
-        specifier: ^1.58.2
-        version: 1.62.0
+        specifier: ^1.62.1
+        version: 1.62.1
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
         version: 3.0.10(@sveltejs/kit@2.70.2(@sveltejs/vite-plugin-svelte@7.2.0(svelte@5.56.8)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.1)))(svelte@5.56.8)(typescript@6.0.3)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.1)))
@@ -184,7 +184,7 @@ importers:
         version: 26.1.2
       '@vitest/browser-playwright':
         specifier: ^4.1.2
-        version: 4.1.10(playwright@1.62.0)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.1))(vitest@4.1.10)
+        version: 4.1.10(playwright@1.62.1)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.1))(vitest@4.1.10)
       bits-ui:
         specifier: ^2.16.4
         version: 2.18.1(@internationalized/date@3.12.2)(@sveltejs/kit@2.70.2(@sveltejs/vite-plugin-svelte@7.2.0(svelte@5.56.8)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.1)))(svelte@5.56.8)(typescript@6.0.3)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.1)))(svelte@5.56.8)
@@ -204,8 +204,8 @@ importers:
         specifier: ^1.3.0
         version: 1.3.0
       ldenv:
-        specifier: ^0.5.0
-        version: 0.5.0
+        specifier: ^0.6.0
+        version: 0.6.0
       mode-watcher:
         specifier: ^1.1.0
         version: 1.1.0(svelte@5.56.8)
@@ -216,8 +216,8 @@ importers:
         specifier: ^0.3.0
         version: 0.3.0
       playwright:
-        specifier: ^1.58.2
-        version: 1.62.0
+        specifier: ^1.62.1
+        version: 1.62.1
       prettier:
         specifier: ^3.9.6
         version: 3.9.6
@@ -279,22 +279,22 @@ importers:
         specifier: ^4.1.2
         version: 4.1.10(@types/node@26.1.2)(@vitest/browser-playwright@4.1.10)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.1))
       vitest-browser-svelte:
-        specifier: ^2.1.0
-        version: 2.2.1(svelte@5.56.8)(vitest@4.1.10)
+        specifier: ^3.0.0
+        version: 3.0.0(svelte@5.56.8)(vitest@4.1.10)
 
 packages:
 
-  '@actions/core@1.11.1':
-    resolution: {integrity: sha512-hXJCSrkwfA46Vd9Z3q4cpEpHB1rL5NG04+/rbqW9d3+CSvtB1tYe8UTpAlixa1vj0m/ULglfEK2UKxMGxCxv5A==}
+  '@actions/core@3.0.1':
+    resolution: {integrity: sha512-a6d/Nwahm9fliVGRhdhofo40HjHQasUPusmc7vBfyky+7Z+P2A1J68zyFVaNcEclc/Se+eO595oAr5nwEIoIUA==}
 
-  '@actions/exec@1.1.1':
-    resolution: {integrity: sha512-+sCcHHbVdk93a0XT19ECtO/gIXoxvdsgQLzb2fE2/5sIZmWQuluYyjPQtrtTHdU1YzTZ7bAPN4sITq2xi1679w==}
+  '@actions/exec@3.0.0':
+    resolution: {integrity: sha512-6xH/puSoNBXb72VPlZVm7vQ+svQpFyA96qdDBvhB8eNZOE8LtPf9L4oAsfzK/crCL8YZ+19fKYVnM63Sl+Xzlw==}
 
-  '@actions/http-client@2.2.3':
-    resolution: {integrity: sha512-mx8hyJi/hjFvbPokCg4uRd4ZX78t+YyRPtnKWwIl+RzNaVuFpQHfmlGVfsKEJN8LwTCvL+DfVgAM04XaHkm6bA==}
+  '@actions/http-client@4.0.1':
+    resolution: {integrity: sha512-+Nvd1ImaOZBSoPbsUtEhv+1z99H12xzncCkz0a3RuehINE81FZSe2QTj3uvAPTcJX/SCzUQHQ0D1GrPMbrPitg==}
 
-  '@actions/io@1.1.3':
-    resolution: {integrity: sha512-wi9JjgKLYS7U/z8PPbco+PvTb/nRWjeoFlJ1Qer83k/3C5PHQi28hiVdeE2kHXmIL99mQFawx8qt/JPjZilJ8Q==}
+  '@actions/io@3.0.2':
+    resolution: {integrity: sha512-nRBchcMM+QK1pdjO7/idu86rbJI5YHUKCvKs0KxnSYbVe3F51UfGxuZX4Qy/fWlp6l7gWFwIkrOzN+oUK03kfw==}
 
   '@adraffy/ens-normalize@1.11.1':
     resolution: {integrity: sha512-nhCBV3quEgesuf7c7KYfperqSS14T8bYuvJ8PcLJp6znkZpFc0AuW4qBtr8eKVyPPe/8RSr7sglCWPU5eaxwKQ==}
@@ -641,10 +641,6 @@ packages:
   '@etherplay/wallet-connector@0.0.5':
     resolution: {integrity: sha512-P9wMxN4HelrL+/56g4IjkVAjuIhz0Bhq/CFxAOWUQ2cwpFsdrVSQ0s1PCxR2+gsBca+RTxgsfQhOcYqjTbEhOQ==}
 
-  '@fastify/busboy@2.1.1':
-    resolution: {integrity: sha512-vBZP4NlzfOlerQTnba4aqZoMhE/a9HY7HRqoOPaETQcSQuWEIyZMHGfVu6w9wGtGK5fED5qRs2DteVCjOH60sA==}
-    engines: {node: '>=14'}
-
   '@floating-ui/core@1.8.0':
     resolution: {integrity: sha512-0CIZ5itps/8x7BG8dEIhs53BvCUH2PCoogtakwRTut+Arm58sJooJ0AuZhLw2HJYIR5cMLNPBSS728sPho2khQ==}
 
@@ -791,9 +787,17 @@ packages:
   '@internationalized/date@3.12.2':
     resolution: {integrity: sha512-FY1Y+H64NDs+HAF6omlnWxm3mEpfgaCSWtL5l551ZZfImA+kGjPFgrnJrGjH6lfmLL0g8Z/mBu1R3kufeCp6Jw==}
 
-  '@jest/schemas@29.6.3':
-    resolution: {integrity: sha512-mo5j5X+jIZmJQveBKeS/clAueipV7KgiX1vMgCxam1RNYiqE1w62n0/tJJnHtjW8ZHcQco5gY85jA3mi0L+nSA==}
-    engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
+  '@jest/diff-sequences@30.4.0':
+    resolution: {integrity: sha512-zOpzlfUs45l6u7jm39qr87JCHUDsaeCtvL+kQe/Vn9jSnRB4/5IPXISm0h9I1vZW/o00Kn4UTJ2MOlhnUGwv3g==}
+    engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
+
+  '@jest/get-type@30.1.0':
+    resolution: {integrity: sha512-eMbZE2hUnx1WV0pmURZY9XoXPkUYjpc55mb0CrhtdWLtzMQPFvu/rZkTLZFTsdaVQa+Tr4eWAteqcUzoawq/uA==}
+    engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
+
+  '@jest/schemas@30.4.1':
+    resolution: {integrity: sha512-i6b4qw5qnP8c5FEeBJg/uZQ4ddrkN6Ca8qISJh0pr7a5hfn3h3v5x60BEbOC7OYAGZNMs1LfFLwnW2CuK8F57Q==}
+    engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
 
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
@@ -945,40 +949,43 @@ packages:
     resolution: {integrity: sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg==}
     engines: {node: '>= 8'}
 
-  '@nomicfoundation/edr-darwin-arm64@0.14.2':
-    resolution: {integrity: sha512-8f2rYJTXbbN/NdzhXNwUiR+467Vr4R7VFJ/+1aeek1WBcvvBgzCBtmACC9ihqt1NKPv6QZQTC51bhcSUA8FVmg==}
+  '@nomicfoundation/edr-darwin-arm64@0.15.0':
+    resolution: {integrity: sha512-kFgoiou9yfzojAki3yOnOlFZfkC0oQeS8G3i/8lXaTnjEjQ2C1lLDgRQt8Q0kjSdVOs5daiC+eQx+8to4R5/ug==}
     engines: {node: '>= 22'}
 
-  '@nomicfoundation/edr-darwin-x64@0.14.2':
-    resolution: {integrity: sha512-qpoToApz1fFclWV7KVqFVwOJn020nCLBTbIRVVcaTcAVJr3N5DK5JInQe4Nch068zwl2sRbZ+NU9GE0mUhRJPA==}
+  '@nomicfoundation/edr-darwin-x64@0.15.0':
+    resolution: {integrity: sha512-vnFHCj2oxd7N8Eg760yY5gPAHz6tL7NB9Pt1nrP8/+XIutEdUJjpIDGadG0jsTHNmq303EvHh4nkpuO3zBCSZw==}
     engines: {node: '>= 22'}
 
-  '@nomicfoundation/edr-linux-arm64-gnu@0.14.2':
-    resolution: {integrity: sha512-7oOWqMeZoOKwt9S3UZLGd8YeQVCLSsB+ysbe2uu1tIAThsYMmLvcPd79dF95ggs7mjNexvMEqE8ccM+i+S1/4A==}
+  '@nomicfoundation/edr-linux-arm64-gnu@0.15.0':
+    resolution: {integrity: sha512-klBqsMWl19NVok/9BOcX/PeV7M7DrTM4C7eSOQyc6wglZZRwKSm8tDtwQVh/bJkOCqqgVMO6IOi+IQ4xQbsgog==}
     engines: {node: '>= 22'}
 
-  '@nomicfoundation/edr-linux-arm64-musl@0.14.2':
-    resolution: {integrity: sha512-M+l+RiH4kwnYfdBBguLzlsKbPuOETjY1dJ/Qer3C6bdeNmP0nLDBkf0VM4m99HxzvEtSWg2JrT/YMV/6EZf1CQ==}
+  '@nomicfoundation/edr-linux-arm64-musl@0.15.0':
+    resolution: {integrity: sha512-PQ6oqCCOjQaGCyDA1XFDWbpGrXGKZ8Fr3JQrd7cCCqVvIBshg68WrJ7gqlf4DdeidppIi3m9CNRsWsRfj9Y17w==}
     engines: {node: '>= 22'}
 
-  '@nomicfoundation/edr-linux-x64-gnu@0.14.2':
-    resolution: {integrity: sha512-N2I1mj5kCTzTvlVYsNnox9dxaypP6MggO6eOOj4dmNuTkFTQAO1JAszhHP8QgzySLoh5ayBKjlX54CqT0/jHZg==}
+  '@nomicfoundation/edr-linux-x64-gnu@0.15.0':
+    resolution: {integrity: sha512-j89Ywivbs78xWjoSFcZLp+pUqe0p0p3vqiG1utGFj/fJ7zEgTQBcC+DUiyddFpYB3TE79TZMUoaAnEVdxTi4Xw==}
     engines: {node: '>= 22'}
 
-  '@nomicfoundation/edr-linux-x64-musl@0.14.2':
-    resolution: {integrity: sha512-qCbvhbIar68x8DOfxjmadOAVYIEMrJLMET2eMWw+2ReTn3aXkMOievtTZwvgZQf7OiyX6dMiSXTUZdIhL1sbGg==}
+  '@nomicfoundation/edr-linux-x64-musl@0.15.0':
+    resolution: {integrity: sha512-bJuCPxihvSFyoGAxmYL5CyN9id5mqncyikywTa7+/+g7ge2Pnz+w7GHbim+tvHeMA9XQv1vSy4QgNkkZXGBzLg==}
     engines: {node: '>= 22'}
 
-  '@nomicfoundation/edr-win32-x64-msvc@0.14.2':
-    resolution: {integrity: sha512-1v+NTmjT2AlnxPaBJ5GswPH2TZgHjSFWdnefzDzOJ3Yy3zT4Miyoq1/SKIJky1nP0tCFFtTogj2xZ7+GpOSAHg==}
+  '@nomicfoundation/edr-win32-x64-msvc@0.15.0':
+    resolution: {integrity: sha512-pnUdVgZ4VwqbZu9XTAxJeuGavAY1w3txd/HkpqiOuu43Yrt0nnsRO5gAdj4smXJmQ5Bzy2x2GJ0/68rP4T1Pgw==}
     engines: {node: '>= 22'}
 
-  '@nomicfoundation/edr@0.14.2':
-    resolution: {integrity: sha512-DoSdwCP/oCGOVqx6yxggGSsKPqansPS76qxBRJAp0wvfBCM1ZXBITi+OGdCaN8CG3uDDV/u6UEpbPIISTcsKng==}
+  '@nomicfoundation/edr@0.15.0':
+    resolution: {integrity: sha512-RcBnQ0MYsrjhLsN+Kcu7q5mnRmBlxmv+Y0lxgrCsST6YTDH/l5RH3nG88J8sDEGmXyjVzX2HsXQBy9NxFJHFuw==}
     engines: {node: '>= 22'}
 
   '@nomicfoundation/hardhat-errors@3.0.17':
     resolution: {integrity: sha512-x8/Bv7Mn0a90ZRX4ZfWuq8uGuqF10LzLMXD1LD0kEIRBwSvr71fcxYyONcuf+MzznbrJ+WBTNz3ov9Rd++8DfQ==}
+
+  '@nomicfoundation/hardhat-errors@3.0.18':
+    resolution: {integrity: sha512-SK1GMQiV1r1/UbIU/2S13D1iueR8nYE6R+hK2AvJYCjvOCQGStK2oGHIPKVCdCK12yDZK0LE1OrCwxwcEvIu2w==}
 
   '@nomicfoundation/hardhat-keystore@3.0.12':
     resolution: {integrity: sha512-uXySRPOOHtAg/RrwmqiQyw0QDA6Er3H6rB4su0J59mBPC/QHw9B5F9dDfF2u+FZn5LVWH6Gh58mEvJhRt0a4dQ==}
@@ -990,16 +997,19 @@ packages:
     peerDependencies:
       hardhat: ^3.8.0
 
-  '@nomicfoundation/hardhat-node-test-reporter@3.1.0':
-    resolution: {integrity: sha512-mcVaJyqQnryVOv/fWmo0IofVfRYvcoLyzR+D2LiLLtxvmmMTYLYW5ktPk0XHuJ+UBK735aZTrMTDUR3S/x9Edw==}
+  '@nomicfoundation/hardhat-node-test-reporter@3.1.1':
+    resolution: {integrity: sha512-dGWMfDYM2gg7leFA2w3RMKW3TzIXJm0+8VLOLxCbROQ9bJTzI76nwrPNmVNAeH49Q2cU3WCdgw7YXAp7lcoYRA==}
 
-  '@nomicfoundation/hardhat-node-test-runner@3.0.17':
-    resolution: {integrity: sha512-zn+5BJ00n9pCFIAKJDegf65P7AM8+tcgCsrtXkjVH7wA46jssGaKQ8VduTwoekfZn8DdmwPTL7MWXqwjSS/Lkg==}
+  '@nomicfoundation/hardhat-node-test-runner@3.1.0':
+    resolution: {integrity: sha512-afuTNxslf1H6tkXApf1r4Is12dyxsew1AscutGvQG+maPTDuk/BuTQ2a9idXBULZA3/6TGfbEEQvki5FxaONWQ==}
     peerDependencies:
-      hardhat: ^3.8.0
+      hardhat: ^3.12.0
 
   '@nomicfoundation/hardhat-utils@4.1.6':
     resolution: {integrity: sha512-j3LUq/4puVWUaS5BsbehR90LiGZaABYAWHSA4nGfRUxfBUjay82AwSSzaGKfDQYaRkdKoP9ZXeMDTEIFJGI24Q==}
+
+  '@nomicfoundation/hardhat-utils@4.1.7':
+    resolution: {integrity: sha512-syZ1OqcJUR1l8JD8cP96PPtjn+55GJX6c7q2e0z1WhT6/DjQJZCbOiET1MCkIr6HK6k+ZMfsTR7KbnhrRiL0CQ==}
 
   '@nomicfoundation/hardhat-vendored@3.0.4':
     resolution: {integrity: sha512-RO8Otj1FvRvxJmXzkxh1vTwK/+cqSVPYLqY6RrWkmzHEEcxnAwAFsBYdW7xyTEyW/pVbSSNd2gs3aoGdGZaoNA==}
@@ -1137,8 +1147,8 @@ packages:
     resolution: {integrity: sha512-7FNeNl8NCE7aINx7WXiKQrPYZWC/hvrTsmk6zmxbI7LTXE7hVek/n8AfVgpe2y82zl3w0HvCHN0bVKMBoJcC0w==}
     engines: {node: '>= 10.0.0'}
 
-  '@playwright/test@1.62.0':
-    resolution: {integrity: sha512-9zOJ6ZQRAena31MpOH9VSzIz8Ou3YJ/wtY/eQm5T2uhfhG7/U3COrMS8xOtUrZrp9OgdmzEnIYODye3nY1VqzA==}
+  '@playwright/test@1.62.1':
+    resolution: {integrity: sha512-DTcUc8qii+cpHvtOwggMtBRMjKZHXYWdw8syRYu2vtzuq4Wxphqq4NfCs5Zt44L6mA8rfDfj+PHnxFc/FeK6mQ==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -1431,8 +1441,8 @@ packages:
     resolution: {integrity: sha512-KX62+qIt4xgy8eHKHiikfhz2p5fOciXd0Cl+dNzhgPFq8klq4MGMNaf148GB3M/vBqP4nw/eFvRMAayFCgdRQw==}
     engines: {node: '>=18'}
 
-  '@sinclair/typebox@0.27.12':
-    resolution: {integrity: sha512-hhyNJ+nbR6ZR7pToHvllEFun9TL0sbL+tk/ON75lo+Xas054uez98qRbsuNt7MBCyZKK4+8Yli/OAGZhmfBZ/g==}
+  '@sinclair/typebox@0.34.52':
+    resolution: {integrity: sha512-XiMQh7qqVlxZzcVD+kkGMNGMzcTrDMLWI7S4x7z1MkCkbDPrekpZXEUK0eZqZFMuHQg2a2DZOcDIh9o5v3Gonw==}
 
   '@solidity-parser/parser@0.20.2':
     resolution: {integrity: sha512-rbu0bzwNvMcwAjH86hiEAcOeRI2EeK8zCkHDrFykh/Al8mvJeFmjy3UrE7GYQjNwOgbGUUtCn5/k8CB8zIu7QA==}
@@ -1624,9 +1634,6 @@ packages:
   '@types/jsonfile@6.1.4':
     resolution: {integrity: sha512-D5qGUYwjvnNNextdU59/+fI+spnwtTFmyQP0h+PfIOSkNfpU6AOICUOkm4i0OnSk+NyjdPJrxCDro0sJsWlRpQ==}
 
-  '@types/node@25.9.5':
-    resolution: {integrity: sha512-OScDchr2fwuUmWdf4kZ9h7PcJiYDVInhJizG/biAq3cAvqwYktuy/TYGGdZNMtNTFUP7rnb0NU4TUdm82kt4Rg==}
-
   '@types/node@26.1.2':
     resolution: {integrity: sha512-Vu4a5UFA9rIIFJ7rB/Vaafh9lrCQszopTCx6KjFboXTGQbPNasehVR5TEiithSDGyd1DEiUByggTZsg8jukeIg==}
 
@@ -1751,9 +1758,9 @@ packages:
     engines: {node: '>=0.4.0'}
     hasBin: true
 
-  adm-zip@0.4.16:
-    resolution: {integrity: sha512-TFi4HBKSGfIKsK5YCkKaaFG2m4PEDyViZmEwof3MTIgzimHLto6muaHVpbrljdIvIrFZzEq/p4nafOeLcYegrg==}
-    engines: {node: '>=0.3.0'}
+  adm-zip@0.6.0:
+    resolution: {integrity: sha512-XleryMhbuksdKtofnWZ9Sk+4CUTbms4Mb/EU32SZwToAyZ5RgVos/ki8n+yr0LWHOGKuakbXTuuYNHLQjhddgg==}
+    engines: {node: '>=14.0'}
 
   agent-base@6.0.2:
     resolution: {integrity: sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==}
@@ -2195,6 +2202,10 @@ packages:
     resolution: {integrity: sha512-Qgzu8kfBvo+cA4962jnP1KkS6Dop5NS6g7R5LFYJr4b8Ub94PPQXUksCw9PvXoeXPRRddRNC5C1JQUR2SMGtnA==}
     engines: {node: '>= 14.16.0'}
 
+  chokidar@5.0.0:
+    resolution: {integrity: sha512-TQMmc3w+5AxjpL8iIiwebF73dRDF4fBIieAqGn9RGCWaEVwQ6Fb2cGe31Yns0RRIzii5goJ1Y7xbMwo1TxMplw==}
+    engines: {node: '>= 20.19.0'}
+
   clsx@2.1.1:
     resolution: {integrity: sha512-eYm0QWBtUrBWZWG0d386OGAw16Z995PiOVo2B7bjWSbHedGl5e0ZWaq65kOGgUSNesEIDkB9ISbTg/JK9dhCZA==}
     engines: {node: '>=6'}
@@ -2424,10 +2435,6 @@ packages:
   devalue@5.8.2:
     resolution: {integrity: sha512-DObPPAfdtFbXjxLqK8s2Xk9ZuWz5+ZoFEhC7J76es4GU/rEiXwHTmbImoCdyoCOcBH1UF3+Cz6Z2sYD4hyl5TA==}
 
-  diff-sequences@29.6.3:
-    resolution: {integrity: sha512-EjePK1srD3P08o2j4f0ExnylqRs5B9tJjcp9t1krH2qRi8CCdsYfwe9JgSLurFBWwq4uOlipzfk5fHNvwFKr8Q==}
-    engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
-
   dom-serializer@2.0.0:
     resolution: {integrity: sha512-wIkAryiqt/nV5EQKqQpo3SToSOV9J0DnbJqwK7Wv/Trc92zIAYZ4FlMu+JPFW1DfGFt81ZTCGgDEabffXeLyJg==}
 
@@ -2496,6 +2503,10 @@ packages:
   env-paths@2.2.1:
     resolution: {integrity: sha512-+h1lkLKhZMTYjog1VEpJNG7NZJWcuc2DDk/qsqSTRRCOXiLjeQ1d1/udrUGhqMxUgAlwKNZ0cf2uqan5GLuS2A==}
     engines: {node: '>=6'}
+
+  env-paths@4.0.0:
+    resolution: {integrity: sha512-pxP8eL2SwwaTRi/KHYwLYXinDs7gL3jxFcBYmEdYfZmZXbaVDvdppd0XBU8qVz03rDfKZMXg1omHCbsJjZrMsw==}
+    engines: {node: '>=20'}
 
   error-stack-parser@2.1.4:
     resolution: {integrity: sha512-Sk5V6wVazPhq5MhpO+AUxJn5x7XSXGl1R93Vn7i+zS15KDVxQijejNCrz8340/2bgLBjR9GtEG8ZVKONDjcqGQ==}
@@ -2756,8 +2767,8 @@ packages:
     peerDependencies:
       hardhat: ^3.1.8
 
-  hardhat@3.11.1:
-    resolution: {integrity: sha512-oI+WFydV2HlHq3qZHFypQ4nJCRaX/7D3Z1TYcWju/JYhfihgVfKvy16NDO0ltVjy2GN0KWC7xgEWnQPJEnLQPA==}
+  hardhat@3.12.0:
+    resolution: {integrity: sha512-HY1BPWJ+Pq/RvGDcK8M0gwawNiJqrjfF0LOdHM+pYa9EDybG8O9hX1RP7fWchNLrA49D7A1Ax8LlRkQglWozzg==}
     hasBin: true
 
   has-ansi@2.0.0:
@@ -2899,6 +2910,10 @@ packages:
     resolution: {integrity: sha512-MjYsKHO5O7mCsmRGxWcLWheFqN9DJ/2TmngvjKXihe6efViPqc274+Fx/4fYj/r03+ESvBdTXK0V6tA3rgez1g==}
     engines: {node: '>= 0.4'}
 
+  is-safe-filename@0.1.1:
+    resolution: {integrity: sha512-4SrR7AdnY11LHfDKTZY1u6Ga3RuxZdl3YKWWShO5iyuG5h8QS4GD2tOb04peBJ5I7pXbR+CGBNEhTcwK+FzN3g==}
+    engines: {node: '>=20'}
+
   is-typedarray@1.0.0:
     resolution: {integrity: sha512-cyA56iCMHAh5CdzjJIa4aohJyeO1YbwLi3Jc35MmRU6poroFjIGZzUzupGiRPOjgHg9TLu43xbpwXk523fMxKA==}
 
@@ -2926,13 +2941,9 @@ packages:
   isstream@0.1.2:
     resolution: {integrity: sha512-Yljz7ffyPbrLpLngrMtZ7NduUgVvi6wG9RJ9IUcyCd59YQ911PBJphODUcbOVbqYfxe1wuYf/LJ8PauMRwsM/g==}
 
-  jest-diff@29.7.0:
-    resolution: {integrity: sha512-LMIgiIrhigmPrs03JHpxUh2yISK3vLFPkAodPeo0+BuF7wA2FoQbkEg1u8gBYBThncu7e1oEDUfIXVuTqLRUjw==}
-    engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
-
-  jest-get-type@29.6.3:
-    resolution: {integrity: sha512-zrteXnqYxfQh7l5FHyL38jL39di8H8rHoecLH3JNxH3BwOrBsNeabdap5e0I23lD4HHI8W5VFBZqG4Eaq5LNcw==}
-    engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
+  jest-diff@30.4.1:
+    resolution: {integrity: sha512-CRpFK0RtLriVDGcPPAnR6HMVI8bSR2jnUIgralhauzYQZIb4RH9AtEInTuQr65LmmGggGcRT6HIASxwqsVsmlA==}
+    engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
 
   jimp@0.2.28:
     resolution: {integrity: sha512-9HT7DA279xkTlry2oG30s6AtOUglNiY2UdyYpj0yNI4/NBv8PmdNC0gcldgMU4HqvbUlrM3+v+6GaHnTkH23JQ==}
@@ -3607,13 +3618,13 @@ packages:
     resolution: {integrity: sha512-J8B6xqiO37sU/gkcMglv6h5Jbd9xNER7aHzpfRdNmV4IbQBzBpe4l9XmbG+xPF/znacgu2jfEw+wHffaq/YkXA==}
     hasBin: true
 
-  playwright-core@1.62.0:
-    resolution: {integrity: sha512-nsNRyq0r2zsG8AcRHWknc9QRA5XCueC7gWMrs+Gx2tlZn9hcl8zudfh00lhJPY1DE7NmZ6bDsT9g2yey8mXljA==}
+  playwright-core@1.62.1:
+    resolution: {integrity: sha512-wPYSwEBJY9GHraISXqyqtx0na0LpO3XEX7jNDhntbex7tzUS7kLnZsOlFruFJB4Hi/rhDMjXGqHewDZ68nYZVw==}
     engines: {node: '>=20'}
     hasBin: true
 
-  playwright@1.62.0:
-    resolution: {integrity: sha512-Z14dG305dgaLu6foB1TXQagFiW8JfSUIUaUuPaKQ6NtBPKF1P/qXcqfh6c6K/icPqdy37JmjbiBXf6JNg6Sylw==}
+  playwright@1.62.1:
+    resolution: {integrity: sha512-0M+L3LAD8/nm554LOla9Ayx0j0tmFZ0FBcoQ7F1VuVHpM/XpiC8RcDzBQB8W5+hA8L22THxELzeF+2WcUzvcLg==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -3706,9 +3717,9 @@ packages:
     engines: {node: '>=14'}
     hasBin: true
 
-  pretty-format@29.7.0:
-    resolution: {integrity: sha512-Pdlw/oPxN+aXdmM9R00JVC9WVFoCLTKJvDVLgmJ+qAffBMxsV85l/Lu7sNx4zSzPyoL2euImuEwHhOXdEgNFZQ==}
-    engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
+  pretty-format@30.4.1:
+    resolution: {integrity: sha512-K6KiKMHTL4jjX4u3Kir2EW07nRfcqVTXIImx50wbjHQTcZPgg+gjVeNTIT3l3L1Rd4UefxfogquC9J37SoFyyw==}
+    engines: {node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0}
 
   private@0.1.8:
     resolution: {integrity: sha512-VvivMrbvd2nKkiG38qjULzlc+4Vx4wm/whI9pQD35YrARNnhxeiRktSOhSukRLFNlzg6Br/cJPet5J/u19r/mg==}
@@ -3778,6 +3789,9 @@ packages:
   react-is@18.3.1:
     resolution: {integrity: sha512-/LLMVyas0ljjAtoYiPqYiL8VWXzUUdThrmU5+n20DZv+a+ClRoevUzw5JxU+Ieh5/c87ytoTBV9G1FiKfNJdmg==}
 
+  react-is@19.2.8:
+    resolution: {integrity: sha512-s5un28nYxKJw5gvUHyW5PCC28CvBqLu9r3cWgzHT4Vo/5fqqkFcdRYsGcKf50WMPpjjFZS5d76fn3YCo2njKwQ==}
+
   read-chunk@1.0.1:
     resolution: {integrity: sha512-5NLTTdX45dKFtG8CX5pKmvS9V5u9wBE+gkklN7xhDuhq3pA2I4O7ALfKxosCMcLHOhkxj6GNacZhfXtp5nlCdg==}
     engines: {node: '>=0.10.0'}
@@ -3788,6 +3802,10 @@ packages:
   readdirp@4.1.2:
     resolution: {integrity: sha512-GDhwkLfywWL2s6vEjyhri+eXmfH6j1L7JE27WhqLeYzoh/A3DBaYGEj2H/HFZCn/kMfim73FXxEJTw06WtxQwg==}
     engines: {node: '>= 14.18.0'}
+
+  readdirp@5.0.0:
+    resolution: {integrity: sha512-9u/XQ1pvrQtYyMpZe7DXKv2p5CNvyVwzUB6uhLAnQwHMSgKMBR62lc7AHljaeteeHXn11XTAaLLUVZYVZyuRBQ==}
+    engines: {node: '>= 20.19.0'}
 
   reduce-flatten@2.0.0:
     resolution: {integrity: sha512-EJ4UNY/U1t2P/2k6oqotuX2Cc3T6nxJwsM0N0asT7dhrtH1ltUxDn4NalSYmPE2rCkVpcf/X6R0wDwcFpzhd4w==}
@@ -4308,11 +4326,6 @@ packages:
     resolution: {integrity: sha512-TkRKr9sUTxEH8MdfuCSP7VizJyzRNMjj2J2do2Jr3Kym598JVdEksuzPQCnlFPW4ky9Q+iA+ma9BGm06XQBy8g==}
     engines: {node: '>= 0.6'}
 
-  typescript@5.9.3:
-    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
-    engines: {node: '>=14.17'}
-    hasBin: true
-
   typescript@6.0.3:
     resolution: {integrity: sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==}
     engines: {node: '>=14.17'}
@@ -4335,15 +4348,8 @@ packages:
     engines: {node: '>=0.8.0'}
     hasBin: true
 
-  undici-types@7.24.6:
-    resolution: {integrity: sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg==}
-
   undici-types@8.3.0:
     resolution: {integrity: sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ==}
-
-  undici@5.29.0:
-    resolution: {integrity: sha512-raqeBD6NQK4SkWhQzeYKd1KmIG6dllBOTt55Rmkt4HtI9mwdWtJljnrXjAFUBLTSN67HWrOIZ3EPF4kjUw80Bg==}
-    engines: {node: '>=14.0'}
 
   undici@6.28.0:
     resolution: {integrity: sha512-LIY910g9TI13YS95lrMFrs8Rm/u/irgHeTWoKCoteeJ04CUJ92eEfj0rVn+7VKMPBpUPiUoBKfhNyLI23EE/KA==}
@@ -4490,8 +4496,8 @@ packages:
       vite:
         optional: true
 
-  vitest-browser-svelte@2.2.1:
-    resolution: {integrity: sha512-dVjmXuk58eLSloA41Lvz5ALMqWVzK7Gk5TvY5KWFbI8VoEO1nJF1/M498NwJRbxlnjaEZrASd02h+NDS/T9mBA==}
+  vitest-browser-svelte@3.0.0:
+    resolution: {integrity: sha512-BKM9iBGNsEQzigWuSZFAiw6AJDqQqMttApoD8gM8LTI6vxfd423rDMN8GqUHJyGbhH3XcOo9N9u/4hu47Nxhsw==}
     peerDependencies:
       svelte: ^3 || ^4 || ^5 || ^5.0.0-next.0
       vitest: ^4.0.0
@@ -4659,21 +4665,21 @@ packages:
 
 snapshots:
 
-  '@actions/core@1.11.1':
+  '@actions/core@3.0.1':
     dependencies:
-      '@actions/exec': 1.1.1
-      '@actions/http-client': 2.2.3
+      '@actions/exec': 3.0.0
+      '@actions/http-client': 4.0.1
 
-  '@actions/exec@1.1.1':
+  '@actions/exec@3.0.0':
     dependencies:
-      '@actions/io': 1.1.3
+      '@actions/io': 3.0.2
 
-  '@actions/http-client@2.2.3':
+  '@actions/http-client@4.0.1':
     dependencies:
       tunnel: 0.0.6
-      undici: 5.29.0
+      undici: 6.28.0
 
-  '@actions/io@1.1.3': {}
+  '@actions/io@3.0.2': {}
 
   '@adraffy/ens-normalize@1.11.1': {}
 
@@ -4949,8 +4955,6 @@ snapshots:
 
   '@etherplay/wallet-connector@0.0.5': {}
 
-  '@fastify/busboy@2.1.1': {}
-
   '@floating-ui/core@1.8.0':
     dependencies:
       '@floating-ui/utils': 0.2.12
@@ -5063,9 +5067,13 @@ snapshots:
     dependencies:
       '@swc/helpers': 0.5.23
 
-  '@jest/schemas@29.6.3':
+  '@jest/diff-sequences@30.4.0': {}
+
+  '@jest/get-type@30.1.0': {}
+
+  '@jest/schemas@30.4.1':
     dependencies:
-      '@sinclair/typebox': 0.27.12
+      '@sinclair/typebox': 0.34.52
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
@@ -5207,62 +5215,66 @@ snapshots:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.20.1
 
-  '@nomicfoundation/edr-darwin-arm64@0.14.2': {}
+  '@nomicfoundation/edr-darwin-arm64@0.15.0': {}
 
-  '@nomicfoundation/edr-darwin-x64@0.14.2': {}
+  '@nomicfoundation/edr-darwin-x64@0.15.0': {}
 
-  '@nomicfoundation/edr-linux-arm64-gnu@0.14.2': {}
+  '@nomicfoundation/edr-linux-arm64-gnu@0.15.0': {}
 
-  '@nomicfoundation/edr-linux-arm64-musl@0.14.2': {}
+  '@nomicfoundation/edr-linux-arm64-musl@0.15.0': {}
 
-  '@nomicfoundation/edr-linux-x64-gnu@0.14.2': {}
+  '@nomicfoundation/edr-linux-x64-gnu@0.15.0': {}
 
-  '@nomicfoundation/edr-linux-x64-musl@0.14.2': {}
+  '@nomicfoundation/edr-linux-x64-musl@0.15.0': {}
 
-  '@nomicfoundation/edr-win32-x64-msvc@0.14.2': {}
+  '@nomicfoundation/edr-win32-x64-msvc@0.15.0': {}
 
-  '@nomicfoundation/edr@0.14.2':
+  '@nomicfoundation/edr@0.15.0':
     dependencies:
-      '@nomicfoundation/edr-darwin-arm64': 0.14.2
-      '@nomicfoundation/edr-darwin-x64': 0.14.2
-      '@nomicfoundation/edr-linux-arm64-gnu': 0.14.2
-      '@nomicfoundation/edr-linux-arm64-musl': 0.14.2
-      '@nomicfoundation/edr-linux-x64-gnu': 0.14.2
-      '@nomicfoundation/edr-linux-x64-musl': 0.14.2
-      '@nomicfoundation/edr-win32-x64-msvc': 0.14.2
+      '@nomicfoundation/edr-darwin-arm64': 0.15.0
+      '@nomicfoundation/edr-darwin-x64': 0.15.0
+      '@nomicfoundation/edr-linux-arm64-gnu': 0.15.0
+      '@nomicfoundation/edr-linux-arm64-musl': 0.15.0
+      '@nomicfoundation/edr-linux-x64-gnu': 0.15.0
+      '@nomicfoundation/edr-linux-x64-musl': 0.15.0
+      '@nomicfoundation/edr-win32-x64-msvc': 0.15.0
 
   '@nomicfoundation/hardhat-errors@3.0.17':
     dependencies:
       '@nomicfoundation/hardhat-utils': 4.1.6
 
-  '@nomicfoundation/hardhat-keystore@3.0.12(hardhat@3.11.1)':
+  '@nomicfoundation/hardhat-errors@3.0.18':
+    dependencies:
+      '@nomicfoundation/hardhat-utils': 4.1.7
+
+  '@nomicfoundation/hardhat-keystore@3.0.12(hardhat@3.12.0)':
     dependencies:
       '@noble/ciphers': 1.2.1
       '@noble/hashes': 1.7.1
       '@nomicfoundation/hardhat-errors': 3.0.17
       '@nomicfoundation/hardhat-utils': 4.1.6
       '@nomicfoundation/hardhat-zod-utils': 3.0.5(zod@3.25.76)
-      hardhat: 3.11.1
+      hardhat: 3.12.0
       zod: 3.25.76
 
-  '@nomicfoundation/hardhat-network-helpers@3.0.11(hardhat@3.11.1)':
+  '@nomicfoundation/hardhat-network-helpers@3.0.11(hardhat@3.12.0)':
     dependencies:
       '@nomicfoundation/hardhat-errors': 3.0.17
       '@nomicfoundation/hardhat-utils': 4.1.6
-      hardhat: 3.11.1
+      hardhat: 3.12.0
 
-  '@nomicfoundation/hardhat-node-test-reporter@3.1.0':
+  '@nomicfoundation/hardhat-node-test-reporter@3.1.1':
     dependencies:
-      '@actions/core': 1.11.1
-      jest-diff: 29.7.0
+      '@actions/core': 3.0.1
+      jest-diff: 30.4.1
 
-  '@nomicfoundation/hardhat-node-test-runner@3.0.17(hardhat@3.11.1)':
+  '@nomicfoundation/hardhat-node-test-runner@3.1.0(hardhat@3.12.0)':
     dependencies:
-      '@nomicfoundation/hardhat-errors': 3.0.17
-      '@nomicfoundation/hardhat-node-test-reporter': 3.1.0
-      '@nomicfoundation/hardhat-utils': 4.1.6
+      '@nomicfoundation/hardhat-errors': 3.0.18
+      '@nomicfoundation/hardhat-node-test-reporter': 3.1.1
+      '@nomicfoundation/hardhat-utils': 4.1.7
       '@nomicfoundation/hardhat-zod-utils': 3.0.5(zod@3.25.76)
-      hardhat: 3.11.1
+      hardhat: 3.12.0
       tsx: 4.23.1
       zod: 3.25.76
 
@@ -5276,14 +5288,24 @@ snapshots:
       rfdc: 1.4.1
       undici: 6.28.0
 
+  '@nomicfoundation/hardhat-utils@4.1.7':
+    dependencies:
+      '@streamparser/json-node': 0.0.22
+      env-paths: 4.0.0
+      ethereum-cryptography: 2.2.1
+      fast-equals: 5.4.1
+      json-stream-stringify: 3.1.7
+      rfdc: 1.4.1
+      undici: 6.28.0
+
   '@nomicfoundation/hardhat-vendored@3.0.4': {}
 
-  '@nomicfoundation/hardhat-viem@3.0.9(hardhat@3.11.1)(viem@2.55.10(typescript@5.9.3)(zod@3.25.76))':
+  '@nomicfoundation/hardhat-viem@3.0.9(hardhat@3.12.0)(viem@2.55.10(typescript@6.0.3)(zod@3.25.76))':
     dependencies:
       '@nomicfoundation/hardhat-errors': 3.0.17
       '@nomicfoundation/hardhat-utils': 4.1.6
-      hardhat: 3.11.1
-      viem: 2.55.10(typescript@5.9.3)(zod@3.25.76)
+      hardhat: 3.12.0
+      viem: 2.55.10(typescript@6.0.3)(zod@3.25.76)
 
   '@nomicfoundation/hardhat-zod-utils@3.0.5(zod@3.25.76)':
     dependencies:
@@ -5393,74 +5415,74 @@ snapshots:
       '@parcel/watcher-win32-arm64': 2.6.0
       '@parcel/watcher-win32-x64': 2.6.0
 
-  '@playwright/test@1.62.0':
+  '@playwright/test@1.62.1':
     dependencies:
-      playwright: 1.62.0
+      playwright: 1.62.1
 
   '@polka/url@1.0.0-next.29': {}
 
-  '@rocketh/core@0.19.5(typescript@5.9.3)(zod@3.25.76)':
+  '@rocketh/core@0.19.5(typescript@6.0.3)(zod@3.25.76)':
     dependencies:
-      abitype: 1.3.0(typescript@5.9.3)(zod@3.25.76)
+      abitype: 1.3.0(typescript@6.0.3)(zod@3.25.76)
       eip-1193: 0.6.5
       named-logs: 0.4.1
-      viem: 2.55.10(typescript@5.9.3)(zod@3.25.76)
+      viem: 2.55.10(typescript@6.0.3)(zod@3.25.76)
     transitivePeerDependencies:
       - bufferutil
       - typescript
       - utf-8-validate
       - zod
 
-  '@rocketh/deploy@0.19.10(typescript@5.9.3)(zod@3.25.76)':
+  '@rocketh/deploy@0.19.10(typescript@6.0.3)(zod@3.25.76)':
     dependencies:
-      '@rocketh/core': 0.19.5(typescript@5.9.3)(zod@3.25.76)
-      abitype: 1.3.0(typescript@5.9.3)(zod@3.25.76)
+      '@rocketh/core': 0.19.5(typescript@6.0.3)(zod@3.25.76)
+      abitype: 1.3.0(typescript@6.0.3)(zod@3.25.76)
       eip-1193: 0.6.5
       named-logs: 0.4.1
-      viem: 2.55.10(typescript@5.9.3)(zod@3.25.76)
+      viem: 2.55.10(typescript@6.0.3)(zod@3.25.76)
     transitivePeerDependencies:
       - bufferutil
       - typescript
       - utf-8-validate
       - zod
 
-  '@rocketh/doc@0.19.10(@rocketh/node@0.19.10(rocketh@0.19.9(typescript@5.9.3)(zod@3.25.76))(typescript@5.9.3)(zod@3.25.76))(typescript@5.9.3)(zod@3.25.76)':
+  '@rocketh/doc@0.19.10(@rocketh/node@0.19.10(rocketh@0.19.9(typescript@6.0.3)(zod@3.25.76))(typescript@6.0.3)(zod@3.25.76))(typescript@6.0.3)(zod@3.25.76)':
     dependencies:
-      '@rocketh/core': 0.19.5(typescript@5.9.3)(zod@3.25.76)
-      '@rocketh/node': 0.19.10(rocketh@0.19.9(typescript@5.9.3)(zod@3.25.76))(typescript@5.9.3)(zod@3.25.76)
+      '@rocketh/core': 0.19.5(typescript@6.0.3)(zod@3.25.76)
+      '@rocketh/node': 0.19.10(rocketh@0.19.9(typescript@6.0.3)(zod@3.25.76))(typescript@6.0.3)(zod@3.25.76)
       '@types/fs-extra': 11.0.4
-      abitype: 1.3.0(typescript@5.9.3)(zod@3.25.76)
+      abitype: 1.3.0(typescript@6.0.3)(zod@3.25.76)
       commander: 14.0.3
       fs-extra: 11.4.0
       handlebars: 4.7.9
-      viem: 2.55.10(typescript@5.9.3)(zod@3.25.76)
+      viem: 2.55.10(typescript@6.0.3)(zod@3.25.76)
     transitivePeerDependencies:
       - bufferutil
       - typescript
       - utf-8-validate
       - zod
 
-  '@rocketh/export@0.19.11(@rocketh/node@0.19.10(rocketh@0.19.9(typescript@5.9.3)(zod@3.25.76))(typescript@5.9.3)(zod@3.25.76))(rocketh@0.19.9(typescript@5.9.3)(zod@3.25.76))(typescript@5.9.3)(zod@3.25.76)':
+  '@rocketh/export@0.19.11(@rocketh/node@0.19.10(rocketh@0.19.9(typescript@6.0.3)(zod@3.25.76))(typescript@6.0.3)(zod@3.25.76))(rocketh@0.19.9(typescript@6.0.3)(zod@3.25.76))(typescript@6.0.3)(zod@3.25.76)':
     dependencies:
-      '@rocketh/core': 0.19.5(typescript@5.9.3)(zod@3.25.76)
-      '@rocketh/node': 0.19.10(rocketh@0.19.9(typescript@5.9.3)(zod@3.25.76))(typescript@5.9.3)(zod@3.25.76)
+      '@rocketh/core': 0.19.5(typescript@6.0.3)(zod@3.25.76)
+      '@rocketh/node': 0.19.10(rocketh@0.19.9(typescript@6.0.3)(zod@3.25.76))(typescript@6.0.3)(zod@3.25.76)
       '@types/fs-extra': 11.0.4
-      abitype: 1.3.0(typescript@5.9.3)(zod@3.25.76)
+      abitype: 1.3.0(typescript@6.0.3)(zod@3.25.76)
       chalk: 5.6.2
       commander: 14.0.3
       eip-1193: 0.6.5
       fs-extra: 11.4.0
       named-logs: 0.4.1
-      rocketh: 0.19.9(typescript@5.9.3)(zod@3.25.76)
+      rocketh: 0.19.9(typescript@6.0.3)(zod@3.25.76)
     transitivePeerDependencies:
       - bufferutil
       - typescript
       - utf-8-validate
       - zod
 
-  '@rocketh/node@0.19.10(rocketh@0.19.9(typescript@5.9.3)(zod@3.25.76))(typescript@5.9.3)(zod@3.25.76)':
+  '@rocketh/node@0.19.10(rocketh@0.19.9(typescript@6.0.3)(zod@3.25.76))(typescript@6.0.3)(zod@3.25.76)':
     dependencies:
-      '@rocketh/core': 0.19.5(typescript@5.9.3)(zod@3.25.76)
+      '@rocketh/core': 0.19.5(typescript@6.0.3)(zod@3.25.76)
       '@types/prompts': 2.4.9
       change-case: 5.4.4
       commander: 14.0.3
@@ -5469,73 +5491,73 @@ snapshots:
       named-logs: 0.4.1
       named-logs-console: 0.5.1
       prompts: 2.4.2
-      rocketh: 0.19.9(typescript@5.9.3)(zod@3.25.76)
+      rocketh: 0.19.9(typescript@6.0.3)(zod@3.25.76)
       tsx: 4.23.1
-      viem: 2.55.10(typescript@5.9.3)(zod@3.25.76)
+      viem: 2.55.10(typescript@6.0.3)(zod@3.25.76)
     transitivePeerDependencies:
       - bufferutil
       - typescript
       - utf-8-validate
       - zod
 
-  '@rocketh/proxy@0.19.16(typescript@5.9.3)(zod@3.25.76)':
+  '@rocketh/proxy@0.19.16(typescript@6.0.3)(zod@3.25.76)':
     dependencies:
-      '@rocketh/core': 0.19.5(typescript@5.9.3)(zod@3.25.76)
-      '@rocketh/deploy': 0.19.10(typescript@5.9.3)(zod@3.25.76)
-      '@rocketh/read-execute': 0.19.5(typescript@5.9.3)(zod@3.25.76)
-      abitype: 1.3.0(typescript@5.9.3)(zod@3.25.76)
+      '@rocketh/core': 0.19.5(typescript@6.0.3)(zod@3.25.76)
+      '@rocketh/deploy': 0.19.10(typescript@6.0.3)(zod@3.25.76)
+      '@rocketh/read-execute': 0.19.5(typescript@6.0.3)(zod@3.25.76)
+      abitype: 1.3.0(typescript@6.0.3)(zod@3.25.76)
       eip-1193: 0.6.5
       named-logs: 0.4.1
-      viem: 2.55.10(typescript@5.9.3)(zod@3.25.76)
+      viem: 2.55.10(typescript@6.0.3)(zod@3.25.76)
     transitivePeerDependencies:
       - bufferutil
       - typescript
       - utf-8-validate
       - zod
 
-  '@rocketh/read-execute@0.19.5(typescript@5.9.3)(zod@3.25.76)':
+  '@rocketh/read-execute@0.19.5(typescript@6.0.3)(zod@3.25.76)':
     dependencies:
-      '@rocketh/core': 0.19.5(typescript@5.9.3)(zod@3.25.76)
-      abitype: 1.3.0(typescript@5.9.3)(zod@3.25.76)
+      '@rocketh/core': 0.19.5(typescript@6.0.3)(zod@3.25.76)
+      abitype: 1.3.0(typescript@6.0.3)(zod@3.25.76)
       eip-1193: 0.6.5
       named-logs: 0.4.1
-      viem: 2.55.10(typescript@5.9.3)(zod@3.25.76)
+      viem: 2.55.10(typescript@6.0.3)(zod@3.25.76)
     transitivePeerDependencies:
       - bufferutil
       - typescript
       - utf-8-validate
       - zod
 
-  '@rocketh/router@0.19.12(typescript@5.9.3)(zod@3.25.76)':
+  '@rocketh/router@0.19.12(typescript@6.0.3)(zod@3.25.76)':
     dependencies:
-      '@rocketh/core': 0.19.5(typescript@5.9.3)(zod@3.25.76)
-      '@rocketh/deploy': 0.19.10(typescript@5.9.3)(zod@3.25.76)
-      abitype: 1.3.0(typescript@5.9.3)(zod@3.25.76)
+      '@rocketh/core': 0.19.5(typescript@6.0.3)(zod@3.25.76)
+      '@rocketh/deploy': 0.19.10(typescript@6.0.3)(zod@3.25.76)
+      abitype: 1.3.0(typescript@6.0.3)(zod@3.25.76)
       eip-1193: 0.6.5
       named-logs: 0.4.1
       solidity-proxy: 0.5.2
-      viem: 2.55.10(typescript@5.9.3)(zod@3.25.76)
+      viem: 2.55.10(typescript@6.0.3)(zod@3.25.76)
     transitivePeerDependencies:
       - bufferutil
       - typescript
       - utf-8-validate
       - zod
 
-  '@rocketh/signer@0.19.5(typescript@5.9.3)(zod@3.25.76)':
+  '@rocketh/signer@0.19.5(typescript@6.0.3)(zod@3.25.76)':
     dependencies:
-      '@rocketh/core': 0.19.5(typescript@5.9.3)(zod@3.25.76)
+      '@rocketh/core': 0.19.5(typescript@6.0.3)(zod@3.25.76)
       eip-1193: 0.6.5
-      eip-1193-signer: 0.1.1(typescript@5.9.3)(zod@3.25.76)
+      eip-1193-signer: 0.1.1(typescript@6.0.3)(zod@3.25.76)
     transitivePeerDependencies:
       - bufferutil
       - typescript
       - utf-8-validate
       - zod
 
-  '@rocketh/verifier@0.19.11(@rocketh/node@0.19.10(rocketh@0.19.9(typescript@5.9.3)(zod@3.25.76))(typescript@5.9.3)(zod@3.25.76))(typescript@5.9.3)(zod@3.25.76)':
+  '@rocketh/verifier@0.19.11(@rocketh/node@0.19.10(rocketh@0.19.9(typescript@6.0.3)(zod@3.25.76))(typescript@6.0.3)(zod@3.25.76))(typescript@6.0.3)(zod@3.25.76)':
     dependencies:
-      '@rocketh/core': 0.19.5(typescript@5.9.3)(zod@3.25.76)
-      '@rocketh/node': 0.19.10(rocketh@0.19.9(typescript@5.9.3)(zod@3.25.76))(typescript@5.9.3)(zod@3.25.76)
+      '@rocketh/core': 0.19.5(typescript@6.0.3)(zod@3.25.76)
+      '@rocketh/node': 0.19.10(rocketh@0.19.9(typescript@6.0.3)(zod@3.25.76))(typescript@6.0.3)(zod@3.25.76)
       '@types/fs-extra': 11.0.4
       '@types/qs': 6.15.1
       chalk: 5.6.2
@@ -5549,13 +5571,13 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@rocketh/viem@0.19.5(typescript@5.9.3)(viem@2.55.10(typescript@5.9.3)(zod@3.25.76))(zod@3.25.76)':
+  '@rocketh/viem@0.19.5(typescript@6.0.3)(viem@2.55.10(typescript@6.0.3)(zod@3.25.76))(zod@3.25.76)':
     dependencies:
-      '@rocketh/core': 0.19.5(typescript@5.9.3)(zod@3.25.76)
-      abitype: 1.3.0(typescript@5.9.3)(zod@3.25.76)
+      '@rocketh/core': 0.19.5(typescript@6.0.3)(zod@3.25.76)
+      abitype: 1.3.0(typescript@6.0.3)(zod@3.25.76)
       eip-1193: 0.6.5
       named-logs: 0.4.1
-      viem: 2.55.10(typescript@5.9.3)(zod@3.25.76)
+      viem: 2.55.10(typescript@6.0.3)(zod@3.25.76)
     transitivePeerDependencies:
       - bufferutil
       - typescript
@@ -5716,7 +5738,7 @@ snapshots:
 
   '@sentry/core@9.47.1': {}
 
-  '@sinclair/typebox@0.27.12': {}
+  '@sinclair/typebox@0.34.52': {}
 
   '@solidity-parser/parser@0.20.2': {}
 
@@ -5882,15 +5904,11 @@ snapshots:
   '@types/fs-extra@11.0.4':
     dependencies:
       '@types/jsonfile': 6.1.4
-      '@types/node': 25.9.5
+      '@types/node': 26.1.2
 
   '@types/jsonfile@6.1.4':
     dependencies:
-      '@types/node': 25.9.5
-
-  '@types/node@25.9.5':
-    dependencies:
-      undici-types: 7.24.6
+      '@types/node': 26.1.2
 
   '@types/node@26.1.2':
     dependencies:
@@ -5898,7 +5916,7 @@ snapshots:
 
   '@types/prompts@2.4.9':
     dependencies:
-      '@types/node': 25.9.5
+      '@types/node': 26.1.2
       kleur: 3.0.3
 
   '@types/qs@6.15.1': {}
@@ -5907,13 +5925,13 @@ snapshots:
 
   '@types/ws@8.18.1':
     dependencies:
-      '@types/node': 25.9.5
+      '@types/node': 26.1.2
 
-  '@vitest/browser-playwright@4.1.10(playwright@1.62.0)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.1))(vitest@4.1.10)':
+  '@vitest/browser-playwright@4.1.10(playwright@1.62.1)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.1))(vitest@4.1.10)':
     dependencies:
       '@vitest/browser': 4.1.10(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.1))(vitest@4.1.10)
       '@vitest/mocker': 4.1.10(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.1))
-      playwright: 1.62.0
+      playwright: 1.62.1
       tinyrainbow: 3.1.1
       vitest: 4.1.10(@types/node@26.1.2)(@vitest/browser-playwright@4.1.10)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.1))
     transitivePeerDependencies:
@@ -6025,9 +6043,9 @@ snapshots:
       jsonparse: 1.3.1
       through: 2.3.8
 
-  abitype@1.2.3(typescript@5.9.3)(zod@3.25.76):
+  abitype@1.2.3(typescript@6.0.3)(zod@3.25.76):
     optionalDependencies:
-      typescript: 5.9.3
+      typescript: 6.0.3
       zod: 3.25.76
 
   abitype@1.2.3(typescript@6.0.3)(zod@4.4.3):
@@ -6035,9 +6053,9 @@ snapshots:
       typescript: 6.0.3
       zod: 4.4.3
 
-  abitype@1.3.0(typescript@5.9.3)(zod@3.25.76):
+  abitype@1.3.0(typescript@6.0.3)(zod@3.25.76):
     optionalDependencies:
-      typescript: 5.9.3
+      typescript: 6.0.3
       zod: 3.25.76
 
   accepts@1.3.8:
@@ -6049,7 +6067,7 @@ snapshots:
 
   acorn@8.18.0: {}
 
-  adm-zip@0.4.16: {}
+  adm-zip@0.6.0: {}
 
   agent-base@6.0.2:
     dependencies:
@@ -6777,6 +6795,10 @@ snapshots:
     dependencies:
       readdirp: 4.1.2
 
+  chokidar@5.0.0:
+    dependencies:
+      readdirp: 5.0.0
+
   clsx@2.1.1: {}
 
   co-body@6.2.0:
@@ -6970,8 +6992,6 @@ snapshots:
 
   devalue@5.8.2: {}
 
-  diff-sequences@29.6.3: {}
-
   dom-serializer@2.0.0:
     dependencies:
       domelementtype: 2.3.0
@@ -7028,9 +7048,9 @@ snapshots:
       named-logs: 0.3.2
       promise-throttle: 1.1.2
 
-  eip-1193-signer@0.1.1(typescript@5.9.3)(zod@3.25.76):
+  eip-1193-signer@0.1.1(typescript@6.0.3)(zod@3.25.76):
     dependencies:
-      viem: 2.55.10(typescript@5.9.3)(zod@3.25.76)
+      viem: 2.55.10(typescript@6.0.3)(zod@3.25.76)
     transitivePeerDependencies:
       - bufferutil
       - typescript
@@ -7054,6 +7074,10 @@ snapshots:
   entities@4.5.0: {}
 
   env-paths@2.2.1: {}
+
+  env-paths@4.0.0:
+    dependencies:
+      is-safe-filename: 0.1.1
 
   error-stack-parser@2.1.4:
     dependencies:
@@ -7192,24 +7216,24 @@ snapshots:
 
   faucet-client@0.0.2: {}
 
-  faucet-server-app@0.0.6(typescript@5.9.3)(zod@3.25.76):
+  faucet-server-app@0.0.6(typescript@6.0.3)(zod@3.25.76):
     dependencies:
       hono: 4.12.32
       named-logs: 0.4.1
       remote-sql: 0.0.7
-      viem: 2.55.10(typescript@5.9.3)(zod@3.25.76)
+      viem: 2.55.10(typescript@6.0.3)(zod@3.25.76)
     transitivePeerDependencies:
       - bufferutil
       - typescript
       - utf-8-validate
       - zod
 
-  faucet-server@0.0.7(@libsql/core@0.17.4)(hono@4.12.32)(typescript@5.9.3)(zod@3.25.76):
+  faucet-server@0.0.7(@libsql/core@0.17.4)(hono@4.12.32)(typescript@6.0.3)(zod@3.25.76):
     dependencies:
       '@hono/node-server': 1.19.17(hono@4.12.32)
       '@libsql/client': 0.17.4
       commander: 14.0.3
-      faucet-server-app: 0.0.6(typescript@5.9.3)(zod@3.25.76)
+      faucet-server-app: 0.0.6(typescript@6.0.3)(zod@3.25.76)
       ldenv: 0.5.0
       named-logs-context: 0.1.1
       remote-sql-libsql: 0.0.7(@libsql/core@0.17.4)
@@ -7333,46 +7357,46 @@ snapshots:
       ajv: 6.12.6
       har-schema: 2.0.0
 
-  hardhat-deploy@2.0.10(@rocketh/node@0.19.10(rocketh@0.19.9(typescript@5.9.3)(zod@3.25.76))(typescript@5.9.3)(zod@3.25.76))(hardhat@3.11.1)(rocketh@0.19.9(typescript@5.9.3)(zod@3.25.76)):
+  hardhat-deploy@2.0.10(@rocketh/node@0.19.10(rocketh@0.19.9(typescript@6.0.3)(zod@3.25.76))(typescript@6.0.3)(zod@3.25.76))(hardhat@3.12.0)(rocketh@0.19.9(typescript@6.0.3)(zod@3.25.76)):
     dependencies:
       '@nomicfoundation/hardhat-zod-utils': 3.0.5(zod@3.25.76)
-      '@rocketh/node': 0.19.10(rocketh@0.19.9(typescript@5.9.3)(zod@3.25.76))(typescript@5.9.3)(zod@3.25.76)
+      '@rocketh/node': 0.19.10(rocketh@0.19.9(typescript@6.0.3)(zod@3.25.76))(typescript@6.0.3)(zod@3.25.76)
       commander: 14.0.3
-      hardhat: 3.11.1
+      hardhat: 3.12.0
       named-logs: 0.4.1
       named-logs-console: 0.5.1
-      rocketh: 0.19.9(typescript@5.9.3)(zod@3.25.76)
+      rocketh: 0.19.9(typescript@6.0.3)(zod@3.25.76)
       zod: 3.25.76
 
-  hardhat-external-artifacts@0.0.6(hardhat@3.11.1)(typescript@5.9.3)(zod@3.25.76):
+  hardhat-external-artifacts@0.0.6(hardhat@3.12.0)(typescript@6.0.3)(zod@3.25.76):
     dependencies:
       '@nomicfoundation/hardhat-utils': 4.1.6
-      hardhat: 3.11.1
+      hardhat: 3.12.0
       named-logs: 0.4.1
-      viem: 2.55.10(typescript@5.9.3)(zod@3.25.76)
+      viem: 2.55.10(typescript@6.0.3)(zod@3.25.76)
     transitivePeerDependencies:
       - bufferutil
       - typescript
       - utf-8-validate
       - zod
 
-  hardhat@3.11.1:
+  hardhat@3.12.0:
     dependencies:
-      '@nomicfoundation/edr': 0.14.2
-      '@nomicfoundation/hardhat-errors': 3.0.17
-      '@nomicfoundation/hardhat-utils': 4.1.6
+      '@nomicfoundation/edr': 0.15.0
+      '@nomicfoundation/hardhat-errors': 3.0.18
+      '@nomicfoundation/hardhat-utils': 4.1.7
       '@nomicfoundation/hardhat-vendored': 3.0.4
       '@nomicfoundation/hardhat-zod-utils': 3.0.5(zod@3.25.76)
       '@nomicfoundation/solidity-analyzer': 0.1.2
       '@sentry/core': 9.47.1
-      adm-zip: 0.4.16
-      chokidar: 4.0.3
+      adm-zip: 0.6.0
+      chokidar: 5.0.0
       enquirer: 2.4.1
       ethereum-cryptography: 2.2.1
       micro-eth-signer: 0.14.0
       p-map: 7.0.6
       resolve.exports: 2.0.3
-      semver: 7.7.2
+      semver: 7.8.5
       tsx: 4.23.1
       ws: 8.21.1
       zod: 3.25.76
@@ -7540,6 +7564,8 @@ snapshots:
       has-tostringtag: 1.0.2
       hasown: 2.0.2
 
+  is-safe-filename@0.1.1: {}
+
   is-typedarray@1.0.0: {}
 
   is-wsl@2.2.0:
@@ -7560,14 +7586,12 @@ snapshots:
 
   isstream@0.1.2: {}
 
-  jest-diff@29.7.0:
+  jest-diff@30.4.1:
     dependencies:
+      '@jest/diff-sequences': 30.4.0
+      '@jest/get-type': 30.1.0
       chalk: 4.1.2
-      diff-sequences: 29.6.3
-      jest-get-type: 29.6.3
-      pretty-format: 29.7.0
-
-  jest-get-type@29.6.3: {}
+      pretty-format: 30.4.1
 
   jimp@0.2.28:
     dependencies:
@@ -8184,7 +8208,7 @@ snapshots:
 
   os-tmpdir@1.0.2: {}
 
-  ox@0.14.33(typescript@5.9.3)(zod@3.25.76):
+  ox@0.14.33(typescript@6.0.3)(zod@3.25.76):
     dependencies:
       '@adraffy/ens-normalize': 1.11.1
       '@noble/ciphers': 1.3.0
@@ -8192,10 +8216,10 @@ snapshots:
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
-      abitype: 1.2.3(typescript@5.9.3)(zod@3.25.76)
+      abitype: 1.2.3(typescript@6.0.3)(zod@3.25.76)
       eventemitter3: 5.0.1
     optionalDependencies:
-      typescript: 5.9.3
+      typescript: 6.0.3
     transitivePeerDependencies:
       - zod
 
@@ -8275,11 +8299,11 @@ snapshots:
     dependencies:
       pngjs: 3.4.0
 
-  playwright-core@1.62.0: {}
+  playwright-core@1.62.1: {}
 
-  playwright@1.62.0:
+  playwright@1.62.1:
     dependencies:
-      playwright-core: 1.62.0
+      playwright-core: 1.62.1
     optionalDependencies:
       fsevents: 2.3.2
 
@@ -8318,11 +8342,12 @@ snapshots:
 
   prettier@3.9.6: {}
 
-  pretty-format@29.7.0:
+  pretty-format@30.4.1:
     dependencies:
-      '@jest/schemas': 29.6.3
+      '@jest/schemas': 30.4.1
       ansi-styles: 5.2.0
-      react-is: 18.3.1
+      react-is-18: react-is@18.3.1
+      react-is-19: react-is@19.2.8
 
   private@0.1.8: {}
 
@@ -8349,26 +8374,26 @@ snapshots:
 
   punycode@2.3.1: {}
 
-  purgatory-core@0.0.6(typescript@5.9.3)(zod@3.25.76):
+  purgatory-core@0.0.6(typescript@6.0.3)(zod@3.25.76):
     dependencies:
       hono: 4.12.32
       named-logs: 0.4.1
       remote-sql: 0.0.7
-      viem: 2.55.10(typescript@5.9.3)(zod@3.25.76)
+      viem: 2.55.10(typescript@6.0.3)(zod@3.25.76)
     transitivePeerDependencies:
       - bufferutil
       - typescript
       - utf-8-validate
       - zod
 
-  purgatory@0.0.7(@libsql/core@0.17.4)(hono@4.12.32)(typescript@5.9.3)(zod@3.25.76):
+  purgatory@0.0.7(@libsql/core@0.17.4)(hono@4.12.32)(typescript@6.0.3)(zod@3.25.76):
     dependencies:
       '@hono/node-server': 1.19.17(hono@4.12.32)
       '@libsql/client': 0.17.4
       commander: 14.0.3
       ldenv: 0.3.16
       named-logs-context: 0.1.1
-      purgatory-core: 0.0.6(typescript@5.9.3)(zod@3.25.76)
+      purgatory-core: 0.0.6(typescript@6.0.3)(zod@3.25.76)
       remote-sql-libsql: 0.0.7(@libsql/core@0.17.4)
     transitivePeerDependencies:
       - '@libsql/core'
@@ -8404,6 +8429,8 @@ snapshots:
 
   react-is@18.3.1: {}
 
+  react-is@19.2.8: {}
+
   read-chunk@1.0.1: {}
 
   readable-stream@2.3.8:
@@ -8417,6 +8444,8 @@ snapshots:
       util-deprecate: 1.0.2
 
   readdirp@4.1.2: {}
+
+  readdirp@5.0.0: {}
 
   reduce-flatten@2.0.0: {}
 
@@ -8522,10 +8551,10 @@ snapshots:
 
   rfdc@1.4.1: {}
 
-  rocketh@0.19.9(typescript@5.9.3)(zod@3.25.76):
+  rocketh@0.19.9(typescript@6.0.3)(zod@3.25.76):
     dependencies:
-      '@rocketh/core': 0.19.5(typescript@5.9.3)(zod@3.25.76)
-      abitype: 1.3.0(typescript@5.9.3)(zod@3.25.76)
+      '@rocketh/core': 0.19.5(typescript@6.0.3)(zod@3.25.76)
+      abitype: 1.3.0(typescript@6.0.3)(zod@3.25.76)
       change-case: 5.4.4
       eip-1193: 0.6.5
       eip-1193-jsonrpc-provider: 0.4.3
@@ -9050,8 +9079,6 @@ snapshots:
       media-typer: 0.3.0
       mime-types: 2.1.35
 
-  typescript@5.9.3: {}
-
   typescript@6.0.3: {}
 
   typical@4.0.0: {}
@@ -9063,13 +9090,7 @@ snapshots:
   uglify-js@3.19.3:
     optional: true
 
-  undici-types@7.24.6: {}
-
   undici-types@8.3.0: {}
-
-  undici@5.29.0:
-    dependencies:
-      '@fastify/busboy': 2.1.1
 
   undici@6.28.0: {}
 
@@ -9105,18 +9126,18 @@ snapshots:
       core-util-is: 1.0.2
       extsprintf: 1.3.0
 
-  viem@2.55.10(typescript@5.9.3)(zod@3.25.76):
+  viem@2.55.10(typescript@6.0.3)(zod@3.25.76):
     dependencies:
       '@noble/curves': 1.9.1
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
-      abitype: 1.2.3(typescript@5.9.3)(zod@3.25.76)
+      abitype: 1.2.3(typescript@6.0.3)(zod@3.25.76)
       isows: 1.0.7(ws@8.21.0)
-      ox: 0.14.33(typescript@5.9.3)(zod@3.25.76)
+      ox: 0.14.33(typescript@6.0.3)(zod@3.25.76)
       ws: 8.21.0
     optionalDependencies:
-      typescript: 5.9.3
+      typescript: 6.0.3
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -9190,7 +9211,7 @@ snapshots:
     optionalDependencies:
       vite: 8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.1)
 
-  vitest-browser-svelte@2.2.1(svelte@5.56.8)(vitest@4.1.10):
+  vitest-browser-svelte@3.0.0(svelte@5.56.8)(vitest@4.1.10):
     dependencies:
       '@testing-library/svelte-core': 1.1.3(svelte@5.56.8)
       svelte: 5.56.8
@@ -9255,7 +9276,7 @@ snapshots:
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 26.1.2
-      '@vitest/browser-playwright': 4.1.10(playwright@1.62.0)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.1))(vitest@4.1.10)
+      '@vitest/browser-playwright': 4.1.10(playwright@1.62.1)(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.1))(vitest@4.1.10)
     transitivePeerDependencies:
       - msw
 
