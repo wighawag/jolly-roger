@@ -6,6 +6,7 @@
 	import NotificationOverlay from '$lib/core/notifications/NotificationOverlay.svelte';
 	import Notifications from '$lib/core/notifications/Notifications.svelte';
 	import VersionAndInstallNotfications from '$lib/core/service-worker/VersionAndInstallNotfications.svelte';
+	import NavigationProgress from '$lib/components/NavigationProgress.svelte';
 
 	import {createContext} from '$lib/context/index.js';
 	import AsyncContext from '$lib/context/AsyncContext.svelte';
@@ -29,6 +30,8 @@
 	// base-path independent (works under IPFS/relative paths).
 	let showRpcBanner = $derived(page.route.id !== '/');
 </script>
+
+<NavigationProgress />
 
 <AsyncContext getContext={createContext}>
 	<Navbar />

@@ -15,8 +15,8 @@ importers:
         specifier: ^1.1.0
         version: 1.1.0
       ldenv:
-        specifier: ^0.5.0
-        version: 0.5.0
+        specifier: ^0.6.0
+        version: 0.6.0
       set-defaults:
         specifier: ^0.0.5
         version: 0.0.5
@@ -154,7 +154,7 @@ importers:
         version: 3.12.2
       '@lucide/svelte':
         specifier: ^1.7.0
-        version: 1.27.0(svelte@5.56.8)
+        version: 1.28.0(svelte@5.56.8)
       '@observator/svelte':
         specifier: ^0.3.1
         version: 0.3.1(svelte@5.56.8)
@@ -872,8 +872,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@lucide/svelte@1.27.0':
-    resolution: {integrity: sha512-qzNBHdqy/MKp2qxuy/DcYELuep6h19fjo+4ech8fZsS4GtZeBtg5jgCTRQvLvwhppt0mhRN6qt8Nt8rPb/J4Ag==}
+  '@lucide/svelte@1.28.0':
+    resolution: {integrity: sha512-C1Ge84KW2z4q44/WDIEo/2KC2jby5u6mSlta7q+p6g7u0ld8sC/w1fMBiSswF+4bxAl9jlzzaVTpp79qqkiy5g==}
     peerDependencies:
       svelte: ^5
 
@@ -1841,8 +1841,8 @@ packages:
   aws4@1.13.2:
     resolution: {integrity: sha512-lHe62zvbTB5eEABUVi/AwVh0ZKY9rMMDhmm+eeyuuUQbQ3+J+fONVQOZyj+DdrvD4BY33uYniyRJ4UJIaSKAfw==}
 
-  axios@1.18.1:
-    resolution: {integrity: sha512-3nTvFlvpn9Zu/RkHUqtc7/+al4UpRW5az71ap5zccp6e8RAYEzhMTecX8Dz1wWDYrPpUoB1HAQEGEAEvUr7S9g==}
+  axios@1.19.0:
+    resolution: {integrity: sha512-ht/iuYZXEjFxLH/Hkezgd7m6JKlHHXEUSneaDz8uZe1Gj5QZtCnpyDsckvAiEnT89OEbCLmnte4R4sn7P0EKFw==}
 
   axobject-query@4.1.0:
     resolution: {integrity: sha512-qIj0G9wZbMGNLjLmg1PT6v2mE9AH2zlnADJD/2tC6E00hgmhUOfEB6greHPAfLRSufHqROIUTkw6E+M3lH0PTQ==}
@@ -3078,6 +3078,10 @@ packages:
 
   ldenv@0.5.0:
     resolution: {integrity: sha512-EEnQ/izQfmIit0jo59NK2lrBuWZ04poObg37+/Chre8p3FEIKNumXoJtvNTC+/stgCiCmSnn0Pd5yfd1zEtufA==}
+    hasBin: true
+
+  ldenv@0.6.0:
+    resolution: {integrity: sha512-3k5fC5/ZszgMKV3CBDpn5HucU/hyILk9MXUpOXO350sJB5SbS7KVX+HSnXazV8srboWr3b9cdS3f84QPOQTPfg==}
     hasBin: true
 
   libsql@0.5.29:
@@ -5147,7 +5151,7 @@ snapshots:
   '@libsql/win32-x64-msvc@0.5.29':
     optional: true
 
-  '@lucide/svelte@1.27.0(svelte@5.56.8)':
+  '@lucide/svelte@1.28.0(svelte@5.56.8)':
     dependencies:
       svelte: 5.56.8
 
@@ -6117,7 +6121,7 @@ snapshots:
 
   aws4@1.13.2: {}
 
-  axios@1.18.1:
+  axios@1.19.0:
     dependencies:
       follow-redirects: 1.16.0
       form-data: 4.0.6
@@ -7770,6 +7774,14 @@ snapshots:
       dotenv-expand: 10.0.0
       lodash-es: 4.18.1
 
+  ldenv@0.6.0:
+    dependencies:
+      '@parcel/watcher': 2.6.0
+      cross-spawn: 7.0.6
+      dotenv: 16.6.1
+      dotenv-expand: 10.0.0
+      lodash-es: 4.18.1
+
   libsql@0.5.29:
     dependencies:
       '@neon-rs/load': 0.0.4
@@ -9254,7 +9266,7 @@ snapshots:
 
   wait-on@9.1.0:
     dependencies:
-      axios: 1.18.1
+      axios: 1.19.0
       joi: 18.2.3
       lodash: 4.18.1
       minimist: 1.2.8
