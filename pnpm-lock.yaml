@@ -9,8 +9,8 @@ importers:
   .:
     devDependencies:
       ldenv:
-        specifier: ^0.5.0
-        version: 0.5.0
+        specifier: ^0.6.0
+        version: 0.6.0
       set-defaults:
         specifier: ^0.0.5
         version: 0.0.5
@@ -1287,8 +1287,8 @@ packages:
     resolution: {integrity: sha512-zPPuIt+ku1iCpFBRwseMcPYQ1cJL8l60rSmKeOuGfOXyE6YnTBmf2aEFNL2HQGrD0cPcLO/t+v9RTgC+fwEh/g==}
     engines: {node: ^4.8.4 || ^6.10.1 || ^7.10.1 || >= 8.1.4}
 
-  ldenv@0.5.0:
-    resolution: {integrity: sha512-EEnQ/izQfmIit0jo59NK2lrBuWZ04poObg37+/Chre8p3FEIKNumXoJtvNTC+/stgCiCmSnn0Pd5yfd1zEtufA==}
+  ldenv@0.6.0:
+    resolution: {integrity: sha512-3k5fC5/ZszgMKV3CBDpn5HucU/hyILk9MXUpOXO350sJB5SbS7KVX+HSnXazV8srboWr3b9cdS3f84QPOQTPfg==}
     hasBin: true
 
   lightningcss-android-arm64@1.32.0:
@@ -3334,7 +3334,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  ldenv@0.5.0:
+  ldenv@0.6.0:
     dependencies:
       '@parcel/watcher': 2.6.0
       cross-spawn: 7.0.6
