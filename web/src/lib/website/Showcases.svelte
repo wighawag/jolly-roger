@@ -66,7 +66,7 @@
 						rel="noopener noreferrer"
 						class="mb-2 text-center text-primary underline hover:text-primary/80"
 					>
-						{app.name.toLowerCase()}.{app.url.includes('eth') ? 'eth' : 'art'}
+						{app.url.replace(/^https?:\/\//, '').replace(/\/$/, '')}
 					</a>
 					<h3 class="mb-2 text-center text-lg font-semibold">{app.title}</h3>
 					<p class="mb-4 flex-1 text-center text-sm text-muted-foreground">

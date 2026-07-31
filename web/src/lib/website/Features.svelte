@@ -8,24 +8,25 @@
 	import PackageCheckIcon from '@lucide/svelte/icons/package-check';
 	import TerminalIcon from '@lucide/svelte/icons/terminal';
 	import ZapIcon from '@lucide/svelte/icons/zap';
+	import CompassIcon from '@lucide/svelte/icons/compass';
 
 	const features = [
 		{
 			title: 'All Included',
 			description:
-				'This template includes setup for smart contracts, indexer and frontend. All runs locally for the best-in-class developer experience.',
+				'This template includes setup for smart contracts and frontend. All runs locally for the best-in-class developer experience.',
 			icon: LayersIcon,
 		},
 		{
-			title: 'PWA ready: 100% Lighthouse score',
+			title: 'PWA Ready',
 			description:
-				'The web app is fully PWA compliant, with offline caching, etc... The javascript code necessary to launch the app is less than 50kB (15kB compressed).',
+				'The web app is a fully-configured PWA with offline caching and service worker support.',
 			icon: RocketIcon,
 		},
 		{
 			title: 'Great Dev Experience',
 			description:
-				"Hardhat for contracts, hardhat-deploy for contract deployment, the in-browser ethereum-indexer for contract's api, svelte + Svelte Kit for frontend with HMR.",
+				'Hardhat v3 + hardhat-deploy v2 + rocketh for contracts; SvelteKit 5 + Vite for the frontend, with HMR.',
 			icon: ZapIcon,
 		},
 		{
@@ -33,6 +34,12 @@
 			description:
 				'On contract changes, contracts keep their address and code get updated automatically. On frontend changes, module get replaced using blazing fast Vite es module hot reload.',
 			icon: RefreshCwIcon,
+		},
+		{
+			title: 'Built-in Explorer & Contract Interaction',
+			description:
+				'An in-browser explorer for addresses and transactions, plus a UI to interact directly with your deployed contracts.',
+			icon: CompassIcon,
 		},
 		{
 			title: 'Fully IPFS Ready',
@@ -43,25 +50,25 @@
 		{
 			title: 'All in Typescript',
 			description:
-				'The whole app including indexer and, is written in typescript.',
+				'The whole app, including the contract tooling and frontend, is written in TypeScript.',
 			icon: CodeIcon,
 		},
 		{
 			title: 'Code Splitting and Tree Shaking',
 			description:
-				'By using Svelte Kit (and so Vite) and ES modules, the frontend benefit from code splitting an dynamic imports as well as tree shaking.',
+				'By using SvelteKit (and so Vite) and ES modules, the frontend benefits from code splitting, dynamic imports, and tree shaking.',
 			icon: SplitIcon,
 		},
 		{
 			title: 'Works Out of the Box',
 			description:
-				'No editor-specific setup required. Clone, install, and everything runs: contracts, indexer and frontend, with tests, formatting and hot reload ready to go.',
+				'No editor-specific setup required. Clone, install, and everything runs: contracts and frontend, with tests, formatting and hot reload ready to go.',
 			icon: PackageCheckIcon,
 		},
 		{
 			title: 'One command deploy',
 			description:
-				'Everything is setup, except for the private ENV variable to deploy the contracts.',
+				'Everything is set up, except for the private ENV variable to deploy the contracts.',
 			icon: TerminalIcon,
 		},
 	];
