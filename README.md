@@ -373,10 +373,10 @@ pnpm contracts:build
 
 ```typescript
 // Import ABIs
-import { Abi_GreetingsRegistry } from "template-onchain-app-contracts/abis/GreetingsRegistry.js";
+import { Abi_GreetingsRegistry } from "jolly-roger-contracts/abis/GreetingsRegistry.js";
 
 // Import deployment info
-import GreetingsRegistry from "template-onchain-app-contracts/deployments/sepolia/GreetingsRegistry.json";
+import GreetingsRegistry from "jolly-roger-contracts/deployments/sepolia/GreetingsRegistry.json";
 ```
 
 ## Linting
