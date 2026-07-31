@@ -43,6 +43,34 @@ export function isViewFunction(stateMutability: AbiStateMutability): boolean {
 }
 
 /**
+ * Canonical Solidity selector signature, e.g. `safeTransferFrom(address,address,uint256)`.
+ *
+ * Unlike {@link formatFunctionSignature} this is for IDENTITY, not display: a
+ * name alone is not unique because Solidity allows overloads (ERC721 ships two
+ * `safeTransferFrom`s). Using the bare name as a keyed-each key crashes Svelte
+ * with `each_key_duplicate`.
+ */
+export function getFunctionSignature(abiItem: AbiFunction): string {
+	const params = abiItem.inputs.map((input) => canonicalType(input)).join(',');
+	return `${abiItem.name}(${params})`;
+}
+
+/**
+ * Canonical type name for selector purposes: tuples expand to their component
+ * types, and array suffixes are preserved (`(address,uint256)[]`).
+ */
+function canonicalType(input: AbiParameter): string {
+	const components = (input as {components?: readonly AbiParameter[]})
+		.components;
+	if (components && input.type.startsWith('tuple')) {
+		const inner = components.map((c) => canonicalType(c)).join(',');
+		// carry any array suffix, e.g. 'tuple[]' -> '(...)[]'
+		return `(${inner})${input.type.slice('tuple'.length)}`;
+	}
+	return input.type;
+}
+
+/**
  * Format function signature for display
  */
 export function formatFunctionSignature(abiItem: AbiFunction): string {

@@ -12,7 +12,11 @@
 	import * as Separator from '$lib/shadcn/ui/separator';
 	import FileCodeIcon from '@lucide/svelte/icons/file-code';
 	import ContractFunction from './components/ContractFunction.svelte';
-	import {getContractFunctions, isViewFunction} from './lib/utils';
+	import {
+		getContractFunctions,
+		getFunctionSignature,
+		isViewFunction,
+	} from './lib/utils';
 	import Address from '$lib/core/ui/ethereum/Address.svelte';
 
 	let {
@@ -154,7 +158,9 @@
 									<div class="space-y-4">
 										<h3 class="text-lg font-semibold">View Functions</h3>
 										<div class="grid gap-4 md:grid-cols-2">
-											{#each selectedContract.viewFunctions as func (func.name)}
+											<!-- Keyed by full signature, not name: overloads (ERC721 has two
+											     safeTransferFrom) share a name and would collide. -->
+											{#each selectedContract.viewFunctions as func (getFunctionSignature(func))}
 												<ContractFunction
 													functionName={func.name}
 													abiItem={func}
@@ -185,7 +191,7 @@
 									<div class="space-y-4">
 										<h3 class="text-lg font-semibold">Write Functions</h3>
 										<div class="grid gap-4 md:grid-cols-2">
-											{#each selectedContract.writeFunctions as func (func.name)}
+											{#each selectedContract.writeFunctions as func (getFunctionSignature(func))}
 												<ContractFunction
 													functionName={func.name}
 													abiItem={func}

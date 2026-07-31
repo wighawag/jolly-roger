@@ -5,6 +5,7 @@ import {
 	formatFunctionSignature,
 	formatOutputJSON,
 	getContractFunctions,
+	getFunctionSignature,
 	getInputFieldType,
 	getInputKey,
 	getInputLabel,
@@ -307,5 +308,119 @@ describe('validateInputValue', () => {
 		expect(validateInputValue('uint256', '12').valid).toBe(true);
 		expect(validateInputValue('bytes', 'nothex').valid).toBe(false);
 		expect(validateInputValue('bytes', '0xabcd').valid).toBe(true);
+	});
+});
+
+describe('getFunctionSignature', () => {
+	it('produces the canonical selector signature', () => {
+		expect(
+			getFunctionSignature({
+				type: 'function',
+				name: 'transfer',
+				stateMutability: 'nonpayable',
+				inputs: [
+					{name: 'to', type: 'address'},
+					{name: 'amount', type: 'uint256'},
+				],
+				outputs: [],
+			}),
+		).toBe('transfer(address,uint256)');
+	});
+
+	it('distinguishes overloads that share a name', () => {
+		// The ERC721 case that crashed the contracts page with
+		// `each_key_duplicate`: same name, different arity.
+		const base = {
+			type: 'function',
+			name: 'safeTransferFrom',
+			stateMutability: 'nonpayable',
+			outputs: [],
+		} as const;
+		const three = getFunctionSignature({
+			...base,
+			inputs: [
+				{name: 'from', type: 'address'},
+				{name: 'to', type: 'address'},
+				{name: 'tokenId', type: 'uint256'},
+			],
+		});
+		const four = getFunctionSignature({
+			...base,
+			inputs: [
+				{name: 'from', type: 'address'},
+				{name: 'to', type: 'address'},
+				{name: 'tokenId', type: 'uint256'},
+				{name: 'data', type: 'bytes'},
+			],
+		});
+		expect(three).toBe('safeTransferFrom(address,address,uint256)');
+		expect(four).toBe('safeTransferFrom(address,address,uint256,bytes)');
+		expect(three).not.toBe(four);
+	});
+
+	it('expands tuples and keeps array suffixes', () => {
+		expect(
+			getFunctionSignature({
+				type: 'function',
+				name: 'submit',
+				stateMutability: 'nonpayable',
+				inputs: [
+					{
+						name: 'items',
+						type: 'tuple[]',
+						components: [
+							{name: 'account', type: 'address'},
+							{name: 'amount', type: 'uint256'},
+						],
+					},
+				],
+				outputs: [],
+			}),
+		).toBe('submit((address,uint256)[])');
+	});
+
+	it('yields unique keys across an abi that overloads a name', () => {
+		// A trimmed ERC721. The two safeTransferFrom overloads are exactly what
+		// crashed the contracts page, and they need no deployment to reproduce.
+		const addr = {name: 'from', type: 'address'} as const;
+		const to = {name: 'to', type: 'address'} as const;
+		const id = {name: 'tokenId', type: 'uint256'} as const;
+		const abi = [
+			{
+				type: 'function',
+				name: 'ownerOf',
+				stateMutability: 'view',
+				inputs: [id],
+				outputs: [{name: '', type: 'address'}],
+			},
+			{
+				type: 'function',
+				name: 'transferFrom',
+				stateMutability: 'nonpayable',
+				inputs: [addr, to, id],
+				outputs: [],
+			},
+			{
+				type: 'function',
+				name: 'safeTransferFrom',
+				stateMutability: 'nonpayable',
+				inputs: [addr, to, id],
+				outputs: [],
+			},
+			{
+				type: 'function',
+				name: 'safeTransferFrom',
+				stateMutability: 'nonpayable',
+				inputs: [addr, to, id, {name: 'data', type: 'bytes'}],
+				outputs: [],
+			},
+		] as const;
+
+		const fns = getContractFunctions(abi as never);
+		const signatures = fns.map(getFunctionSignature);
+		expect(new Set(signatures).size).toBe(signatures.length);
+		// and the bare-name keying really was ambiguous
+		const names = fns.map((f) => f.name);
+		expect(new Set(names).size).toBeLessThan(names.length);
 	});
 });
