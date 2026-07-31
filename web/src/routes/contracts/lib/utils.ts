@@ -87,6 +87,20 @@ export function formatFunctionSignature(abiItem: AbiFunction): string {
 /**
  * Convert a single primitive value based on its Solidity type
  */
+/**
+ * Parse an integer field into a bigint, accepting decimal or 0x-hex, with an
+ * optional leading minus on either form.
+ *
+ * BigInt() handles '0x..' and '-12' but throws on '-0x10', which the input
+ * validation does accept, so the sign is split off first and reapplied.
+ */
+export function parseIntegerInput(value: string): bigint {
+	const trimmed = value.trim();
+	const negative = trimmed.startsWith('-');
+	const magnitude = BigInt(negative ? trimmed.slice(1) : trimmed);
+	return negative ? -magnitude : magnitude;
+}
+
 function convertPrimitiveValue(value: string, solidityType: string): unknown {
 	const trimmed = value.trim();
 
@@ -95,14 +109,9 @@ function convertPrimitiveValue(value: string, solidityType: string): unknown {
 		return trimmed as `0x${string}`;
 	}
 
-	// Handle unsigned integers
-	if (solidityType.startsWith('uint')) {
-		return BigInt(trimmed);
-	}
-
-	// Handle signed integers
-	if (solidityType.startsWith('int')) {
-		return BigInt(trimmed);
+	// Handle integers (signed and unsigned)
+	if (solidityType.startsWith('uint') || solidityType.startsWith('int')) {
+		return parseIntegerInput(trimmed);
 	}
 
 	// Handle bool
@@ -313,7 +322,32 @@ export function isValidHex(hex: string): boolean {
  * Validate numeric input
  */
 export function isValidNumber(value: string): boolean {
-	return /^-?\d+$/.test(value);
+	return /^-?\d+$/.test(value) || /^-?0x[0-9a-fA-F]+$/.test(value);
+}
+
+/**
+ * Bit width of a Solidity integer type; `uint`/`int` alone mean 256.
+ * Returns undefined when the type is not an integer.
+ */
+export function getIntegerBits(abiType: string): number | undefined {
+	const match = /^u?int(\d*)$/.exec(abiType);
+	if (!match) return undefined;
+	return match[1] ? parseInt(match[1], 10) : 256;
+}
+
+/**
+ * Inclusive range a Solidity integer type can represent.
+ */
+export function getIntegerRange(
+	abiType: string,
+): {min: bigint; max: bigint} | undefined {
+	const bits = getIntegerBits(abiType);
+	if (bits === undefined) return undefined;
+	if (abiType.startsWith('u')) {
+		return {min: 0n, max: (1n << BigInt(bits)) - 1n};
+	}
+	const bound = 1n << BigInt(bits - 1);
+	return {min: -bound, max: bound - 1n};
 }
 
 /**
@@ -325,9 +359,11 @@ export function getInputFieldType(
 	if (abiType === 'bool') {
 		return 'select';
 	}
-	if (abiType.startsWith('uint') || abiType.startsWith('int')) {
-		return 'number';
-	}
+	// Integers are TEXT, never `type="number"`. A number input is backed by a
+	// double, so it silently mangles anything past 2^53 - which is most of the
+	// uint256 range, including ordinary token amounts in wei - and it refuses
+	// hex input outright. Values are parsed with BigInt (see
+	// convertPrimitiveValue), which accepts both decimal and 0x forms exactly.
 	return 'text';
 }
 
@@ -349,7 +385,7 @@ export function getInputPlaceholder(abiType: string): string {
 				return 'Enter comma-separated values...';
 			}
 			if (abiType.startsWith('uint') || abiType.startsWith('int')) {
-				return 'Enter number...';
+				return 'Enter number or 0x...';
 			}
 			if (abiType.startsWith('bytes')) {
 				return '0x...';
@@ -383,7 +419,27 @@ export function validateInputValue(
 		default:
 			if (abiType.startsWith('uint') || abiType.startsWith('int')) {
 				if (!isValidNumber(value)) {
-					return {valid: false, error: 'Invalid number format'};
+					return {
+						valid: false,
+						error: 'Invalid number format (decimal or 0x hex)',
+					};
+				}
+				// Catch out-of-range here rather than letting viem's encoder throw a
+				// far less obvious error at send time.
+				const range = getIntegerRange(abiType);
+				if (range) {
+					const parsed = parseIntegerInput(value);
+					if (parsed < range.min) {
+						return {
+							valid: false,
+							error: abiType.startsWith('u')
+								? `${abiType} cannot be negative`
+								: `Below the minimum for ${abiType}`,
+						};
+					}
+					if (parsed > range.max) {
+						return {valid: false, error: `Exceeds the maximum for ${abiType}`};
+					}
 				}
 			}
 			if (abiType.startsWith('bytes')) {

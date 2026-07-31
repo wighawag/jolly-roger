@@ -7,12 +7,14 @@ import {
 	getContractFunctions,
 	getFunctionSignature,
 	getInputFieldType,
+	getIntegerRange,
 	getInputKey,
 	getInputLabel,
 	getInputPlaceholder,
 	isValidAddress,
 	isValidHex,
 	isValidNumber,
+	parseIntegerInput,
 	isViewFunction,
 	validateInputValue,
 	type AbiFunction,
@@ -267,8 +269,9 @@ describe('validators', () => {
 describe('getInputFieldType', () => {
 	it('maps solidity types to UI field types', () => {
 		expect(getInputFieldType('bool')).toBe('select');
-		expect(getInputFieldType('uint256')).toBe('number');
-		expect(getInputFieldType('int128')).toBe('number');
+		// Integers are text, not number: see the 'integer inputs' block below.
+		expect(getInputFieldType('uint256')).toBe('text');
+		expect(getInputFieldType('int128')).toBe('text');
 		expect(getInputFieldType('address')).toBe('text');
 		expect(getInputFieldType('string')).toBe('text');
 	});
@@ -278,7 +281,7 @@ describe('getInputPlaceholder', () => {
 	it('gives type-appropriate placeholders', () => {
 		expect(getInputPlaceholder('address')).toBe('0x...');
 		expect(getInputPlaceholder('bool')).toBe('Select true/false');
-		expect(getInputPlaceholder('uint256')).toBe('Enter number...');
+		expect(getInputPlaceholder('uint256')).toBe('Enter number or 0x...');
 		expect(getInputPlaceholder('bytes32')).toBe('0x...');
 		expect(getInputPlaceholder('uint256[]')).toBe(
 			'Enter comma-separated values...',
@@ -422,5 +425,90 @@ describe('getFunctionSignature', () => {
 		// and the bare-name keying really was ambiguous
 		const names = fns.map((f) => f.name);
 		expect(new Set(names).size).toBeLessThan(names.length);
+	});
+});
+
+describe('integer inputs', () => {
+	const MAX_UINT256 = (1n << 256n) - 1n;
+
+	it('never uses a number field for integers', () => {
+		// Regression: `type="number"` is backed by a double, so it mangles
+		// anything past 2^53 (most of the uint256 range, including ordinary wei
+		// amounts) and refuses hex outright.
+		for (const t of ['uint256', 'uint8', 'int256', 'int128', 'uint']) {
+			expect(getInputFieldType(t)).toBe('text');
+		}
+		expect(getInputFieldType('bool')).toBe('select');
+		expect(getInputFieldType('address')).toBe('text');
+	});
+
+	it('accepts decimal and hex, rejects junk', () => {
+		expect(isValidNumber('0')).toBe(true);
+		expect(
+			isValidNumber(
+				'115792089237316195423570985008687907853269984665640564039457584007913129639935',
+			),
+		).toBe(true);
+		expect(isValidNumber('0xff')).toBe(true);
+		expect(isValidNumber('0xDEADBEEF')).toBe(true);
+		expect(isValidNumber('-42')).toBe(true);
+		expect(isValidNumber('1.5')).toBe(false);
+		expect(isValidNumber('1e18')).toBe(false);
+		expect(isValidNumber('0x')).toBe(false);
+		expect(isValidNumber('abc')).toBe(false);
+	});
+
+	it('parses full-range uint256 without precision loss', () => {
+		// The whole point: a double would round this.
+		expect(parseIntegerInput(MAX_UINT256.toString())).toBe(MAX_UINT256);
+		expect(parseIntegerInput('0x' + MAX_UINT256.toString(16))).toBe(
+			MAX_UINT256,
+		);
+		// a plain 1 ETH in wei, already past 2^53
+		expect(parseIntegerInput('1000000000000000000')).toBe(10n ** 18n);
+	});
+
+	it('parses hex and decimal to the same value, including negatives', () => {
+		expect(parseIntegerInput('255')).toBe(255n);
+		expect(parseIntegerInput('0xff')).toBe(255n);
+		// BigInt('-0x10') throws on its own, so the sign is handled explicitly
+		expect(parseIntegerInput('-0x10')).toBe(-16n);
+		expect(parseIntegerInput('-16')).toBe(-16n);
+	});
+
+	it('converts uint256 args through the full pipeline', () => {
+		const param = {name: 'v', type: 'uint256'} as AbiParameter;
+		const [converted] = convertInputValues([param], {
+			v: MAX_UINT256.toString(),
+		});
+		expect(converted).toBe(MAX_UINT256);
+
+		const [fromHex] = convertInputValues([param], {v: '0xff'});
+		expect(fromHex).toBe(255n);
+	});
+
+	it('knows each integer type range', () => {
+		expect(getIntegerRange('uint8')).toEqual({min: 0n, max: 255n});
+		expect(getIntegerRange('uint256')).toEqual({min: 0n, max: MAX_UINT256});
+		expect(getIntegerRange('uint')).toEqual({min: 0n, max: MAX_UINT256});
+		expect(getIntegerRange('int8')).toEqual({min: -128n, max: 127n});
+		expect(getIntegerRange('address')).toBeUndefined();
+	});
+
+	it('rejects values the encoder could not represent', () => {
+		expect(validateInputValue('uint256', MAX_UINT256.toString()).valid).toBe(
+			true,
+		);
+		expect(
+			validateInputValue('uint256', (MAX_UINT256 + 1n).toString()).valid,
+		).toBe(false);
+		expect(validateInputValue('uint8', '255').valid).toBe(true);
+		expect(validateInputValue('uint8', '256').valid).toBe(false);
+		expect(validateInputValue('uint256', '-1').valid).toBe(false);
+		expect(validateInputValue('int8', '-128').valid).toBe(true);
+		expect(validateInputValue('int8', '-129').valid).toBe(false);
+		// hex is validated on the same range
+		expect(validateInputValue('uint8', '0xff').valid).toBe(true);
+		expect(validateInputValue('uint8', '0x100').valid).toBe(false);
 	});
 });
