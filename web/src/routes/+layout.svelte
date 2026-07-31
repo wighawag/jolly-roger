@@ -38,7 +38,7 @@
 <NavigationProgress />
 
 <AsyncContext getContext={createContext}>
-	<Navbar repoURL="https://github.com/wighawag/template-onchain-app" />
+	<Navbar repoURL="https://github.com/wighawag/jolly-roger" />
 	<OfflineBanner />
 	<NonceCacheBanner />
 	{#if showRpcBanner}
