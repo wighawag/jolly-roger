@@ -37,16 +37,19 @@ export type ENSService = {
 };
 
 // Create the public client once for all ENS lookups
-const publicClient = createPublicClient({
-	chain: mainnet,
-	transport: http(PUBLIC_ENS_NODE_URL || undefined),
-});
-
 /**
  * Creates an ENS service with in-memory caching.
  * Each address lookup is cached, preventing duplicate requests.
  */
 export function createENSService(): ENSService {
+	// Created only when ENS is enabled. routes/+layout.svelte gates this on a
+	// non-empty PUBLIC_ENS_NODE_URL; an empty value means ENS is disabled and
+	// this function is never called, so no client (and no RPC) is created.
+	const publicClient = createPublicClient({
+		chain: mainnet,
+		transport: http(PUBLIC_ENS_NODE_URL || undefined),
+	});
+
 	const cache: ENSCache = new Map();
 	const addressCache: ENSAddressCache = new Map();
 	const avatarCache: ENSAvatarCache = new Map();
