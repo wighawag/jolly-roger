@@ -3,6 +3,15 @@ import {defineConfig, devices} from '@playwright/test';
 const env = (globalThis as any).process.env;
 
 /**
+ * Ports are overridable so a run can step aside from whatever else is on the
+ * machine. `webServer.reuseExistingServer` is false (a stale server must never
+ * silently serve the tests), which means a busy port fails the run outright -
+ * so there has to be a way to move, short of killing a process that may belong
+ * to someone else. Keep in step with e2e/fixtures/test.ts.
+ */
+const PORT = Number(env.E2E_PORT || 4173);
+
+/**
  * Playwright configuration for E2E tests.
  *
  * Tests run against a local Ethereum node with deployed contracts.
@@ -41,7 +50,7 @@ export default defineConfig({
 
 	// Shared settings for all projects
 	use: {
-		baseURL: 'http://localhost:4173',
+		baseURL: `http://localhost:${PORT}`,
 
 		// Start each test with empty storage state (no cookies, no localStorage)
 		// This ensures tests don't inherit wallet connection state from previous runs
@@ -84,8 +93,8 @@ export default defineConfig({
 	// NOTE: reuseExistingServer is false to ensure Playwright always starts a fresh
 	// preview server with the newly built app from globalSetup.
 	webServer: {
-		command: 'pnpm run preview',
-		port: 4173,
+		command: `pnpm run preview -- --port ${PORT}`,
+		port: PORT,
 		reuseExistingServer: false,
 		// Wait for the server to be ready
 		timeout: 120000,

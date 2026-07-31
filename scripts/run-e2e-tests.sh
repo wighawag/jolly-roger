@@ -18,6 +18,20 @@ TEST_MNEMONIC="test test test test test test test test test test test junk"
 export MNEMONIC="$TEST_MNEMONIC"
 export MNEMONIC_localhost="$TEST_MNEMONIC"
 
+# Ports are overridable so a run can step aside from anything else already on
+# the machine, rather than killing it. E2E_RPC_PORT moves the chain, E2E_PORT
+# moves the web server (read by playwright.config.ts and e2e/fixtures/test.ts).
+RPC_PORT="${E2E_RPC_PORT:-8545}"
+RPC_URL="http://127.0.0.1:${RPC_PORT}"
+export E2E_RPC_PORT="$RPC_PORT"
+export E2E_RPC_URL="$RPC_URL"
+
+# Point the deploy/export at that chain, and build the app against it. Exported
+# shell env outranks every .env file in ldenv, so this beats the 8545 baked into
+# .env.localhost without editing it.
+export ETH_NODE_URI_localhost="$RPC_URL"
+export PUBLIC_NODE_URL="$RPC_URL"
+
 # Track PIDs for cleanup
 NODE_PID=""
 
@@ -58,26 +72,30 @@ WEB_DIR="$ROOT_DIR/web"
 # Nothing is pre-killed: whatever is on these ports may not be ours (see
 # cleanup above). An already-running node is reused instead.
 
+node_is_up() {
+    curl -s -X POST "$RPC_URL" \
+        -H "Content-Type: application/json" \
+        -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' \
+        >/dev/null 2>&1
+}
+
 # Check if node is already running
-if curl -s -X POST http://localhost:8545 \
-    -H "Content-Type: application/json" \
-    -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' \
-    >/dev/null 2>&1; then
-    echo -e "${YELLOW}⚠ A node is already listening on 8545; reusing it.${NC}"
+if node_is_up; then
+    echo -e "${YELLOW}⚠ A node is already listening on ${RPC_URL}; reusing it.${NC}"
     echo -e "${YELLOW}  It must be a dev chain with the standard test accounts funded.${NC}"
+    echo -e "${YELLOW}  Set E2E_RPC_PORT to use a different port instead.${NC}"
 else
-    echo -e "${GREEN}📦 Starting Hardhat node...${NC}"
+    echo -e "${GREEN}📦 Starting Hardhat node on ${RPC_URL}...${NC}"
     cd "$CONTRACTS_DIR"
-    pnpm run node:local &
+    # --port must be passed through, otherwise the node always binds 8545 while
+    # everything else follows E2E_RPC_PORT.
+    pnpm run node:local --port "$RPC_PORT" &
     NODE_PID=$!
-    
+
     # Wait for node to be ready
     echo "Waiting for Hardhat node to be ready..."
     for i in {1..30}; do
-        if curl -s -X POST http://localhost:8545 \
-            -H "Content-Type: application/json" \
-            -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' \
-            >/dev/null 2>&1; then
+        if node_is_up; then
             echo -e "${GREEN}✓ Hardhat node is ready${NC}"
             break
         fi
