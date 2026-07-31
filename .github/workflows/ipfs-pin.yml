@@ -37,8 +37,6 @@ jobs:
         run: pnpm build ${{ vars.IPFS_BUILD_MODE || 'sepolia' }}
         env:
           PUBLIC_NODE_URL: ${{ vars.PUBLIC_NODE_URL }}
-          PUBLIC_CHAIN_INFO_NODE_URL: ${{ vars.PUBLIC_CHAIN_INFO_NODE_URL }}
-          PUBLIC_ENS_NODE_URL: ${{ vars.PUBLIC_ENS_NODE_URL }}
 
       - name: Deploy to IPFS
         id: deploy
@@ -49,5 +47,6 @@ jobs:
           site: jolly-roger-staging
           mode: ipfs
           dir: web/build
+          promote-to: jolly-roger.eth
         env:
           PINNACE_HOST_PUBLISHER_TOKEN: ${{ secrets.PINNACE_HOST_PUBLISHER_TOKEN }}
