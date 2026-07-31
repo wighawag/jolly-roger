@@ -173,7 +173,7 @@
 		<p class="mb-6 text-muted-foreground">
 			Start building your decentralized application today with Jolly Roger.
 		</p>
-		<CopyCommand command="npx degit wighawag/jolly-roger my-app" class="mb-6" />
+		<CopyCommand command="pnpm create jolly-roger my-app" class="mb-6" />
 		<div class="flex flex-wrap justify-center gap-4">
 			<Button
 				href="https://github.com/wighawag/jolly-roger"
