@@ -6,6 +6,7 @@ import {
 	type PollingStatus,
 } from '$lib/core/connection/polling-store';
 import type {PublicClient} from 'viem';
+import type {Readable} from 'svelte/store';
 
 export type Message = {
 	readonly account: `0x${string}`;
@@ -24,6 +25,13 @@ export function createOnchainState(params: {
 		maxMessages: number;
 		fetchInterval?: number;
 	};
+	/**
+	 * Optional gate: chain reads only run while this source is truthy. Used to
+	 * avoid fetching (and surfacing an RPC error) when the app has no RPC of its
+	 * own and the wallet is not connected yet. When omitted, reads run
+	 * unconditionally (an app RPC is available).
+	 */
+	fetchGate?: Readable<boolean>;
 }): OnchainStateStore {
 	const {publicClient, deployments, config} = params;
 
@@ -42,6 +50,7 @@ export function createOnchainState(params: {
 		},
 		{
 			fetchInterval: config.fetchInterval ?? 5_000,
+			...(params.fetchGate ? {source: {store: params.fetchGate}} : {}),
 		},
 	);
 }

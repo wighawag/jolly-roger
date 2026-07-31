@@ -83,9 +83,13 @@ export function createPollingStore<T, S = unknown>(
 	}
 
 	async function fetchState(source: S): Promise<boolean> {
+		// Keep any existing error while (re)loading: a retry stays visibly in the
+		// error/retrying state until it actually succeeds, so consumers don't flicker
+		// (error vanishes then reappears). The `loading` flag lets them show a
+		// "refreshing" affordance on top of the persisted error. Cleared on success.
 		setStatus({
 			loading: true,
-			error: undefined,
+			error: $status.error,
 			lastSuccessfulFetch: $status.lastSuccessfulFetch,
 		});
 		try {

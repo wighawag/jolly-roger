@@ -6,6 +6,7 @@ import {
 } from '@etherplay/connect';
 import {derived} from 'svelte/store';
 import {createPublicClient, createWalletClient, custom} from 'viem';
+import {createRpcFaultFlag, wrapProviderWithFault} from './rpc-fault';
 import type {
 	Account,
 	ChainInfo,
@@ -94,8 +95,11 @@ export async function establishRemoteConnection(options?: {
 	// Use deployments.get() for synchronous access
 	const currentDeployments = deployments.get();
 
-	// Cast to ChainInfo to preserve the literal type even when modifying rpcUrls
-	// The structure is the same, just the RPC URL may change
+	// Cast to ChainInfo to preserve the literal type even when modifying rpcUrls.
+	// The structure is the same, just the RPC URL may change. An empty
+	// `rpcUrls.default.http` is a valid, supported state: when no RPC is baked in
+	// (and no PUBLIC_NODE_URL is set) the connection falls back to the user's
+	// wallet provider (prioritizeWalletProvider), so this is never an error.
 	const chainInfo: ChainInfo = options?.chainInfoNodeURL
 		? ({
 				...currentDeployments.chain,
@@ -114,14 +118,23 @@ export async function establishRemoteConnection(options?: {
 		walletHost: options?.walletHost,
 	});
 
+	// Debug-only RPC fault injection: a runtime flag (exposed on the context as
+	// `forceRpcFailure`) that makes every request fail while set. Wrapping the
+	// provider means all clients below fail together, like a real outage.
+	const forceRpcFailure = createRpcFaultFlag();
+	const faultyProvider = wrapProviderWithFault(
+		connection.provider,
+		forceRpcFailure,
+	);
+
 	const walletClient = createWalletClient({
 		chain: chainInfo,
-		transport: custom(connection.provider),
+		transport: custom(faultyProvider),
 	});
 
 	const publicClient = createPublicClient({
 		chain: chainInfo,
-		transport: custom(connection.provider),
+		transport: custom(faultyProvider),
 	}) as TypedPublicClient;
 
 	const account = derived<typeof connection, Account>(
@@ -151,5 +164,6 @@ export async function establishRemoteConnection(options?: {
 		account,
 		signer,
 		deployments, // Use the imported HMR-aware store
+		forceRpcFailure,
 	};
 }

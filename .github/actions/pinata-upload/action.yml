@@ -1,0 +1,89 @@
+name: 'IPFS Operations'
+description: 'Upload to IPFS via Pinata and manage IPNS via Filebase'
+
+inputs:
+  pinata-jwt:
+    description: 'Pinata API JWT token'
+    required: true
+  build-location:
+    description: 'Path to the directory to upload'
+    required: true
+    default: './public'
+  pin-alias:
+    description: 'Alias/name for the pin'
+    required: false
+  cid-version:
+    description: 'CID version (0 or 1)'
+    required: false
+    default: '1'
+  cleanup-old:
+    description: 'Delete old pins with the same alias before uploading'
+    required: false
+    default: 'true'
+  github-token:
+    description: 'GitHub token for posting PR comments'
+    required: false
+    default: ''
+  ipns-name:
+    description: 'Filebase IPNS name to update (optional, for stable URLs)'
+    required: false
+    default: ''
+  filebase-access-key:
+    description: 'Filebase Access Key for IPNS updates'
+    required: false
+    default: ''
+  filebase-secret-key:
+    description: 'Filebase Secret Key for IPNS updates'
+    required: false
+    default: ''
+
+outputs:
+  ipfs-hash:
+    description: 'The IPFS hash of the pinned content'
+    value: ${{ steps.upload.outputs.ipfs-hash }}
+  pin-size:
+    description: 'Size of the pinned content in bytes'
+    value: ${{ steps.upload.outputs.pin-size }}
+  timestamp:
+    description: 'Timestamp of when the content was pinned'
+    value: ${{ steps.upload.outputs.timestamp }}
+  ipfs-url:
+    description: 'Full URL to access the content via Pinata gateway'
+    value: ${{ steps.upload.outputs.ipfs-url }}
+  ipfs-io-url:
+    description: 'ipfs.io gateway URL'
+    value: ${{ steps.upload.outputs.ipfs-io-url }}
+  ipns-id:
+    description: 'The IPNS ID that was updated'
+    value: ${{ steps.upload.outputs.ipns-id }}
+  ipns-name:
+    description: 'The IPNS name'
+    value: ${{ steps.upload.outputs.ipns-name }}
+  ipns-url:
+    description: 'The IPNS URL (stable URL)'
+    value: ${{ steps.upload.outputs.ipns-url }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install npm dependencies
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: npm ci
+
+    - name: Run IPFS operations
+      id: upload
+      shell: bash
+      env:
+        INPUT_PINATA_JWT: ${{ inputs.pinata-jwt }}
+        INPUT_BUILD_LOCATION: ${{ inputs.build-location }}
+        INPUT_PIN_ALIAS: ${{ inputs.pin-alias }}
+        INPUT_CID_VERSION: ${{ inputs.cid-version }}
+        INPUT_CLEANUP_OLD: ${{ inputs.cleanup-old }}
+        INPUT_GITHUB_TOKEN: ${{ inputs.github-token }}
+        INPUT_IPNS_NAME: ${{ inputs.ipns-name }}
+        INPUT_FILEBASE_ACCESS_KEY: ${{ inputs.filebase-access-key }}
+        INPUT_FILEBASE_SECRET_KEY: ${{ inputs.filebase-secret-key }}
+      run: |
+        cd ${{ github.action_path }}
+        node index.js

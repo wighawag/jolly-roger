@@ -11,7 +11,8 @@ function activate<T>(store: {subscribe: (r: (v: T) => void) => () => void}) {
  * Minimal getFeeHistory return with a single block whose per-percentile rewards
  * are [10, 50, 80] and baseFeePerGas [100, 100]. Averages over one block are the
  * values themselves, so slow/avg/fast maxPriorityFeePerGas = 10/50/80, and
- * maxFeePerGas = priority + baseFee(=last=100).
+ * maxFeePerGas = priority + the baseFee CEILING, i.e. the last baseFee (100)
+ * scaled by the default 2x headroom = 200.
  */
 function feeHistoryOneBlock() {
 	return {
@@ -37,11 +38,53 @@ describe('createGasFeeStore (adapter)', () => {
 		const v = get(store);
 		if (v.step !== 'Loaded') throw new Error('not loaded');
 
+		// reported base fee stays the RAW observed value (this is what the UI shows)
 		expect(v.baseFeePerGas).toBe(100n);
-		expect(v.slow).toEqual({maxPriorityFeePerGas: 10n, maxFeePerGas: 110n});
-		expect(v.average).toEqual({maxPriorityFeePerGas: 50n, maxFeePerGas: 150n});
-		expect(v.fast).toEqual({maxPriorityFeePerGas: 80n, maxFeePerGas: 180n});
+		// ceilings carry 2x headroom so a rising base fee cannot strand the tx
+		expect(v.slow).toEqual({maxPriorityFeePerGas: 10n, maxFeePerGas: 210n});
+		expect(v.average).toEqual({maxPriorityFeePerGas: 50n, maxFeePerGas: 250n});
+		expect(v.fast).toEqual({maxPriorityFeePerGas: 80n, maxFeePerGas: 280n});
 		expect(v.higherThanExpected).toBe(false);
+		off();
+	});
+
+	it('keeps maxFeePerGas above the next block worst-case base fee', async () => {
+		// The regression this guards: maxFeePerGas used to be priority + the
+		// CURRENT base fee, so any EIP-1559 increase (up to 12.5% per block) made
+		// the transaction unsendable with "maxFeePerGas is too low for the next
+		// block". The ceiling must survive several consecutive max-growth blocks.
+		const getFeeHistory = vi.fn(async () => feeHistoryOneBlock());
+		const publicClient = {getFeeHistory} as unknown as PublicClient;
+
+		const store = createGasFeeStore({publicClient});
+		const off = activate(store);
+		await vi.waitFor(() => expect(get(store).step).toBe('Loaded'));
+		const v = get(store);
+		if (v.step !== 'Loaded') throw new Error('not loaded');
+
+		// six blocks of maximum growth: 100 * 1.125^6 ~ 202
+		let worstCaseBaseFee = v.baseFeePerGas;
+		for (let i = 0; i < 6; i++) {
+			worstCaseBaseFee = (worstCaseBaseFee * 1125n) / 1000n;
+		}
+		expect(v.fast.maxFeePerGas).toBeGreaterThan(worstCaseBaseFee);
+		off();
+	});
+
+	it('honours an explicit base-fee headroom', async () => {
+		const getFeeHistory = vi.fn(async () => feeHistoryOneBlock());
+		const publicClient = {getFeeHistory} as unknown as PublicClient;
+
+		// 100% = no headroom, i.e. the old behaviour, still reachable explicitly.
+		const store = createGasFeeStore(
+			{publicClient},
+			{baseFeeMultiplierPercent: 100n},
+		);
+		const off = activate(store);
+		await vi.waitFor(() => expect(get(store).step).toBe('Loaded'));
+		const v = get(store);
+		if (v.step !== 'Loaded') throw new Error('not loaded');
+		expect(v.fast).toEqual({maxPriorityFeePerGas: 80n, maxFeePerGas: 180n});
 		off();
 	});
 
@@ -51,7 +94,7 @@ describe('createGasFeeStore (adapter)', () => {
 
 		const store = createGasFeeStore(
 			{publicClient},
-			{expectedWorstGasPrice: 150n}, // fast.maxFeePerGas is 180n > 150n
+			{expectedWorstGasPrice: 150n}, // fast.maxFeePerGas is 280n > 150n
 		);
 		const off = activate(store);
 
@@ -81,9 +124,9 @@ describe('createGasFeeStore (adapter)', () => {
 		await vi.waitFor(() => expect(get(store).step).toBe('Loaded'));
 		const v = get(store);
 		if (v.step !== 'Loaded') throw new Error('not loaded');
-		// fallback: every tier uses the flat gas price
-		expect(v.slow).toEqual({maxPriorityFeePerGas: 7n, maxFeePerGas: 7n});
-		expect(v.fast).toEqual({maxPriorityFeePerGas: 7n, maxFeePerGas: 7n});
+		// fallback: flat gas price as the tip, with the same ceiling headroom
+		expect(v.slow).toEqual({maxPriorityFeePerGas: 7n, maxFeePerGas: 14n});
+		expect(v.fast).toEqual({maxPriorityFeePerGas: 7n, maxFeePerGas: 14n});
 		expect(v.baseFeePerGas).toBe(7n);
 		off();
 	});

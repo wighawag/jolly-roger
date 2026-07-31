@@ -1,4 +1,5 @@
 import type {GetFeeHistoryReturnType, PublicClient} from 'viem';
+import type {Readable} from 'svelte/store';
 import {
 	createPollingStore,
 	type PollingStore,
@@ -38,10 +39,44 @@ function avg(arr: bigint[]) {
 	return sum / BigInt(arr.length);
 }
 
+/**
+ * Headroom applied to the observed base fee when building `maxFeePerGas`,
+ * as a percentage (200 = 2x).
+ *
+ * `maxFeePerGas` is a CEILING, not what gets charged: a transaction only ever
+ * pays `baseFeePerGas + min(tip, maxFeePerGas - baseFeePerGas)`. So headroom
+ * costs the user nothing in practice, while its absence is fatal - EIP-1559
+ * lets the base fee rise 12.5% per block, and a transaction whose
+ * `maxFeePerGas` is below the NEXT block's base fee is rejected outright
+ * ("maxFeePerGas is too low for the next block").
+ *
+ * Without this the estimate was exactly `tip + currentBaseFee`, i.e. zero
+ * headroom, so any rise at all between polling and sending broke the send.
+ * 2x absorbs roughly six consecutive maximum-growth blocks (1.125^6 ~ 2.03),
+ * which is also what common node implementations suggest.
+ */
+const DEFAULT_BASE_FEE_MULTIPLIER_PERCENT = 200n;
+
 export function createGasFeeStore(
-	params: {publicClient: PublicClient},
-	options?: {fetchInterval?: number; expectedWorstGasPrice?: bigint},
+	params: {
+		publicClient: PublicClient;
+		/**
+		 * Optional gate: gas fetching only runs while this source is truthy. Used
+		 * to avoid polling (and surfacing RPC errors) when the app has no RPC of
+		 * its own and the wallet is not connected yet. When omitted, gas is
+		 * fetched unconditionally (an app RPC is available).
+		 */
+		fetchGate?: Readable<boolean>;
+	},
+	options?: {
+		fetchInterval?: number;
+		expectedWorstGasPrice?: bigint;
+		/** Base-fee headroom percentage; see DEFAULT_BASE_FEE_MULTIPLIER_PERCENT. */
+		baseFeeMultiplierPercent?: bigint;
+	},
 ): GasFeeStore {
+	const baseFeeMultiplierPercent =
+		options?.baseFeeMultiplierPercent ?? DEFAULT_BASE_FEE_MULTIPLIER_PERCENT;
 	let feeHistorySupport: 'unknown' | 'supported' | 'unsupported' = 'unknown';
 	const {publicClient} = params;
 
@@ -100,10 +135,16 @@ export function createGasFeeStore(
 				const baseFeePerGas =
 					feeHistory.baseFeePerGas[feeHistory.baseFeePerGas.length - 1];
 
+				// Ceiling gets headroom for future blocks; the reported
+				// `baseFeePerGas` below stays the raw observed value, since that is
+				// what the UI displays as the current price.
+				const baseFeeCeiling =
+					(baseFeePerGas * baseFeeMultiplierPercent) / 100n;
+
 				const result: EstimateGasPriceResult = [];
 				for (let i = 0; i < rewardPercentiles.length; i++) {
 					result.push({
-						maxFeePerGas: percentilePriorityFeeAverages[i] + baseFeePerGas,
+						maxFeePerGas: percentilePriorityFeeAverages[i] + baseFeeCeiling,
 						maxPriorityFeePerGas: percentilePriorityFeeAverages[i],
 					});
 				}
@@ -136,17 +177,19 @@ export function createGasFeeStore(
 
 		if (feeHistorySupport === 'unsupported') {
 			const gasPrice = await publicClient.getGasPrice();
+			// Same headroom reasoning as the feeHistory path above.
+			const ceiling = (gasPrice * baseFeeMultiplierPercent) / 100n;
 			return {
 				slow: {
-					maxFeePerGas: gasPrice,
+					maxFeePerGas: ceiling,
 					maxPriorityFeePerGas: gasPrice,
 				},
 				average: {
-					maxFeePerGas: gasPrice,
+					maxFeePerGas: ceiling,
 					maxPriorityFeePerGas: gasPrice,
 				},
 				fast: {
-					maxFeePerGas: gasPrice,
+					maxFeePerGas: ceiling,
 					maxPriorityFeePerGas: gasPrice,
 				},
 				baseFeePerGas: gasPrice,
@@ -171,6 +214,7 @@ export function createGasFeeStore(
 		{
 			// default: 10 minutes
 			fetchInterval: options?.fetchInterval ?? 10 * 60 * 1000,
+			...(params.fetchGate ? {source: {store: params.fetchGate}} : {}),
 		},
 	);
 }

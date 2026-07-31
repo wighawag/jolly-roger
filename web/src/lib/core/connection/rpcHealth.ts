@@ -1,6 +1,5 @@
 import {writable, type Readable} from 'svelte/store';
-import type {BalanceStatus, BalanceStore} from './balance';
-import type {GasFeeStatus, GasFeeStore} from './gasFee';
+import type {PollingStatus} from './polling-store';
 
 export type RpcErrorCategory =
 	| 'network'
@@ -100,90 +99,132 @@ function categorizeError(error: {
 	return 'unknown';
 }
 
-export function createRpcHealthStore(params: {
-	balance: BalanceStore;
-	gasFee: GasFeeStore;
-}): RpcHealthStore {
-	const {balance, gasFee} = params;
+/** Something exposing a `status` store of PollingStatus (balance, gasFee, ...). */
+export type HealthInput = {status: Readable<PollingStatus>};
 
-	// Track state for comparison and error timing
+/** The last SETTLED outcome of an input, ignoring transient loading states. */
+export type SettledOutcome =
+	| {state: 'ok'}
+	| {state: 'error'; error: {message: string; cause?: unknown}}
+	| {state: 'pending'};
+
+/**
+ * Fold a raw PollingStatus into a settled outcome. A status is only meaningful
+ * once it is NOT loading: while loading, the poller clears its error (see
+ * polling-store.fetchState), so treating the loading blip as "ok" would flip
+ * health healthy mid-retry and cause the banner to flicker. We therefore return
+ * `pending` while loading and let the caller keep the previous settled outcome.
+ */
+export function settle(status: PollingStatus): SettledOutcome {
+	if (status.loading) return {state: 'pending'};
+	if (status.error) return {state: 'error', error: status.error};
+	// Not loading and no error. Count as ok only if it has actually fetched
+	// successfully at least once; a never-run (idle/gated) input is `pending` so
+	// it neither hides a real outage nor forces one.
+	if (status.lastSuccessfulFetch) return {state: 'ok'};
+	return {state: 'pending'};
+}
+
+/** A settled outcome plus the real time it was observed. */
+export type TimedOutcome = {outcome: SettledOutcome; at: number};
+
+/**
+ * Decide health from each input's last settled outcome and WHEN it settled. All
+ * inputs read the SAME chain via the same transport, so what matters is the
+ * most recent settle across inputs: if the latest thing we observed was a
+ * success, the RPC is reachable now (healthy); if it was an error, it is not.
+ *
+ * Using the real observation time (captured by the store, not synthesized here)
+ * means:
+ * - a fresh success (5s onchain poll, or a Retry) heals immediately, even if a
+ *   slow poller (10-min gas) still holds an older error;
+ * - a fresh error shows the banner, even if a slow poller still holds an older
+ *   success;
+ * - an in-flight retry stays `pending` and does not change the last settle, so
+ *   nothing flickers.
+ */
+export function computeHealth(timed: TimedOutcome[]): {
+	healthy: boolean;
+	error: {message: string; cause?: unknown} | null;
+} {
+	let latest: TimedOutcome | null = null;
+	for (const t of timed) {
+		if (t.outcome.state === 'pending') continue;
+		if (!latest || t.at >= latest.at) {
+			latest = t;
+		}
+	}
+	if (latest && latest.outcome.state === 'error') {
+		return {healthy: false, error: latest.outcome.error};
+	}
+	return {healthy: true, error: null};
+}
+
+export function createRpcHealthStore(params: {
+	inputs: HealthInput[];
+}): RpcHealthStore {
+	const {inputs} = params;
+
 	let $state: RpcHealthValue = {healthy: true, error: null};
 	let errorSince: number | undefined;
+	// Per-input last settled outcome + real observation time. Loading blips do
+	// not overwrite it, so a retry (error -> loading -> error/ok) never
+	// momentarily reads as healthy.
+	const timed: TimedOutcome[] = inputs.map(() => ({
+		outcome: {state: 'pending'},
+		at: 0,
+	}));
 
 	function setState(state: RpcHealthValue) {
 		$state = state;
 		store.set($state);
 	}
 
-	let unsubscribeBalance: (() => void) | undefined;
-	let unsubscribeGasFee: (() => void) | undefined;
-	let $balanceStatus: BalanceStatus = {loading: false};
-	let $gasFeeStatus: GasFeeStatus = {loading: false};
-
 	function updateHealth() {
-		const balanceError = $balanceStatus.error;
-		const gasFeeError = $gasFeeStatus.error;
-		const isLoading = $balanceStatus.loading || $gasFeeStatus.loading;
+		const {healthy, error} = computeHealth(timed);
 
-		// If either has an error, we're unhealthy
-		if (balanceError || gasFeeError) {
-			const error = balanceError || gasFeeError!;
-			const errorMessage = extractErrorMessage(error);
-			const category = categorizeError(error);
-
+		if (!healthy && error) {
 			if (!errorSince) {
 				errorSince = Date.now();
 			}
-
 			setState({
 				healthy: false,
 				error: {
-					category,
-					message: errorMessage,
+					category: categorizeError(error),
+					message: extractErrorMessage(error),
 					since: errorSince,
 				},
 			});
 			return;
 		}
 
-		// If loading and we had a previous error, maintain unhealthy state
-		// This prevents blinking during retry attempts
-		if (isLoading && $state.error) {
-			// Keep current state (already unhealthy)
-			return;
-		}
-
-		// Healthy: no errors and not loading with a previous error
 		errorSince = undefined;
 		setState({healthy: true, error: null});
 	}
 
+	let unsubscribes: (() => void)[] = [];
+
 	function start() {
-		unsubscribeBalance = balance.status.subscribe((status) => {
-			$balanceStatus = status;
-			updateHealth();
-		});
-
-		unsubscribeGasFee = gasFee.status.subscribe((status) => {
-			$gasFeeStatus = status;
-			updateHealth();
-		});
-
+		unsubscribes = inputs.map((input, i) =>
+			input.status.subscribe((status) => {
+				const next = settle(status);
+				// Keep the previous settled outcome while pending (loading), so an
+				// in-flight retry does not transiently flip health. Record the real
+				// time of each settle so the most recent one decides health.
+				if (next.state !== 'pending') {
+					timed[i] = {outcome: next, at: Date.now()};
+				}
+				updateHealth();
+			}),
+		);
 		return stop;
 	}
 
 	function stop() {
 		errorSince = undefined;
 		setState({healthy: true, error: null});
-
-		if (unsubscribeBalance) {
-			unsubscribeBalance();
-			unsubscribeBalance = undefined;
-		}
-		if (unsubscribeGasFee) {
-			unsubscribeGasFee();
-			unsubscribeGasFee = undefined;
-		}
+		for (const u of unsubscribes) u();
+		unsubscribes = [];
 	}
 
 	// Create the writable store with start/stop lifecycle

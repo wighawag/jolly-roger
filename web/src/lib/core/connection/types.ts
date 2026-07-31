@@ -83,4 +83,6 @@ export type EstablishedConnection = {
 	account: AccountStore;
 	signer: OptionalSignerStore;
 	deployments: DeploymentsStore;
+	/** Debug-only runtime flag: when set, all RPC requests fail (see rpc-fault). */
+	forceRpcFailure: import('svelte/store').Writable<boolean>;
 };

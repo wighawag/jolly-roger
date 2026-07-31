@@ -20,10 +20,14 @@ import {IMPERSONATE_ADDRESSES} from '../../src/lib/dev-accounts';
 
 // Hardhat node URL. Use the IPv4 literal: the node binds to 127.0.0.1, and
 // Node's fetch can resolve `localhost` to ::1 first, failing intermittently.
-const HARDHAT_RPC_URL = 'http://127.0.0.1:8545';
+// Overridable so a run can avoid a port already in use on the machine; must
+// agree with what scripts/run-e2e-tests.sh started the node on.
+const RPC_PORT = (globalThis as any).process.env.E2E_RPC_PORT || '8545';
+const HARDHAT_RPC_URL =
+	(globalThis as any).process.env.E2E_RPC_URL || `http://127.0.0.1:${RPC_PORT}`;
 
 // Base URL for the web app (matches playwright.config.ts)
-const BASE_URL = 'http://localhost:4173';
+const BASE_URL = `http://localhost:${(globalThis as any).process.env.E2E_PORT || 4173}`;
 
 /**
  * Fund an address using Hardhat's hardhat_setBalance RPC method.

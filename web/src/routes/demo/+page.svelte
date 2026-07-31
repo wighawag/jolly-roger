@@ -14,10 +14,21 @@
 	import {formatRelativeTime, getStaleMessage} from './lib/staleness';
 
 	const context = getAppContext();
-	const {onchainState, viewState, clock, accountCannotSend, errorDetails} =
-		context;
+	const {
+		refreshChainData,
+		canReadChain,
+		connection,
+		viewState,
+		clock,
+		accountCannotSend,
+		errorDetails,
+	} = context;
 
 	const viewStatus = viewState.status;
+
+	// Whether the app can read the chain yet (app RPC, or a connected wallet).
+	// When it cannot, the not-loaded state prompts the user to connect.
+	let canRead = $derived($canReadChain);
 
 	// Derive stale message so it updates when status store updates
 	// Note: clock will become a store that updates every second in the future
@@ -100,7 +111,9 @@
 		<!-- Messages List -->
 		<div class="space-y-3">
 			{#if $viewStatus.error && $viewState.step === 'Unloaded'}
-				<!-- Error on initial load -->
+				<!-- Errored initial load. The error persists while a retry is in flight
+				     (see polling-store), so show a "Refreshing..." affordance instead of
+				     flipping away, and only offer Retry once settled. -->
 				<div
 					class="flex flex-col items-center justify-center py-8 text-destructive"
 				>
@@ -111,13 +124,21 @@
 					>
 						{$viewStatus.error.message}
 					</p>
-					<Button
-						variant="outline"
-						onclick={() => onchainState.update()}
-						class="mt-4"
-					>
-						Retry
-					</Button>
+					{#if $viewStatus.loading}
+						<span
+							class="mt-4 flex items-center gap-2 text-sm text-muted-foreground"
+						>
+							<Spinner class="h-4 w-4" /> Refreshing...
+						</span>
+					{:else}
+						<Button
+							variant="outline"
+							onclick={() => refreshChainData()}
+							class="mt-4"
+						>
+							Retry
+						</Button>
+					{/if}
 				</div>
 			{:else if $viewState.step === 'Unloaded' && $viewStatus.loading}
 				<!-- Initial loading -->
@@ -128,12 +149,25 @@
 					<p class="text-base">Loading messages...</p>
 				</div>
 			{:else if $viewState.step === 'Unloaded'}
-				<!-- Unloaded fallback -->
+				<!-- Not loaded: never fetched. If we cannot read the chain yet (no app
+				     RPC and no wallet), prompt the user to connect; otherwise it is just
+				     a transient not-loaded state. Distinct from a completed fetch that
+				     returned zero messages (the "be the first" empty state below). -->
 				<div
 					class="flex flex-col items-center justify-center py-8 text-muted-foreground"
 				>
 					<MessageSquareIcon class="mb-3 h-10 w-10" />
-					<p class="text-base">No messages yet. Be the first!</p>
+					{#if !canRead}
+						<p class="text-base">Connect to load messages</p>
+						<p class="mt-1 text-sm">
+							Connect your wallet to fetch greetings from the network.
+						</p>
+						<Button class="mt-4" onclick={() => connection.connect()}>
+							Connect Wallet
+						</Button>
+					{:else}
+						<p class="text-base">Messages not loaded</p>
+					{/if}
 				</div>
 			{:else}
 				<!-- Loaded - $viewState.step === 'Loaded' -->
@@ -190,7 +224,7 @@
 							<Button
 								variant="outline"
 								size="sm"
-								onclick={() => onchainState.update()}
+								onclick={() => refreshChainData()}
 							>
 								Retry Now
 							</Button>

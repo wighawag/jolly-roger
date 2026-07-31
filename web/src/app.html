@@ -45,9 +45,82 @@
 		})();
 		</script>
 
+		<!-- Pre-JS navigation bar. Rendered before any CSS/JS request resolves,
+		     so it has to be inline. It covers the gap between first paint and
+		     hydration. NavigationProgress.svelte removes it as soon as it mounts
+		     and takes over all navigation feedback. That removal is the only
+		     contract between this file and the app. -->
+		<style>
+			:root {
+				/* One accent for every loading indicator (slate-400 by default -
+				   override to match your brand). Space separated RGB so it
+				   composes with alpha: rgb(var(--nav-accent) / 0.12) */
+				--nav-accent: 148 163 184;
+				--nav-bar-height: 2px;
+			}
+			#app-loader {
+				position: fixed;
+				inset: 0 0 auto 0;
+				height: var(--nav-bar-height);
+				z-index: 9999;
+				pointer-events: none;
+				background: rgb(var(--nav-accent) / 0.12);
+			}
+			/* Hidden until the reveal script below decides the load is slow
+			   enough to be worth showing, so fast loads never flash it. */
+			#app-loader[hidden] {
+				display: none;
+			}
+			#app-loader::before {
+				content: '';
+				display: block;
+				height: 100%;
+				width: 40%;
+				background: rgb(var(--nav-accent));
+				box-shadow: 0 0 8px rgb(var(--nav-accent) / 0.55);
+				animation: app-loader-shuttle 1.1s ease-in-out infinite;
+			}
+			/* NavigationProgress fades this out before removing it. */
+			#app-loader.hide {
+				animation: none;
+				opacity: 0;
+				transition: opacity 0.3s ease-out;
+			}
+			@keyframes app-loader-shuttle {
+				0% {
+					transform: translateX(-100%);
+				}
+				50% {
+					transform: translateX(150%);
+				}
+				100% {
+					transform: translateX(350%);
+				}
+			}
+			@media (prefers-reduced-motion: reduce) {
+				#app-loader::before {
+					animation: none;
+					width: 50%;
+				}
+			}
+		</style>
+		<!-- With no JS nothing would ever remove the bar, so never show it. -->
+		<noscript><style>#app-loader{display:none}</style></noscript>
+
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">
+		<div id="app-loader" hidden aria-hidden="true"></div>
+		<script>
+			// Reveal only if the app has not taken over quickly. If hydration
+			// wins the race, NavigationProgress removes the element first and
+			// this becomes a no-op.
+			setTimeout(function () {
+				var el = document.getElementById('app-loader');
+				if (el) el.removeAttribute('hidden');
+			}, 150);
+		</script>
+
 		<div style="display: contents">%sveltekit.body%</div>
 	</body>
 </html>

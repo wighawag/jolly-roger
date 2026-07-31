@@ -12,12 +12,12 @@ const ADDRESS = '0x1234567890abcdef1234567890abcdef12345678';
 
 describe('Address.svelte', () => {
 	it('truncates the address by default (0x + 4 ... 4)', async () => {
-		const screen = render(Address, {value: ADDRESS});
+		const screen = await render(Address, {value: ADDRESS});
 		await expect.element(screen.getByText('0x1234...5678')).toBeInTheDocument();
 	});
 
 	it('honours a custom truncate window', async () => {
-		const screen = render(Address, {
+		const screen = await render(Address, {
 			value: ADDRESS,
 			truncate: {start: 6, end: 6},
 		});
@@ -27,33 +27,33 @@ describe('Address.svelte', () => {
 	});
 
 	it('shows the full address when truncate is false', async () => {
-		const screen = render(Address, {value: ADDRESS, truncate: false});
+		const screen = await render(Address, {value: ADDRESS, truncate: false});
 		await expect.element(screen.getByText(ADDRESS)).toBeInTheDocument();
 	});
 
 	it('renders a copy button by default', async () => {
-		const screen = render(Address, {value: ADDRESS});
+		const screen = await render(Address, {value: ADDRESS});
 		await expect
 			.element(screen.getByRole('button', {name: /copy address/i}))
 			.toBeInTheDocument();
 	});
 
 	it('omits the copy button when showCopy is false', async () => {
-		const screen = render(Address, {value: ADDRESS, showCopy: false});
+		const screen = await render(Address, {value: ADDRESS, showCopy: false});
 		await expect
 			.element(screen.getByRole('button', {name: /copy address/i}))
 			.not.toBeInTheDocument();
 	});
 
 	it('renders plain text (no link) when linkTo is false', async () => {
-		const screen = render(Address, {value: ADDRESS, linkTo: false});
+		const screen = await render(Address, {value: ADDRESS, linkTo: false});
 		// The display text lives in a span, not an anchor.
 		await expect.element(screen.getByText('0x1234...5678')).toBeInTheDocument();
 		await expect.element(screen.getByRole('link')).not.toBeInTheDocument();
 	});
 
 	it('links to the internal explorer when linkTo is "internal"', async () => {
-		const screen = render(Address, {value: ADDRESS, linkTo: 'internal'});
+		const screen = await render(Address, {value: ADDRESS, linkTo: 'internal'});
 		const link = screen.getByRole('link');
 		await expect.element(link).toBeInTheDocument();
 		await expect
@@ -65,7 +65,7 @@ describe('Address.svelte', () => {
 	});
 
 	it('re-truncates when the value prop changes', async () => {
-		const screen = render(Address, {value: ADDRESS});
+		const screen = await render(Address, {value: ADDRESS});
 		await expect.element(screen.getByText('0x1234...5678')).toBeInTheDocument();
 
 		const other = '0xabcdef0000000000000000000000000000009999';

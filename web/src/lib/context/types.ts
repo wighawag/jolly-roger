@@ -3,6 +3,7 @@ import type {Readable} from 'svelte/store';
 import type {BalanceStore} from '$lib/core/connection/balance';
 import type {GasFeeStore} from '$lib/core/connection/gasFee';
 import type {RpcHealthStore} from '$lib/core/connection/rpcHealth';
+import type {NonceCacheStore} from '$lib/core/connection/nonce-cache-store';
 import type {OfflineStore} from '$lib/core/connection/offline';
 import type {
 	AccountStore,
@@ -60,6 +61,34 @@ export type Context = {
 	 */
 	ownerBalance: BalanceStore;
 	rpcHealth: RpcHealthStore;
+	/**
+	 * Wallet nonce-cache detection (dev + app-RPC only; a no-op store otherwise).
+	 * Signals when the connected wallet's cached pending nonce is AHEAD of the
+	 * node, which strands transactions after a local node restart. The UI shows a
+	 * banner telling the user to reset/clear the account in their wallet.
+	 */
+	nonceCache: NonceCacheStore;
+	/** Refresh every chain read (onchain state, gas, balances) at once. */
+	refreshChainData: () => void;
+	/**
+	 * Whether the app has an RPC of its own (PUBLIC_NODE_URL or a chain rpcUrl).
+	 * When false, the app reaches the chain only through the connected wallet, so
+	 * chain-data fetching waits for a wallet connection and the UI explains this
+	 * instead of reporting a failing RPC.
+	 */
+	hasAppRpc: boolean;
+	/**
+	 * Whether the app can read the chain right now (has its own RPC, or the
+	 * wallet is connected and supplies one). UI gates onchain fetches on this and
+	 * shows a "connect to load" state instead of firing calls that would fail.
+	 */
+	canReadChain: Readable<boolean>;
+	/**
+	 * Debug-only runtime flag: setting it makes all RPC requests fail (and
+	 * clearing it lets them succeed again), to exercise the RPC-health / retry UI.
+	 * Reachable from the console via `context.forceRpcFailure.set(true|false)`.
+	 */
+	forceRpcFailure: import('svelte/store').Writable<boolean>;
 	offline: OfflineStore;
 	connection: ChainConnection;
 	/**

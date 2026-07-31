@@ -66,6 +66,40 @@ describe('createPollingStore', () => {
 		off();
 	});
 
+	it('keeps the error visible while a retry is loading (cleared only on success)', async () => {
+		let call = 0;
+		let resolveThird: ((v: {value: bigint}) => void) | undefined;
+		const fetch = vi.fn(async () => {
+			call++;
+			if (call === 1) return {value: 1n};
+			if (call === 2) throw new Error('boom');
+			// Third call: keep it pending so we can observe the loading+error state.
+			return new Promise<{value: bigint}>((res) => {
+				resolveThird = res;
+			});
+		});
+		const store = createPollingStore(fetch, {fetchInterval: INTERVAL});
+		const off = activate(store);
+
+		await vi.waitFor(() => expect(get(store.status).loading).toBe(false));
+		// Second poll fails -> error set.
+		await vi.advanceTimersByTimeAsync(INTERVAL);
+		expect(get(store.status).error?.message).toBe('boom');
+
+		// Third poll starts (retry). After one failure the next attempt is scheduled
+		// with exponential backoff (min(INTERVAL * 2^1, maxBackoff)); advance past it.
+		await vi.advanceTimersByTimeAsync(INTERVAL * 2);
+		const retrying = get(store.status);
+		expect(retrying.loading).toBe(true);
+		expect(retrying.error?.message).toBe('boom'); // not cleared while retrying
+
+		// Retry succeeds -> error cleared.
+		resolveThird?.({value: 3n});
+		await vi.waitFor(() => expect(get(store.status).loading).toBe(false));
+		expect(get(store.status).error).toBeUndefined();
+		off();
+	});
+
 	it('backs off exponentially on consecutive failures, capped at maxBackoff', async () => {
 		const fetch = vi.fn(async () => {
 			throw new Error('down');

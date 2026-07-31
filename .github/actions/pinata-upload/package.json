@@ -1,0 +1,32 @@
+{
+  "name": "ipfs-ops",
+  "version": "1.0.0",
+  "description": "IPFS operations: Upload to Pinata and manage IPNS via Filebase",
+  "type": "module",
+  "main": "index.js",
+  "bin": {
+    "ipfs-ops": "./cli.js"
+  },
+  "scripts": {
+    "upload": "node cli.js upload-pinata",
+    "update-ipns": "node cli.js update-ipns-filebase",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "ipfs",
+    "pinata",
+    "filebase",
+    "ipns",
+    "github-action"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@actions/core": "^1.10.1",
+    "form-data": "^4.0.0",
+    "recursive-fs": "^2.1.0",
+    "base-path-converter": "^1.0.2",
+    "got": "^13.0.0",
+    "commander": "^12.1.0"
+  }
+}

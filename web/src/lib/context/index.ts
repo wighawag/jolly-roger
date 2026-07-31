@@ -30,6 +30,12 @@ import {
 import {burnerOverride} from '$lib';
 import {resolveBurnerWallet} from './burner.js';
 import {resolveConnectionMode} from '$lib/core/connection/mode.js';
+import {resolveSignerRpc} from '$lib/core/connection/signer-rpc.js';
+import {hasConfiguredRpc} from '$lib/core/connection/rpc-config.js';
+import {
+	createNonceCacheStore,
+	inactiveNonceCacheStore,
+} from '$lib/core/connection/nonce-cache-store.js';
 import {createExecutor} from '$lib/core/connection/executor.js';
 import {createAccountCannotSendStore} from '$lib/core/transaction/account-cannot-send-store.js';
 import {createErrorDetailsStore} from '$lib/core/transaction/error-details-store.js';
@@ -85,6 +91,7 @@ export async function createContext(): Promise<{
 		publicClient,
 		account,
 		deployments,
+		forceRpcFailure,
 	} = await establishRemoteConnection({
 		nodeURL: PUBLIC_NODE_URL,
 		walletHost,
@@ -100,6 +107,43 @@ export async function createContext(): Promise<{
 	const chain = deployments.get().chain as AugmentedChainInfo;
 	const {finality, txObserverProcessInterval, maxMessages} =
 		resolveAppConfig(chain);
+
+	// Signer mode broadcasts from a local signer and so needs a real node RPC
+	// (PUBLIC_NODE_URL or an rpcUrl configured on the chain). Wallet mode does
+	// not (the wallet provides the RPC). Fail fast for signer-mode with no RPC,
+	// surfaced by AsyncContext's error screen; the resolved url also drives the
+	// signer client's transport below.
+	const signerRpc = resolveSignerRpc(
+		executionMode,
+		PUBLIC_NODE_URL,
+		chain.rpcUrls?.default?.http,
+		import.meta.env.DEV,
+	);
+	if (!signerRpc.ok) {
+		throw new Error(signerRpc.error);
+	}
+	const signerRpcUrl = signerRpc.rpcUrl;
+
+	// Whether the app has an RPC of its own (PUBLIC_NODE_URL or a chain rpcUrl).
+	// When it does not, the app can only reach the chain via the connected wallet,
+	// so chain-data fetching must wait until the wallet is connected (otherwise it
+	// would fail and look like a broken RPC). Exposed so the UI can explain this.
+	const hasAppRpc = hasConfiguredRpc(PUBLIC_NODE_URL, chain.rpcUrls?.default?.http);
+
+	// Whether the app can read the chain right now: it has its own RPC, or the
+	// wallet is connected (and supplies one). Always a boolean, so UI can gate
+	// fetches and show a "connect to load" state instead of firing calls that
+	// would fail and look like a broken RPC. See also chainFetchGate below.
+	const canReadChain = derived(
+		connection,
+		($c) => hasAppRpc || connection.isTargetStepReached($c),
+	);
+
+	// Gate for chain reads (onchain state, gas). With an app RPC, fetch
+	// unconditionally. Without one, only fetch once the wallet is connected (its
+	// provider then supplies the RPC), so we do not fire calls that would fail and
+	// look like a broken RPC while disconnected.
+	const chainFetchGate = hasAppRpc ? undefined : canReadChain;
 
 	// Reactive clock store that updates every second for smooth "time ago" displays
 	const clock = createClockStore();
@@ -137,10 +181,12 @@ export async function createContext(): Promise<{
 			const raw = createWalletClient({
 				account,
 				chain: deployments.get().chain,
-				// Broadcast over the node RPC when configured (a local signer does not
-				// need the wallet provider); fall back to the connection provider.
-				transport: PUBLIC_NODE_URL
-					? http(PUBLIC_NODE_URL)
+				// Broadcast over the resolved node RPC (PUBLIC_NODE_URL or a chain
+				// rpcUrl). Signer mode guarantees one exists (see resolveSignerRpc
+				// above); the connection-provider fallback only applies to non-signer
+				// use where a signer client would not actually be built.
+				transport: signerRpcUrl
+					? http(signerRpcUrl)
 					: custom(connection.provider),
 			});
 			return {client: trackerBuilder.using(raw, publicClient), account};
@@ -165,6 +211,7 @@ export async function createContext(): Promise<{
 		publicClient,
 		deployments: deployments.get(),
 		config,
+		fetchGate: chainFetchGate,
 	});
 
 	const accountData = createAccountData({
@@ -228,9 +275,42 @@ export async function createContext(): Promise<{
 
 	const gasFee = createGasFeeStore({
 		publicClient: publicClient,
+		fetchGate: chainFetchGate,
 	});
 
-	const rpcHealth = createRpcHealthStore({balance, gasFee});
+	// Health reflects whether we can read the chain right now. All inputs share
+	// one transport, so any recent success (e.g. the 5s onchain-state poll, or a
+	// user Retry) means the RPC is up and clears the banner, without waiting for
+	// the slow gas poller to retry.
+	const rpcHealth = createRpcHealthStore({
+		inputs: [balance, gasFee, onchainState],
+	});
+
+	// Wallet nonce-cache detection. Only meaningful when the app has its OWN
+	// trusted node RPC to compare the wallet against, and only worth the extra
+	// per-connect RPC calls in DEV (where restarting a local node desyncs the
+	// wallet's cached nonce and silently strands transactions). In production, or
+	// with no app RPC, we use the no-op store so nothing runs. signerRpcUrl is the
+	// same resolved app RPC (PUBLIC_NODE_URL or chain rpcUrl) that hasAppRpc
+	// reflects; when hasAppRpc is true it is defined.
+	const nonceCache =
+		import.meta.env.DEV && hasAppRpc && signerRpcUrl
+			? createNonceCacheStore({
+					connection,
+					account,
+					txObserver,
+					nodeRpcUrl: signerRpcUrl,
+				})
+			: inactiveNonceCacheStore;
+
+	// Refresh every chain read at once. Used by Retry actions and the health
+	// banner so a single click heals the whole health picture, not just one store.
+	const refreshChainData = () => {
+		void onchainState.update();
+		void gasFee.update();
+		void balance.update();
+		if (ownerBalance !== balance) void ownerBalance.update();
+	};
 	const offline = createOfflineStore();
 
 	const viewState = createViewState({
@@ -257,6 +337,11 @@ export async function createContext(): Promise<{
 		balance,
 		ownerBalance,
 		rpcHealth,
+		nonceCache,
+		refreshChainData,
+		hasAppRpc,
+		canReadChain,
+		forceRpcFailure,
 		offline,
 		connection,
 		walletClient,

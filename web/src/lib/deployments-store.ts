@@ -12,9 +12,22 @@ import initialDeployments from '$lib/deployments';
 export type TypedDeployments = typeof initialDeployments;
 
 /**
- * Chain type derived from deployments
+ * Chain type derived from deployments.
+ *
+ * `rpcUrls.default.http` is widened from the exported literal to
+ * `readonly string[]`. The generated deployments may contain an empty rpc list
+ * (rocketh no longer bakes in a default public RPC), which would otherwise pin
+ * the type to `readonly []` and reject any code that injects an RPC url at
+ * runtime (see establishRemoteConnection's chainInfoNodeURL override). An empty
+ * list is a valid state: the connection then relies on PUBLIC_NODE_URL or the
+ * user's wallet provider.
  */
-export type ChainInfo = TypedDeployments['chain'];
+export type ChainInfo = Omit<TypedDeployments['chain'], 'rpcUrls'> & {
+	rpcUrls: {
+		[key: string]: {http: readonly string[]; webSocket?: readonly string[]};
+		default: {http: readonly string[]; webSocket?: readonly string[]};
+	};
+};
 
 /**
  * JSON-compatible value types for chain properties

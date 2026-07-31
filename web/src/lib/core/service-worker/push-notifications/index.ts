@@ -64,8 +64,7 @@ export type PushNotificationsState =
 	  };
 
 type PrivateAccount =
-	| {signer: {address: string; privateKey: string} | undefined}
-	| undefined;
+	{signer: {address: string; privateKey: string} | undefined} | undefined;
 
 export function createPushNotificationService(params: {
 	serverPublicKey: string;
