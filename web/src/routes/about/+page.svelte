@@ -113,11 +113,13 @@
 			<div
 				class="flex flex-col items-center text-center md:flex-row md:items-start md:text-left"
 			>
-				<div class="mb-4 md:mr-6 md:mb-0">
-					<div
-						class="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 text-3xl font-bold text-primary"
-					>
-						RS
+				<div class="mb-4 flex-shrink-0 md:mr-6 md:mb-0">
+					<div class="h-20 w-20 overflow-hidden rounded-full">
+						<img
+							src="/maskable_icon_512x512.png"
+							alt="Ronan Sandford"
+							class="h-full w-full object-cover"
+						/>
 					</div>
 				</div>
 				<div>
