@@ -5,7 +5,7 @@
 <!-- Use It Section -->
 <div class="mb-4 text-center">
 	<p class="mb-2 text-sm text-muted-foreground">Use it:</p>
-	<CopyCommand command="pnpm create jolly-roger@latest" />
+	<CopyCommand command="npx degit wighawag/jolly-roger my-app" />
 </div>
 
 <p class="text-sm text-muted-foreground">
