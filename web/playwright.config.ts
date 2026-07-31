@@ -93,7 +93,11 @@ export default defineConfig({
 	// NOTE: reuseExistingServer is false to ensure Playwright always starts a fresh
 	// preview server with the newly built app from globalSetup.
 	webServer: {
-		command: `pnpm run preview -- --port ${PORT}`,
+		// No `--` before the flag: pnpm passes a bare `--` through verbatim, and
+		// `vite preview -- --port N` silently ignores everything after it and serves
+		// the default 4173 instead, so Playwright waits on the wrong port until it
+		// times out.
+		command: `pnpm run preview --port ${PORT}`,
 		port: PORT,
 		reuseExistingServer: false,
 		// Wait for the server to be ready
