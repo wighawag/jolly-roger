@@ -15,6 +15,7 @@
 	import NonceCacheBanner from '$lib/ui/nonce-cache/NonceCacheBanner.svelte';
 	import OfflineBanner from '$lib/ui/offline/OfflineBanner.svelte';
 	import {createENSService} from '$lib/core/ens';
+	import {PUBLIC_ENS_NODE_URL} from '$env/static/public';
 	import {Toaster} from '$lib/shadcn/ui/sonner';
 	import AcrossPages from '$lib/context/AcrossPages.svelte';
 	import {page} from '$app/state';
@@ -23,7 +24,10 @@
 
 	// Provide ambient capabilities to core UI components.
 	provideRoute(route);
-	provideENS(createENSService());
+	// ENS is optional: provide it only when an ENS RPC is configured. An empty
+	// PUBLIC_ENS_NODE_URL disables ENS entirely (useENS() then returns undefined
+	// and all ENS-aware components stay inert).
+	if (PUBLIC_ENS_NODE_URL) provideENS(createENSService());
 
 	// The RPC-health / no-RPC banner is relevant on pages that read onchain data.
 	// The home page does not, so it is excluded (blacklist). `page.route.id` is
