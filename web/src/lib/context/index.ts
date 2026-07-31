@@ -32,6 +32,10 @@ import {resolveBurnerWallet} from './burner.js';
 import {resolveConnectionMode} from '$lib/core/connection/mode.js';
 import {resolveSignerRpc} from '$lib/core/connection/signer-rpc.js';
 import {hasConfiguredRpc} from '$lib/core/connection/rpc-config.js';
+import {
+	createNonceCacheStore,
+	inactiveNonceCacheStore,
+} from '$lib/core/connection/nonce-cache-store.js';
 import {createExecutor} from '$lib/core/connection/executor.js';
 import {createAccountCannotSendStore} from '$lib/core/transaction/account-cannot-send-store.js';
 import {createErrorDetailsStore} from '$lib/core/transaction/error-details-store.js';
@@ -282,6 +286,23 @@ export async function createContext(): Promise<{
 		inputs: [balance, gasFee, onchainState],
 	});
 
+	// Wallet nonce-cache detection. Only meaningful when the app has its OWN
+	// trusted node RPC to compare the wallet against, and only worth the extra
+	// per-connect RPC calls in DEV (where restarting a local node desyncs the
+	// wallet's cached nonce and silently strands transactions). In production, or
+	// with no app RPC, we use the no-op store so nothing runs. signerRpcUrl is the
+	// same resolved app RPC (PUBLIC_NODE_URL or chain rpcUrl) that hasAppRpc
+	// reflects; when hasAppRpc is true it is defined.
+	const nonceCache =
+		import.meta.env.DEV && hasAppRpc && signerRpcUrl
+			? createNonceCacheStore({
+					connection,
+					account,
+					txObserver,
+					nodeRpcUrl: signerRpcUrl,
+				})
+			: inactiveNonceCacheStore;
+
 	// Refresh every chain read at once. Used by Retry actions and the health
 	// banner so a single click heals the whole health picture, not just one store.
 	const refreshChainData = () => {
@@ -316,6 +337,7 @@ export async function createContext(): Promise<{
 		balance,
 		ownerBalance,
 		rpcHealth,
+		nonceCache,
 		refreshChainData,
 		hasAppRpc,
 		canReadChain,

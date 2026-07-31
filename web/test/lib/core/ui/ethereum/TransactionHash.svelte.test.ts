@@ -13,31 +13,37 @@ const HASH =
 
 describe('TransactionHash.svelte', () => {
 	it('truncates the hash by default (0x + 6 ... 4)', async () => {
-		const screen = render(TransactionHash, {value: HASH});
+		const screen = await render(TransactionHash, {value: HASH});
 		await expect
 			.element(screen.getByText('0xabcdef...6789'))
 			.toBeInTheDocument();
 	});
 
 	it('shows the full hash when truncate is false', async () => {
-		const screen = render(TransactionHash, {value: HASH, truncate: false});
+		const screen = await render(TransactionHash, {
+			value: HASH,
+			truncate: false,
+		});
 		await expect.element(screen.getByText(HASH)).toBeInTheDocument();
 	});
 
 	it('renders a copy button by default', async () => {
-		const screen = render(TransactionHash, {value: HASH});
+		const screen = await render(TransactionHash, {value: HASH});
 		await expect
 			.element(screen.getByRole('button', {name: /copy transaction hash/i}))
 			.toBeInTheDocument();
 	});
 
 	it('renders plain text (no link) when linkTo is false', async () => {
-		const screen = render(TransactionHash, {value: HASH, linkTo: false});
+		const screen = await render(TransactionHash, {value: HASH, linkTo: false});
 		await expect.element(screen.getByRole('link')).not.toBeInTheDocument();
 	});
 
 	it('links to the internal explorer when linkTo is "internal"', async () => {
-		const screen = render(TransactionHash, {value: HASH, linkTo: 'internal'});
+		const screen = await render(TransactionHash, {
+			value: HASH,
+			linkTo: 'internal',
+		});
 		const link = screen.getByRole('link');
 		await expect.element(link).toBeInTheDocument();
 		await expect

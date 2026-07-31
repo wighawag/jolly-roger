@@ -3,6 +3,7 @@ import type {Readable} from 'svelte/store';
 import type {BalanceStore} from '$lib/core/connection/balance';
 import type {GasFeeStore} from '$lib/core/connection/gasFee';
 import type {RpcHealthStore} from '$lib/core/connection/rpcHealth';
+import type {NonceCacheStore} from '$lib/core/connection/nonce-cache-store';
 import type {OfflineStore} from '$lib/core/connection/offline';
 import type {
 	AccountStore,
@@ -60,6 +61,13 @@ export type Context = {
 	 */
 	ownerBalance: BalanceStore;
 	rpcHealth: RpcHealthStore;
+	/**
+	 * Wallet nonce-cache detection (dev + app-RPC only; a no-op store otherwise).
+	 * Signals when the connected wallet's cached pending nonce is AHEAD of the
+	 * node, which strands transactions after a local node restart. The UI shows a
+	 * banner telling the user to reset/clear the account in their wallet.
+	 */
+	nonceCache: NonceCacheStore;
 	/** Refresh every chain read (onchain state, gas, balances) at once. */
 	refreshChainData: () => void;
 	/**

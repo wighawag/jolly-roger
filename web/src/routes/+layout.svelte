@@ -6,11 +6,13 @@
 	import NotificationOverlay from '$lib/core/notifications/NotificationOverlay.svelte';
 	import Notifications from '$lib/core/notifications/Notifications.svelte';
 	import VersionAndInstallNotfications from '$lib/core/service-worker/VersionAndInstallNotfications.svelte';
+	import NavigationProgress from '$lib/components/NavigationProgress.svelte';
 
 	import {createContext} from '$lib/context/index.js';
 	import AsyncContext from '$lib/context/AsyncContext.svelte';
 	import Navbar from '$lib/ui/navbar/navbar.svelte';
 	import RpcHealthBanner from '$lib/ui/rpc-health/RpcHealthBanner.svelte';
+	import NonceCacheBanner from '$lib/ui/nonce-cache/NonceCacheBanner.svelte';
 	import OfflineBanner from '$lib/ui/offline/OfflineBanner.svelte';
 	import {createENSService} from '$lib/core/ens';
 	import {Toaster} from '$lib/shadcn/ui/sonner';
@@ -29,9 +31,12 @@
 	let showRpcBanner = $derived(page.route.id !== '/');
 </script>
 
+<NavigationProgress />
+
 <AsyncContext getContext={createContext}>
 	<Navbar repoURL="https://github.com/wighawag/template-onchain-app" />
 	<OfflineBanner />
+	<NonceCacheBanner />
 	{#if showRpcBanner}
 		<RpcHealthBanner />
 	{/if}

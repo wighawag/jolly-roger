@@ -23,7 +23,13 @@ export default defineConfig(({mode}) => ({
 		tailwindcss(),
 		sveltekit(),
 	],
-	build: {emptyOutDir: true, minify: false, sourcemap: true},
+	build: {
+		emptyOutDir: true,
+		minify: true, // shrink chunks so large files don't stall on slow /
+		// throttled connections (an unminified single bundle hung under
+		// Chrome's request-level throttling)
+		sourcemap: true,
+	},
 	server: {
 		host: '127.0.0.1',
 		// Allow all hosts in dev mode so tunnels work instantly
