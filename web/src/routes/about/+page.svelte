@@ -34,16 +34,17 @@
 				<h2 class="text-2xl font-bold">Our Mission</h2>
 			</div>
 			<p class="mb-4 text-muted-foreground">
-				Jolly Roger was created to provide developers with a solid foundation
-				for building decentralized applications. We believe that building on the
-				blockchain should be accessible to everyone, and that the tools we use
-				should be production-ready from day one.
+				Jolly Roger is a full-stack onchain app template: smart contracts, a
+				frontend, and a built-in explorer that talks to them, wired to run
+				together locally with hot contract replacement — edit a contract and
+				the app picks up the new code without losing its address.
 			</p>
 			<p class="text-muted-foreground">
-				The template brings together the best practices from the Ethereum
-				development ecosystem, combining smart contract development with a
-				modern frontend stack that's optimized for both performance and
-				developer experience.
+				It exists because starting an onchain app means re-stitching the same
+				pieces every time: the deploy system, the ABI export to the frontend,
+				wallet connection, the read layer, IPFS and PWA setup. Jolly Roger
+				ships those decisions already made, so you start at the part that's
+				actually yours.
 			</p>
 		</div>
 	</section>
@@ -60,10 +61,10 @@
 				<h3 class="mb-3 text-lg font-semibold text-primary">Smart Contracts</h3>
 				<ul class="space-y-2 text-sm text-muted-foreground">
 					<li>
-						• <strong>Hardhat</strong> - Ethereum development environment
+						• <strong>Hardhat v3</strong> - Ethereum development environment
 					</li>
 					<li>
-						• <strong>hardhat-deploy</strong> - Deployment management
+						• <strong>hardhat-deploy v2 + rocketh</strong> - Deployment system
 					</li>
 					<li>
 						• <strong>TypeScript</strong> - Type-safe contract scripts
@@ -75,9 +76,9 @@
 			<div class="rounded-lg border bg-card p-6">
 				<h3 class="mb-3 text-lg font-semibold text-primary">Frontend</h3>
 				<ul class="space-y-2 text-sm text-muted-foreground">
-					<li>• <strong>SvelteKit</strong> - Full-stack web framework</li>
-					<li>• <strong>Vite</strong> - Next generation build tool</li>
-					<li>• <strong>TailwindCSS</strong> - Utility-first CSS</li>
+					<li>• <strong>SvelteKit 5</strong> - Full-stack web framework</li>
+					<li>• <strong>Vite</strong> - Build tool and dev server</li>
+					<li>• <strong>Tailwind CSS 4</strong> - Utility-first CSS</li>
 					<li>• <strong>shadcn-svelte</strong> - UI components</li>
 				</ul>
 			</div>
@@ -94,7 +95,7 @@
 			<div class="rounded-lg border bg-card p-6">
 				<h3 class="mb-3 text-lg font-semibold text-primary">Developer Tools</h3>
 				<ul class="space-y-2 text-sm text-muted-foreground">
-					<li>• <strong>Hot Reload</strong> - Instant feedback</li>
+					<li>• <strong>Hot Contract Replacement</strong> - Edit contracts, keep the address</li>
 					<li>• <strong>TypeScript</strong> - End-to-end type safety</li>
 				</ul>
 			</div>
@@ -170,7 +171,7 @@
 		<p class="mb-6 text-muted-foreground">
 			Start building your decentralized application today with Jolly Roger.
 		</p>
-		<CopyCommand command="pnpm create jolly-roger@latest" class="mb-6" />
+		<CopyCommand command="npx degit wighawag/jolly-roger my-app" class="mb-6" />
 		<div class="flex flex-wrap justify-center gap-4">
 			<Button
 				href="https://github.com/wighawag/jolly-roger"
