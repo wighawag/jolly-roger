@@ -7,7 +7,7 @@
   "devDependencies": {
     "cross-var": "^1.1.0",
     "ldenv": "^0.6.0",
-    "pinnace": "0.15.0",
+    "pinnace": "0.16.0",
     "set-defaults": "^0.0.5",
     "syncpack": "^15.3.2",
     "zellij-launcher": "^0.0.1"
