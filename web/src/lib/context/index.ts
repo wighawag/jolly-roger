@@ -152,7 +152,10 @@ export function createContext(): {
 	// When it does not, the app can only reach the chain via the connected wallet,
 	// so chain-data fetching must wait until the wallet is connected (otherwise it
 	// would fail and look like a broken RPC). Exposed so the UI can explain this.
-	const hasAppRpc = hasConfiguredRpc(PUBLIC_NODE_URL, chain.rpcUrls?.default?.http);
+	const hasAppRpc = hasConfiguredRpc(
+		PUBLIC_NODE_URL,
+		chain.rpcUrls?.default?.http,
+	);
 
 	// Whether the app can read the chain right now: it has its own RPC, or the
 	// wallet is connected (and supplies one). Always a boolean, so UI can gate

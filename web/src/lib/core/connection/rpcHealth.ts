@@ -2,11 +2,7 @@ import {writable, type Readable} from 'svelte/store';
 import type {PollingStatus} from './polling-store';
 
 export type RpcErrorCategory =
-	| 'network'
-	| 'timeout'
-	| 'rate-limit'
-	| 'server-error'
-	| 'unknown';
+	'network' | 'timeout' | 'rate-limit' | 'server-error' | 'unknown';
 
 export type RpcError = {
 	category: RpcErrorCategory;

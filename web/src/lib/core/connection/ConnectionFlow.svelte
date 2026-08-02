@@ -356,8 +356,8 @@
 			<Modal.Title>Confirm sign in</Modal.Title>
 			<Modal.Description>
 				Choose an account and sign a message with it to sign in. Accepting the
-				message gives this app access to the account, so only accept on
-				websites you trust.
+				message gives this app access to the account, so only accept on websites
+				you trust.
 			</Modal.Description>
 			<div class="flex flex-col gap-3 py-2">
 				<div

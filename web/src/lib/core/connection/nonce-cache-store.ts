@@ -63,7 +63,11 @@ function isPending(tx: BroadcastedTransaction): boolean {
 	const inclusion = tx.state?.inclusion;
 	// No state yet, or explicitly in mempool / not-found => still pending. Only
 	// 'Included' or 'Dropped' are terminal (and thus not "stranded").
-	return inclusion === undefined || inclusion === 'InMemPool' || inclusion === 'NotFound';
+	return (
+		inclusion === undefined ||
+		inclusion === 'InMemPool' ||
+		inclusion === 'NotFound'
+	);
 }
 
 export function createNonceCacheStore(params: {
@@ -143,8 +147,7 @@ export function createNonceCacheStore(params: {
 		}
 
 		const provider = connection.provider as unknown as
-			| NonceCacheProvider
-			| undefined;
+			NonceCacheProvider | undefined;
 		if (!provider || typeof provider.request !== 'function') {
 			setStatus({status: undefined});
 			return;
