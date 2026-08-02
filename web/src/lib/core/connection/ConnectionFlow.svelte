@@ -106,7 +106,7 @@
      silently returns to idle. -->
 <BasicModal
 	title="Connection Failed"
-	openWhen={$connection.error &&
+	openWhen={!!$connection.error &&
 		($connection.step === 'Idle' ||
 			$connection.step === 'MechanismToChoose' ||
 			$connection.step === 'WalletToChoose')}
