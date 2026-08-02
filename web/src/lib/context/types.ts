@@ -50,6 +50,15 @@ export type TxObserverDebugState = {
 export type TxObserverDebugStore = Readable<TxObserverDebugState>;
 
 export type Context = {
+	/**
+	 * Set when the app cannot run at all, with the reason to show the user
+	 * (illegal env combination, or a `?burner=true` that cannot be honoured).
+	 * A store rather than a throw: construction has to succeed on the server
+	 * too, and the param-derived case is only knowable in the browser. The
+	 * layout renders the init-error screen whenever this holds a message.
+	 * See ADR-0002.
+	 */
+	fatal: Readable<string | undefined>;
 	gasFee: GasFeeStore;
 	/** Balance of the spending address (executor: wallet/owner or local signer). */
 	balance: BalanceStore;

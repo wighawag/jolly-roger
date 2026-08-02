@@ -21,7 +21,17 @@ export type OfflineStore = Readable<OfflineValue>;
  */
 export function createOfflineStore(): OfflineStore {
 	return readable<OfflineValue>(
-		{offline: typeof navigator !== 'undefined' ? !navigator.onLine : false},
+		// Probe `onLine` itself, not `navigator`: Node 21+ defines a global
+		// `navigator` with no `onLine`, so testing the object alone would read
+		// `!undefined` and declare the server offline. Off-browser we are never
+		// offline, which is also the browser's first render. See ADR-0002.
+		{
+			offline:
+				typeof navigator !== 'undefined' &&
+				typeof navigator.onLine === 'boolean'
+					? !navigator.onLine
+					: false,
+		},
 		(set) => {
 			if (typeof window === 'undefined') return;
 
