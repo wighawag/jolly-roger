@@ -25,7 +25,7 @@ This guide covers the architecture, patterns, and conventions for contributing t
 ### Key Concepts
 
 1. **Dual-Store Architecture**: Each feature has a main data store + status store (loading/error/lastSuccessfulFetch)
-2. **Context Pattern**: Services built synchronously by `createContext()` and provided through `Context.svelte` (see `docs/adr/0002-synchronous-ssr-inert-app-context.md`)
+2. **Context Pattern**: Services built synchronously by `createContext()` and provided through `Context.svelte`
 3. **No Globals**: Browser APIs guarded with `typeof window === 'undefined'` checks
 4. **Svelte 5 Runes**: Uses `$state()`, `$derived()`, `$props()` instead of legacy reactive declarations
 
