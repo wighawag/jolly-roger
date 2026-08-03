@@ -25,7 +25,7 @@
 			title: 'A Game of Strategy and Diplomacy Running on the EVM',
 			description:
 				'An unstoppable game of strategy and diplomacy running on the EVM. It allows player to collaborate through on-chain alliances while remaining sovereign. A first of its kind.',
-			sourceCode: null,
+			sourceCode: 'https://github.com/etherplay/conquest-eth',
 		},
 	];
 </script>
