@@ -5,7 +5,6 @@
   "type": "module",
   "packageManager": "pnpm@10.28.1",
   "devDependencies": {
-    "cross-var": "^1.1.0",
     "ldenv": "^0.6.0",
     "set-defaults": "^0.0.5",
     "syncpack": "^15.3.2",
@@ -59,8 +58,8 @@
     "zellij-remote-chain": "zellij-launcher a $npm_package_name-remote-chain-$MODE || zellij -n dev/zellij-remote-chain.kdl -s $npm_package_name-remote-chain-$MODE",
     "remote-chain": "ldenv -d localhost pnpm run zellij-remote-chain @@",
     "---------------------- RUN FULL LOCAL SETUP ----------------------": "",
-    "zellij": "cross-var zellij-launcher a $npm_package_name || cross-var zellij -n dev/zellij.kdl -s $npm_package_name",
-    "stop": "cross-var zellij kill-session $npm_package_name",
+    "zellij": "ldenv zellij-launcher a @@npm_package_name || ldenv zellij -n dev/zellij.kdl -s @@npm_package_name",
+    "stop": "ldenv zellij kill-session @@npm_package_name",
     "start": "pnpm zellij"
   }
 }
