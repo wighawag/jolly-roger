@@ -58,8 +58,8 @@
     "zellij-remote-chain": "zellij-launcher a $npm_package_name-remote-chain-$MODE || zellij -n dev/zellij-remote-chain.kdl -s $npm_package_name-remote-chain-$MODE",
     "remote-chain": "ldenv -d localhost pnpm run zellij-remote-chain @@",
     "---------------------- RUN FULL LOCAL SETUP ----------------------": "",
-    "zellij": "ldenv zellij-launcher a @@npm_package_name || ldenv zellij -n dev/zellij.kdl -s @@npm_package_name",
-    "stop": "ldenv zellij kill-session @@npm_package_name",
+    "zellij": "zellij-launcher a $npm_package_name || zellij -n dev/zellij.kdl -s $npm_package_name",
+    "stop": "zellij kill-session $npm_package_name",
     "start": "pnpm zellij"
   }
 }

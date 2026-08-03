@@ -108,6 +108,21 @@ It appeared in exactly three script lines, all doing the same job: expanding an 
 | root `stop` | `cross-var zellij kill-session $npm_package_name` | `ldenv zellij kill-session @@npm_package_name` |
 | contracts `:deploy:dev+export` | `cross-var pnpm hardhat --network $MODE deploy ... && cross-var rocketh-export -e $MODE` | `ldenv pnpm hardhat --network @@MODE deploy ... && ldenv rocketh-export -e @@MODE` |
 
+**One correction, found by review after the fact.** The first version of this change routed the zellij scripts through `ldenv` as a like-for-like replacement for `cross-var`. That was wrong, and subtly so. `cross-var` only substitutes variables; `ldenv` also *loads `.env` files and injects them into the child environment*, and inherited environment variables outrank the file. Because the zellij layout starts long-lived watchers (`pnpm web:dev` is `ldenv -d localhost -w vite dev`), putting an `ldenv` above `zellij` pins the environment at launch time: the watcher still restarts when `.env` changes, but the child keeps seeing the old value.
+
+Reproduced directly, watching a child print one variable while `.env` was edited underneath it:
+
+```
+no outer ldenv:    FOO=v1 -> [.env changed, reloading] -> FOO=v2   correct
+outer ldenv:       FOO=v1 -> [.env changed, reloading] -> FOO=v1   stale
+```
+
+The fix is that the zellij scripts never needed a cross-platform helper in the first place. `zellij` is a Unix-only terminal multiplexer, so plain shell `$npm_package_name` is fine, and it is already what the neighbouring `zellij-attach` and `zellij-remote-chain` scripts in this repo do. Those scripts now simply drop `cross-var` rather than replacing it.
+
+`ldenv` is still the right replacement for the contracts deploy script, which does run on Windows and is a one-shot command rather than a parent of a watcher.
+
+Two related notes. `ldenv` has no flag to substitute without loading (`-m -d -n --git -P --verbose -w`), so "use ldenv purely as an expander" is not available. And in mandalas and bleeps the `zellij` script already had `ldenv -d localhost` above `zellij` before any of this work; that is deliberate, since it propagates `MODE` to every pane, and it was left alone. It does mean those two repos have the staleness behaviour described above for any *other* `.env` value consumed by a watcher, which is worth knowing but is not something this work introduced.
+
 **Windows compatibility is preserved, by the same mechanism.** Both tools resolve variables in Node rather than delegating to the shell, and both spawn through **`cross-spawn`**, the library that exists specifically to handle Windows `.cmd`/`.bat` shims, `PATHEXT` resolution and argument escaping. That matters here because `ldenv pnpm ...` invokes `pnpm.cmd` on Windows, which Node cannot exec directly without help. The difference is the version: cross-var pinned `cross-spawn ^5.0.1` (and dragged babel 6 along with it), while ldenv uses `cross-spawn ^7.0.6`. This is the same Windows strategy on a current major, not a weaker one.
 
 The `&&` and `||` operators in those scripts are unchanged and were already there; `cmd.exe` supports both. Note also that `zellij` is a Unix-only terminal multiplexer, so the two root scripts could never run on Windows regardless of which helper expands the variable. The one script that genuinely matters for Windows is the contracts deploy, and that is the one whose behaviour was verified end to end.
