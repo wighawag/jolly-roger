@@ -90,165 +90,97 @@ describe('Demo Page - Greetings Registry', () => {
 
 	test('should show wallet as connected after submitting', async ({
 		connectedPage,
-		waitForTransaction,
+		submitGreeting,
 	}) => {
 		const page = connectedPage;
 
-		// Use unique greeting for this test
-		const uniqueGreeting = `Wallet test ${Date.now()}`;
+		await submitGreeting(page, `Wallet test ${Date.now()}`);
 
-		// Fill in a greeting
-		const input = page.getByPlaceholder('Enter your greeting...');
-		await input.fill(uniqueGreeting);
-
-		// Wait for the send button to be enabled and click it
-		const sendButton = page.getByRole('button', {name: /send/i});
-		await expect(sendButton).toBeEnabled({timeout: 10000});
-		await sendButton.click();
-
-		// Wait for transaction
-		await waitForTransaction(page);
-
-		// After connection and transaction, the wallet balance should be visible
-		const navbarBalance = page.locator('text=/\\d+\\.?\\d*\\s*ETH/');
-		await expect(navbarBalance.first()).toBeVisible({timeout: 10000});
+		// The wallet is still connected after the write. Assert the app's own
+		// connection flag rather than the navbar balance text: the balance renders
+		// empty while loading, so asserting on it tested render timing, not
+		// connection state.
+		await expect(page.locator('[data-testid="wallet-status"]')).toHaveAttribute(
+			'data-connected',
+			'true',
+		);
 	});
 
 	test('should submit a greeting and see it in the list', async ({
 		connectedPage,
-		waitForTransaction,
+		submitGreeting,
 	}) => {
 		const page = connectedPage;
-
-		// Generate a unique greeting to find it in the list
 		const uniqueGreeting = `E2E Test ${Date.now()}`;
 
-		// Fill in the greeting
-		const input = page.getByPlaceholder('Enter your greeting...');
-		await input.fill(uniqueGreeting);
-
-		// Submit
-		await page.getByRole('button', {name: /send/i}).click();
-
-		// Wait for the transaction to be processed
-		await waitForTransaction(page);
-
-		// The greeting should appear in the list (with the prefix from the contract)
-		// The contract prepends "prefix:" to all messages
-		await expect(page.getByText(uniqueGreeting)).toBeVisible({
-			timeout: 30000,
-		});
+		// submitGreeting asserts the row appears AND settles, which is exactly what
+		// this test is about.
+		await submitGreeting(page, uniqueGreeting);
+		await expect(page.getByText(uniqueGreeting)).toBeVisible();
 	});
 
 	test('should display existing messages with avatars', async ({page}) => {
 		await page.goto('/demo');
 
-		// Wait for the page to fully load (not just loading state)
-		await page.waitForLoadState('networkidle', {timeout: 30000});
-
-		// Wait for either messages or the input field to be visible
+		// No `waitForLoadState('networkidle')` here. The app polls the chain, so the
+		// network is never idle for 500ms and that wait ran until the 120s test
+		// timeout - which then tore the page down mid-navigation and surfaced as a
+		// confusing `net::ERR_ABORTED; maybe frame was detached?`. Wait for the UI
+		// that the assertions actually need instead.
 		await expect(page.getByPlaceholder('Enter your greeting...')).toBeVisible({
-			timeout: 10000,
+			timeout: 30000,
 		});
 
-		// Check for message cards
-		const messageCard = page.locator('[class*="rounded-lg border px-4 py-3"]');
+		const rows = page.locator('[data-testid="message-row"]');
+		const emptyState = page.getByText(/no messages yet|be the first/i);
 
-		// Wait for either messages to appear or the empty state
-		const hasMessages = await messageCard
-			.first()
-			.isVisible({timeout: 15000})
-			.catch(() => false);
+		// The list settles into exactly one of two states. Note `.first()` goes on
+		// the COMBINED locator: putting it on each branch before `.or()` leaves the
+		// result matching both again, which trips strict mode.
+		await expect(rows.or(emptyState).first()).toBeVisible({timeout: 30000});
 
-		if (hasMessages) {
-			// Check that the message card has an image element (avatar)
-			const firstCard = messageCard.first();
-			const imgCount = await firstCard.locator('img').count();
-			expect(imgCount).toBeGreaterThanOrEqual(1);
-		} else {
-			// Empty state - check for text indicating no messages
-			// The page shows "No messages yet. Be the first!" when empty
-			const hasNoMessagesText = await page
-				.getByText(/no messages yet/i)
-				.isVisible()
-				.catch(() => false);
-			const hasBeFirstText = await page
-				.getByText(/be the first/i)
-				.isVisible()
-				.catch(() => false);
-			expect(hasNoMessagesText || hasBeFirstText).toBe(true);
+		// The claim under test: when rows render, each carries an avatar image.
+		// Previously this read a count into a plain `expect`, so a row that had not
+		// finished rendering its avatar failed instead of being waited for.
+		if ((await rows.count()) > 0) {
+			await expect(rows.first().locator('img').first()).toBeVisible();
 		}
 	});
 
 	test('should show "Just now" for recent messages', async ({
 		connectedPage,
-		waitForTransaction,
+		submitGreeting,
 	}) => {
 		const page = connectedPage;
-		const input = page.getByPlaceholder('Enter your greeting...');
-
-		// Ensure input is ready
-		await expect(input).toBeVisible({timeout: 10000});
-
-		// Submit a new greeting
 		const uniqueGreeting = `Fresh message ${Date.now()}`;
-		await input.fill(uniqueGreeting);
 
-		// Click send button
-		const sendButton = page.getByRole('button', {name: /send/i});
-		await expect(sendButton).toBeEnabled({timeout: 10000});
-		await sendButton.click();
+		await submitGreeting(page, uniqueGreeting);
 
-		// Wait for transaction
-		await waitForTransaction(page);
-
-		// Wait for the message to appear in the list
-		await expect(page.getByText(uniqueGreeting)).toBeVisible({timeout: 30000});
-
-		// Check timestamp shows "Just now"
-		await expect(page.getByText('Just now').first()).toBeVisible({
-			timeout: 10000,
-		});
+		// Scope the timestamp to THIS message's row. `getByText('Just now').first()`
+		// passed as long as any row was recent, so it could go green on a sibling
+		// test's message while this one had not landed.
+		const row = page
+			.locator('[data-testid="message-row"]')
+			.filter({hasText: uniqueGreeting});
+		await expect(row.getByText('Just now')).toBeVisible();
 	});
 
 	test('should clear input after successful submission', async ({
 		connectedPage,
-		waitForTransaction,
+		submitGreeting,
 	}) => {
 		const page = connectedPage;
 		const input = page.getByPlaceholder('Enter your greeting...');
 
-		// Ensure input is ready and clear any existing value
-		await expect(input).toBeVisible({timeout: 10000});
-		await input.clear();
-		await page.waitForTimeout(200);
+		await submitGreeting(page, `Clear test ${Date.now()}`);
 
-		const uniqueMessage = `Clear test ${Date.now()}`;
-		await input.fill(uniqueMessage);
-
-		// Click send button
-		const sendButton = page.getByRole('button', {name: /send/i});
-		await expect(sendButton).toBeEnabled({timeout: 10000});
-		await sendButton.click();
-
-		// Wait for transaction
-		await waitForTransaction(page);
-
-		// Wait for the message to appear (confirms transaction completed)
-		// Messages are sorted by most recent first
-		await expect(page.getByText(uniqueMessage)).toBeVisible({timeout: 30000});
-
-		// Wait for input to be enabled (it's disabled during submission)
-		await expect(input).toBeEnabled({timeout: 10000});
-
-		// Input should be cleared after successful submission
-		// Wait longer for Svelte reactivity to update the binding
-		await expect(input).toHaveValue('', {timeout: 20000});
+		await expect(input).toBeEnabled();
+		await expect(input).toHaveValue('');
 	});
 
 	test('should replace previous message from same account', async ({
 		connectedPage,
-		waitForTransaction,
+		submitGreeting,
 	}) => {
 		const page = connectedPage;
 
@@ -257,28 +189,15 @@ describe('Demo Page - Greetings Registry', () => {
 		const message1 = `First ${timestamp}`;
 		const message2 = `Second ${timestamp}`;
 
-		// Submit first message
-		const input = page.getByPlaceholder('Enter your greeting...');
-		await input.fill(message1);
-		await page.getByRole('button', {name: /send/i}).click();
-		await waitForTransaction(page);
-
-		// Wait for the first message to appear. Assert on the message text
-		// directly (same pattern as the passing sibling tests) rather than a
-		// class-substring card locator, which couples to Tailwind markup.
-		await expect(page.getByText(message1)).toBeVisible({timeout: 30000});
-
-		// Submit second message (this REPLACES the first message)
-		await input.fill(message2);
-		await page.getByRole('button', {name: /send/i}).click();
-		await waitForTransaction(page);
-
-		// Wait for the second message to appear.
-		await expect(page.getByText(message2)).toBeVisible({timeout: 30000});
+		// Each submit is only complete once it has settled on-chain; submitting the
+		// second while the first was still in flight was a source of flake.
+		await submitGreeting(page, message1);
+		await submitGreeting(page, message2);
 
 		// The invariant that actually holds: one message per account. After the
 		// replacement, message2 is present and message1 is gone.
-		await expect(page.getByText(message1)).toHaveCount(0, {timeout: 10000});
+		await expect(page.getByText(message2)).toBeVisible();
+		await expect(page.getByText(message1)).toHaveCount(0);
 	});
 });
 

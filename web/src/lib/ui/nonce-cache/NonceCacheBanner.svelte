@@ -23,9 +23,10 @@
 			<span class="text-sm text-red-400">
 				{#if $nonceCache.status === 'cache'}
 					Your wallet has a cached nonce for this network{#if $nonceCache.walletNonce !== undefined && $nonceCache.nodeNonce !== undefined}
-						(wallet {$nonceCache.walletNonce} &gt; node {$nonceCache.nodeNonce}){/if}. Transactions will stay pending and never mine. Reset /
-					clear this account's activity data in your wallet (the node was
-					likely restarted).
+						(wallet {$nonceCache.walletNonce} &gt; node {$nonceCache.nodeNonce}){/if}.
+					Transactions will stay pending and never mine. Reset / clear this
+					account's activity data in your wallet (the node was likely
+					restarted).
 				{:else}
 					Your wallet cached a block height beyond this node (the node was
 					likely restarted). Reset / clear this account's activity data in your

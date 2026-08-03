@@ -81,8 +81,7 @@ export function subscribeToAccountDataMap<
 	const {accountData, mapKey, handlers} = params;
 
 	let currentAccountSubscription:
-		| {account: `0x${string}`; unsubscribe: () => void}
-		| undefined;
+		{account: `0x${string}`; unsubscribe: () => void} | undefined;
 
 	const unsubscribeFromAccountData = accountData.subscribe(
 		(currentAccountData) => {

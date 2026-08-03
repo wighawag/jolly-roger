@@ -8,12 +8,7 @@ export type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline';
  * Components map the `kind` to an icon; `label`/`variant` are ready to render.
  */
 export type OperationStatusKind =
-	| 'pending'
-	| 'notFound'
-	| 'dropped'
-	| 'success'
-	| 'failed'
-	| 'unknown';
+	'pending' | 'notFound' | 'dropped' | 'success' | 'failed' | 'unknown';
 
 export type OperationStatusInfo = {
 	kind: OperationStatusKind;

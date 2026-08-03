@@ -21,18 +21,33 @@ describe('resolveSignerRpc', () => {
 		});
 
 		it('accepts a chain rpcUrl when PUBLIC_NODE_URL is absent (Q2b)', () => {
-			const r = resolveSignerRpc('signer', undefined, ['https://chain-rpc.example'], true);
+			const r = resolveSignerRpc(
+				'signer',
+				undefined,
+				['https://chain-rpc.example'],
+				true,
+			);
 			expect(r).toEqual({ok: true, rpcUrl: 'https://chain-rpc.example'});
 		});
 
 		it('prefers PUBLIC_NODE_URL over the chain rpcUrl', () => {
-			const r = resolveSignerRpc('signer', 'https://explicit.example', ['https://chain-rpc.example'], true);
+			const r = resolveSignerRpc(
+				'signer',
+				'https://explicit.example',
+				['https://chain-rpc.example'],
+				true,
+			);
 			expect(r.ok && r.rpcUrl).toBe('https://explicit.example');
 		});
 
 		it('trims and ignores whitespace-only urls', () => {
-			expect(resolveSignerRpc('signer', '  ', ['  ', 'https://chain.example'], true).ok).toBe(true);
-			expect(resolveSignerRpc('signer', '  https://x.example ', [], true)).toEqual({
+			expect(
+				resolveSignerRpc('signer', '  ', ['  ', 'https://chain.example'], true)
+					.ok,
+			).toBe(true);
+			expect(
+				resolveSignerRpc('signer', '  https://x.example ', [], true),
+			).toEqual({
 				ok: true,
 				rpcUrl: 'https://x.example',
 			});

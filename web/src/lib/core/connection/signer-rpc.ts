@@ -15,10 +15,11 @@ import type {ExecutionMode} from './mode';
  * so this resolution is only consulted for signer mode.
  */
 export type SignerRpcResolution =
-	| {ok: true; rpcUrl: string | undefined}
-	| {ok: false; error: string};
+	{ok: true; rpcUrl: string | undefined} | {ok: false; error: string};
 
-function firstNonEmpty(urls: readonly string[] | undefined): string | undefined {
+function firstNonEmpty(
+	urls: readonly string[] | undefined,
+): string | undefined {
 	return urls?.find((url) => url?.trim())?.trim();
 }
 

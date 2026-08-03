@@ -116,7 +116,5 @@ export function defineCapability<T>(
 	}
 
 	return {provide, use} as
-		| OptionalCapability<T>
-		| FallbackCapability<T>
-		| RequiredCapability<T>;
+		OptionalCapability<T> | FallbackCapability<T> | RequiredCapability<T>;
 }

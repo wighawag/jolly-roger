@@ -3,11 +3,7 @@ import type {ENSService} from '$lib/core/ens';
 import {classifyAddressInput} from './address-input';
 
 export type AddressResolverStatus =
-	| 'empty'
-	| 'typing'
-	| 'resolving'
-	| 'valid'
-	| 'error';
+	'empty' | 'typing' | 'resolving' | 'valid' | 'error';
 
 export type AddressResolverState = {
 	resolving: boolean;

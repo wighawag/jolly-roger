@@ -16,7 +16,8 @@ function providerReturning(
 ): NonceCacheProvider {
 	return {
 		request: async ({method, params}) => {
-			if (method !== 'eth_getTransactionCount') throw new Error('unexpected ' + method);
+			if (method !== 'eth_getTransactionCount')
+				throw new Error('unexpected ' + method);
 			return fn((params?.[0] as string) ?? '');
 		},
 	};
@@ -25,13 +26,19 @@ function providerReturning(
 describe('isBlockOutOfRangeError', () => {
 	it('detects MetaMask BlockOutOfRangeError with code -32603', () => {
 		expect(
-			isBlockOutOfRangeError({code: -32603, message: 'Internal: BlockOutOfRangeError'}),
+			isBlockOutOfRangeError({
+				code: -32603,
+				message: 'Internal: BlockOutOfRangeError',
+			}),
 		).toBe(true);
 	});
 
 	it('detects "Received invalid block tag"', () => {
 		expect(
-			isBlockOutOfRangeError({code: -32603, message: 'Received invalid block tag 999'}),
+			isBlockOutOfRangeError({
+				code: -32603,
+				message: 'Received invalid block tag 999',
+			}),
 		).toBe(true);
 	});
 
@@ -40,7 +47,9 @@ describe('isBlockOutOfRangeError', () => {
 	});
 
 	it('rejects unrelated errors', () => {
-		expect(isBlockOutOfRangeError({code: -32000, message: 'nonce too low'})).toBe(false);
+		expect(
+			isBlockOutOfRangeError({code: -32000, message: 'nonce too low'}),
+		).toBe(false);
 		expect(isBlockOutOfRangeError(new Error('boom'))).toBe(false);
 		expect(isBlockOutOfRangeError(undefined)).toBe(false);
 		expect(isBlockOutOfRangeError('string')).toBe(false);
@@ -55,8 +64,8 @@ describe('isBlockOutOfRangeError', () => {
 
 describe('readWalletNonce', () => {
 	it('parses hex and decimal results and takes the max across address casings', async () => {
-		const provider = providerReturning((addr) =>
-			addr === ADDR.toLowerCase() ? '0x5' : 9, // lowercase=5, checksummed=9
+		const provider = providerReturning(
+			(addr) => (addr === ADDR.toLowerCase() ? '0x5' : 9), // lowercase=5, checksummed=9
 		);
 		expect(await readWalletNonce(provider, ADDR)).toEqual({nonce: 9});
 	});
@@ -65,7 +74,9 @@ describe('readWalletNonce', () => {
 		const provider = providerReturning(() => {
 			throw {code: -32603, message: 'BlockOutOfRangeError'};
 		});
-		expect(await readWalletNonce(provider, ADDR)).toEqual({blockOutOfRange: true});
+		expect(await readWalletNonce(provider, ADDR)).toEqual({
+			blockOutOfRange: true,
+		});
 	});
 
 	it('ignores an unrelated error on one casing and still returns the other', async () => {
@@ -84,31 +95,39 @@ describe('readWalletNonce', () => {
 
 describe('isStrandedNonce', () => {
 	it('flags a pending tx whose nonce is above the node pending nonce', () => {
-		expect(isStrandedNonce({txNonce: 9, nodePending: 3, pending: true})).toBe(true);
+		expect(isStrandedNonce({txNonce: 9, nodePending: 3, pending: true})).toBe(
+			true,
+		);
 	});
 
 	it('does not flag when the tx nonce equals the node pending nonce', () => {
-		expect(isStrandedNonce({txNonce: 3, nodePending: 3, pending: true})).toBe(false);
+		expect(isStrandedNonce({txNonce: 3, nodePending: 3, pending: true})).toBe(
+			false,
+		);
 	});
 
 	it('does not flag a tx below the node pending nonce (already/about to mine)', () => {
-		expect(isStrandedNonce({txNonce: 2, nodePending: 3, pending: true})).toBe(false);
+		expect(isStrandedNonce({txNonce: 2, nodePending: 3, pending: true})).toBe(
+			false,
+		);
 	});
 
 	it('never flags a non-pending (mined/dropped) tx', () => {
-		expect(isStrandedNonce({txNonce: 9, nodePending: 3, pending: false})).toBe(false);
+		expect(isStrandedNonce({txNonce: 9, nodePending: 3, pending: false})).toBe(
+			false,
+		);
 	});
 
 	it('stays silent when the node pending nonce is unknown', () => {
-		expect(isStrandedNonce({txNonce: 9, nodePending: undefined, pending: true})).toBe(
-			false,
-		);
+		expect(
+			isStrandedNonce({txNonce: 9, nodePending: undefined, pending: true}),
+		).toBe(false);
 	});
 
 	it('stays silent when the tx nonce is unknown', () => {
-		expect(isStrandedNonce({txNonce: undefined, nodePending: 3, pending: true})).toBe(
-			false,
-		);
+		expect(
+			isStrandedNonce({txNonce: undefined, nodePending: 3, pending: true}),
+		).toBe(false);
 	});
 });
 
@@ -126,14 +145,22 @@ describe('detectNonceCache', () => {
 	it('returns false when wallet and node agree', async () => {
 		const provider = providerReturning(() => 3);
 		expect(
-			await detectNonceCache({provider, address: ADDR, readNode: async () => 3}),
+			await detectNonceCache({
+				provider,
+				address: ADDR,
+				readNode: async () => 3,
+			}),
 		).toBe(false);
 	});
 
 	it('returns false when the wallet is BEHIND the node (never a cache warning)', async () => {
 		const provider = providerReturning(() => 2);
 		expect(
-			await detectNonceCache({provider, address: ADDR, readNode: async () => 5}),
+			await detectNonceCache({
+				provider,
+				address: ADDR,
+				readNode: async () => 5,
+			}),
 		).toBe(false);
 	});
 
@@ -142,23 +169,31 @@ describe('detectNonceCache', () => {
 			throw {code: -32603, message: 'Received invalid block tag'};
 		});
 		const readNode = vi.fn(async () => 3);
-		expect(
-			await detectNonceCache({provider, address: ADDR, readNode}),
-		).toBe('block-out-of-range');
+		expect(await detectNonceCache({provider, address: ADDR, readNode})).toBe(
+			'block-out-of-range',
+		);
 		expect(readNode).not.toHaveBeenCalled();
 	});
 
 	it('stays silent (undefined) when the node nonce is unknown', async () => {
 		const provider = providerReturning(() => 11);
 		expect(
-			await detectNonceCache({provider, address: ADDR, readNode: async () => undefined}),
+			await detectNonceCache({
+				provider,
+				address: ADDR,
+				readNode: async () => undefined,
+			}),
 		).toBeUndefined();
 	});
 
 	it('stays silent (undefined) when the wallet nonce is unknown', async () => {
 		const provider = providerReturning(() => null);
 		expect(
-			await detectNonceCache({provider, address: ADDR, readNode: async () => 3}),
+			await detectNonceCache({
+				provider,
+				address: ADDR,
+				readNode: async () => 3,
+			}),
 		).toBeUndefined();
 	});
 });
@@ -190,9 +225,12 @@ describe('nodeNonceReader', () => {
 	it('returns undefined on a JSON-RPC error', async () => {
 		mockFetch(
 			() =>
-				new Response(JSON.stringify({jsonrpc: '2.0', id: 1, error: {code: -1}}), {
-					status: 200,
-				}),
+				new Response(
+					JSON.stringify({jsonrpc: '2.0', id: 1, error: {code: -1}}),
+					{
+						status: 200,
+					},
+				),
 		);
 		try {
 			expect(await nodeNonceReader('http://node', ADDR)()).toBeUndefined();

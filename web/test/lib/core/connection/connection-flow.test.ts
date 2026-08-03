@@ -242,9 +242,9 @@ describe('signInToAccount', () => {
 			},
 		};
 
-		await expect(
-			signInToAccount(connection as never, addr(2)),
-		).rejects.toThrow(/cancelled/);
+		await expect(signInToAccount(connection as never, addr(2))).rejects.toThrow(
+			/cancelled/,
+		);
 		expect(calls).toEqual([]);
 	});
 });

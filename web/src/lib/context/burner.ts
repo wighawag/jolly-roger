@@ -42,8 +42,7 @@ export function parseBurnerParam(raw: string | undefined): boolean | undefined {
  *   The caller MUST surface this error rather than silently continue.
  */
 export type BurnerResolution =
-	| {use: true; nodeURL: string}
-	| {use: false; error?: string};
+	{use: true; nodeURL: string} | {use: false; error?: string};
 
 /**
  * Decide whether/how to initialise the burner wallet.

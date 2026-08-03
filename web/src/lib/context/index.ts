@@ -45,23 +45,41 @@ import {resolveAppConfig} from './config.js';
 import {startTxObserverLoop} from '$lib/core/tx-observer';
 import {IMPERSONATE_ADDRESSES} from '$lib/dev-accounts.js';
 
-export async function createContext(): Promise<{
+/**
+ * Build the app context.
+ *
+ * Synchronous, and constructible off-browser: every service it composes idles
+ * when browser APIs are absent, so this also runs during SSR and prerendering.
+ * Nothing here starts IO; that belongs to `start()`, which the provider calls
+ * from `onMount`. Readiness is expressed as store state, never as an
+ * unresolved promise. See ADR-0002.
+ */
+export function createContext(): {
 	context: Context;
 	start: () => () => void;
-}> {
+} {
 	let cleanupBurnerWallet: (() => void) | undefined;
+
+	// Reasons the app cannot run. Collected rather than thrown: the context is
+	// also constructed during SSR / prerender, where a throw would fail the build
+	// instead of showing the user anything. See ADR-0002.
+	const fatal = writable<string | undefined>(undefined);
 
 	const burner = resolveBurnerWallet(
 		burnerOverride,
 		PUBLIC_USE_BURNER_WALLET,
 		PUBLIC_NODE_URL,
 	);
-	// An explicit `?burner=true` that cannot be honoured surfaces as an error
-	// (rendered by AsyncContext's catch block) rather than being silently ignored.
-	if (burner.use === false && burner.error) {
-		throw new Error(burner.error);
-	}
-	if (burner.use) {
+	// An explicit `?burner=true` that cannot be honoured is an error rather than
+	// being silently ignored. It is raised in start() rather than here: it comes
+	// from the URL, which is empty on the server, so setting it now would make
+	// the browser's first render disagree with the prerendered HTML.
+	const burnerFatal =
+		burner.use === false && burner.error ? burner.error : undefined;
+	// Browser-only: the burner announces itself over EIP-6963 on `window`. The
+	// context is also constructed during SSR / prerender, where there is no
+	// wallet to announce to. See ADR-0002.
+	if (burner.use && typeof window !== 'undefined') {
 		const {cleanup} = initBurnerWallet({
 			nodeURL: burner.nodeURL,
 			impersonateAddresses: [...IMPERSONATE_ADDRESSES],
@@ -70,16 +88,22 @@ export async function createContext(): Promise<{
 	}
 
 	// Resolve the connection + execution mode from env. The one illegal
-	// combination (signer execution without hosted sign-in) fails fast here and
-	// is surfaced by AsyncContext's error screen.
+	// combination (signer execution without hosted sign-in) is recorded as fatal
+	// here and surfaced by the init-error screen.
 	const modeResolution = resolveConnectionMode(
 		PUBLIC_WALLET_HOST,
 		PUBLIC_EXECUTION_MODE,
 	);
 	if (!modeResolution.ok) {
-		throw new Error(modeResolution.error);
+		fatal.set(modeResolution.error);
 	}
-	const {walletHost, executionMode} = modeResolution.mode;
+	// Env-derived, so identical on the server and in the browser: the error
+	// screen prerenders and hydrates without a mismatch. The fallback below is
+	// never actually used, since the layout renders the error instead of the app;
+	// it only lets construction finish.
+	const {walletHost, executionMode} = modeResolution.ok
+		? modeResolution.mode
+		: {walletHost: undefined, executionMode: 'wallet' as const};
 
 	// ----------------------------------------------------------------------------
 	// CONNECTION
@@ -92,7 +116,7 @@ export async function createContext(): Promise<{
 		account,
 		deployments,
 		forceRpcFailure,
-	} = await establishRemoteConnection({
+	} = establishRemoteConnection({
 		nodeURL: PUBLIC_NODE_URL,
 		walletHost,
 		// chainInfoNodeURL
@@ -110,9 +134,9 @@ export async function createContext(): Promise<{
 
 	// Signer mode broadcasts from a local signer and so needs a real node RPC
 	// (PUBLIC_NODE_URL or an rpcUrl configured on the chain). Wallet mode does
-	// not (the wallet provides the RPC). Fail fast for signer-mode with no RPC,
-	// surfaced by AsyncContext's error screen; the resolved url also drives the
-	// signer client's transport below.
+	// not (the wallet provides the RPC). Signer-mode with no RPC is recorded as
+	// fatal and surfaced by the init-error screen; the resolved url also drives
+	// the signer client's transport below.
 	const signerRpc = resolveSignerRpc(
 		executionMode,
 		PUBLIC_NODE_URL,
@@ -120,15 +144,18 @@ export async function createContext(): Promise<{
 		import.meta.env.DEV,
 	);
 	if (!signerRpc.ok) {
-		throw new Error(signerRpc.error);
+		fatal.set(signerRpc.error);
 	}
-	const signerRpcUrl = signerRpc.rpcUrl;
+	const signerRpcUrl = signerRpc.ok ? signerRpc.rpcUrl : undefined;
 
 	// Whether the app has an RPC of its own (PUBLIC_NODE_URL or a chain rpcUrl).
 	// When it does not, the app can only reach the chain via the connected wallet,
 	// so chain-data fetching must wait until the wallet is connected (otherwise it
 	// would fail and look like a broken RPC). Exposed so the UI can explain this.
-	const hasAppRpc = hasConfiguredRpc(PUBLIC_NODE_URL, chain.rpcUrls?.default?.http);
+	const hasAppRpc = hasConfiguredRpc(
+		PUBLIC_NODE_URL,
+		chain.rpcUrls?.default?.http,
+	);
 
 	// Whether the app can read the chain right now: it has its own RPC, or the
 	// wallet is connected (and supplies one). Always a boolean, so UI can gate
@@ -294,7 +321,10 @@ export async function createContext(): Promise<{
 	// same resolved app RPC (PUBLIC_NODE_URL or chain rpcUrl) that hasAppRpc
 	// reflects; when hasAppRpc is true it is defined.
 	const nonceCache =
-		import.meta.env.DEV && hasAppRpc && signerRpcUrl
+		typeof window !== 'undefined' &&
+		import.meta.env.DEV &&
+		hasAppRpc &&
+		signerRpcUrl
 			? createNonceCacheStore({
 					connection,
 					account,
@@ -333,6 +363,7 @@ export async function createContext(): Promise<{
 	});
 
 	const context: Context = {
+		fatal: {subscribe: fatal.subscribe},
 		gasFee,
 		balance,
 		ownerBalance,
@@ -364,11 +395,18 @@ export async function createContext(): Promise<{
 	// Dev/debug: expose the whole context on globalThis for console access
 	// (e.g. `context.balance`). Self-maintaining: new context members appear
 	// automatically. Delete this line if you don't want it.
-	(globalThis as any).context = context;
+	if (typeof window !== 'undefined') {
+		(globalThis as any).context = context;
+	}
 
 	return {
 		context,
 		start: () => {
+			// Raised here, not at construction: it is derived from the URL, which
+			// only exists in the browser. Doing it on mount keeps the first client
+			// render identical to the prerendered HTML.
+			if (burnerFatal) fatal.set(burnerFatal);
+
 			// we trigger it so it is always availabe
 			const unsubscribeFromBalance = balance.subscribe(() => {});
 			// we trigger it so it is always availabe

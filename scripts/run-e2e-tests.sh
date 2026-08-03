@@ -32,8 +32,17 @@ export E2E_RPC_URL="$RPC_URL"
 export ETH_NODE_URI_localhost="$RPC_URL"
 export PUBLIC_NODE_URL="$RPC_URL"
 
-# Track PIDs for cleanup
+# Track the node for cleanup.
+#
+# NODE_PGID, not just NODE_PID: `pnpm run node:local` is a wrapper, and the real
+# hardhat process is its child (in other repos the chain is longer still, e.g.
+# `sh -c` -> `ldenv` -> `hardhat`). Killing the wrapper alone leaves the actual
+# node orphaned - it keeps the port bound, and keeps the script's stdout open,
+# so anything reading that output hangs long after the tests have finished. In
+# CI that burns the job timeout instead of reporting the result.
 NODE_PID=""
+NODE_PGID=""
+NODE_LOG="${TMPDIR:-/tmp}/jolly-roger-e2e-node.log"
 
 # Cleanup function to kill background processes
 #
@@ -44,8 +53,16 @@ NODE_PID=""
 cleanup() {
     echo -e "\n${YELLOW}🧹 Cleaning up...${NC}"
 
-    # Kill the Hardhat node if we started it
-    if [ -n "$NODE_PID" ]; then
+    # Kill the Hardhat node if we started it - the whole process group, so no
+    # wrapper's child outlives the run. `setsid` below put it in its own group,
+    # so this cannot reach anything we did not start.
+    if [ -n "$NODE_PGID" ]; then
+        echo "Stopping the Hardhat node this run started (PGID: $NODE_PGID)..."
+        kill -- "-$NODE_PGID" 2>/dev/null || true
+        sleep 1
+        kill -9 -- "-$NODE_PGID" 2>/dev/null || true
+    elif [ -n "$NODE_PID" ]; then
+        # Fell back to a bare PID (process group could not be resolved).
         echo "Stopping the Hardhat node this run started (PID: $NODE_PID)..."
         kill "$NODE_PID" 2>/dev/null || true
         sleep 1
@@ -89,8 +106,28 @@ else
     cd "$CONTRACTS_DIR"
     # --port must be passed through, otherwise the node always binds 8545 while
     # everything else follows E2E_RPC_PORT.
-    pnpm run node:local --port "$RPC_PORT" &
+    # `setsid` gives the node its own process group, so cleanup can kill the
+    # whole tree (wrapper + real hardhat process) without the group ever
+    # containing this script.
+    #
+    # Its output goes to a log rather than the console: the chain's block spam
+    # interleaves with the test report, and on shutdown the node's own pnpm
+    # wrapper prints "ELIFECYCLE Command failed" as it is killed - which reads
+    # like the run failed even when every test passed and the script exits 0.
+    setsid pnpm run node:local --port "$RPC_PORT" >"$NODE_LOG" 2>&1 &
     NODE_PID=$!
+
+    # Resolve the group the node actually landed in. Guard against ever
+    # matching this script's own group: killing that would take the run down.
+    OWN_PGID="$(ps -o pgid= -p $$ 2>/dev/null | tr -d ' ')"
+    for _ in 1 2 3 4 5; do
+        NODE_PGID="$(ps -o pgid= -p "$NODE_PID" 2>/dev/null | tr -d ' ')"
+        [ -n "$NODE_PGID" ] && break
+        sleep 0.2
+    done
+    if [ -z "$NODE_PGID" ] || [ "$NODE_PGID" = "$OWN_PGID" ]; then
+        NODE_PGID=""
+    fi
 
     # Wait for node to be ready
     echo "Waiting for Hardhat node to be ready..."
@@ -101,6 +138,8 @@ else
         fi
         if [ $i -eq 30 ]; then
             echo -e "${RED}✗ Hardhat node failed to start${NC}"
+            echo -e "${RED}  Node output: ${NODE_LOG}${NC}"
+            tail -20 "$NODE_LOG" 2>/dev/null || true
             exit 1
         fi
         sleep 1

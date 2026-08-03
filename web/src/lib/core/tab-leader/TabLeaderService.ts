@@ -1,6 +1,7 @@
 import {writable, type Readable} from 'svelte/store';
 import type {TabMessage, TabLeaderService} from './types';
 import {acquireLock, refreshLock, releaseLock} from './storage-lock';
+import {randomId} from '$lib/core/utils/web/random-id';
 import {
 	CHANNEL_NAME,
 	HEARTBEAT_INTERVAL,
@@ -9,7 +10,10 @@ import {
 } from './constants';
 
 export function createTabLeaderService(): TabLeaderService {
-	const tabId = crypto.randomUUID();
+	// Assigned in start(), not at construction: this service is built as part of
+	// the app context, which is also constructed during SSR / prerender, and
+	// nothing before start() needs an id. See ADR-0002.
+	let tabId = '';
 
 	let channel: BroadcastChannel | undefined;
 	let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
@@ -161,6 +165,10 @@ export function createTabLeaderService(): TabLeaderService {
 	function start() {
 		if (started) return;
 		started = true;
+		// randomId(), not crypto.randomUUID(): the latter is secure-context only,
+		// so it throws when the dev server is opened over a plain http LAN address
+		// (i.e. from a phone on the same network).
+		tabId = randomId();
 
 		if (typeof BroadcastChannel === 'undefined') {
 			// Fallback: no BroadcastChannel, always be leader

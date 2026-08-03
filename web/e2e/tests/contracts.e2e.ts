@@ -218,13 +218,19 @@ describe('Contracts Page - Write Functions', () => {
 			page.getByText('Interact with deployed smart contracts'),
 		).toBeVisible({timeout: 10000});
 
-		// Wait for the connection to finish re-establishing after navigation
-		// (the navbar shows a disabled "Loading Connect" button meanwhile). Under
-		// parallel test load this can lag; interacting before it settles makes the
-		// execute click open the connect modal instead of sending the tx.
-		await expect(
-			page.getByRole('button', {name: /loading connect/i}),
-		).toBeHidden({timeout: 30000});
+		// Wait for the connection to finish re-establishing after navigation.
+		// Interacting before it settles makes the execute click open the connect
+		// modal instead of sending the tx.
+		//
+		// Assert the app's own connection flag: waiting for the "Loading Connect"
+		// button to be hidden is satisfied both when connected AND when plainly
+		// disconnected (that button only exists mid-connect), so it could fall
+		// through with no wallet attached.
+		await expect(page.locator('[data-testid="wallet-status"]')).toHaveAttribute(
+			'data-connected',
+			'true',
+			{timeout: 30000},
+		);
 
 		// Wait for Write tab to be visible and click it
 		const writeTab = page.getByRole('tab', {name: 'Write'});

@@ -14,8 +14,31 @@ function activate<T>(store: {subscribe: (r: (v: T) => void) => () => void}) {
 }
 
 describe('createPollingStore', () => {
-	beforeEach(() => vi.useFakeTimers());
-	afterEach(() => vi.useRealTimers());
+	// The store only polls in a browser (see ADR-0002): these tests run in the
+	// `server` vitest project, which has no DOM, so declare the global the guard
+	// looks for. Mirrors the localStorage mock in TabLeaderService.test.ts.
+	beforeEach(() => {
+		vi.useFakeTimers();
+		vi.stubGlobal('window', {});
+	});
+	afterEach(() => {
+		vi.useRealTimers();
+		vi.unstubAllGlobals();
+	});
+
+	it('does not poll off-browser, staying Unloaded', async () => {
+		vi.unstubAllGlobals(); // no `window`: a server render
+		const fetch = vi.fn(async () => ({value: 1n}));
+		const store = createPollingStore(fetch, {fetchInterval: INTERVAL});
+
+		const off = activate(store);
+		await vi.advanceTimersByTimeAsync(INTERVAL * 5);
+
+		expect(fetch).not.toHaveBeenCalled();
+		expect(get(store)).toEqual({step: 'Unloaded'});
+		expect(get(store.status)).toEqual({loading: false});
+		off();
+	});
 
 	it('fetches on first subscribe and loads the payload', async () => {
 		const fetch = vi.fn(async () => ({value: 1n}));
