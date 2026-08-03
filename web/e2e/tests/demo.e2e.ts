@@ -122,40 +122,28 @@ describe('Demo Page - Greetings Registry', () => {
 	test('should display existing messages with avatars', async ({page}) => {
 		await page.goto('/demo');
 
-		// Wait for the page to fully load (not just loading state)
-		await page.waitForLoadState('networkidle', {timeout: 30000});
-
-		// Wait for either messages or the input field to be visible
+		// No `waitForLoadState('networkidle')` here. The app polls the chain, so the
+		// network is never idle for 500ms and that wait ran until the 120s test
+		// timeout - which then tore the page down mid-navigation and surfaced as a
+		// confusing `net::ERR_ABORTED; maybe frame was detached?`. Wait for the UI
+		// that the assertions actually need instead.
 		await expect(page.getByPlaceholder('Enter your greeting...')).toBeVisible({
-			timeout: 10000,
+			timeout: 30000,
 		});
 
-		// Check for message cards
-		const messageCard = page.locator('[class*="rounded-lg border px-4 py-3"]');
+		const rows = page.locator('[data-testid="message-row"]');
+		const emptyState = page.getByText(/no messages yet|be the first/i);
 
-		// Wait for either messages to appear or the empty state
-		const hasMessages = await messageCard
-			.first()
-			.isVisible({timeout: 15000})
-			.catch(() => false);
+		// The list settles into exactly one of two states. Note `.first()` goes on
+		// the COMBINED locator: putting it on each branch before `.or()` leaves the
+		// result matching both again, which trips strict mode.
+		await expect(rows.or(emptyState).first()).toBeVisible({timeout: 30000});
 
-		if (hasMessages) {
-			// Check that the message card has an image element (avatar)
-			const firstCard = messageCard.first();
-			const imgCount = await firstCard.locator('img').count();
-			expect(imgCount).toBeGreaterThanOrEqual(1);
-		} else {
-			// Empty state - check for text indicating no messages
-			// The page shows "No messages yet. Be the first!" when empty
-			const hasNoMessagesText = await page
-				.getByText(/no messages yet/i)
-				.isVisible()
-				.catch(() => false);
-			const hasBeFirstText = await page
-				.getByText(/be the first/i)
-				.isVisible()
-				.catch(() => false);
-			expect(hasNoMessagesText || hasBeFirstText).toBe(true);
+		// The claim under test: when rows render, each carries an avatar image.
+		// Previously this read a count into a plain `expect`, so a row that had not
+		// finished rendering its avatar failed instead of being waited for.
+		if ((await rows.count()) > 0) {
+			await expect(rows.first().locator('img').first()).toBeVisible();
 		}
 	});
 
