@@ -116,7 +116,7 @@
 				<div class="mb-4 flex-shrink-0 md:mr-6 md:mb-0">
 					<div class="h-20 w-20 overflow-hidden rounded-full">
 						<img
-							src="/maskable_icon_512x512.png"
+							src="/icon.svg"
 							alt="Ronan Sandford"
 							class="h-full w-full object-cover"
 						/>
