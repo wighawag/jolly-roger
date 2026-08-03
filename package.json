@@ -15,8 +15,9 @@
     "onlyBuiltDependencies": [
       "esbuild"
     ],
+    "comment": "cookie@<0.7.0 (GHSA-pxg6-pf52-xh8x, low): @sveltejs/kit declares cookie ^0.6.0 and 2.70.2 is the latest release, so there is no upstream version to bump to - the usual fix-at-source route does not exist yet. Not reachable here in any case: web is adapter-static so there is no server runtime, web/package.json declares no dependencies at all, and cookie appears in zero files of the built client bundle. The override exists so projects scaffolded from this template do not inherit the vulnerable resolution. Range key rather than a bare name, so it disarms itself once SvelteKit moves past 0.6.x - delete it then.",
     "overrides": {
-      "utf-8-validate": "-"
+      "cookie@<0.7.0": "^0.7.0"
     }
   },
   "scripts": {
