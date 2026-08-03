@@ -26,8 +26,8 @@ const RPC_PORT = (globalThis as any).process.env.E2E_RPC_PORT || '8545';
 const HARDHAT_RPC_URL =
 	(globalThis as any).process.env.E2E_RPC_URL || `http://127.0.0.1:${RPC_PORT}`;
 
-// Base URL for the web app (matches playwright.config.ts)
-const BASE_URL = `http://localhost:${(globalThis as any).process.env.E2E_PORT || 4173}`;
+// The app's base URL comes from playwright.config.ts (`use.baseURL`), so tests
+// navigate with relative paths and nothing here needs to duplicate it.
 
 /**
  * Fund an address using Hardhat's hardhat_setBalance RPC method.
@@ -96,21 +96,39 @@ export interface WalletFixtures {
 	waitForTransaction: (page: Page) => Promise<void>;
 
 	/**
+	 * Submit a greeting and wait until it is visible and settled on-chain.
+	 * Preferred over open-coding fill/click/waitForTransaction: it fails at the
+	 * step that actually broke instead of at a later assertion.
+	 */
+	submitGreeting: (page: Page, message: string) => Promise<void>;
+
+	/**
 	 * Ensures the test wallet addresses have ETH on the Hardhat node.
 	 * Call this before tests that need funded wallets.
 	 */
 	fundWallets: () => Promise<void>;
 }
 
-/**
- * Clear all browser storage (localStorage, sessionStorage) on the target origin.
- * This is called after navigating to the origin to ensure clean state.
- */
-async function clearBrowserStorage(page: Page): Promise<void> {
-	await page.evaluate(() => {
-		localStorage.clear();
-		sessionStorage.clear();
-	});
+// The app's authoritative connection signal (see navbar.svelte). Reading the
+// navbar balance text instead - as this fixture used to - gives false negatives:
+// the balance span renders empty while the balance is still loading, so a
+// connected app reads as disconnected.
+const WALLET_STATUS = '[data-testid="wallet-status"]';
+
+async function isWalletConnected(page: Page): Promise<boolean> {
+	const attr = await page
+		.locator(WALLET_STATUS)
+		.getAttribute('data-connected')
+		.catch(() => null);
+	return attr === 'true';
+}
+
+/** Assert the wallet is connected, failing with a clear message if it is not. */
+async function expectWalletConnected(page: Page, timeout = 30_000) {
+	await expect(
+		page.locator(WALLET_STATUS),
+		'wallet should be connected (navbar data-connected)',
+	).toHaveAttribute('data-connected', 'true', {timeout});
 }
 
 /**
@@ -131,7 +149,7 @@ async function connectWalletDevMode(
 	page: Page,
 	accountIndex = 0,
 ): Promise<void> {
-	const deadline = Date.now() + 20_000;
+	const deadline = Date.now() + 45_000;
 
 	while (Date.now() < deadline) {
 		const dialog = page.locator('[role="dialog"]');
@@ -141,23 +159,17 @@ async function connectWalletDevMode(
 			.catch(() => false);
 
 		if (!dialogVisible) {
-			// No dialog: either connected (done) or the next modal has not opened
-			// yet (transitions can lag under parallel test load). Only conclude
-			// after the absence persists for a while.
-			let gone = true;
-			for (let i = 0; i < 6; i++) {
-				await page.waitForTimeout(500);
-				if (
-					await dialog
-						.first()
-						.isVisible({timeout: 250})
-						.catch(() => false)
-				) {
-					gone = false;
-					break;
-				}
-			}
-			if (gone) break;
+			// No dialog on screen means EITHER the connection completed, OR the next
+			// modal has simply not opened yet (transitions lag under load).
+			//
+			// Concluding "done" from the absence of a dialog is what made this suite
+			// flaky: the helper returned before the account picker had rendered, the
+			// test then clicked send, the picker opened with nobody left to answer
+			// it, and so no transaction was ever sent - surfacing much later as a
+			// "message never appeared" failure in whichever test drew the short
+			// straw. Only stop once the app itself reports a connection.
+			if (await isWalletConnected(page)) break;
+			await page.waitForTimeout(250);
 			continue;
 		}
 
@@ -223,6 +235,10 @@ async function connectWalletDevMode(
 
 	// Handle Insufficient Funds modal - click "Get ETH" to use the faucet API
 	await handleInsufficientFundsModal(page);
+
+	// Fail here, loudly and at the real cause, rather than handing back a page
+	// that is not connected and letting a later assertion take the blame.
+	await expectWalletConnected(page);
 }
 
 /**
@@ -232,90 +248,102 @@ async function connectWalletDevMode(
 async function handleInsufficientFundsModal(page: Page): Promise<void> {
 	const getEthButton = page.getByRole('button', {name: /get eth/i});
 
-	try {
-		// Wait for the button to exist in the DOM
-		await getEthButton.waitFor({state: 'attached', timeout: 5000});
+	// The modal is genuinely optional, so its ABSENCE is not an error - but once
+	// it is on screen the rest of the flow must work. Wrapping the whole sequence
+	// in `catch {}` (as this used to) also swallowed a broken funding flow, so a
+	// test that never got its ETH failed later somewhere unrelated.
+	const appeared = await getEthButton
+		.waitFor({state: 'attached', timeout: 5000})
+		.then(() => true)
+		.catch(() => false);
 
-		// Wait for it to be enabled (not loading)
-		await expect(getEthButton).toBeEnabled({timeout: 30000});
+	if (!appeared) return;
 
-		// Click "Get ETH" - this will call the faucet API
-		await getEthButton.click();
+	// Wait for it to be enabled (not loading)
+	await expect(getEthButton).toBeEnabled({timeout: 30000});
 
-		// Wait for "Continue Transaction" button to appear and be enabled
-		const continueButton = page.getByRole('button', {
-			name: /continue transaction/i,
-		});
-		await continueButton.waitFor({state: 'visible', timeout: 30000});
-		await expect(continueButton).toBeEnabled({timeout: 10000});
+	// Click "Get ETH" - this will call the faucet API
+	await getEthButton.click();
 
-		// Click "Continue Transaction" to proceed with the original transaction
-		await continueButton.click();
+	// Wait for "Continue Transaction" button to appear and be enabled
+	const continueButton = page.getByRole('button', {
+		name: /continue transaction/i,
+	});
+	await continueButton.waitFor({state: 'visible', timeout: 30000});
+	await expect(continueButton).toBeEnabled({timeout: 10000});
 
-		// Wait for the modal to close.
-		// NOTE: waitForFunction's signature is (fn, arg, options); options must be
-		// the THIRD argument or the timeout silently never applies (waits forever).
-		await page.waitForFunction(
-			() => {
-				const modal = document.querySelector('[role="dialog"]');
-				return !modal || !modal.textContent?.includes('Funds');
-			},
-			undefined,
-			{timeout: 10000},
-		);
-	} catch {
-		// No insufficient funds modal or already handled
-	}
+	// Click "Continue Transaction" to proceed with the original transaction
+	await continueButton.click();
+
+	// Wait for the modal to close.
+	// NOTE: waitForFunction's signature is (fn, arg, options); options must be
+	// the THIRD argument or the timeout silently never applies (waits forever).
+	await page.waitForFunction(
+		() => {
+			const modal = document.querySelector('[role="dialog"]');
+			return !modal || !modal.textContent?.includes('Funds');
+		},
+		undefined,
+		{timeout: 10000},
+	);
+}
+
+const MESSAGE_ROW = '[data-testid="message-row"]';
+const MESSAGE_PENDING = '[data-testid="message-pending"]';
+
+/**
+ * Wait for every in-flight write to settle.
+ *
+ * The previous implementation polled for `[class*="animate-spin"]` and wrapped
+ * BOTH waits in `catch {}`, which made it incapable of failing: it returned
+ * after at most ~40s whether or not a transaction had happened, so a write that
+ * never left the browser surfaced as an unrelated assertion timeout later on.
+ * It also matched the navbar's own loading spinner, so it could settle while a
+ * write was still open.
+ *
+ * `message-pending` is the app's real per-message in-flight flag, and a timeout
+ * here now fails the test at the actual cause.
+ */
+async function waitForTransactionComplete(page: Page): Promise<void> {
+	await expect(
+		page.locator(MESSAGE_PENDING),
+		'all in-flight greetings should have settled',
+	).toHaveCount(0, {timeout: 60_000});
 }
 
 /**
- * Wait for any pending transaction to be confirmed.
- * First waits for a pending indicator to appear (showing tx started),
- * then waits for all pending indicators to disappear (showing tx completed).
+ * Submit a greeting and wait until it is on-chain and settled.
+ *
+ * Tests previously open-coded fill -> click -> waitForTransaction and then
+ * asserted the text separately. Each step could silently no-op, so the failure
+ * always landed on the final assertion regardless of which step actually broke.
+ * Doing it in one place means the error names the step that failed.
  */
-async function waitForTransactionComplete(page: Page): Promise<void> {
-	// First, wait for pending indicator to APPEAR (transaction started)
-	// This ensures we don't return early if the transaction hasn't started yet
-	try {
-		await page.waitForFunction(
-			() => {
-				const pendingElements = document.querySelectorAll(
-					'[class*="animate-spin"], [class*="Pending"]',
-				);
-				const pendingText = document.body.textContent?.includes(
-					'Transaction pending',
-				);
-				return pendingElements.length > 0 || pendingText;
-			},
-			undefined,
-			{timeout: 10000},
-		);
-	} catch {
-		// Pending indicator might not appear if tx is very fast
-		// Continue anyway and check for completion
-	}
+async function submitGreeting(page: Page, message: string): Promise<void> {
+	const input = page.getByPlaceholder('Enter your greeting...');
+	await expect(input, 'greeting input should be ready').toBeEnabled({
+		timeout: 30_000,
+	});
+	await input.fill(message);
 
-	// Then wait for ALL pending indicators to disappear (transaction completed)
-	try {
-		await page.waitForFunction(
-			() => {
-				const pendingElements = document.querySelectorAll(
-					'[class*="animate-spin"], [class*="Pending"]',
-				);
-				const pendingText = document.body.textContent?.includes(
-					'Transaction pending',
-				);
-				return pendingElements.length === 0 && !pendingText;
-			},
-			undefined,
-			{timeout: 30000},
-		);
-	} catch {
-		// Timeout - might still have pending indicators, but continue
-	}
+	const sendButton = page.getByRole('button', {name: /send/i});
+	await expect(sendButton, 'send should be enabled once input has text').toBeEnabled(
+		{timeout: 30_000},
+	);
+	await sendButton.click();
 
-	// Give the UI a moment to settle
-	await page.waitForTimeout(500);
+	// A write can surface a funding prompt before it reaches the chain.
+	await handleInsufficientFundsModal(page);
+
+	// The row appears optimistically with a pending spinner, then settles.
+	const row = page.locator(MESSAGE_ROW).filter({hasText: message});
+	await expect(row, `greeting "${message}" should appear in the list`).toBeVisible(
+		{timeout: 60_000},
+	);
+	await expect(
+		row.locator(MESSAGE_PENDING),
+		`greeting "${message}" should settle on-chain`,
+	).toHaveCount(0, {timeout: 60_000});
 }
 
 export const test = base.extend<WalletFixtures & WalletOptions>({
@@ -330,22 +358,25 @@ export const test = base.extend<WalletFixtures & WalletOptions>({
 	 * ensuring no previous wallet connection state persists between tests.
 	 */
 	page: async ({browser}, use) => {
-		// Create a fresh context for this test with empty storage
+		// A brand-new context is already storage-isolated, and the explicit
+		// storageState states that: no cookies, no origin storage. So there is
+		// nothing to clear before the test runs.
+		//
+		// This used to prime the context by navigating to the app origin with
+		// `waitUntil: 'commit'`, clearing storage, then navigating to about:blank.
+		// Committing and immediately navigating away races the in-flight load and
+		// intermittently aborted it outright (`net::ERR_ABORTED`), failing tests
+		// that had not run a line of their own code yet. The dance bought no
+		// isolation the fresh context did not already provide.
+		//
+		// Note storage must NOT be cleared on every navigation (e.g. via
+		// addInitScript): the app persists the wallet connection there, and tests
+		// that navigate between pages rely on it surviving.
 		const context = await browser.newContext({
 			storageState: {cookies: [], origins: []},
 		});
 
 		const page = await context.newPage();
-
-		// Navigate to the app origin to establish context, then clear storage
-		await page.goto(BASE_URL, {waitUntil: 'commit'});
-		await page.evaluate(() => {
-			localStorage.clear();
-			sessionStorage.clear();
-		});
-
-		// Navigate away so the test's navigation starts fresh
-		await page.goto('about:blank');
 
 		await use(page);
 		await context.close();
@@ -380,34 +411,39 @@ export const test = base.extend<WalletFixtures & WalletOptions>({
 		const input = page.getByPlaceholder('Enter your greeting...');
 		await expect(input).toBeVisible({timeout: 30000});
 
-		// Check if wallet is already connected (balance shown in navbar)
-		const navbarBalance = page.locator('text=/\\d+\\.?\\d*\\s*ETH/');
-		const isConnected = await navbarBalance
-			.first()
-			.isVisible({timeout: 5000})
-			.catch(() => false);
-
-		if (!isConnected) {
-			// Fill input first to enable the button
-			await input.fill('fixture-connection-test');
-
-			// Click send to trigger wallet connection - use force to avoid timing issues
-			const sendButton = page.getByRole('button', {name: /send/i});
-			await sendButton.click({force: true});
+		// Ask the app whether it is connected, rather than inferring it from the
+		// navbar balance: the balance span is empty while loading and hidden below
+		// the `sm` breakpoint, so the old check reported "disconnected" for an
+		// already-connected app and re-ran the connect flow on top of it - which
+		// re-opened the account picker in the middle of the test.
+		if (!(await isWalletConnected(page))) {
+			// Connect through the navbar's dedicated Connect affordance.
+			//
+			// This used to fill the input and `click({force: true})` the Send button.
+			// Two problems: `force` skips actionability, so while the app was still
+			// initialising and Send was disabled the click was a silent no-op - no
+			// dialog opened, the connect flow never started, and the fixture handed
+			// back an unconnected page. It also wrote a junk "fixture-connection-test"
+			// greeting to the chain on every single test purely as a side effect of
+			// connecting, costing a transaction and polluting the message list.
+			const connectButton = page
+				.getByRole('button', {name: /^connect$/i})
+				.first();
+			await expect(
+				connectButton,
+				'navbar Connect should become actionable once the app has initialised',
+			).toBeEnabled({timeout: 60_000});
+			await connectButton.click();
 
 			// Connect using Dev Mode (handles both connection modal and funding if needed)
 			await connectWalletDevMode(page, walletAccountIndex);
-
-			// Wait for the input to be enabled (it's disabled during submitting)
-			// This also waits for the initial transaction to complete
-			await expect(input).toBeEnabled({timeout: 120000});
-
-			// Clear the input for tests
-			await input.clear();
 		}
 
-		// Wait a moment for the UI to settle
-		await page.waitForTimeout(500);
+		// Never hand a test a page that is not actually connected.
+		await expectWalletConnected(page);
+
+		// The input must be interactive before the test starts driving it.
+		await expect(input).toBeEnabled({timeout: 30_000});
 
 		await use(page);
 	},
@@ -426,6 +462,13 @@ export const test = base.extend<WalletFixtures & WalletOptions>({
 	 */
 	waitForTransaction: async ({}, use) => {
 		await use(waitForTransactionComplete);
+	},
+
+	/**
+	 * Provides the atomic submit-and-settle helper.
+	 */
+	submitGreeting: async ({}, use) => {
+		await use(submitGreeting);
 	},
 });
 
