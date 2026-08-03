@@ -5,6 +5,7 @@
   "type": "module",
   "packageManager": "pnpm@10.28.1",
   "devDependencies": {
+    "expand-vars": "^0.1.0",
     "ldenv": "^0.6.0",
     "set-defaults": "^0.0.5",
     "syncpack": "^15.3.2",
@@ -52,14 +53,14 @@
     "build": "ldenv --git -d localhost pnpm contracts:build @@MODE ~~ pnpm web:build @@MODE ~~ @@",
     "serve": "pnpm run --filter ./web serve",
     "---------------------- WEB USING EXISTING DEPLOYMENT ----------------------": "",
-    "zellij-attach": "zellij-launcher a $npm_package_name-attach-$MODE || zellij -n dev/zellij-attach.kdl -s $npm_package_name-attach-$MODE",
+    "zellij-attach": "expand-vars zellij-launcher a $npm_package_name-attach-$MODE || expand-vars zellij -n dev/zellij-attach.kdl -s $npm_package_name-attach-$MODE",
     "attach": "ldenv -d localhost pnpm contracts:export @@MODE --ts ../web/src/lib/deployments.ts ~~ pnpm run zellij-attach ~~ @@",
     "---------------------- FULL AGAINST AN EXISTING NETWORK WITH LOCAL SERVICES ----------------------": "",
-    "zellij-remote-chain": "zellij-launcher a $npm_package_name-remote-chain-$MODE || zellij -n dev/zellij-remote-chain.kdl -s $npm_package_name-remote-chain-$MODE",
+    "zellij-remote-chain": "expand-vars zellij-launcher a $npm_package_name-remote-chain-$MODE || expand-vars zellij -n dev/zellij-remote-chain.kdl -s $npm_package_name-remote-chain-$MODE",
     "remote-chain": "ldenv -d localhost pnpm run zellij-remote-chain @@",
     "---------------------- RUN FULL LOCAL SETUP ----------------------": "",
-    "zellij": "zellij-launcher a $npm_package_name || zellij -n dev/zellij.kdl -s $npm_package_name",
-    "stop": "zellij kill-session $npm_package_name",
+    "zellij": "expand-vars zellij-launcher a $npm_package_name || expand-vars zellij -n dev/zellij.kdl -s $npm_package_name",
+    "stop": "expand-vars zellij kill-session $npm_package_name",
     "start": "pnpm zellij"
   }
 }

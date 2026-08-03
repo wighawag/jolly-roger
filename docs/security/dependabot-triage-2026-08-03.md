@@ -108,20 +108,25 @@ It appeared in exactly three script lines, all doing the same job: expanding an 
 | root `stop` | `cross-var zellij kill-session $npm_package_name` | `ldenv zellij kill-session @@npm_package_name` |
 | contracts `:deploy:dev+export` | `cross-var pnpm hardhat --network $MODE deploy ... && cross-var rocketh-export -e $MODE` | `ldenv pnpm hardhat --network @@MODE deploy ... && ldenv rocketh-export -e @@MODE` |
 
-**One correction, found by review after the fact.** The first version of this change routed the zellij scripts through `ldenv` as a like-for-like replacement for `cross-var`. That was wrong, and subtly so. `cross-var` only substitutes variables; `ldenv` also *loads `.env` files and injects them into the child environment*, and inherited environment variables outrank the file. Because the zellij layout starts long-lived watchers (`pnpm web:dev` is `ldenv -d localhost -w vite dev`), putting an `ldenv` above `zellij` pins the environment at launch time: the watcher still restarts when `.env` changes, but the child keeps seeing the old value.
+**Two corrections, both found by review after the change was first made.**
 
-Reproduced directly, watching a child print one variable while `.env` was edited underneath it:
+The first attempt replaced `cross-var` with `ldenv`. That was wrong, and subtly so. `cross-var` only substitutes variables; `ldenv` also *loads `.env` files and injects them into the child environment*, and an inherited variable outranks the file. The zellij layouts start long-lived watchers (`pnpm web:dev` is `ldenv -d localhost -w vite dev`), so an `ldenv` above `zellij` pins the environment at launch time. The watcher still restarts when `.env` changes and still reads the old values:
 
 ```
-no outer ldenv:    FOO=v1 -> [.env changed, reloading] -> FOO=v2   correct
-outer ldenv:       FOO=v1 -> [.env changed, reloading] -> FOO=v1   stale
+no wrapper:    FOO=v1 -> [.env changed, reloading] -> FOO=v2   correct
+ldenv wrapper: FOO=v1 -> [.env changed, reloading] -> FOO=v1   stale
+expand-vars:   FOO=v1 -> [.env changed, reloading] -> FOO=v2   correct
 ```
 
-The fix is that the zellij scripts never needed a cross-platform helper in the first place. `zellij` is a Unix-only terminal multiplexer, so plain shell `$npm_package_name` is fine, and it is already what the neighbouring `zellij-attach` and `zellij-remote-chain` scripts in this repo do. Those scripts now simply drop `cross-var` rather than replacing it.
+The second attempt dropped the wrapper entirely, on the reasoning that zellij is Unix-only so plain `$npm_package_name` would do. That reasoning was also wrong: zellij runs on Windows, and `cross-var` was introduced precisely to keep these scripts working there. Removing it regressed the thing it existed for.
 
-`ldenv` is still the right replacement for the contracts deploy script, which does run on Windows and is a one-shot command rather than a parent of a watcher.
+The actual fix is a substitution-only replacement, published as [`expand-vars`](https://github.com/wighawag/expand-vars). It expands `$NAME`, `${NAME}`, `${NAME:-default}` and `$$` from the existing environment and then execs through `cross-spawn`, exactly as `cross-var` did, but it **never reads `.env` and never alters the child's environment**, which is the property that makes it safe above a watcher. It has one runtime dependency, `cross-spawn`, and a test asserting the child environment passes through untouched. Every former `cross-var` call site now uses it verbatim.
 
-Two related notes. `ldenv` has no flag to substitute without loading (`-m -d -n --git -P --verbose -w`), so "use ldenv purely as an expander" is not available. And in mandalas and bleeps the `zellij` script already had `ldenv -d localhost` above `zellij` before any of this work; that is deliberate, since it propagates `MODE` to every pane, and it was left alone. It does mean those two repos have the staleness behaviour described above for any *other* `.env` value consumed by a watcher, which is worth knowing but is not something this work introduced.
+`ldenv` keeps every place it already occupied, including the `ldenv -d localhost` above `zellij` in mandalas and bleeps, which is deliberate: it propagates `MODE` to every pane. `expand-vars` fronts it there for the session name, exactly as `cross-var` used to.
+
+While doing this, `zellij-attach` and `zellij-remote-chain` were also routed through `expand-vars`. Those two never used `cross-var` and interpolated `$npm_package_name-attach-$MODE` as bare shell, so they had been silently Windows-broken all along. That is a fix beyond restoring parity, not a side effect of it.
+
+One caveat worth stating: `--strict` can only catch an unset variable on Windows. On Unix the shell expands `$NAME` to `""` before `expand-vars` runs, so there is nothing left to detect. That asymmetry is inherent to shell syntax and applied equally to `cross-var`.
 
 **Windows compatibility is preserved, by the same mechanism.** Both tools resolve variables in Node rather than delegating to the shell, and both spawn through **`cross-spawn`**, the library that exists specifically to handle Windows `.cmd`/`.bat` shims, `PATHEXT` resolution and argument escaping. That matters here because `ldenv pnpm ...` invokes `pnpm.cmd` on Windows, which Node cannot exec directly without help. The difference is the version: cross-var pinned `cross-spawn ^5.0.1` (and dragged babel 6 along with it), while ldenv uses `cross-spawn ^7.0.6`. This is the same Windows strategy on a current major, not a weaker one.
 

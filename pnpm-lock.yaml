@@ -11,6 +11,9 @@ importers:
 
   .:
     devDependencies:
+      expand-vars:
+        specifier: ^0.1.0
+        version: 0.1.0
       ldenv:
         specifier: ^0.6.0
         version: 0.6.0
@@ -77,6 +80,9 @@ importers:
       earl:
         specifier: ^2.0.0
         version: 2.0.0
+      expand-vars:
+        specifier: ^0.1.0
+        version: 0.1.0
       faucet-server:
         specifier: ^0.1.0
         version: 0.1.0(@libsql/core@0.17.4)(hono@4.12.34)(typescript@6.0.3)(zod@3.25.76)
@@ -1778,6 +1784,11 @@ packages:
 
   eventemitter3@5.0.1:
     resolution: {integrity: sha512-GWkBvjiSZK87ELrYOSESUYeVIc9mvLLf/nXalMOS5dYrgZq9o5OVkbZAVM06CVxYsCwH9BDZFPlQTlPA1j4ahA==}
+
+  expand-vars@0.1.0:
+    resolution: {integrity: sha512-bAtah13rDo+QT79NMuWzKveZxxoUBXhupK5pIQIq5MMm86Ea/rXWVAwD2sCCpox7Xj5LxnF+NXBI9c5jf7WTTw==}
+    engines: {node: '>=18'}
+    hasBin: true
 
   expect-type@1.4.0:
     resolution: {integrity: sha512-KfYbmpRm0VbLjEvVa9yGwCi9GI34xvi7A/HXYWQO65CSD2u3MczUJSuwXKFIxlGsgBQizV9q5J9NHj4VG0n+pA==}
@@ -4467,6 +4478,10 @@ snapshots:
       '@scure/bip39': 1.3.0
 
   eventemitter3@5.0.1: {}
+
+  expand-vars@0.1.0:
+    dependencies:
+      cross-spawn: 7.0.6
 
   expect-type@1.4.0: {}
 
