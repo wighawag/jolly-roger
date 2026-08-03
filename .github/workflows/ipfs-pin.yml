@@ -37,6 +37,8 @@ jobs:
         run: pnpm build ${{ vars.IPFS_BUILD_MODE || 'sepolia' }}
         env:
           PUBLIC_NODE_URL: ${{ vars.PUBLIC_NODE_URL }}
+          PUBLIC_ENS_NODE_URL: ${{ vars.PUBLIC_ENS_NODE_URL }}
+          PUBLIC_FAUCET_LINK: ${{ vars.PUBLIC_FAUCET_LINK }}
 
       - name: Deploy to IPFS
         id: deploy
