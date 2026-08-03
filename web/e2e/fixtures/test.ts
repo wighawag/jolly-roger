@@ -327,9 +327,10 @@ async function submitGreeting(page: Page, message: string): Promise<void> {
 	await input.fill(message);
 
 	const sendButton = page.getByRole('button', {name: /send/i});
-	await expect(sendButton, 'send should be enabled once input has text').toBeEnabled(
-		{timeout: 30_000},
-	);
+	await expect(
+		sendButton,
+		'send should be enabled once input has text',
+	).toBeEnabled({timeout: 30_000});
 	await sendButton.click();
 
 	// A write can surface a funding prompt before it reaches the chain.
@@ -337,9 +338,10 @@ async function submitGreeting(page: Page, message: string): Promise<void> {
 
 	// The row appears optimistically with a pending spinner, then settles.
 	const row = page.locator(MESSAGE_ROW).filter({hasText: message});
-	await expect(row, `greeting "${message}" should appear in the list`).toBeVisible(
-		{timeout: 60_000},
-	);
+	await expect(
+		row,
+		`greeting "${message}" should appear in the list`,
+	).toBeVisible({timeout: 60_000});
 	await expect(
 		row.locator(MESSAGE_PENDING),
 		`greeting "${message}" should settle on-chain`,
