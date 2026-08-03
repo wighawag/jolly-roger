@@ -57,7 +57,7 @@
 
 		<!-- Action Buttons -->
 		<div class="mb-8 flex flex-wrap justify-center gap-4">
-			<Button href={route('/demo/')} size="lg" class="min-w-40">Demo</Button>
+			<Button href={route('/demo/')} size="lg" class="min-w-40">Check The Demo</Button>
 			<Button
 				href="https://github.com/wighawag/jolly-roger"
 				variant="secondary"
