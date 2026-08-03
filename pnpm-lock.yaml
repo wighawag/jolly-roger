@@ -93,8 +93,8 @@ importers:
         specifier: ^3.12.0
         version: 3.12.0
       hardhat-deploy:
-        specifier: ^2.0.6
-        version: 2.0.10(@rocketh/node@0.19.10(rocketh@0.19.9(typescript@6.0.3)(zod@3.25.76))(typescript@6.0.3)(zod@3.25.76))(hardhat@3.12.0)(rocketh@0.19.9(typescript@6.0.3)(zod@3.25.76))
+        specifier: ^2.0.11
+        version: 2.0.11(@rocketh/node@0.19.10(rocketh@0.19.9(typescript@6.0.3)(zod@3.25.76))(typescript@6.0.3)(zod@3.25.76))(hardhat@3.12.0)(rocketh@0.19.9(typescript@6.0.3)(zod@3.25.76))
       hardhat-external-artifacts:
         specifier: ^0.0.6
         version: 0.0.6(hardhat@3.12.0)(typescript@6.0.3)(zod@3.25.76)
@@ -2752,13 +2752,13 @@ packages:
     engines: {node: '>=6'}
     deprecated: this library is no longer supported
 
-  hardhat-deploy@2.0.10:
-    resolution: {integrity: sha512-ihv5DEz2J9+3msT0cf0MSMEiR+c3tg+iE0N8KSF1MUyOxUh5H6Tu5+3dp3bZ6//76mF3qLoGEpxW0qTre2M5tg==}
+  hardhat-deploy@2.0.11:
+    resolution: {integrity: sha512-8lGkA9nYvWKOgksAVcE0KxgGWdJZxVgvGJz/QDC1Y7MKum2xGVLCnlmVAMvswXA6sF0xSYmH+ZnbC6D26CrxNA==}
     engines: {node: '>=22.0.0'}
     hasBin: true
     peerDependencies:
       '@rocketh/node': 0.19.10
-      hardhat: ^3.4.5
+      hardhat: ^3.6.0
       rocketh: 0.19.9
 
   hardhat-external-artifacts@0.0.6:
@@ -7357,7 +7357,7 @@ snapshots:
       ajv: 6.12.6
       har-schema: 2.0.0
 
-  hardhat-deploy@2.0.10(@rocketh/node@0.19.10(rocketh@0.19.9(typescript@6.0.3)(zod@3.25.76))(typescript@6.0.3)(zod@3.25.76))(hardhat@3.12.0)(rocketh@0.19.9(typescript@6.0.3)(zod@3.25.76)):
+  hardhat-deploy@2.0.11(@rocketh/node@0.19.10(rocketh@0.19.9(typescript@6.0.3)(zod@3.25.76))(typescript@6.0.3)(zod@3.25.76))(hardhat@3.12.0)(rocketh@0.19.9(typescript@6.0.3)(zod@3.25.76)):
     dependencies:
       '@nomicfoundation/hardhat-zod-utils': 3.0.5(zod@3.25.76)
       '@rocketh/node': 0.19.10(rocketh@0.19.9(typescript@6.0.3)(zod@3.25.76))(typescript@6.0.3)(zod@3.25.76)
