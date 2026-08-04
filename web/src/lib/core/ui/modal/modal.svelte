@@ -7,10 +7,26 @@
 		onCancel?: () => void;
 		children?: Snippet;
 		elementToFocus?: HTMLElement | null;
+		/**
+		 * Where focus goes once the dialog has closed, in place of restoring it to
+		 * whatever opened the dialog.
+		 *
+		 * Focus is restored after the exit animation, so a caller that closes the
+		 * dialog and then focuses something itself loses a race it cannot see. This
+		 * runs at the same moment the restore would have, which is the only moment
+		 * that reliably wins.
+		 */
+		focusOnClose?: (() => void) | null;
 	}
 
-	let {openWhen, onCancel, children, elementToFocus, ...restProps}: Props =
-		$props();
+	let {
+		openWhen,
+		onCancel,
+		children,
+		elementToFocus,
+		focusOnClose,
+		...restProps
+	}: Props = $props();
 
 	let focusedElementWhenOpened: HTMLElement | null = null;
 	function onOpenAutoFocus(e: Event) {
@@ -22,6 +38,10 @@
 	}
 	function onCloseAutoFocus(e: Event) {
 		e.preventDefault();
+		if (focusOnClose) {
+			focusOnClose();
+			return;
+		}
 		focusedElementWhenOpened?.focus();
 	}
 
