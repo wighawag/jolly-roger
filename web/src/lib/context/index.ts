@@ -42,7 +42,7 @@ import {createAccountCannotSendStore} from '$lib/core/transaction/account-cannot
 import {createErrorDetailsStore} from '$lib/core/transaction/error-details-store.js';
 import type {AugmentedChainInfo} from '$lib/core/connection/types.js';
 import {createBalanceCheckStore} from '$lib/core/transaction/balance-check-store.js';
-import {resolveAppConfig} from './config.js';
+import {resolveAppConfig, operationScopeAddress} from './config.js';
 import {startTxObserverLoop} from '$lib/core/tx-observer';
 import {IMPERSONATE_ADDRESSES} from '$lib/dev-accounts.js';
 
@@ -255,6 +255,7 @@ export function createContext(): {
 		accountStore: account,
 		deployments: deployments.get(),
 		clock,
+		scopeAddress: operationScopeAddress(deployments.get()),
 	});
 
 	const txObserver = createTransactionObserver({

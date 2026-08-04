@@ -1,4 +1,5 @@
 import type {AugmentedChainInfo} from '$lib/core/connection/types.js';
+import type {TypedDeployments} from '$lib/deployments-store.js';
 
 // ============================================================================
 // Default configuration values
@@ -53,4 +54,22 @@ export function resolveAppConfig(chain: AugmentedChainInfo): ResolvedAppConfig {
 		txObserverProcessInterval: processIntervalFromBlockTime(blockTimeMs),
 		maxMessages: DEFAULT_MAX_MESSAGES,
 	};
+}
+
+/**
+ * The address that scopes local operation data.
+ *
+ * Local operations belong to a specific deployment, so the storage key
+ * includes one contract's address. Which contract is app-specific: this is
+ * the single place a descendant changes it, and since the deployments object
+ * is typed, renaming the contract or removing it is a compile error.
+ *
+ * The contract should be one whose address is stable for the deployment's
+ * lifetime (e.g. the main proxy), not its implementation, which changes on
+ * every hot contract replacement.
+ */
+export function operationScopeAddress(
+	deployments: TypedDeployments,
+): `0x${string}` {
+	return deployments.contracts.GreetingsRegistry.address;
 }
