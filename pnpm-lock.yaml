@@ -150,8 +150,8 @@ importers:
         specifier: ^0.0.9
         version: 0.0.9(viem@2.55.10(typescript@6.0.3)(zod@4.4.3))
       '@etherplay/connect':
-        specifier: ^0.1.3
-        version: 0.1.3(svelte@5.56.8)
+        specifier: ^0.1.4
+        version: 0.1.4(svelte@5.56.8)
       '@internationalized/date':
         specifier: ^3.12.0
         version: 3.12.2
@@ -231,8 +231,8 @@ importers:
         specifier: ^0.8.1
         version: 0.8.1(prettier-plugin-svelte@4.1.1(prettier@3.9.6)(svelte@5.56.8))(prettier@3.9.6)
       pwag:
-        specifier: ^0.7.0
-        version: 0.7.0(@types/node@26.1.2)
+        specifier: ^0.8.0
+        version: 0.8.0(@types/node@26.1.2)
       radiate:
         specifier: ^0.3.2
         version: 0.3.2
@@ -495,8 +495,8 @@ packages:
   '@etherplay/connect-core@0.1.0':
     resolution: {integrity: sha512-ENw/mX3FfMI8HjqsUVyYrPJhHeZ+AyC3sgJOzWXihbXJDjlJNkg4D+bVbMNTS56tiNBObPt6G57TosvkoqSZCQ==}
 
-  '@etherplay/connect@0.1.3':
-    resolution: {integrity: sha512-QL8/mDxh65mPPj2LL80IA5/lBTVshar8jgPj5U6ZTzLkJgP/xZ4QBujKPhcLhvJsLOd6G8Wbniiqqj0MA0Ab+w==}
+  '@etherplay/connect@0.1.4':
+    resolution: {integrity: sha512-HzWESExCVdtFph0AGF/2IAbrArJ/Fh1dihpHvNgeL3L/QKZOVMRPKGEhqeeFGBY4p7intpf243bO036mT39BiA==}
     peerDependencies:
       svelte: ^5.0.0
 
@@ -2625,8 +2625,8 @@ packages:
     resolution: {integrity: sha512-a/3jj6y9PUmpZSs1c22Lg/0Lv7uR6Iyulkx6zN8YAVi7oMv84MBNZatyFQPgL9XIIzI+lSdCYfSNlyJTJWLJkQ==}
     hasBin: true
 
-  pwag@0.7.0:
-    resolution: {integrity: sha512-FRMYl5sMnLhD2qI4orrSTdKJW72S8vvHWpNlyJ4xvvz5Fpbqn+8mL54ygXXnoxAZDS2cxHcTksllswdAo6/etA==}
+  pwag@0.8.0:
+    resolution: {integrity: sha512-knN8fvto6KY8LKbbPqoZT6atsoMVyKumoR9ZiV7JfdNPfuifASw4zkpBHjU1R2oONL4H2wgmwhOwJjEjblVk4w==}
     engines: {node: '>= 16'}
     hasBin: true
 
@@ -3337,7 +3337,7 @@ snapshots:
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
 
-  '@etherplay/connect@0.1.3(svelte@5.56.8)':
+  '@etherplay/connect@0.1.4(svelte@5.56.8)':
     dependencies:
       '@etherplay/connect-core': 0.1.0
       '@etherplay/wallet-connector': 0.0.5
@@ -5546,7 +5546,7 @@ snapshots:
       - utf-8-validate
       - zod
 
-  pwag@0.7.0(@types/node@26.1.2):
+  pwag@0.8.0(@types/node@26.1.2):
     dependencies:
       commander: 12.1.0
       sharp: 0.35.3(@types/node@26.1.2)
