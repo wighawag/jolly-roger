@@ -23,6 +23,7 @@ import {createToastConnector} from '$lib/account/toastConnector.js';
 import {initBurnerWallet} from '@etherkit/burner-wallet';
 import {
 	PUBLIC_NODE_URL,
+	PUBLIC_CHAIN_INFO_NODE_URL,
 	PUBLIC_USE_BURNER_WALLET,
 	PUBLIC_WALLET_HOST,
 	PUBLIC_EXECUTION_MODE,
@@ -119,7 +120,16 @@ export function createContext(): {
 	} = establishRemoteConnection({
 		nodeURL: PUBLIC_NODE_URL,
 		walletHost,
-		// chainInfoNodeURL
+		// The RPC url handed to the WALLET, which is not necessarily the one the
+		// app uses. Without it the exported chain info carries an empty rpc list
+		// (rocketh does not bake a public endpoint into chain info), and a wallet
+		// that does not already know the chain cannot be told how to reach it:
+		// wallet_switchEthereumChain fails with "Unrecognized chain ID" and there
+		// is nothing to fall back to wallet_addEthereumChain with.
+		//
+		// Deliberately NOT defaulted to PUBLIC_NODE_URL: that one may be a private
+		// or key-bearing endpoint, and this value is handed to every user's wallet.
+		chainInfoNodeURL: PUBLIC_CHAIN_INFO_NODE_URL,
 	});
 
 	// ----------------------------------------------------------------------------
