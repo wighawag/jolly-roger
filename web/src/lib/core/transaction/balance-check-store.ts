@@ -132,10 +132,26 @@ export function createBalanceCheckStore({
 
 	// Returns the fee PRICE pair (maxFeePerGas/maxPriorityFeePerGas) for a speed.
 	// Distinct from `gasEstimate` below, which is the gas AMOUNT from eth_call.
-	function getGasPrice(speed: GasSpeed): GasPrice {
-		const gasFeeValue = get(gasFee);
+	//
+	// Not-yet-loaded is routine rather than broken, so it is waited on rather than
+	// thrown at. The gas poller is gated on being able to read the chain (see
+	// `chainFetchGate` in lib/context), so a transaction started from a
+	// disconnected page resumes in the same tick the gate opens, with the first
+	// fetch still in flight: sending from a cold start would otherwise go through
+	// the whole connection flow and then die on "Gas fee not loaded", a race the
+	// user can neither see nor retry their way out of. This mirrors what
+	// `checkBalanceAndShowModal` already does for the balance.
+	async function getGasPrice(speed: GasSpeed): Promise<GasPrice> {
+		let gasFeeValue = get(gasFee);
 		if (gasFeeValue.step !== 'Loaded') {
-			throw new Error('Gas fee not loaded');
+			gasFeeValue = await gasFee.update();
+		}
+		if (gasFeeValue.step !== 'Loaded') {
+			// Waiting is not pretending: if the chain still will not price gas, the
+			// transaction stops, in words rather than as an internal state name.
+			throw new Error(
+				'Could not read the current gas price from the chain. Check the connection and try again.',
+			);
 		}
 		return gasFeeValue[speed];
 	}
@@ -248,7 +264,7 @@ export function createBalanceCheckStore({
 				await Promise.all([balance.update(), gasFee.update()]);
 			}
 
-			const {maxFeePerGas, maxPriorityFeePerGas} = getGasPrice(gasSpeed);
+			const {maxFeePerGas, maxPriorityFeePerGas} = await getGasPrice(gasSpeed);
 
 			let gasEstimate: bigint;
 			let value: bigint = 0n;

@@ -200,6 +200,36 @@ describe('createPollingStore', () => {
 		off();
 	});
 
+	it('update() re-reads the source rather than a value cached at construction', async () => {
+		// Nothing subscribes here on purpose: only `start()` keeps the cached
+		// source in step, so an unsubscribed store still believes the gate was
+		// whatever it was when the store was built (falsy, being disconnected).
+		// A transaction asking for a fresh value must not be refused on that.
+		const gate = writable(false);
+		const fetch = vi.fn(async () => ({value: 1n}));
+		const store = createPollingStore(fetch, {
+			fetchInterval: INTERVAL,
+			source: {store: gate},
+		});
+
+		gate.set(true);
+
+		expect(await store.update()).toEqual({step: 'Loaded', value: 1n});
+		expect(fetch).toHaveBeenCalledTimes(1);
+	});
+
+	it('update() still refuses to fetch while the source is genuinely falsy', async () => {
+		const gate = writable(false);
+		const fetch = vi.fn(async () => ({value: 1n}));
+		const store = createPollingStore(fetch, {
+			fetchInterval: INTERVAL,
+			source: {store: gate},
+		});
+
+		expect(await store.update()).toEqual({step: 'Unloaded'});
+		expect(fetch).not.toHaveBeenCalled();
+	});
+
 	it('stops polling after the last subscriber leaves', async () => {
 		const fetch = vi.fn(async () => ({value: 1n}));
 		const store = createPollingStore(fetch, {fetchInterval: INTERVAL});
