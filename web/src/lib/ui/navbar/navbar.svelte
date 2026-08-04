@@ -215,7 +215,12 @@
 			{#if connection.isTargetStepReached($connection)}
 				<EthereumAvatar address={$connection.account.address} />
 				{#if transactionCount > 0}
+					<!-- Rendered only while operations are in flight, so its absence
+					     is the app's own "everything has settled" signal. Tests wait
+					     on this rather than on any one feature's pending marker. -->
 					<span
+						data-testid="pending-operations"
+						data-count={transactionCount}
 						class="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground"
 					>
 						{transactionCount > 99 ? '99+' : transactionCount}
