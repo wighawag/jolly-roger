@@ -19,6 +19,15 @@ import {
 } from 'synqable';
 import {PUBLIC_OPERATION_RETENTION_DAYS} from '$env/static/public';
 
+/**
+ * Local operations belong to a specific deployment, so the storage key is
+ * scoped to the chain + genesis hash + one contract's address. Which contract
+ * is app-specific, so the address is passed in rather than hardcoded here
+ * (see context/config.ts: operationScopeAddress). The contract should be one
+ * whose address is stable for the deployment's lifetime (e.g. the main proxy,
+ * not its implementation, which changes on every upgrade).
+ */
+
 /** Default number of days to retain completed operations before deletion */
 const DEFAULT_OPERATION_RETENTION_DAYS = 7;
 
@@ -66,8 +75,10 @@ export function createAccountData(params: {
 	accountStore: AccountStore;
 	deployments: TypedDeployments;
 	clock: Clock;
+	/** Address of the contract that scopes local operation data. */
+	scopeAddress: `0x${string}`;
 }) {
-	const {accountStore, deployments, clock} = params;
+	const {accountStore, deployments, clock, scopeAddress} = params;
 
 	let lastId: number = 0;
 	function generateId() {
@@ -93,7 +104,7 @@ export function createAccountData(params: {
 				storage: {
 					adapterFactory: (_privateKey) =>
 						createLocalStorageAdapter(serializer),
-					key: `__private__${deployments.chain.id}_${deployments.chain.genesisHash}_${deployments.contracts.GreetingsRegistry.address}_${account}`,
+					key: `__private__${deployments.chain.id}_${deployments.chain.genesisHash}_${scopeAddress}_${account}`,
 				},
 			}),
 	});

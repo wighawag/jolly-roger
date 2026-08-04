@@ -290,6 +290,9 @@ async function handleInsufficientFundsModal(page: Page): Promise<void> {
 
 const MESSAGE_ROW = '[data-testid="message-row"]';
 const MESSAGE_PENDING = '[data-testid="message-pending"]';
+// The app's own count of operations that have not reached a final state. Not
+// demo-specific, so a suite for any feature can wait on it.
+const PENDING_OPERATIONS = '[data-testid="pending-operations"]';
 
 /**
  * Wait for every in-flight write to settle.
@@ -306,8 +309,8 @@ const MESSAGE_PENDING = '[data-testid="message-pending"]';
  */
 async function waitForTransactionComplete(page: Page): Promise<void> {
 	await expect(
-		page.locator(MESSAGE_PENDING),
-		'all in-flight greetings should have settled',
+		page.locator(PENDING_OPERATIONS),
+		'all in-flight operations should have settled',
 	).toHaveCount(0, {timeout: 60_000});
 }
 

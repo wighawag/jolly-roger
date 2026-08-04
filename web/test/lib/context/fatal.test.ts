@@ -28,6 +28,7 @@ async function loadContextWith(env: Record<string, string>) {
 	vi.resetModules();
 	vi.doMock('$env/static/public', () => ({
 		PUBLIC_NODE_URL: '',
+		PUBLIC_CHAIN_INFO_NODE_URL: '',
 		PUBLIC_WALLET_HOST: '',
 		PUBLIC_EXECUTION_MODE: '',
 		PUBLIC_USE_BURNER_WALLET: '',
