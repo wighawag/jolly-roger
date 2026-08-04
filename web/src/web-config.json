@@ -8,6 +8,5 @@
 	"appleStatusBarStyle": "black-translucent",
 	"icon": "static/icon.svg",
 	"preview": "static/preview.png",
-	"operationScopeContract": "GreetingsRegistry",
 	"maskable": true
 }

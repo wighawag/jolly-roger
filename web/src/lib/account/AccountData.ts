@@ -18,21 +18,14 @@ import {
 	map,
 } from 'synqable';
 import {PUBLIC_OPERATION_RETENTION_DAYS} from '$env/static/public';
-import {operationScopeContract} from '../../web-config.json';
 
 /**
- * The name of the contract whose address scopes local account data.
- *
  * Local operations belong to a specific deployment, so the storage key is
  * scoped to the chain + genesis hash + one contract's address. Which contract
- * is app-specific, so it lives in web-config.json (the rebranding file every
- * descendant already owns) rather than hardcoded here.
- *
- * Deliberately NOT every deployed address: some are implementation/proxy
- * pairs that change on every upgrade, which would invalidate local state on
- * every hot contract replacement. The contract named here should be one whose
- * address is stable for the deployment's lifetime (e.g. the main proxy, not its
- * implementation).
+ * is app-specific, so the address is passed in rather than hardcoded here
+ * (see context/config.ts: operationScopeAddress). The contract should be one
+ * whose address is stable for the deployment's lifetime (e.g. the main proxy,
+ * not its implementation, which changes on every upgrade).
  */
 
 /** Default number of days to retain completed operations before deletion */
@@ -82,8 +75,10 @@ export function createAccountData(params: {
 	accountStore: AccountStore;
 	deployments: TypedDeployments;
 	clock: Clock;
+	/** Address of the contract that scopes local operation data. */
+	scopeAddress: `0x${string}`;
 }) {
-	const {accountStore, deployments, clock} = params;
+	const {accountStore, deployments, clock, scopeAddress} = params;
 
 	let lastId: number = 0;
 	function generateId() {
@@ -109,7 +104,7 @@ export function createAccountData(params: {
 				storage: {
 					adapterFactory: (_privateKey) =>
 						createLocalStorageAdapter(serializer),
-					key: `__private__${deployments.chain.id}_${deployments.chain.genesisHash}_${(deployments.contracts as Record<string, {address: string}>)[operationScopeContract]?.address ?? 'unknown'}_${account}`,
+					key: `__private__${deployments.chain.id}_${deployments.chain.genesisHash}_${scopeAddress}_${account}`,
 				},
 			}),
 	});
