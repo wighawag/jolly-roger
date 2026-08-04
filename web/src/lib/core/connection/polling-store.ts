@@ -191,6 +191,16 @@ export function createPollingStore<T, S = unknown>(
 	}
 
 	async function update(): Promise<PollingValue<T>> {
+		// Re-read the gate before fetching. The cached `$source` is only kept in
+		// step by the subscription `start()` opens, so a store nobody is subscribed
+		// to still holds whatever the gate said at construction: an explicit
+		// "fetch now" would then be refused on stale grounds (gated stores are
+		// typically falsy at construction, being disconnected). `update` is a
+		// direct request, so it asks the gate itself rather than trusting a cache
+		// that may never have been updated.
+		if (source) {
+			$source = get(source.store);
+		}
 		await fetchContinuously();
 		return $value;
 	}
