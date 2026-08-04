@@ -180,8 +180,12 @@
 					</div>
 				{:else}
 					{#each $viewState.messages as message}
+						<!-- data-testid so e2e can address rows without coupling to the
+						     Tailwind class string, which it previously matched on via
+						     [class*="rounded-lg border px-4 py-3"]. -->
 						<div
 							class="flex items-center gap-3 rounded-lg border px-4 py-3 sm:gap-4"
+							data-testid="message-row"
 						>
 							<EthereumAvatar
 								address={message.account}
@@ -197,7 +201,11 @@
 								class="overflow-hidden text-sm whitespace-nowrap text-muted-foreground"
 							>
 								{#if message.pending}
-									<Spinner class="h-4 w-4" />
+									<!-- The authoritative "this write is still in flight" signal.
+									     e2e previously polled for any [class*="animate-spin"] on
+									     the page, which also matched the navbar's loading
+									     spinner and so could settle while a tx was still open. -->
+									<Spinner class="h-4 w-4" data-testid="message-pending" />
 								{:else}
 									{formatRelativeTime(message.timestamp, clock.now())}
 								{/if}

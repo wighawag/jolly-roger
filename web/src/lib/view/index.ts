@@ -7,8 +7,7 @@ export type MessageView = Message & {pending?: boolean};
 
 // New types for dual-store architecture
 export type ViewStateValue =
-	| {step: 'Unloaded'}
-	| {step: 'Loaded'; messages: MessageView[]};
+	{step: 'Unloaded'} | {step: 'Loaded'; messages: MessageView[]};
 
 export type ViewStateStatus = {
 	loading: boolean;

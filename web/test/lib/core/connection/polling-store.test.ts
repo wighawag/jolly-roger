@@ -14,8 +14,31 @@ function activate<T>(store: {subscribe: (r: (v: T) => void) => () => void}) {
 }
 
 describe('createPollingStore', () => {
-	beforeEach(() => vi.useFakeTimers());
-	afterEach(() => vi.useRealTimers());
+	// The store only polls in a browser (see ADR-0002): these tests run in the
+	// `server` vitest project, which has no DOM, so declare the global the guard
+	// looks for. Mirrors the localStorage mock in TabLeaderService.test.ts.
+	beforeEach(() => {
+		vi.useFakeTimers();
+		vi.stubGlobal('window', {});
+	});
+	afterEach(() => {
+		vi.useRealTimers();
+		vi.unstubAllGlobals();
+	});
+
+	it('does not poll off-browser, staying Unloaded', async () => {
+		vi.unstubAllGlobals(); // no `window`: a server render
+		const fetch = vi.fn(async () => ({value: 1n}));
+		const store = createPollingStore(fetch, {fetchInterval: INTERVAL});
+
+		const off = activate(store);
+		await vi.advanceTimersByTimeAsync(INTERVAL * 5);
+
+		expect(fetch).not.toHaveBeenCalled();
+		expect(get(store)).toEqual({step: 'Unloaded'});
+		expect(get(store.status)).toEqual({loading: false});
+		off();
+	});
 
 	it('fetches on first subscribe and loads the payload', async () => {
 		const fetch = vi.fn(async () => ({value: 1n}));
@@ -175,6 +198,36 @@ describe('createPollingStore', () => {
 		const result = await store.update();
 		expect(result).toEqual({step: 'Loaded', value: 2n});
 		off();
+	});
+
+	it('update() re-reads the source rather than a value cached at construction', async () => {
+		// Nothing subscribes here on purpose: only `start()` keeps the cached
+		// source in step, so an unsubscribed store still believes the gate was
+		// whatever it was when the store was built (falsy, being disconnected).
+		// A transaction asking for a fresh value must not be refused on that.
+		const gate = writable(false);
+		const fetch = vi.fn(async () => ({value: 1n}));
+		const store = createPollingStore(fetch, {
+			fetchInterval: INTERVAL,
+			source: {store: gate},
+		});
+
+		gate.set(true);
+
+		expect(await store.update()).toEqual({step: 'Loaded', value: 1n});
+		expect(fetch).toHaveBeenCalledTimes(1);
+	});
+
+	it('update() still refuses to fetch while the source is genuinely falsy', async () => {
+		const gate = writable(false);
+		const fetch = vi.fn(async () => ({value: 1n}));
+		const store = createPollingStore(fetch, {
+			fetchInterval: INTERVAL,
+			source: {store: gate},
+		});
+
+		expect(await store.update()).toEqual({step: 'Unloaded'});
+		expect(fetch).not.toHaveBeenCalled();
 	});
 
 	it('stops polling after the last subscriber leaves', async () => {

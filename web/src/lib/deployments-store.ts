@@ -33,12 +33,7 @@ export type ChainInfo = Omit<TypedDeployments['chain'], 'rpcUrls'> & {
  * JSON-compatible value types for chain properties
  */
 export type JSONValue =
-	| string
-	| number
-	| boolean
-	| null
-	| JSONValue[]
-	| {[key: string]: JSONValue};
+	string | number | boolean | null | JSONValue[] | {[key: string]: JSONValue};
 
 /**
  * Known chain properties that can be specified in deployments.

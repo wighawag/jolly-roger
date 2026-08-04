@@ -38,8 +38,7 @@ export type ConnectionMode = {
 };
 
 export type ConnectionModeResolution =
-	| {ok: true; mode: ConnectionMode}
-	| {ok: false; error: string};
+	{ok: true; mode: ConnectionMode} | {ok: false; error: string};
 
 /**
  * Interpret the raw `PUBLIC_EXECUTION_MODE` value.

@@ -157,7 +157,18 @@
 		</div>
 	</div>
 
-	<div class="relative flex h-full items-center space-x-2">
+	<!-- `data-connected` is the single, authoritative connection signal for e2e.
+	     Tests used to infer it from the balance text, but the balance span below
+	     renders EMPTY while the balance is still loading, so an already-connected
+	     app looked disconnected and the fixture re-ran the whole connect flow,
+	     re-opening the account picker mid-test. This attribute tracks the same
+	     predicate the branches below use, is always in the DOM, and does not
+	     depend on the `sm:` breakpoint that hides the balance on small screens. -->
+	<div
+		class="relative flex h-full items-center space-x-2"
+		data-testid="wallet-status"
+		data-connected={connection.isTargetStepReached($connection)}
+	>
 		<!-- Connect Button / Connected Address -->
 		{#if ($connection.step === 'Idle' && $connection.loading) || ($connection.step != 'Idle' && !connection.isTargetStepReached($connection))}
 			<Button disabled class="m-1 flex h-8 items-center justify-center p-0">

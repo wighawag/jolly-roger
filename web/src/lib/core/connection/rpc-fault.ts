@@ -29,10 +29,9 @@ export function createRpcFaultFlag(): RpcFaultFlag {
  * Generic over the provider so the exact (strictly-typed) `request` signature of
  * the connection provider is preserved; the Proxy keeps runtime behavior intact.
  */
-export function wrapProviderWithFault<T extends {request: (...args: never[]) => Promise<unknown>}>(
-	provider: T,
-	flag: {subscribe: RpcFaultFlag['subscribe']},
-): T {
+export function wrapProviderWithFault<
+	T extends {request: (...args: never[]) => Promise<unknown>},
+>(provider: T, flag: {subscribe: RpcFaultFlag['subscribe']}): T {
 	let failing = false;
 	flag.subscribe((v) => {
 		failing = v;
@@ -49,7 +48,9 @@ export function wrapProviderWithFault<T extends {request: (...args: never[]) => 
 							new Error('RPC request failed (forced failure): fetch failed'),
 						);
 					}
-					return (target.request as (...a: never[]) => Promise<unknown>)(...args);
+					return (target.request as (...a: never[]) => Promise<unknown>)(
+						...args,
+					);
 				};
 			}
 			return Reflect.get(target, prop, receiver);

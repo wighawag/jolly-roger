@@ -1,6 +1,9 @@
 import {describe, it, expect} from 'vitest';
 import {get} from 'svelte/store';
-import {createRpcFaultFlag, wrapProviderWithFault} from '../../../../src/lib/core/connection/rpc-fault';
+import {
+	createRpcFaultFlag,
+	wrapProviderWithFault,
+} from '../../../../src/lib/core/connection/rpc-fault';
 
 describe('rpc-fault', () => {
 	function makeProvider() {
@@ -22,7 +25,9 @@ describe('rpc-fault', () => {
 		const {provider} = makeProvider();
 		const wrapped = wrapProviderWithFault(provider, flag);
 		expect(get(flag)).toBe(false);
-		await expect(wrapped.request({method: 'eth_blockNumber'})).resolves.toBe('ok:eth_blockNumber');
+		await expect(wrapped.request({method: 'eth_blockNumber'})).resolves.toBe(
+			'ok:eth_blockNumber',
+		);
 	});
 
 	it('fails every request while the flag is on, and does not hit the underlying provider', async () => {
@@ -31,7 +36,9 @@ describe('rpc-fault', () => {
 		const wrapped = wrapProviderWithFault(provider, flag);
 
 		flag.set(true);
-		await expect(wrapped.request({method: 'eth_getBalance'})).rejects.toThrow(/forced failure/);
+		await expect(wrapped.request({method: 'eth_getBalance'})).rejects.toThrow(
+			/forced failure/,
+		);
 		expect(calls()).toBe(0);
 	});
 
@@ -43,7 +50,9 @@ describe('rpc-fault', () => {
 		flag.set(true);
 		await expect(wrapped.request({method: 'eth_call'})).rejects.toThrow();
 		flag.set(false);
-		await expect(wrapped.request({method: 'eth_call'})).resolves.toBe('ok:eth_call');
+		await expect(wrapped.request({method: 'eth_call'})).resolves.toBe(
+			'ok:eth_call',
+		);
 	});
 
 	it('preserves non-request members', () => {

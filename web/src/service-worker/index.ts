@@ -14,11 +14,20 @@ const sw = self as unknown as ServiceWorkerGlobalScope;
 const DEV = true;
 const OFFLINE_CACHE = 'all';
 // Icon/badge used for the DEFAULT push notification (when the push payload
-// carries no icon of its own). pwag regenerates /pwa/favicon-512.png from
+// carries no icon of its own). pwag regenerates pwa/favicon-512.png from
 // src/web-config.json's `icon` on every build, so the image content is already
 // config-driven; keep the path here in ONE place so a fork that renames the
 // generated file only edits this line.
-const NOTIFICATION_ICON = '/pwa/favicon-512.png';
+//
+// The path is resolved relative to the service worker's own URL (not the
+// origin root) so it works under a base path / IPFS gateway, where the app is
+// served from a sub-path and an absolute "/pwa/…" URL would miss the prefix.
+// This mirrors the approach already used in handleNotificationClick below.
+const swFolder = sw.location.pathname.substring(
+	0,
+	sw.location.pathname.lastIndexOf('/') + 1,
+);
+const NOTIFICATION_ICON = swFolder + 'pwa/favicon-512.png';
 // ------------------------------------------------------
 
 let ASSETS: string[] = [];

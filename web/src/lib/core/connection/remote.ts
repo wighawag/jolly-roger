@@ -87,11 +87,20 @@ export function createChainConnection(
 	});
 }
 
-export async function establishRemoteConnection(options?: {
+/**
+ * Build the connection and the clients that hang off it.
+ *
+ * Synchronous on purpose: `createConnection` returns immediately in an
+ * `{step: 'Idle', loading: true}` state and resolves into itself in the
+ * background, so there is nothing to await here. Connecting is user-interactive
+ * and can fail, which makes it precisely the wrong thing to block construction
+ * on. Readiness is read from the store instead. See ADR-0002.
+ */
+export function establishRemoteConnection(options?: {
 	nodeURL?: string;
 	chainInfoNodeURL?: string;
 	walletHost?: string;
-}): Promise<EstablishedConnection> {
+}): EstablishedConnection {
 	// Use deployments.get() for synchronous access
 	const currentDeployments = deployments.get();
 

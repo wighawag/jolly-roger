@@ -101,6 +101,22 @@
 	Please Accept Connection Request...
 </Modal.Root>
 
+<!-- Error display: shows when a connection attempt failed and the flow fell
+     back to a resting state (Idle / MechanismToChoose / WalletToChoose) with an
+     error. Without this the error is set on the store but never rendered, so a
+     fast rejection (e.g. werust's 4100) just flashes the waiting modal and
+     silently returns to idle. -->
+<BasicModal
+	title="Connection Failed"
+	openWhen={!!$connection.error &&
+		($connection.step === 'Idle' ||
+			$connection.step === 'MechanismToChoose' ||
+			$connection.step === 'WalletToChoose')}
+	cancel={{label: 'Dismiss', onclick: () => connection.clearError()}}
+>
+	<p class="text-sm text-muted-foreground">{$connection.error?.message}</p>
+</BasicModal>
+
 <Modal.Root
 	openWhen={$connection.step == 'WalletToChoose' ||
 		$connection.step == 'MechanismToChoose'}
@@ -372,8 +388,8 @@
 			<Modal.Title>Confirm sign in</Modal.Title>
 			<Modal.Description>
 				Choose an account and sign a message with it to sign in. Accepting the
-				message gives this app access to the account, so only accept on
-				websites you trust.
+				message gives this app access to the account, so only accept on websites
+				you trust.
 			</Modal.Description>
 			<div class="flex flex-col gap-3 py-2">
 				<div
