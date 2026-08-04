@@ -7,5 +7,6 @@
 	"themeColor": "#000000",
 	"appleStatusBarStyle": "black-translucent",
 	"icon": "static/icon.svg",
+	"preview": "static/preview.png",
 	"maskable": true
 }

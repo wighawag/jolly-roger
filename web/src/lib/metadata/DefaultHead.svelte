@@ -7,6 +7,7 @@
 		appleStatusBarStyle,
 		ENSName,
 		icon,
+		preview,
 	} from '../../web-config.json';
 	import Head from '$lib/core/metadata/Head.svelte';
 
@@ -20,7 +21,10 @@
 	const host = canonicalURL.endsWith('/')
 		? canonicalURL.slice(0, -1)
 		: canonicalURL;
-	const previewImage = host + '/preview.png';
+	// Read from web-config rather than hardcoded, so rebranding stays a
+	// single-file job (the same reason `icon` lives there). `preview` is given as
+	// a path under static/, which is served from the root.
+	const previewImage = host + preview.replace(/^static\//, '/');
 
 	let overrides: Props = $props();
 

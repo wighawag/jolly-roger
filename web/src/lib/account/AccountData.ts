@@ -18,6 +18,28 @@ import {
 	map,
 } from 'synqable';
 import {PUBLIC_OPERATION_RETENTION_DAYS} from '$env/static/public';
+import {keccak256, toHex} from 'viem';
+
+/**
+ * A short, stable fingerprint of the current deployment.
+ *
+ * Local account data is scoped to the deployment it belongs to, so a redeploy
+ * does not leave the app reading operations that point at contracts which no
+ * longer exist.
+ *
+ * Every deployed address participates, rather than one contract named here.
+ * Naming one made this template file app-specific: every project built on the
+ * template had to edit it, and then re-resolve that edit on every merge from
+ * upstream.
+ */
+function deploymentFingerprint(deployments: TypedDeployments): string {
+	const contracts = deployments.contracts as Record<string, {address: string}>;
+	const addresses = Object.keys(contracts)
+		.sort()
+		.map((contractName) => contracts[contractName].address)
+		.join(',');
+	return keccak256(toHex(addresses)).slice(2, 18);
+}
 
 /** Default number of days to retain completed operations before deletion */
 const DEFAULT_OPERATION_RETENTION_DAYS = 7;
@@ -93,7 +115,7 @@ export function createAccountData(params: {
 				storage: {
 					adapterFactory: (_privateKey) =>
 						createLocalStorageAdapter(serializer),
-					key: `__private__${deployments.chain.id}_${deployments.chain.genesisHash}_${deployments.contracts.GreetingsRegistry.address}_${account}`,
+					key: `__private__${deployments.chain.id}_${deployments.chain.genesisHash}_${deploymentFingerprint(deployments)}_${account}`,
 				},
 			}),
 	});
