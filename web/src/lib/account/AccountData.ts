@@ -18,28 +18,22 @@ import {
 	map,
 } from 'synqable';
 import {PUBLIC_OPERATION_RETENTION_DAYS} from '$env/static/public';
-import {keccak256, toHex} from 'viem';
+import {operationScopeContract} from '../../web-config.json';
 
 /**
- * A short, stable fingerprint of the current deployment.
+ * The name of the contract whose address scopes local account data.
  *
- * Local account data is scoped to the deployment it belongs to, so a redeploy
- * does not leave the app reading operations that point at contracts which no
- * longer exist.
+ * Local operations belong to a specific deployment, so the storage key is
+ * scoped to the chain + genesis hash + one contract's address. Which contract
+ * is app-specific, so it lives in web-config.json (the rebranding file every
+ * descendant already owns) rather than hardcoded here.
  *
- * Every deployed address participates, rather than one contract named here.
- * Naming one made this template file app-specific: every project built on the
- * template had to edit it, and then re-resolve that edit on every merge from
- * upstream.
+ * Deliberately NOT every deployed address: some are implementation/proxy
+ * pairs that change on every upgrade, which would invalidate local state on
+ * every hot contract replacement. The contract named here should be one whose
+ * address is stable for the deployment's lifetime (e.g. the main proxy, not its
+ * implementation).
  */
-function deploymentFingerprint(deployments: TypedDeployments): string {
-	const contracts = deployments.contracts as Record<string, {address: string}>;
-	const addresses = Object.keys(contracts)
-		.sort()
-		.map((contractName) => contracts[contractName].address)
-		.join(',');
-	return keccak256(toHex(addresses)).slice(2, 18);
-}
 
 /** Default number of days to retain completed operations before deletion */
 const DEFAULT_OPERATION_RETENTION_DAYS = 7;
@@ -115,7 +109,7 @@ export function createAccountData(params: {
 				storage: {
 					adapterFactory: (_privateKey) =>
 						createLocalStorageAdapter(serializer),
-					key: `__private__${deployments.chain.id}_${deployments.chain.genesisHash}_${deploymentFingerprint(deployments)}_${account}`,
+					key: `__private__${deployments.chain.id}_${deployments.chain.genesisHash}_${(deployments.contracts as Record<string, {address: string}>)[operationScopeContract]?.address ?? 'unknown'}_${account}`,
 				},
 			}),
 	});
