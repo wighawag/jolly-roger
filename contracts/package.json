@@ -37,7 +37,7 @@
 		"faucet-server": "^0.1.0",
 		"forge-std": "github:foundry-rs/forge-std#v1.9.4",
 		"hardhat": "^3.12.0",
-		"hardhat-deploy": "^2.0.13",
+		"hardhat-deploy": "^2.0.14",
 		"hardhat-external-artifacts": "^0.0.6",
 		"ldenv": "^0.6.0",
 		"prettier": "^3.8.0",
