@@ -93,8 +93,8 @@ importers:
         specifier: ^3.12.0
         version: 3.12.0
       hardhat-deploy:
-        specifier: ^2.0.12
-        version: 2.0.12(@rocketh/node@0.19.11(rocketh@0.19.10(typescript@6.0.3)(zod@3.25.76))(typescript@6.0.3)(zod@3.25.76))(hardhat@3.12.0)(rocketh@0.19.10(typescript@6.0.3)(zod@3.25.76))
+        specifier: ^2.0.13
+        version: 2.0.13(@rocketh/node@0.19.11(rocketh@0.19.10(typescript@6.0.3)(zod@3.25.76))(typescript@6.0.3)(zod@3.25.76))(hardhat@3.12.0)(rocketh@0.19.10(typescript@6.0.3)(zod@3.25.76))
       hardhat-external-artifacts:
         specifier: ^0.0.6
         version: 0.0.6(hardhat@3.12.0)(typescript@6.0.3)(zod@3.25.76)
@@ -1880,8 +1880,8 @@ packages:
     engines: {node: '>=0.4.7'}
     hasBin: true
 
-  hardhat-deploy@2.0.12:
-    resolution: {integrity: sha512-7jZc9ny9zbanQT/ZqqYVYY0OfdbvxRkm2USyko0vlQdnWJzszoy6xkbV3CVi3zDRSuR/rISFi2kwuG/vdwrlCg==}
+  hardhat-deploy@2.0.13:
+    resolution: {integrity: sha512-xdDDAV+HAWSuIqyarXmjchrrI9ZlyX/YN2nk5npRVM7KMdrL1eY9a4qLyFep+iaqQ0C1CPyZSEmjcVJP20WmAQ==}
     engines: {node: '>=22.0.0'}
     hasBin: true
     peerDependencies:
@@ -4596,7 +4596,7 @@ snapshots:
     optionalDependencies:
       uglify-js: 3.19.3
 
-  hardhat-deploy@2.0.12(@rocketh/node@0.19.11(rocketh@0.19.10(typescript@6.0.3)(zod@3.25.76))(typescript@6.0.3)(zod@3.25.76))(hardhat@3.12.0)(rocketh@0.19.10(typescript@6.0.3)(zod@3.25.76)):
+  hardhat-deploy@2.0.13(@rocketh/node@0.19.11(rocketh@0.19.10(typescript@6.0.3)(zod@3.25.76))(typescript@6.0.3)(zod@3.25.76))(hardhat@3.12.0)(rocketh@0.19.10(typescript@6.0.3)(zod@3.25.76)):
     dependencies:
       '@nomicfoundation/hardhat-zod-utils': 3.0.5(zod@3.25.76)
       '@rocketh/node': 0.19.11(rocketh@0.19.10(typescript@6.0.3)(zod@3.25.76))(typescript@6.0.3)(zod@3.25.76)
