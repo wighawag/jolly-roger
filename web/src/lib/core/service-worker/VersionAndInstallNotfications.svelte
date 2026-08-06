@@ -1,15 +1,26 @@
 <script lang="ts">
-	import {fly} from 'svelte/transition';
 	import type {ServiceWorkerStore} from '.';
+	import * as Alert from '$lib/shadcn/ui/alert/index.js';
+	import {Button} from '$lib/shadcn/ui/button/index.js';
+	import {cn} from '../utils/tailwind';
+
+	/**
+	 * Classes that can be customized on Update Notification components
+	 * Use with the `classes` prop to style specific elements
+	 */
+	interface Classes {
+		/** Root container */
+		root?: string;
+		alert?: string;
+	}
 
 	interface Props {
 		serviceWorker: ServiceWorkerStore;
-		/** optional icon shown instead of the default glyph */
-		src?: string;
-		alt?: string;
+		class?: string;
+		classes?: Partial<Classes>;
 	}
 
-	const {serviceWorker, src, alt = ''}: Props = $props();
+	const {serviceWorker, class: className, classes = {}}: Props = $props();
 
 	function skip() {
 		serviceWorker.skip();
@@ -28,93 +39,30 @@
 	);
 </script>
 
-<!-- Global notification live region, render this permanently at the end of the document -->
-<div
-	aria-live="assertive"
-	class="pointer-events-none fixed inset-0 flex items-end px-4 py-6 sm:items-start sm:p-6"
->
-	<div class="flex w-full flex-col items-center space-y-4 sm:items-end">
-		{#if updateAvailable}
-			<!--
-		Notification panel, dynamically insert this into the live region when it needs to be displayed
-  
-		Entering: "transform ease-out duration-300 transition"
-		  From: "translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
-		  To: "translate-y-0 opacity-100 sm:translate-x-0"
-		Leaving: "transition ease-in duration-100"
-		  From: "opacity-100"
-		  To: "opacity-0"
-	  -->
-			<div
-				class="pointer-events-auto w-full max-w-sm overflow-hidden rounded-lg bg-white shadow-lg ring-1 ring-black/5"
-				transition:fly={{delay: 250, duration: 300, x: +100}}
-			>
-				<div class="p-4">
-					<div class="flex items-start">
-						<div class="shrink-0">
-							{#if src}
-								<img {src} {alt} />
-							{:else}
-								<svg
-									class="size-6 text-gray-400"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke-width="1.5"
-									stroke="currentColor"
-									aria-hidden="true"
-									data-slot="icon"
-								>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										d="M2.25 13.5h3.86a2.25 2.25 0 0 1 2.012 1.244l.256.512a2.25 2.25 0 0 0 2.013 1.244h3.218a2.25 2.25 0 0 0 2.013-1.244l.256-.512a2.25 2.25 0 0 1 2.013-1.244h3.859m-19.5.338V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 0 0-2.15-1.588H6.911a2.25 2.25 0 0 0-2.15 1.588L2.35 13.177a2.25 2.25 0 0 0-.1.661Z"
-									/>
-								</svg>
-							{/if}
-						</div>
-						<div class="ml-3 w-0 flex-1 pt-0.5">
-							<p class="text-sm font-medium text-gray-900">
-								A new version is available.
-							</p>
-							<p class="mt-1 text-sm text-gray-500">
-								Reload to get the update.
-							</p>
-							<div class="mt-3 flex space-x-7">
-								<button
-									type="button"
-									class="rounded-md bg-white text-sm font-medium text-indigo-600 hover:text-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none"
-									onclick={accept}>Reload</button
-								>
-								<button
-									type="button"
-									class="rounded-md bg-white text-sm font-medium text-gray-700 hover:text-gray-500 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none"
-									onclick={skip}>Dismiss</button
-								>
-							</div>
-						</div>
-						<div class="ml-4 flex shrink-0">
-							<button
-								type="button"
-								class="inline-flex rounded-md bg-white text-gray-400 hover:text-gray-500 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none"
-								onclick={skip}
-							>
-								<span class="sr-only">Close</span>
-								<svg
-									class="size-5"
-									viewBox="0 0 20 20"
-									fill="currentColor"
-									aria-hidden="true"
-									data-slot="icon"
-								>
-									<path
-										d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z"
-									/>
-								</svg>
-							</button>
-						</div>
-					</div>
-				</div>
+{#if updateAvailable}
+	<div
+		class={cn(
+			'fixed top-0 left-0 z-50 w-full border-b p-2 shadow-sm',
+			className,
+			classes.root,
+		)}
+	>
+		<Alert.Root
+			class={cn(
+				'mx-auto flex max-w-2xl flex-col items-start justify-between gap-4 py-3 sm:flex-row sm:items-center sm:py-2',
+				classes.alert,
+			)}
+		>
+			<div>
+				<Alert.Title>Update Available</Alert.Title>
+				<Alert.Description
+					>A new version is ready. Update to get it.</Alert.Description
+				>
 			</div>
-		{/if}
+			<div class="flex gap-2">
+				<Button variant="outline" size="sm" onclick={skip}>Later</Button>
+				<Button size="sm" onclick={accept}>Update Now</Button>
+			</div>
+		</Alert.Root>
 	</div>
-</div>
+{/if}
