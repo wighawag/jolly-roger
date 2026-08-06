@@ -31,6 +31,38 @@ export function isPathBasedIPFS(): boolean {
 	return path.startsWith('/ipfs/') || path.startsWith('/ipns/');
 }
 
+/** `https://…`, `//cdn…`, `mailto:…`: nothing for us to resolve or decorate. */
+function isExternal(p: string): boolean {
+	return p.startsWith('//') || /^[a-z][a-z0-9+.-]*:/i.test(p);
+}
+
+/**
+ * An app-absolute path (`/blog/`). These are the ones `resolve()` understands:
+ * it rewrites them against `paths.base` (and makes them relative when
+ * `paths.relative` is set, which is what keeps a build IPFS-portable).
+ */
+function isAppAbsolute(p: string): boolean {
+	return p.startsWith('/') && !p.startsWith('//');
+}
+
+/** Split `/a/b?x=1#frag` into its path, query and hash parts. */
+function splitPath(p: string): {path: string; query: string; hash: string} {
+	let path = p;
+	let hash = '';
+	let query = '';
+	const h = path.indexOf('#');
+	if (h !== -1) {
+		hash = path.slice(h);
+		path = path.slice(0, h);
+	}
+	const q = path.indexOf('?');
+	if (q !== -1) {
+		query = path.slice(q);
+		path = path.slice(0, q);
+	}
+	return {path, query, hash};
+}
+
 export function createRouteHandler<T extends readonly string[]>(
 	params: Record<string, string>,
 	options: RouteHandlerOptions<T>,
@@ -53,43 +85,54 @@ export function createRouteHandler<T extends readonly string[]>(
 	}
 
 	/**
-	 * Generate a route path, automatically handling dynamic routes for IPFS compatibility
+	 * Generate a route path, preserving the global query params and handling
+	 * dynamic routes for IPFS compatibility.
 	 *
-	 * For paths matching dynamic route patterns (e.g., /explorer/tx/0x123):
-	 * - On path-based IPFS gateways: converts to hash-based URL (/explorer/tx/#0x123)
-	 * - On unique origin gateways: keeps the path-based URL
+	 * BOTH path styles are accepted:
+	 *   - app-absolute (`/blog/`)  -> run through `resolve()`, so it is rewritten
+	 *     against `paths.base` and made relative when `paths.relative` is set.
+	 *   - relative (`./`, `../`, `blog/`) -> passed through as-is. A relative URL
+	 *     already resolves against the current document, which is exactly the
+	 *     base-independence `resolve()` buys for absolute ones, so it is already
+	 *     IPFS-safe. `resolve()` THROWS on non-absolute input, so it must be
+	 *     skipped here.
+	 * External URLs are returned untouched.
 	 *
 	 * @param p - The path to resolve
-	 * @param hash - Optional hash to append (only used if path is not a dynamic route)
+	 * @param hash - Optional hash to append (ignored if `p` already carries one)
 	 */
 	function route(p: string, hash?: string) {
-		// On path-based IPFS, check if this is a dynamic route that needs conversion
+		if (isExternal(p)) {
+			return p;
+		}
+
+		let input = p;
+
+		// On path-based IPFS, rewrite dynamic routes to hash-based URLs. Only
+		// app-absolute paths are matched, since the patterns are anchored at `/`.
 		if (
 			typeof window !== 'undefined' &&
 			isPathBasedIPFS() &&
 			dynamicRoutes.length > 0
 		) {
-			const convertedPath = convertToDynamicUrl(p);
-			if (convertedPath !== p) {
-				// Path was converted to hash-based, resolve it with query params
-				if (!convertedPath.endsWith('/') && !convertedPath.includes('#')) {
-					return resolve<any>(
-						`${convertedPath}/${getQueryStringToKeep(convertedPath)}`,
-					);
-				}
-				return resolve<any>(
-					`${convertedPath}${getQueryStringToKeep(convertedPath)}`,
-				);
-			}
+			input = convertToDynamicUrl(input);
 		}
 
-		// Normal route resolution
-		if (!p.endsWith('/')) {
-			p += '/';
+		const {path: bare, query, hash: inlineHash} = splitPath(input);
+
+		let path = bare;
+		if (!path.endsWith('/')) {
+			path += '/';
 		}
-		const pathToResolve = `${p}${getQueryStringToKeep(p)}${hash ? `#${hash}` : ''}`;
-		let path = resolve<any>(pathToResolve);
-		return path;
+
+		// Keep any query already on `p`, and merge in the global params.
+		const queryString = getQueryStringToKeep(`${path}${query}`);
+
+		const explicitHash = hash ? (hash.startsWith('#') ? hash : `#${hash}`) : '';
+		// Query must come BEFORE the fragment, otherwise it is swallowed by it.
+		const out = `${path}${queryString}${inlineHash || explicitHash}`;
+
+		return isAppAbsolute(bare) ? resolve<any>(out) : out;
 	}
 
 	function getQueryStringToKeep(p: string): string {
