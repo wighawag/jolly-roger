@@ -1,12 +1,18 @@
 <script lang="ts">
 	import {fly} from 'svelte/transition';
-	import {notifications} from './';
+	import type {NotificationsService} from './';
+
+	interface Props {
+		notifications: NotificationsService;
+	}
+
+	const {notifications}: Props = $props();
 </script>
 
 <!-- Global notification live region, render this permanently at the end of the document -->
 <div aria-live="assertive" class="notification-container">
 	<div class="notification-wrapper">
-		{#each $notifications as notification}
+		{#each $notifications as notification (notification.id)}
 			<div
 				class="notification-panel"
 				transition:fly={{delay: 250, duration: 300, x: +100}}
@@ -14,8 +20,8 @@
 				<div class="notification-content">
 					<div class="notification-header">
 						<div class="icon-container">
-							{#if notification.data.options?.icon}
-								<img src={notification.data.options.icon} alt="icon" />
+							{#if notification.icon}
+								<img src={notification.icon} alt="icon" />
 							{:else}
 								<svg
 									class="notification-icon"
@@ -35,15 +41,19 @@
 							{/if}
 						</div>
 						<div class="notification-text">
-							<p class="notification-title">{notification.data.title}</p>
-							<p class="notification-body">{notification.data.options.body}.</p>
+							<p class="notification-title">{notification.title}</p>
+							{#if notification.body}
+								<p class="notification-body">{notification.body}</p>
+							{/if}
 							<div class="button-container">
-								<button
-									type="button"
-									class="notification-button"
-									onclick={() => notifications.onClick(notification.id)}
-									>ok</button
-								>
+								{#if notification.action}
+									<button
+										type="button"
+										class="notification-button"
+										onclick={() => notifications.onAction(notification.id)}
+										>{notification.action.label}</button
+									>
+								{/if}
 								<button
 									type="button"
 									class="notification-button"

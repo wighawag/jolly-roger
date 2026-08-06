@@ -1,25 +1,37 @@
 <script lang="ts">
 	import {fly} from 'svelte/transition';
-	import {serviceWorker} from '$lib/core/config';
+	import type {ServiceWorkerStore} from '.';
 
-	// TODO
-	export let src: string;
-	export let alt: string;
+	interface Props {
+		serviceWorker: ServiceWorkerStore;
+		/** optional icon shown instead of the default glyph */
+		src?: string;
+		alt?: string;
+	}
+
+	const {serviceWorker, src, alt = ''}: Props = $props();
 
 	function skip() {
 		serviceWorker.skip();
 	}
 
 	function accept() {
-		console.log(`accepting update...`);
 		serviceWorker.skipWaiting();
 	}
+
+	const updateAvailable = $derived(
+		$serviceWorker &&
+			!$serviceWorker.notSupported &&
+			!$serviceWorker.registering &&
+			$serviceWorker.updateAvailable &&
+			$serviceWorker.registration,
+	);
 </script>
 
 <!-- Global notification live region, render this permanently at the end of the document -->
 <div aria-live="assertive" class="notification-container">
 	<div class="notification-container-inner">
-		{#if $serviceWorker && !$serviceWorker.notSupported && !$serviceWorker.registering && $serviceWorker.updateAvailable && $serviceWorker.registration}
+		{#if updateAvailable}
 			<!--
 		Notification panel, dynamically insert this into the live region when it needs to be displayed
   
