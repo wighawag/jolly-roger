@@ -2,6 +2,18 @@
 
 @import 'tw-animate-css';
 
+/* NOTE: @tailwindcss/forms is deliberately NOT enabled here.
+   Its base strategy restyles bare input/select/textarea globally with
+   `background-color: #fff`, a fixed border-color, `border-radius: 0` and its
+   own padding/font-size. Every one of those fights the shadcn Input, which
+   styles itself from the theme tokens (bg-background / dark:bg-input/30,
+   border-input, rounded-md, h-9, px-3, text-sm). The hardcoded white in
+   particular breaks dark mode. shadcn brings its own form styling, so the
+   plugin is redundant as well as harmful.
+   @tailwindcss/typography is fine to keep: it only applies inside `.prose`,
+   so it is opt-in and cannot collide with the components. */
+@plugin '@tailwindcss/typography';
+
 @custom-variant dark (&:is(.dark *));
 
 :root {
