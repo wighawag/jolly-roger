@@ -1,12 +1,19 @@
 import {version} from '$app/environment';
 import {createServiceWorker} from './service-worker';
+import {createNotificationsService} from './notifications';
 import {
 	getHashParamsFromLocation,
 	getParamsFromLocation,
 } from './utils/web/url';
 import {createRouteHandler} from './utils/web/path';
 
-export const serviceWorker = createServiceWorker();
+/**
+ * The notifications service is generic: a notification is just a title/body/
+ * icon plus an optional action. Anything push-notification specific (such as
+ * navigating on click) is adapted into that shape by the service worker.
+ */
+export const notifications = createNotificationsService();
+export const serviceWorker = createServiceWorker(notifications);
 
 export const hashParams = getHashParamsFromLocation();
 const {params: paramsFromLocation} = getParamsFromLocation();

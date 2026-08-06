@@ -1,19 +1,31 @@
 <script lang="ts">
 	import {fly} from 'svelte/transition';
-	import {serviceWorker} from '$lib/core/config';
+	import type {ServiceWorkerStore} from '.';
 
-	// TODO
-	export let src: string;
-	export let alt: string;
+	interface Props {
+		serviceWorker: ServiceWorkerStore;
+		/** optional icon shown instead of the default glyph */
+		src?: string;
+		alt?: string;
+	}
+
+	const {serviceWorker, src, alt = ''}: Props = $props();
 
 	function skip() {
 		serviceWorker.skip();
 	}
 
 	function accept() {
-		console.log(`accepting update...`);
 		serviceWorker.skipWaiting();
 	}
+
+	const updateAvailable = $derived(
+		$serviceWorker &&
+			!$serviceWorker.notSupported &&
+			!$serviceWorker.registering &&
+			$serviceWorker.updateAvailable &&
+			$serviceWorker.registration,
+	);
 </script>
 
 <!-- Global notification live region, render this permanently at the end of the document -->
@@ -22,7 +34,7 @@
 	class="pointer-events-none fixed inset-0 flex items-end px-4 py-6 sm:items-start sm:p-6"
 >
 	<div class="flex w-full flex-col items-center space-y-4 sm:items-end">
-		{#if $serviceWorker && !$serviceWorker.notSupported && !$serviceWorker.registering && $serviceWorker.updateAvailable && $serviceWorker.registration}
+		{#if updateAvailable}
 			<!--
 		Notification panel, dynamically insert this into the live region when it needs to be displayed
   

@@ -1,6 +1,12 @@
 <script lang="ts">
 	import {fly} from 'svelte/transition';
-	import {notifications} from './';
+	import type {NotificationsService} from './';
+
+	interface Props {
+		notifications: NotificationsService;
+	}
+
+	const {notifications}: Props = $props();
 </script>
 
 <!-- Global notification live region, render this permanently at the end of the document -->
@@ -9,7 +15,7 @@
 	class="pointer-events-none fixed inset-0 flex items-end px-4 py-6 sm:items-start sm:p-6"
 >
 	<div class="flex w-full flex-col items-center space-y-4 sm:items-end">
-		{#each $notifications as notification}
+		{#each $notifications as notification (notification.id)}
 			<!--
 		Notification panel, dynamically insert this into the live region when it needs to be displayed
   
@@ -27,8 +33,8 @@
 				<div class="p-4">
 					<div class="flex items-start">
 						<div class="shrink-0">
-							{#if notification.data.options?.icon}
-								<img src={notification.data.options.icon} alt="icon" />
+							{#if notification.icon}
+								<img src={notification.icon} alt="icon" />
 							{:else}
 								<svg
 									class="size-6 text-gray-400"
@@ -49,18 +55,22 @@
 						</div>
 						<div class="ml-3 w-0 flex-1 pt-0.5">
 							<p class="text-sm font-medium text-gray-900">
-								{notification.data.title}
+								{notification.title}
 							</p>
-							<p class="mt-1 text-sm text-gray-500">
-								{notification.data.options.body}.
-							</p>
+							{#if notification.body}
+								<p class="mt-1 text-sm text-gray-500">
+									{notification.body}
+								</p>
+							{/if}
 							<div class="mt-3 flex space-x-7">
-								<button
-									type="button"
-									class="rounded-md bg-white text-sm font-medium text-gray-700 hover:text-gray-500 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none"
-									onclick={() => notifications.onClick(notification.id)}
-									>ok</button
-								>
+								{#if notification.action}
+									<button
+										type="button"
+										class="rounded-md bg-white text-sm font-medium text-gray-700 hover:text-gray-500 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none"
+										onclick={() => notifications.onAction(notification.id)}
+										>{notification.action.label}</button
+									>
+								{/if}
 								<button
 									type="button"
 									class="rounded-md bg-white text-sm font-medium text-gray-700 hover:text-gray-500 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none"
