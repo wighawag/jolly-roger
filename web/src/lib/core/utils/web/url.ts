@@ -138,10 +138,12 @@ export function isPrivateWindow(): Promise<boolean | null> {
 			if (isSafari) {
 				// Safari
 				let e = false;
+				// Non-standard Safari API for incognito detection
 				if ((window as any).safariIncognito) {
 					e = true;
 				} else {
 					try {
+						// Deprecated Web SQL API for Safari incognito detection
 						(window as any).openDatabase(null, null, null, null);
 						window.localStorage.setItem('test', '1');
 						resolve(false);
@@ -166,6 +168,7 @@ export function isPrivateWindow(): Promise<boolean | null> {
 				navigator.userAgent.includes('msie')
 			) {
 				// Edge or IE
+				// Legacy IE/Edge pointer events
 				if (
 					!window.indexedDB &&
 					(window.PointerEvent || (window as any).MSPointerEvent)
@@ -179,6 +182,7 @@ export function isPrivateWindow(): Promise<boolean | null> {
 					resolve(chrome76Detection());
 				}
 
+				// Non-standard Filesystem API for Chrome incognito detection
 				const fs =
 					(window as any).RequestFileSystem ||
 					(window as any).webkitRequestFileSystem;
@@ -186,6 +190,7 @@ export function isPrivateWindow(): Promise<boolean | null> {
 					resolve(null);
 				} else {
 					fs(
+						// Filesystem API constant
 						(window as any).TEMPORARY,
 						100,
 						() => resolve(false),
