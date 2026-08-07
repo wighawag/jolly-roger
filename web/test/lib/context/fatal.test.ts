@@ -1,5 +1,6 @@
 import {describe, it, expect, vi, afterEach} from 'vitest';
 import {get} from 'svelte/store';
+import {TARGET_STEP} from '$lib/core/connection/mode';
 
 // The two fatal reasons differ in WHEN they are raised, and that timing is
 // forced by hydration (ADR-0002):
@@ -30,7 +31,6 @@ async function loadContextWith(env: Record<string, string>) {
 		PUBLIC_NODE_URL: '',
 		PUBLIC_CHAIN_INFO_NODE_URL: '',
 		PUBLIC_WALLET_HOST: '',
-		PUBLIC_EXECUTION_MODE: '',
 		PUBLIC_USE_BURNER_WALLET: '',
 		PUBLIC_OPERATION_RETENTION_DAYS: '',
 		PUBLIC_ENS_NODE_URL: '',
@@ -51,17 +51,42 @@ describe('fatal', () => {
 		IMPORT_TIMEOUT,
 	);
 
-	it(
-		'is set at construction for an illegal env combination',
+	// Only meaningful when this app signs in. With TARGET_STEP set to
+	// 'WalletConnected' there is no signer, nothing needs an RPC of its own, and
+	// there is no such fatal to assert. Guarded explicitly rather than left to
+	// pass vacuously, so flipping the constant does not quietly drop coverage.
+	it.runIf(TARGET_STEP === 'SignedIn')(
+		'is set at construction when hosted sign-in has no RPC to broadcast through',
 		async () => {
-			// signer execution requires hosted sign-in (PUBLIC_WALLET_HOST).
+			// Hosted sign-in can authenticate an account with NO wallet (email,
+			// social), and the local signer then has nothing to fall back to, so an
+			// app RPC stops being optional.
 			const createContext = await loadContextWith({
-				PUBLIC_EXECUTION_MODE: 'signer',
+				PUBLIC_WALLET_HOST: 'https://wallet.example',
+				PUBLIC_NODE_URL: '',
 			});
 			const {context} = createContext();
 
 			// Known before anything mounts, so the error screen prerenders.
 			expect(get(context.fatal)).toEqual(expect.any(String));
+		},
+		IMPORT_TIMEOUT,
+	);
+
+	it.runIf(TARGET_STEP === 'SignedIn')(
+		'is unset for wallet-only sign-in with no RPC',
+		async () => {
+			// The default shape of this template: signs in (so there is a signer),
+			// no hosted service, nothing configured. Every account here arrived
+			// through a wallet, so the signer can broadcast through it, and refusing
+			// to start would make a fresh clone show an error screen for a problem
+			// it does not have.
+			const createContext = await loadContextWith({
+				PUBLIC_WALLET_HOST: '',
+				PUBLIC_NODE_URL: '',
+			});
+			const {context} = createContext();
+			expect(get(context.fatal)).toBe(undefined);
 		},
 		IMPORT_TIMEOUT,
 	);

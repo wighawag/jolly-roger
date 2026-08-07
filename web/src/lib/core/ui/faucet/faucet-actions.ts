@@ -57,7 +57,11 @@ export async function claimViaApi(params: {
 
 export type FaucetClaimDeps = Pick<
 	Context,
-	'executor' | 'balance' | 'deployments' | 'publicClient' | 'balanceCheck'
+	| 'accountExecutor'
+	| 'accountBalance'
+	| 'deployments'
+	| 'publicClient'
+	| 'balanceCheck'
 >;
 
 /**
@@ -65,17 +69,35 @@ export type FaucetClaimDeps = Pick<
  * flow), then refresh balance and notify the balance-check store so it can poll
  * for the balance change. Throws on failure.
  *
- * Funds the address that actually pays for transactions (the executor address):
- * the wallet/owner in wallet mode, the local signer in signer mode.
+ * Funds the AUTHENTICATED ACCOUNT by default, and never the local signer. The
+ * signer is funded by buying credits through the payment connection (see
+ * lib/ui/credits), which is the flow a real deployment uses; pointing the
+ * faucet at the signer would let local development take a shortcut that
+ * production does not have, and hide the flow that matters.
+ *
+ * `target` overrides the address, for the one account that is neither of those:
+ * the PAYER behind the payment connection. Buying credits needs a funded payer,
+ * and on a local chain that payer is a fresh empty account, so without this the
+ * flow is impossible to exercise. It still goes through the purchase, which is
+ * the point; the faucet only supplies the money the purchase spends.
  */
 export async function claimFaucet(
 	deps: FaucetClaimDeps,
 	config: {faucetApi?: string; faucetLink: string},
+	target?: `0x${string}`,
 ): Promise<void> {
-	const {executor, balance, deployments, publicClient, balanceCheck} = deps;
+	const {
+		accountExecutor,
+		accountBalance,
+		deployments,
+		publicClient,
+		balanceCheck,
+	} = deps;
 
-	const $executor = get(executor);
-	const address = $executor.status === 'ready' ? $executor.address : undefined;
+	const $executor = get(accountExecutor);
+	const executorAddress =
+		$executor.status === 'ready' ? $executor.address : undefined;
+	const address = target ?? executorAddress;
 	if (!address) {
 		throw new Error(`no account for faucet`);
 	}
@@ -97,11 +119,18 @@ export async function claimFaucet(
 	}
 
 	// Record pre-faucet balance before triggering update.
-	const currentBalance = get(balance);
+	const currentBalance = get(accountBalance);
 	const preFaucetBalance =
 		currentBalance.step === 'Loaded' ? currentBalance.value : 0n;
 	// Trigger immediate balance refresh.
-	balance.update();
-	// Notify the balance check store to poll for balance change.
-	balanceCheck.markFaucetClaimed(preFaucetBalance);
+	accountBalance.update();
+
+	// Only tell the balance-check store when the account it MEASURES was funded.
+	// It polls for a change to unblock a transaction that could not be afforded;
+	// pointing it at a claim made for the payer would leave it waiting for a
+	// change that is never coming, and then inviting the user to continue into
+	// the same failure.
+	if (address === executorAddress) {
+		balanceCheck.markFaucetClaimed(preFaucetBalance);
+	}
 }

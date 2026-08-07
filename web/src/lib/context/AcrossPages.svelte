@@ -9,7 +9,7 @@
 	import AccountCannotSendModal from '$lib/core/transaction/AccountCannotSendModal.svelte';
 	import ErrorDetailsModal from '$lib/core/transaction/ErrorDetailsModal.svelte';
 
-	const {connection} = getAppContext();
+	const {connection, payment} = getAppContext();
 </script>
 
 {#if params.transactions}
@@ -21,6 +21,12 @@
 {/if}
 
 <ConnectionFlow {connection} />
+<!-- The PAYMENT connection needs its own flow, or any step that requires the
+     user (choosing between two installed wallets, approving a connection)
+     happens with nothing on screen: the click just hangs. It is a separate
+     connection, so one flow cannot serve both. Renders nothing until that
+     connection actually starts connecting, which only a payment triggers. -->
+<ConnectionFlow connection={payment.connection} />
 <PendingOperationModal />
 
 <InsufficientFundsModal />

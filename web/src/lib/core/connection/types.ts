@@ -82,8 +82,8 @@ import type {ChainConnection} from './remote';
  * `ChainConnection`) so call sites cannot accidentally ask it for a signer or a
  * sign-in it does not have.
  */
-export type {PaymentRail, PaymentRailProvider} from './remote';
-import type {PaymentRailProvider} from './remote';
+export type {PaymentRail} from './remote';
+import type {PaymentRail} from './remote';
 
 export type EstablishedConnection = {
 	connection: ChainConnection;
@@ -92,7 +92,7 @@ export type EstablishedConnection = {
 	account: AccountStore;
 	signer: OptionalSignerStore;
 	/** Second connection used only to pay, built on first use (see ./remote). */
-	payment: PaymentRailProvider;
+	payment: PaymentRail;
 	deployments: DeploymentsStore;
 	/** Debug-only runtime flag: when set, all RPC requests fail (see rpc-fault). */
 	forceRpcFailure: import('svelte/store').Writable<boolean>;

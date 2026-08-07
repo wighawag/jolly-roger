@@ -1,85 +1,81 @@
 import {describe, it, expect} from 'vitest';
 import {
-	parseExecutionMode,
-	resolveConnectionMode,
+	resolveConnectionConfig,
+	TARGET_STEP,
 } from '../../../../src/lib/core/connection/mode';
 
-describe('parseExecutionMode', () => {
-	it("defaults to 'wallet' when empty or absent", () => {
-		expect(parseExecutionMode(undefined)).toBe('wallet');
-		expect(parseExecutionMode('')).toBe('wallet');
-		expect(parseExecutionMode('  ')).toBe('wallet');
+describe('resolveConnectionConfig', () => {
+	it('offers hosted mechanisms when a host is configured', () => {
+		const c = resolveConnectionConfig('SignedIn', 'https://wallet.example');
+		expect(c).toEqual({
+			targetStep: 'SignedIn',
+			walletHost: 'https://wallet.example',
+			walletOnly: false,
+		});
 	});
 
-	it('accepts wallet and signer (case-insensitive)', () => {
-		expect(parseExecutionMode('wallet')).toBe('wallet');
-		expect(parseExecutionMode('signer')).toBe('signer');
-		expect(parseExecutionMode('SIGNER')).toBe('signer');
-		expect(parseExecutionMode('Wallet')).toBe('wallet');
+	it('signs in with built-in wallets only when there is no host', () => {
+		// The point of the split: a signer needs no backend. Sign-in still happens
+		// (so there is still a local signer), it just cannot offer email or social,
+		// which are popup flows served BY the host.
+		const c = resolveConnectionConfig('SignedIn', undefined);
+		expect(c).toEqual({
+			targetStep: 'SignedIn',
+			walletHost: undefined,
+			walletOnly: true,
+		});
 	});
 
-	it('rejects unrecognised values (returns undefined for fail-fast)', () => {
-		expect(parseExecutionMode('singer')).toBeUndefined();
-		expect(parseExecutionMode('local')).toBeUndefined();
-		expect(parseExecutionMode('true')).toBeUndefined();
+	it('leaves the target step alone: the host never decides it', () => {
+		// The regression this guards: inferring "can this app have a signer" from
+		// PUBLIC_WALLET_HOST. A hostless app can still sign in, and an app that
+		// stops at WalletConnected has no signer even with a host configured.
+		expect(
+			resolveConnectionConfig('WalletConnected', undefined).targetStep,
+		).toBe('WalletConnected');
+		expect(
+			resolveConnectionConfig('WalletConnected', 'https://wallet.example')
+				.targetStep,
+		).toBe('WalletConnected');
+		expect(resolveConnectionConfig('SignedIn', undefined).targetStep).toBe(
+			'SignedIn',
+		);
+	});
+
+	it.each([undefined, '', '   '])(
+		'treats a blank host (%p) as no host',
+		(raw) => {
+			const c = resolveConnectionConfig('SignedIn', raw);
+			expect(c.walletHost).toBe(undefined);
+			expect(c.walletOnly).toBe(true);
+		},
+	);
+
+	it('trims a configured host', () => {
+		expect(
+			resolveConnectionConfig('SignedIn', '  https://wallet.example  ')
+				.walletHost,
+		).toBe('https://wallet.example');
+	});
+
+	it('is total: every combination resolves', () => {
+		// There is no illegal combination left to reject. The one that used to
+		// exist (signer execution with no signer) went away with the execution
+		// mode: call sites now name the executor they want, and one with no signer
+		// behind it is simply never ready.
+		for (const step of ['SignedIn', 'WalletConnected'] as const) {
+			for (const host of [undefined, 'https://wallet.example']) {
+				expect(resolveConnectionConfig(step, host).targetStep).toBe(step);
+			}
+		}
 	});
 });
 
-describe('resolveConnectionMode', () => {
-	it('WalletConnected + wallet: the default (no walletHost, no mode)', () => {
-		const r = resolveConnectionMode(undefined, undefined);
-		expect(r).toEqual({
-			ok: true,
-			mode: {
-				targetStep: 'WalletConnected',
-				walletHost: undefined,
-				executionMode: 'wallet',
-			},
-		});
-	});
-
-	it('SignedIn + wallet: walletHost set, wallet execution', () => {
-		const r = resolveConnectionMode('https://example.com', 'wallet');
-		expect(r).toEqual({
-			ok: true,
-			mode: {
-				targetStep: 'SignedIn',
-				walletHost: 'https://example.com',
-				executionMode: 'wallet',
-			},
-		});
-	});
-
-	it('SignedIn + signer: walletHost set, signer execution', () => {
-		const r = resolveConnectionMode('https://example.com', 'signer');
-		expect(r).toEqual({
-			ok: true,
-			mode: {
-				targetStep: 'SignedIn',
-				walletHost: 'https://example.com',
-				executionMode: 'signer',
-			},
-		});
-	});
-
-	it('rejects the illegal combination: signer execution without SignedIn', () => {
-		const r = resolveConnectionMode(undefined, 'signer');
-		expect(r.ok).toBe(false);
-		if (!r.ok) expect(r.error).toMatch(/PUBLIC_WALLET_HOST/);
-	});
-
-	it('rejects unrecognised execution mode values', () => {
-		const r = resolveConnectionMode('https://example.com', 'singer');
-		expect(r.ok).toBe(false);
-		if (!r.ok) expect(r.error).toMatch(/Unrecognised/);
-	});
-
-	it('treats a whitespace-only walletHost as absent', () => {
-		const r = resolveConnectionMode('   ', undefined);
-		expect(r.ok).toBe(true);
-		if (r.ok) {
-			expect(r.mode.targetStep).toBe('WalletConnected');
-			expect(r.mode.walletHost).toBeUndefined();
-		}
+describe('TARGET_STEP', () => {
+	it('is a configured constant, not read from env', () => {
+		// This branch signs in, because its whole point is having a local signer.
+		// A descendant that does not want one changes this single line, and every
+		// other decision follows from it.
+		expect(TARGET_STEP).toBe('SignedIn');
 	});
 });

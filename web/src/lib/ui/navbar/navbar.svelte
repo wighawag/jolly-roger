@@ -33,15 +33,8 @@
 	} = $props();
 
 	const context = getAppContext();
-	const {
-		connection,
-		accountData,
-		balance,
-		executionMode,
-		gasFee,
-		clock,
-		deployments,
-	} = context;
+	const {connection, accountData, accountBalance, gasFee, clock, deployments} =
+		context;
 
 	// The signer's own funding view (credits when the chain prices an action,
 	// native currency otherwise). Every decision about what it shows lives in
@@ -49,7 +42,6 @@
 	// poll, so a deployment with no signer never polls for one.
 	const creditsView = createCreditsViewStore({
 		...context,
-		signerIsSpender: executionMode === 'signer',
 		credits: context.credits,
 	});
 
@@ -66,14 +58,14 @@
 
 	// Derive formatted balance
 	let formattedBalance = $derived.by(() => {
-		if ($balance.step === 'Loaded') {
-			return formatBalance($balance.value, 18, 6);
+		if ($accountBalance.step === 'Loaded') {
+			return formatBalance($accountBalance.value, 18, 6);
 		}
 		return null;
 	});
 
 	// Balance status store
-	const balanceStatus = balance.status;
+	const balanceStatus = accountBalance.status;
 
 	// Format time ago for stale indicator (reactive to clock store)
 	function formatTimeAgo(timestamp: number): string {
@@ -321,11 +313,10 @@
 				<div class="mt-4 flex flex-col gap-2 border-t border-border px-4 pt-4">
 					<div class="flex flex-col gap-1 rounded-md bg-muted/50 px-3 py-2">
 						<div class="flex items-center justify-between">
-							<!-- The SPENDING balance: the wallet in wallet mode, the local
-							     signer in signer mode. The signer's own section below names
-							     the account and adds what it needs; this row stays about
-							     whoever is paying, which is what the errors and the faucet
-							     underneath it are about. -->
+							<!-- The user's OWN account. The signer's gas is its own section
+							     below, in its own units; this row, its errors and the faucet
+							     under it are all about the account the user thinks of as
+							     theirs. -->
 							<span class="text-sm text-muted-foreground">Balance</span>
 							{#if $balanceStatus.loading && formattedBalance === null}
 								<Spinner class="h-4 w-4" />
@@ -355,7 +346,7 @@
 								</span>
 								<button
 									class="flex items-center gap-1 text-xs text-primary hover:underline"
-									onclick={() => balance.update()}
+									onclick={() => accountBalance.update()}
 								>
 									<RefreshCwIcon class="h-3 w-3" />
 									Retry
@@ -363,7 +354,7 @@
 							</div>
 						{/if}
 
-						{#if hasFaucet && $balance.step === 'Loaded' && $balance.value === 0n}
+						{#if hasFaucet && $accountBalance.step === 'Loaded' && $accountBalance.value === 0n}
 							<FaucetButton />
 						{/if}
 					</div>

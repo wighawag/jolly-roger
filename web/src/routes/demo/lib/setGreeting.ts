@@ -17,7 +17,12 @@ export type SetGreetingResult =
 
 export type SetGreetingDeps = Pick<
 	Context,
-	'connection' | 'executor' | 'deployments' | 'balanceCheck'
+	| 'connection'
+	| 'signerExecutor'
+	| 'signerBalance'
+	| 'hasLocalSigner'
+	| 'deployments'
+	| 'balanceCheck'
 >;
 
 /**
@@ -36,7 +41,20 @@ export async function setGreeting(
 	deps: SetGreetingDeps,
 	message: string,
 ): Promise<SetGreetingResult> {
-	const {connection, executor, deployments, balanceCheck} = deps;
+	// `signerExecutor`, explicitly: this is the app acting for the user, which is
+	// what the local signer is for, and it sends without a wallet prompt. Sending
+	// a greeting is not the user's money moving, so it never wants
+	// `accountExecutor`. An app whose TARGET_STEP is 'WalletConnected' has no
+	// signer, so this executor never becomes ready and the UI says so, rather
+	// than silently prompting for something the user did not ask to sign.
+	const {
+		connection,
+		signerExecutor,
+		signerBalance,
+		hasLocalSigner,
+		deployments,
+		balanceCheck,
+	} = deps;
 
 	const trimmed = message.trim();
 	if (!trimmed) return {status: 'cancelled'};
@@ -45,19 +63,42 @@ export async function setGreeting(
 		await connection.ensureConnected();
 		const $deployments = get(deployments);
 
-		const $executor = get(executor);
+		const $executor = get(signerExecutor);
 		if ($executor.status === 'cannot-send') return {status: 'cannot-send'};
-		if ($executor.status !== 'ready') return {status: 'cancelled'};
+		if ($executor.status !== 'ready') {
+			// Not-ready has two very different causes, and they must not be
+			// conflated. Mid-connection is transient and silence is right. But an
+			// app whose TARGET_STEP is 'WalletConnected' has no signer and never
+			// will, so staying silent would leave a Send button that does nothing,
+			// forever, with no way to find out why.
+			if (!hasLocalSigner) {
+				return {
+					status: 'error',
+					message: 'This app cannot send greetings.',
+					details:
+						'This call site sends through the local signer, and TARGET_STEP is ' +
+						"'WalletConnected', so there is no signer to send from. Either set " +
+						"TARGET_STEP to 'SignedIn' (see core/connection/mode.ts), or change " +
+						'this call site to use accountExecutor and send from the user' +
+						"'s own account with a wallet prompt.",
+				};
+			}
+			return {status: 'cancelled'};
+		}
 
-		const contractRequest = await balanceCheck.ensureCanAfford({
-			contract: {
-				address: $deployments.contracts.GreetingsRegistry.address,
-				abi: $deployments.contracts.GreetingsRegistry.abi,
-				functionName: 'setMessage',
-				args: [trimmed],
-				account: $executor.account,
+		const contractRequest = await balanceCheck.ensureCanAfford(
+			{
+				contract: {
+					address: $deployments.contracts.GreetingsRegistry.address,
+					abi: $deployments.contracts.GreetingsRegistry.abi,
+					functionName: 'setMessage',
+					args: [trimmed],
+					account: $executor.account,
+				},
 			},
-		});
+			// Measured against the SIGNER's gas, because the signer is what pays.
+			{balance: signerBalance, sender: $executor.address},
+		);
 
 		await $executor.client.writeContract(contractRequest);
 		return {status: 'submitted'};

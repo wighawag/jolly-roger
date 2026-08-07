@@ -50,50 +50,67 @@ function attachTrackedClient(
 
 /// Listen for broadcasted transactions and save them in the Account Data.
 ///
-/// Attaches to the always-present wallet-mode client, and, so signer-mode
-/// transactions are tracked identically, to the signer client the executor
-/// exposes in signer mode. At most ONE signer client is attached at a time:
-/// when the executor exposes a different client (re-sign-in as a different
-/// identity derives a different key, hence a new client), the previous
-/// client's listeners are detached first. This is a correctness requirement,
-/// not just hygiene: `accountData` follows the CURRENT account, so a stale
-/// client's late events would be looked up in (or worse, written into) the
-/// wrong account's data.
+/// Attaches to the always-present wallet-mode client, and to every executor's
+/// client, so a transaction is recorded whichever account signed it. That is
+/// what puts the signer's silent work and the user's own prompted transactions
+/// in ONE list: Account Data is keyed by the authenticated account, not by the
+/// sender, so they belong to the same player and a consumer that wants them
+/// apart filters on `from`.
+///
+/// Clients are attached by IDENTITY, and at most one per executor at a time:
+/// - the wallet client is attached once and never swapped (in account execution
+///   the sender is always the current account);
+/// - an executor whose client IS the wallet client adds nothing;
+/// - two executors sharing one client (both pointed at the same signer) attach
+///   it once;
+/// - when an executor exposes a DIFFERENT client (re-sign-in as another
+///   identity derives another key), the previous one is detached first. That is
+///   correctness, not hygiene: `accountData` follows the CURRENT account, so a
+///   stale client's late events would be written into the wrong account's data.
 export function createTrackedWalletConnector(params: {
 	walletClient: TrackedTxSource;
-	executor: ExecutorStore;
+	executors: readonly ExecutorStore[];
 	accountData: MultiAccountDataStore;
 }) {
-	const {accountData, walletClient, executor} = params;
+	const {accountData, walletClient, executors} = params;
 
 	return createConnector(() => {
-		// Wallet-mode client: one instance for the app's lifetime, always attached
-		// (in wallet mode the sender is always the current account, so its events
-		// always belong to the current account's data).
 		const walletTeardown = attachTrackedClient(walletClient, accountData);
 
-		let signerClient: TrackedTxSource | undefined;
-		let signerTeardown: (() => void) | undefined;
+		// Per-executor, so one executor swapping its client never detaches
+		// another's. Keyed by position rather than by the executor object, which
+		// keeps this independent of how many there are.
+		const attached: (TrackedTxSource | undefined)[] = executors.map(
+			() => undefined,
+		);
+		const teardowns: ((() => void) | undefined)[] = executors.map(
+			() => undefined,
+		);
 
-		const unsubscribe = executor.subscribe(($executor) => {
-			// Transient not-ready states (reconnection steps) keep the current
-			// attachment: detaching would drop follow-up events (e.g.
-			// transaction:fetched) for a same-account reconnect. Only an actual
-			// REPLACEMENT client (a different identity) triggers a swap.
-			if ($executor.status !== 'ready') return;
-			const client = $executor.client;
-			// In wallet mode the executor's client IS the wallet-mode client, which
-			// is already attached above; attaching again would double-record every
-			// transaction.
-			if (client === walletClient || client === signerClient) return;
-			signerTeardown?.();
-			signerClient = client;
-			signerTeardown = attachTrackedClient(client, accountData);
-		});
+		/** Whether some OTHER slot already listens to this exact client. */
+		const attachedElsewhere = (client: TrackedTxSource, self: number) =>
+			attached.some((c, i) => i !== self && c === client);
+
+		const unsubscribes = executors.map((executor, i) =>
+			executor.subscribe(($executor) => {
+				// Transient not-ready states (reconnection steps) keep the current
+				// attachment: detaching would drop follow-up events (e.g.
+				// transaction:fetched) for a same-account reconnect. Only an actual
+				// REPLACEMENT client triggers a swap.
+				if ($executor.status !== 'ready') return;
+				const client = $executor.client;
+				if (client === walletClient || client === attached[i]) return;
+				teardowns[i]?.();
+				attached[i] = client;
+				teardowns[i] = attachedElsewhere(client, i)
+					? undefined
+					: attachTrackedClient(client, accountData);
+			}),
+		);
 
 		return () => {
-			unsubscribe();
-			signerTeardown?.();
+			for (const u of unsubscribes) u();
+			for (const t of teardowns) t?.();
 			walletTeardown();
 		};
 	});

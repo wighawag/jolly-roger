@@ -6,6 +6,7 @@ import type {
 import {get} from 'svelte/store';
 import type {BalanceCheckStore} from '$lib/core/transaction/balance-check-store';
 import type {ExecutorStore} from '$lib/core/connection/executor';
+import type {BalanceStore} from '$lib/core/connection/balance';
 import {InsufficientFundsError} from '$lib/core/transaction';
 import {isUserRejectionError} from '$lib/core/transaction/user-rejection';
 import {convertInputValues} from './utils';
@@ -54,7 +55,13 @@ export type ExecuteContractWriteResult =
  */
 export async function executeContractWrite(params: {
 	connection: AnyConnectionStore<UnderlyingEthereumProvider>;
+	/**
+	 * Which account to send from. The contracts page is a developer tool for
+	 * calling arbitrary functions, so the caller names the executor rather than
+	 * this guessing one, and passes the balance that executor spends.
+	 */
 	executor: ExecutorStore;
+	balance: BalanceStore;
 	balanceCheck: BalanceCheckStore;
 	abiItem: AbiFunction;
 	contractAddress: string;
@@ -63,6 +70,7 @@ export async function executeContractWrite(params: {
 	const {
 		connection,
 		executor,
+		balance,
 		balanceCheck,
 		abiItem,
 		contractAddress,
@@ -87,15 +95,18 @@ export async function executeContractWrite(params: {
 	if ($executor.status !== 'ready') return {status: 'cancelled'};
 
 	try {
-		const contractRequest = await balanceCheck.ensureCanAfford({
-			contract: {
-				address: contractAddress as `0x${string}`,
-				abi: [abiItem],
-				functionName: abiItem.name,
-				args: args as any,
-				account: $executor.account,
+		const contractRequest = await balanceCheck.ensureCanAfford(
+			{
+				contract: {
+					address: contractAddress as `0x${string}`,
+					abi: [abiItem],
+					functionName: abiItem.name,
+					args: args as any,
+					account: $executor.account,
+				},
 			},
-		});
+			{balance, sender: $executor.address},
+		);
 
 		const hash = await $executor.client.writeContract(contractRequest);
 		return {status: 'submitted', transactionHash: hash};

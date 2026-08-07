@@ -1,5 +1,11 @@
 import {describe, it, expect} from 'vitest';
-import {BaseError, ContractFunctionExecutionError} from 'viem';
+import {
+	BaseError,
+	ContractFunctionExecutionError,
+	InvalidParamsRpcError,
+	RpcRequestError,
+	TransactionExecutionError,
+} from 'viem';
 import {
 	txErrorSummary,
 	txErrorDetails,
@@ -50,5 +56,40 @@ describe('txErrorDetails', () => {
 
 	it('stringifies non-Error values', () => {
 		expect(txErrorDetails('boom')).toBe('boom');
+	});
+});
+
+describe('txErrorSummary: generic RPC categories', () => {
+	it('prefers the node reason when viem only knows the RPC category', () => {
+		// Hardhat reports "not enough funds" under -32602, which viem renders as
+		// "Invalid parameters were provided to the RPC method". Telling a user to
+		// check their parameters when their account is empty sends them looking in
+		// entirely the wrong place. Observed for real; this is that case.
+		const rpc = new RpcRequestError({
+			body: {},
+			error: {
+				code: -32602,
+				message:
+					"Sender doesn't have enough funds to send tx. The max upfront cost is: 1436988602448 and the sender's balance is: 0.",
+			},
+			url: 'http://localhost:8545',
+		});
+		const error = new TransactionExecutionError(
+			new InvalidParamsRpcError(rpc),
+			{
+				account: null,
+			},
+		);
+
+		const summary = txErrorSummary(error);
+		expect(summary).toContain("doesn't have enough funds");
+		expect(summary.toLowerCase()).not.toContain('invalid parameters');
+	});
+
+	it('keeps viem the summary when viem models the error properly', () => {
+		// A revert or a rejection is better described by viem than by the node's
+		// raw text, so those must not be overridden.
+		const error = new BaseError('boom', {details: 'raw node noise'});
+		expect(txErrorSummary(error)).toBe('boom');
 	});
 });

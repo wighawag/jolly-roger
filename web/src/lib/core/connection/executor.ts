@@ -2,7 +2,6 @@ import {derived, type Readable} from 'svelte/store';
 import type {Account, Transport} from 'viem';
 import type {TrackedWalletClientAutoPopulate} from '@etherkit/viem-tx-tracker';
 import type {TransactionMetadata} from '$lib/account/AccountData';
-import type {ExecutionMode} from './mode';
 import type {ChainConnection, ChainInfo} from './types';
 
 /**
@@ -18,14 +17,18 @@ import type {ChainConnection, ChainInfo} from './types';
  * tx-tracker metadata still apply at the call site. Only the underlying
  * transport/account differ between modes, which is invisible to the types.
  *
- * Two execution modes (see ./mode):
- * - `wallet`: send from the connected wallet account via the connection
+ * An executor is pinned to WHO SIGNS, chosen at construction, and the app
+ * builds one of each (see lib/context). There is no mode: a call site picks the
+ * executor whose account is the right one for what it is doing.
+ *
+ * - `account`: send from the authenticated account, via the connection
  *   provider. An account with no wallet (email/social sign-in) resolves to
- *   `cannot-send`.
+ *   `cannot-send`, because there is nothing to sign with.
  * - `signer`: send from the local signer (a private key derived at sign-in),
  *   using the client built by the caller-supplied {@link SignerClientFactory}
- *   (typically broadcasting over the node RPC). Works for every account
- *   (including wallet-authenticated ones).
+ *   (typically broadcasting over the node RPC). Never `cannot-send`: either
+ *   there is a signer and it can always sign, or the app does not sign in at
+ *   all and this stays `not-connected` for its whole life.
  */
 
 /**
@@ -87,32 +90,52 @@ export type SignerClientFactory = (privateKey: `0x${string}`) => {
 	account: Account;
 };
 
+/**
+ * Wrap a signer-client factory so that one key yields one client OBJECT.
+ *
+ * Not an optimisation. Every executor pointed at the same signer must get the
+ * literally same client, because transaction tracking attaches listeners per
+ * client and identifies them by reference (see account/connectors). Two objects
+ * for one key means the second is a client nobody listens to, and everything it
+ * sends silently never reaches the user's transaction list. That failure is
+ * invisible: the transactions still go through, they just stop being reported.
+ *
+ * One key at a time, deliberately: re-signing in as a different identity
+ * derives a different key, and the old client must fall out of use rather than
+ * linger in a map keyed by a stale secret.
+ */
+export function memoiseSignerClient(
+	build: SignerClientFactory,
+): SignerClientFactory {
+	let key: string | undefined;
+	let cached: ReturnType<SignerClientFactory> | undefined;
+	return (privateKey) => {
+		if (key !== privateKey || !cached) {
+			cached = build(privateKey);
+			key = privateKey;
+		}
+		return cached;
+	};
+}
+
 export function createExecutor(params: {
 	connection: ChainConnection;
-	/** Tracked client bound to the connection provider (wallet execution). */
+	/** Tracked client bound to the connection provider (account execution). */
 	walletClient: ExecutorClient;
-	executionMode: ExecutionMode;
-	/** Builds the signer-mode client (see {@link SignerClientFactory}). */
+	/** Which account this executor sends from. */
+	sendFrom: 'account' | 'signer';
+	/**
+	 * Builds the signer client (see {@link SignerClientFactory}).
+	 *
+	 * Expected to be memoised BY THE CALLER, so that every executor asking for
+	 * the same key gets the same client object. Transaction tracking identifies
+	 * clients by reference, so two objects for one key means one of them is
+	 * untracked. This function no longer caches internally, precisely so that
+	 * responsibility sits in one place instead of once per executor.
+	 */
 	buildSignerClient: SignerClientFactory;
 }): ExecutorStore {
-	const {connection, walletClient, executionMode, buildSignerClient} = params;
-
-	// Cache the signer client + account by private key so we do not rebuild them
-	// on every connection emission (the key is stable for a given sign-in).
-	let signerCacheKey: string | undefined;
-	let signerCache: ReturnType<SignerClientFactory> | undefined;
-
-	function signerMode(privateKey: `0x${string}`): {
-		client: ExecutorClient;
-		account: Account;
-	} {
-		if (signerCacheKey === privateKey && signerCache) {
-			return signerCache;
-		}
-		signerCache = buildSignerClient(privateKey);
-		signerCacheKey = privateKey;
-		return signerCache;
-	}
+	const {connection, walletClient, sendFrom, buildSignerClient} = params;
 
 	return derived<ChainConnection, ExecutorState>(
 		connection,
@@ -120,10 +143,10 @@ export function createExecutor(params: {
 			const hasAccount = 'account' in $connection && !!$connection.account;
 			if (!hasAccount) return {status: 'not-connected'};
 
-			if (executionMode === 'signer') {
+			if (sendFrom === 'signer') {
 				// Requires a local signer, only present once SignedIn.
 				if ($connection.step === 'SignedIn') {
-					const {client, account} = signerMode(
+					const {client, account} = buildSignerClient(
 						$connection.account.signer.privateKey,
 					);
 					return {
@@ -133,12 +156,13 @@ export function createExecutor(params: {
 						client,
 					};
 				}
-				// Signed in via wallet but signature not yet obtained: not ready to
-				// send from a signer yet (the sign-in flow will produce one).
+				// Either the signature is not in yet (the sign-in flow will produce
+				// one), or this app never signs in and there will never be a signer.
+				// Both are "nothing to send with", which a call site already handles.
 				return {status: 'not-connected'};
 			}
 
-			// wallet execution mode: send from the connected wallet account.
+			// account execution: send from the authenticated account.
 			// Requires a wallet provider; email/social accounts (SignedIn without a
 			// wallet) cannot send directly. The address string is a JSON-RPC account,
 			// so the wallet signs via eth_sendTransaction.

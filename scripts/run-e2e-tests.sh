@@ -31,6 +31,15 @@ export E2E_RPC_URL="$RPC_URL"
 # .env.localhost without editing it.
 export ETH_NODE_URI_localhost="$RPC_URL"
 export PUBLIC_NODE_URL="$RPC_URL"
+# Also the WALLET-facing url, which .env.localhost pins to 127.0.0.1:8545.
+# Overriding PUBLIC_NODE_URL alone is not enough: this one is handed to the
+# wallet as the chain's RPC, so leaving it at 8545 points part of the stack at
+# whatever happens to be on that port - another project's chain, or nothing.
+# Either way the run is not isolated, which is the whole purpose of
+# E2E_RPC_PORT. Symptom when it goes wrong: reads return "0x" for contracts
+# that were definitely just deployed.
+export PUBLIC_CHAIN_INFO_NODE_URL="$RPC_URL"
+
 
 # Track the node for cleanup.
 #
@@ -165,12 +174,15 @@ echo -e "${GREEN}✓ Contracts deployed and exported${NC}"
 # Build web app
 echo -e "\n${GREEN}🔨 Building web app...${NC}"
 cd "$WEB_DIR"
-# Pin the e2e build to the default wallet-mode configuration. Exported shell
-# env has the highest priority in ldenv (it beats every .env file), so a
-# developer's .env.local overrides (e.g. PUBLIC_WALLET_HOST for testing hosted
-# sign-in) cannot leak into the e2e build, while manual `pnpm dev` remains
-# free to use them.
-PUBLIC_WALLET_HOST= PUBLIC_EXECUTION_MODE= pnpm build localhost
+# Pin the e2e build to wallet-only sign-in. Exported shell env has the highest
+# priority in ldenv (it beats every .env file), so a developer's .env.local
+# overrides (e.g. PUBLIC_WALLET_HOST for testing hosted sign-in) cannot leak
+# into the e2e build, while manual `pnpm dev` remains free to use them.
+#
+# The suite still exercises the signer: TARGET_STEP is code, not env, so the
+# build signs in either way and the demo sends through the local signer. What
+# this pin removes is the hosted popup flow, which needs a service to talk to.
+PUBLIC_WALLET_HOST= pnpm build localhost
 echo -e "${GREEN}✓ Web app built${NC}"
 
 # Run Playwright tests

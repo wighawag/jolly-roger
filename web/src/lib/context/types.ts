@@ -1,7 +1,6 @@
 import type {Account, CustomTransport} from 'viem';
 import type {Readable} from 'svelte/store';
 import type {BalanceStore} from '$lib/core/connection/balance';
-import type {SignerBalanceStore} from '$lib/core/connection/signerBalance';
 import type {GasFeeStore} from '$lib/core/connection/gasFee';
 import type {RpcHealthStore} from '$lib/core/connection/rpcHealth';
 import type {NonceCacheStore} from '$lib/core/connection/nonce-cache-store';
@@ -11,12 +10,11 @@ import type {
 	ChainConnection,
 	ChainInfo,
 	DeploymentsStore,
-	PaymentRailProvider,
+	PaymentRail,
 	TypedPublicClient,
 } from '$lib/core/connection/types';
 import type {CreditsConfig} from '$lib/core/connection/credits';
 import type {ExecutorStore} from '$lib/core/connection/executor';
-import type {ExecutionMode} from '$lib/core/connection/mode';
 import type {TrackedWalletClientAutoPopulate} from '@etherkit/viem-tx-tracker';
 import type {
 	MultiAccountDataStore,
@@ -63,29 +61,21 @@ export type Context = {
 	 */
 	fatal: Readable<string | undefined>;
 	gasFee: GasFeeStore;
-	/** Balance of the spending address (executor: wallet/owner or local signer). */
-	balance: BalanceStore;
 	/**
-	 * Balance of the authenticated account (wallet/owner). In wallet mode owner
-	 * and spender are the same account, so this is the SAME store instance as
-	 * `balance` (subscribing to both never polls twice); in signer mode it is a
-	 * separate poller for the owner (while `balance` follows the signer).
+	 * Balance of the authenticated account: what `accountExecutor` spends.
+	 *
+	 * One balance per executor, named the same way, so a call site that named the
+	 * executor it sends from names the matching balance and the two cannot drift.
 	 */
-	ownerBalance: BalanceStore;
+	accountBalance: BalanceStore;
 	/**
-	 * Balances of the LOCAL SIGNER and of its owner, polled together.
+	 * Gas held by the local signer: what `signerExecutor` spends.
 	 *
-	 * `balance`/`ownerBalance` follow ROLES (who pays, who is authenticated) and
-	 * so point at different addresses per execution mode; this one always points
-	 * at the signer, which is the account an app spends from when it sends moves
-	 * itself, and which holds nothing until someone funds it. Purely for
-	 * VISIBILITY (and for offering a top-up): transaction gating stays with
-	 * `balanceCheck`, which measures the executor.
-	 *
-	 * Inert when there is no signer: the poller is gated on the signer store, so
-	 * it never fetches before sign-in, nor in wallet-only deployments.
+	 * Its own account, not a view of another. The signer pays for whatever the
+	 * app does on the user's behalf and it starts empty, so this is what the
+	 * credits UI reads to say the user cannot move yet. Inert with no signer.
 	 */
-	signerBalance: SignerBalanceStore;
+	signerBalance: BalanceStore;
 	/**
 	 * How to denominate the signer's gas balance for the user, or undefined to
 	 * show native currency. Set only when the chain declares both an expected
@@ -94,12 +84,10 @@ export type Context = {
 	credits: CreditsConfig | undefined;
 	/**
 	 * The payment rail (buying credits): a second, wallet-only connection plus
-	 * its clients, built the FIRST time something asks for it. The payer is not
-	 * necessarily the player, and a session that never pays never builds it - nor
-	 * may it, while the app connection is still discovering wallets. See
-	 * core/connection/remote.
+	 * its clients. The payer is not necessarily the player. Dormant until
+	 * something calls `ensureConnected` on it. See core/connection/remote.
 	 */
-	payment: PaymentRailProvider;
+	payment: PaymentRail;
 	rpcHealth: RpcHealthStore;
 	/**
 	 * Wallet nonce-cache detection (dev + app-RPC only; a no-op store otherwise).
@@ -137,15 +125,24 @@ export type Context = {
 	 */
 	walletClient: WalletClient;
 	/**
-	 * Mode-agnostic transaction executor (wallet account vs local signer).
-	 * Prefer this over `walletClient` for sending transactions: it resolves the
-	 * correct `from` address and client, and reports when the connected account
-	 * cannot send under the configured execution mode.
+	 * Sends from the AUTHENTICATED ACCOUNT, with a wallet prompt. Use it for
+	 * anything only that account may do, or that moves the user's own money.
+	 * Reports `cannot-send` for an account with no wallet (email/social sign-in).
 	 */
-	executor: ExecutorStore;
-	/** Configured execution mode ('wallet' or 'signer'). */
-	executionMode: ExecutionMode;
-	/** Notice shown when the connected account cannot send in the current mode. */
+	accountExecutor: ExecutorStore;
+	/**
+	 * Sends from the LOCAL SIGNER, silently. Use it for whatever the app does on
+	 * the user's behalf. Never `ready` in an app that does not sign in, which a
+	 * call site handles like any other not-ready state.
+	 */
+	signerExecutor: ExecutorStore;
+	/**
+	 * Whether this app signs in, and therefore has a local signer at all
+	 * (`targetStep === 'SignedIn'`). Never test `PUBLIC_WALLET_HOST` for this: a
+	 * wallet-only sign-in has no host and still derives a signer.
+	 */
+	hasLocalSigner: boolean;
+	/** Notice shown when the connected account cannot send. */
 	accountCannotSend: AccountCannotSendStore;
 	/** Full transaction-error text shown on demand (the toast shows a summary). */
 	errorDetails: ErrorDetailsStore;

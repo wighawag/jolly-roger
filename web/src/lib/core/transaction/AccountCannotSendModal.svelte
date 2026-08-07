@@ -34,9 +34,11 @@
 			>
 				<WrenchIcon class="mt-0.5 h-4 w-4 shrink-0" />
 				<span>
-					Dev note: to let email/social accounts transact, set
-					<code class="font-mono">PUBLIC_EXECUTION_MODE=signer</code> so transactions
-					are sent from the local signer instead of a wallet.
+					Dev note: this call site used
+					<code class="font-mono">accountExecutor</code>, which needs a wallet
+					to sign. If the action does not have to come from the user's own
+					account, send it through <code class="font-mono">signerExecutor</code> instead:
+					the local signer works for every account, email and social included.
 				</span>
 			</p>
 		{/if}

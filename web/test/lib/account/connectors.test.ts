@@ -47,7 +47,7 @@ function setup(executorInitial: unknown) {
 	const {added, accountData} = makeFakeAccountData();
 	const connector = createTrackedWalletConnector({
 		walletClient: walletClient as never,
-		executor: executor as never,
+		executors: [executor as never],
 		accountData,
 	});
 	return {walletClient, executor, connector, added};
@@ -66,7 +66,7 @@ describe('createTrackedWalletConnector', () => {
 		expect(walletClient.listenerCount('transaction:broadcasted')).toBe(0);
 	});
 
-	it('does not double-attach when the executor exposes the wallet client (wallet mode)', () => {
+	it('does not double-attach when an executor exposes the wallet client', () => {
 		const walletClient = makeFakeClient();
 		const executor = writable({
 			status: 'ready',
@@ -77,7 +77,7 @@ describe('createTrackedWalletConnector', () => {
 		const {added, accountData} = makeFakeAccountData();
 		const connector = createTrackedWalletConnector({
 			walletClient: walletClient as never,
-			executor: executor as never,
+			executors: [executor as never],
 			accountData,
 		});
 		connector.connect();
@@ -141,6 +141,91 @@ describe('createTrackedWalletConnector', () => {
 			client: signerA,
 		});
 		expect(signerA.listenerCount('transaction:broadcasted')).toBe(1); // still exactly one
+
+		connector.disconnect();
+	});
+});
+
+describe('createTrackedWalletConnector with two executors', () => {
+	const ready = (client: unknown, address = '0x1') => ({
+		status: 'ready',
+		address,
+		account: address,
+		client,
+	});
+
+	it('records transactions from both accounts into one list', () => {
+		// Operations belong to the player, not to the key that signed. The
+		// signer's silent work and the user's own prompted transactions land in
+		// the same place, and a consumer that wants them apart filters on `from`.
+		const walletClient = makeFakeClient();
+		const signerClient = makeFakeClient();
+		const {added, accountData} = makeFakeAccountData();
+		const connector = createTrackedWalletConnector({
+			walletClient: walletClient as never,
+			executors: [
+				writable(ready(walletClient, '0x1')) as never,
+				writable(ready(signerClient, '0x2')) as never,
+			],
+			accountData,
+		});
+		connector.connect();
+
+		walletClient.emit('transaction:broadcasted', tx('0x01'));
+		signerClient.emit('transaction:broadcasted', tx('0x02'));
+		expect(added).toHaveLength(2);
+
+		connector.disconnect();
+		expect(walletClient.listenerCount('transaction:broadcasted')).toBe(0);
+		expect(signerClient.listenerCount('transaction:broadcasted')).toBe(0);
+	});
+
+	it('attaches a shared client once, not once per executor', () => {
+		// Both executors pointed at the same signer (which is what a memoised
+		// factory produces). Attaching twice would record every transaction twice.
+		const walletClient = makeFakeClient();
+		const signerClient = makeFakeClient();
+		const {added, accountData} = makeFakeAccountData();
+		const connector = createTrackedWalletConnector({
+			walletClient: walletClient as never,
+			executors: [
+				writable(ready(signerClient, '0x2')) as never,
+				writable(ready(signerClient, '0x2')) as never,
+			],
+			accountData,
+		});
+		connector.connect();
+
+		expect(signerClient.listenerCount('transaction:broadcasted')).toBe(1);
+		signerClient.emit('transaction:broadcasted', tx('0x01'));
+		expect(added).toHaveLength(1);
+
+		connector.disconnect();
+		expect(signerClient.listenerCount('transaction:broadcasted')).toBe(0);
+	});
+
+	it('one executor swapping its client leaves the other attached', () => {
+		const walletClient = makeFakeClient();
+		const signerClient = makeFakeClient();
+		const replacement = makeFakeClient();
+		const {accountData} = makeFakeAccountData();
+		const signerExecutor = writable(ready(signerClient, '0x2'));
+		const connector = createTrackedWalletConnector({
+			walletClient: walletClient as never,
+			executors: [
+				writable(ready(walletClient, '0x1')) as never,
+				signerExecutor as never,
+			],
+			accountData,
+		});
+		connector.connect();
+
+		// Re-sign-in as another identity: a different key, so a different client.
+		signerExecutor.set(ready(replacement, '0x3'));
+		expect(signerClient.listenerCount('transaction:broadcasted')).toBe(0);
+		expect(replacement.listenerCount('transaction:broadcasted')).toBe(1);
+		// The account executor is untouched by its neighbour's swap.
+		expect(walletClient.listenerCount('transaction:broadcasted')).toBe(1);
 
 		connector.disconnect();
 	});

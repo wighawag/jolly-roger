@@ -1,10 +1,11 @@
 import {
 	test as base,
 	expect,
+	type Locator,
 	type Page,
 	type BrowserContext,
 } from '@playwright/test';
-import {IMPERSONATE_ADDRESSES} from '../../src/lib/dev-accounts';
+import {parseImpersonateAddresses} from '../../src/lib/dev-accounts';
 
 /**
  * Extended test fixtures for E2E testing with wallet interactions.
@@ -15,8 +16,13 @@ import {IMPERSONATE_ADDRESSES} from '../../src/lib/dev-accounts';
  *    before any test code runs, ensuring complete isolation from auto-connect behavior
  */
 
-// The addresses the burner wallet can impersonate come from the single source
-// of truth shared with the app wiring: src/lib/dev-accounts.ts.
+// The addresses the burner wallet can impersonate, parsed with the SAME
+// function the app uses (src/lib/dev-accounts.ts) from the same env var, so the
+// tests and the app can never disagree about the list. Empty on a branch that
+// signs in, since an impersonated account has no key and cannot sign in.
+const IMPERSONATE_ADDRESSES = parseImpersonateAddresses(
+	(globalThis as any).process.env.PUBLIC_IMPERSONATE_ADDRESSES,
+);
 
 // Hardhat node URL. Use the IPv4 literal: the node binds to 127.0.0.1, and
 // Node's fetch can resolve `localhost` to ::1 first, failing intermittently.
@@ -28,6 +34,32 @@ const HARDHAT_RPC_URL =
 
 // The app's base URL comes from playwright.config.ts (`use.baseURL`), so tests
 // navigate with relative paths and nothing here needs to duplicate it.
+
+/**
+ * Read the addresses the app will actually send from, off its debug context.
+ *
+ * They cannot be known in advance: the burner generates its accounts, and the
+ * signer is derived from a signature at sign-in. Asking the app is the only way
+ * to learn them, and it is also the honest question, since these are exactly
+ * the accounts it will try to spend from.
+ */
+async function appSenderAddresses(
+	page: Page,
+): Promise<{account?: string; signer?: string}> {
+	return page.evaluate(() => {
+		const read = (store: any) => {
+			let value: any;
+			store.subscribe((v: any) => (value = v))();
+			return value;
+		};
+		const context = (globalThis as any).context;
+		if (!context) return {};
+		return {
+			account: read(context.accountExecutor)?.address,
+			signer: read(context.signerExecutor)?.address,
+		};
+	});
+}
 
 /**
  * Fund an address using Hardhat's hardhat_setBalance RPC method.
@@ -55,6 +87,48 @@ async function fundAddressViaHardhat(
 	if (!response.ok) {
 		throw new Error(`Failed to set balance: ${response.statusText}`);
 	}
+}
+
+/**
+ * Give the app's sender accounts a balance, and wait until the app has SEEN it.
+ *
+ * Waiting matters: `hardhat_setBalance` is instant on the node but the app only
+ * learns about it on its next poll, and a test that sends immediately would hit
+ * the insufficient-funds modal with a balance that is already stale.
+ */
+async function fundAppSenders(page: Page): Promise<void> {
+	const {account, signer} = await appSenderAddresses(page);
+	for (const address of [account, signer]) {
+		if (address) await fundAddressViaHardhat(address, '100');
+	}
+	if (!signer) return;
+	await expect
+		.poll(async () => (await appBalances(page)).signer ?? '0', {
+			timeout: 30_000,
+			message: 'app should observe the funded signer balance',
+		})
+		.not.toBe('0');
+}
+
+/** Balances as the APP currently sees them, as decimal strings. */
+async function appBalances(
+	page: Page,
+): Promise<{account?: string; signer?: string}> {
+	return page.evaluate(() => {
+		const read = (store: any) => {
+			let value: any;
+			store.subscribe((v: any) => (value = v))();
+			return value;
+		};
+		const context = (globalThis as any).context;
+		if (!context) return {};
+		const asString = (b: any) =>
+			b?.step === 'Loaded' ? b.value.toString() : undefined;
+		return {
+			account: asString(read(context.accountBalance)),
+			signer: asString(read(context.signerBalance)),
+		};
+	});
 }
 
 export interface WalletOptions {
@@ -132,6 +206,55 @@ async function expectWalletConnected(page: Page, timeout = 30_000) {
 }
 
 /**
+ * Click the account at `index` among the ones that can actually SIGN.
+ *
+ * The burner lists its own generated accounts alongside the impersonated ones
+ * from src/lib/dev-accounts. Impersonated addresses have no private key, so
+ * they can never sign the sign-in message: picking one leaves the connection
+ * stuck at WalletConnected forever, and the only symptom is a fixture timeout
+ * a long way from the cause. They are skipped, so `walletAccountIndex` counts
+ * real accounts and keeps meaning "give this test file its own account".
+ *
+ * They may render as a truncated hex address OR as a resolved ENS name
+ * (vitalik.eth), depending on whether ENS lookup succeeded, so both are
+ * excluded.
+ *
+ * Uses the DIRECT children of the list: each row nests a "Copy address" button,
+ * so a descendant selector would interleave copy buttons into the index space.
+ */
+async function pickSignableAccount(dialog: Locator, index: number) {
+	const rows = dialog.locator('.overflow-y-auto > button');
+	const count = await rows.count().catch(() => 0);
+	// Empty when impersonation is off, in which case nothing is skipped and this
+	// degenerates to picking the Nth row.
+	const impersonated = IMPERSONATE_ADDRESSES.map((a) =>
+		a.slice(0, 6).toLowerCase(),
+	);
+
+	let seen = -1;
+	for (let i = 0; i < count; i++) {
+		const label = (
+			(await rows
+				.nth(i)
+				.innerText()
+				.catch(() => '')) || ''
+		).trim();
+		const lower = label.toLowerCase();
+		if (impersonated.some((prefix) => lower.includes(prefix))) continue;
+		if (/\.eth\b/i.test(label)) continue;
+		seen++;
+		if (seen === index) {
+			await rows.nth(i).click();
+			return;
+		}
+	}
+	throw new Error(
+		`no signable burner account at index ${index} (of ${count} rows); ` +
+			'impersonated accounts cannot sign the sign-in message',
+	);
+}
+
+/**
  * Connect wallet via the burner wallet.
  *
  * The connect flow is a sequence of modals whose order varies with config and
@@ -191,24 +314,13 @@ async function connectWalletDevMode(
 				.first()
 				.click();
 		} else if (/accounts available, choose one/i.test(text)) {
-			// Account picker: pick the configured account in the scrollable list.
-			// Use the DIRECT children of the list: each account row button nests a
-			// "Copy address" button inside it, so a descendant selector ('div button')
-			// would interleave copy buttons into the index space and .nth(1) would hit
-			// account 0's copy button instead of account 1.
-			await dialog
-				.locator('.overflow-y-auto > button')
-				.nth(accountIndex)
-				.click();
+			await pickSignableAccount(dialog, accountIndex);
 		} else if (/confirm sign in/i.test(text)) {
 			// Under a sign-in target, the confirm dialog may be the COMBINED
 			// choose+sign-in modal (multi-account wallet): select the configured
-			// account row first (same direct-child locator as the plain picker),
-			// then sign. With no rows (single-account confirm), just sign.
-			const rows = dialog.locator('.overflow-y-auto > button');
-			if ((await rows.count()) > accountIndex) {
-				await rows.nth(accountIndex).click();
-			}
+			// account row first, then sign. With no rows (single-account confirm),
+			// just sign.
+			await pickSignableAccount(dialog, accountIndex);
 			await page.getByRole('button', {name: /^sign in$/i}).click();
 		} else if (/insufficient funds|funds available/i.test(text)) {
 			// Funding is handled by handleInsufficientFundsModal below.
@@ -447,6 +559,14 @@ export const test = base.extend<WalletFixtures & WalletOptions>({
 		// Never hand a test a page that is not actually connected.
 		await expectWalletConnected(page);
 
+		// Fund whatever the app will spend from. This has to happen AFTER
+		// connecting: the burner generates its accounts and the signer is derived
+		// at sign-in, so neither address exists before this point. The signer
+		// especially starts empty by nature - it is a fresh key, not the user's
+		// funded wallet - and it is what the demo sends through, so without this
+		// every write test would fail for want of gas.
+		await fundAppSenders(page);
+
 		// The input must be interactive before the test starts driving it.
 		await expect(input).toBeEnabled({timeout: 30_000});
 
@@ -457,9 +577,14 @@ export const test = base.extend<WalletFixtures & WalletOptions>({
 	 * Provides a function to connect wallet on demand.
 	 */
 	connectWallet: async ({fundWallets, walletAccountIndex}, use) => {
-		// Ensure wallets are funded before connecting
+		// Ensure any impersonated wallets are funded before connecting
 		await fundWallets();
-		await use((page: Page) => connectWalletDevMode(page, walletAccountIndex));
+		await use(async (page: Page) => {
+			await connectWalletDevMode(page, walletAccountIndex);
+			// The accounts the app spends from only exist once connected; see
+			// fundAppSenders.
+			await fundAppSenders(page);
+		});
 	},
 
 	/**

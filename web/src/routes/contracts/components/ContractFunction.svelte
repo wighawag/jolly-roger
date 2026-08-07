@@ -21,6 +21,7 @@
 	} from '@etherplay/connect';
 	import {route} from '$lib';
 	import type {ExecutorStore} from '$lib/core/connection/executor';
+	import type {BalanceStore} from '$lib/core/connection/balance';
 	import type {AccountCannotSendStore} from '$lib/core/transaction/account-cannot-send-store';
 	import TransactionHash from '$lib/core/ui/ethereum/TransactionHash.svelte';
 	import type {BalanceCheckStore} from '$lib/core/transaction/balance-check-store';
@@ -32,6 +33,7 @@
 		connection: AnyConnectionStore<UnderlyingEthereumProvider>;
 		publicClient: PublicClient;
 		executor: ExecutorStore;
+		balance: BalanceStore;
 		accountCannotSend: AccountCannotSendStore;
 		balanceCheck: BalanceCheckStore;
 	}
@@ -43,6 +45,7 @@
 		connection,
 		publicClient,
 		executor,
+		balance,
 		accountCannotSend,
 		balanceCheck,
 	}: Props = $props();
@@ -96,6 +99,7 @@
 			const outcome = await executeContractWrite({
 				connection,
 				executor,
+				balance,
 				balanceCheck,
 				abiItem,
 				contractAddress,

@@ -138,3 +138,47 @@ export function getInclusionBadgeVariant(status: string): BadgeVariant {
 			return 'secondary';
 	}
 }
+
+/**
+ * The account an operation was sent FROM.
+ *
+ * Read off the transaction itself rather than tracked separately, because
+ * `from` is already the one fact that says whose transaction this is. It is
+ * what selects the executor for a resubmit or a cancel, so filtering on it
+ * means "the list you can see" and "the button that can act on it" agree by
+ * construction.
+ */
+export function operationSender(op: OnchainOperation): `0x${string}` {
+	return op.metadata.tx.from;
+}
+
+/**
+ * Split operations by which account sent them.
+ *
+ * Provided because one list is the right STORAGE (operations belong to the
+ * player, whichever key signed) but not always the right DISPLAY. A game sends
+ * two transactions per round forever from its signer, which would bury the rare
+ * transactions the user made themselves; such a game shows them apart, while a
+ * simple app shows one list and never calls this.
+ *
+ * Pure, and taking a snapshot rather than a store, so the caller decides how to
+ * make it reactive.
+ */
+export function partitionOperationsBySender(
+	operations: readonly [string, OnchainOperation][],
+	sender: `0x${string}` | undefined,
+): {
+	from: [string, OnchainOperation][];
+	others: [string, OnchainOperation][];
+} {
+	const wanted = sender?.toLowerCase();
+	const from: [string, OnchainOperation][] = [];
+	const others: [string, OnchainOperation][] = [];
+	for (const entry of operations) {
+		const isMatch =
+			wanted !== undefined &&
+			operationSender(entry[1]).toLowerCase() === wanted;
+		(isMatch ? from : others).push(entry);
+	}
+	return {from, others};
+}

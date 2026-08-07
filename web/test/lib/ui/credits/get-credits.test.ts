@@ -1,6 +1,11 @@
 import {describe, it, expect, vi} from 'vitest';
 import {writable} from 'svelte/store';
-import {getCredits, resolveTopUpAmount} from '$lib/ui/credits/get-credits';
+import {
+	checkPayerFunds,
+	getCredits,
+	resolveTopUpAmount,
+	TRANSFER_GAS,
+} from '$lib/ui/credits/get-credits';
 import type {CreditsConfig} from '$lib/core/connection/credits';
 import type {GetCreditsDeps} from '$lib/ui/credits/get-credits';
 
@@ -85,29 +90,14 @@ function deps(over: Overrides = {}) {
 	const ensureConnected = vi.fn(async () => ({account: {address: PAYER}}));
 	const update = vi.fn(async () => ({step: 'Unloaded'}) as never);
 
-	// Counts how many times the rail was actually BUILT, so the laziness that
-	// keeps the payment connection out of the app's wallet discovery is asserted
-	// rather than assumed.
-	let built = 0;
-	let rail: unknown;
 	const payment = {
-		get() {
-			if (!rail) {
-				built++;
-				rail = {
-					connection: {
-						ensureConnected: over.ensureConnected ?? ensureConnected,
-					},
-					walletClient: {
-						sendTransaction: over.sendTransaction ?? sendTransaction,
-					},
-					publicClient: {},
-				};
-			}
-			return rail;
-		},
-		get materialised() {
-			return rail !== undefined;
+		connection: {ensureConnected: over.ensureConnected ?? ensureConnected},
+		walletClient: {sendTransaction: over.sendTransaction ?? sendTransaction},
+		// Plenty, so the funds check passes and the tests below exercise what
+		// they are actually about.
+		publicClient: {
+			getBalance: async () => 10n ** 21n,
+			getGasPrice: async () => 1_000_000_000n,
 		},
 	};
 
@@ -120,14 +110,7 @@ function deps(over: Overrides = {}) {
 		},
 	} as unknown as GetCreditsDeps;
 
-	return {
-		deps: d,
-		sendTransaction,
-		ensureConnected,
-		update,
-		payment,
-		builtCount: () => built,
-	};
+	return {deps: d, sendTransaction, ensureConnected, update, payment};
 }
 
 describe('getCredits', () => {
@@ -150,25 +133,6 @@ describe('getCredits', () => {
 		const {deps: d, update} = deps();
 		await getCredits(d, {to: SIGNER, value: 1n});
 		expect(update).toHaveBeenCalled();
-	});
-
-	it('builds the payment rail only when a payment is actually made', async () => {
-		// A session that never buys anything should not pay for a second
-		// connection, two viem clients and a round of wallet discovery. See
-		// core/connection/remote.
-		const {deps: d, builtCount, payment} = deps();
-
-		expect(builtCount()).toBe(0);
-		expect(payment.materialised).toBe(false);
-
-		await getCredits(d, {to: SIGNER, value: 1n});
-		expect(builtCount()).toBe(1);
-		expect(payment.materialised).toBe(true);
-
-		// And reused, not rebuilt: a second connection per purchase would raise a
-		// fresh wallet prompt every time.
-		await getCredits(d, {to: SIGNER, value: 1n});
-		expect(builtCount()).toBe(1);
 	});
 
 	it('reports a rejected wallet prompt as cancelled, not as an error', async () => {
@@ -223,5 +187,75 @@ describe('getCredits', () => {
 
 		await getCredits(d, {to: SIGNER, value: 1n});
 		expect(update).not.toHaveBeenCalled();
+	});
+});
+
+describe('checkPayerFunds', () => {
+	const GWEI = 1_000_000_000n;
+
+	it('accepts an amount the payer can cover with gas to spare', () => {
+		expect(
+			checkPayerFunds({
+				balance: 10n ** 18n,
+				value: 10n ** 17n,
+				maxFeePerGas: GWEI,
+			}),
+		).toEqual({ok: true});
+	});
+
+	it('rejects sending the entire balance, because gas still has to be paid', () => {
+		// The case a user actually hits: type the whole balance, and without this
+		// the WALLET is what discovers it, in its own words, in a popup.
+		const balance = 10n ** 18n;
+		const result = checkPayerFunds({
+			balance,
+			value: balance,
+			maxFeePerGas: GWEI,
+		});
+		expect(result.ok).toBe(false);
+		if (!result.ok) {
+			expect(result.required).toBe(balance + TRANSFER_GAS * GWEI);
+			expect(result.balance).toBe(balance);
+		}
+	});
+
+	it('rejects an amount above the balance', () => {
+		expect(
+			checkPayerFunds({balance: 1n, value: 10n ** 18n, maxFeePerGas: GWEI}).ok,
+		).toBe(false);
+	});
+
+	it('accepts exactly the balance minus gas', () => {
+		const balance = 10n ** 18n;
+		const value = balance - TRANSFER_GAS * GWEI;
+		expect(checkPayerFunds({balance, value, maxFeePerGas: GWEI})).toEqual({
+			ok: true,
+		});
+	});
+
+	it('prices a caller-supplied gas limit, for a game whose top-up is a contract call', () => {
+		const result = checkPayerFunds({
+			balance: 10n ** 18n,
+			value: 10n ** 18n - 100_000n * GWEI,
+			maxFeePerGas: GWEI,
+			gas: 200_000n,
+		});
+		expect(result.ok).toBe(false);
+	});
+});
+
+describe('getCredits: refusing before the wallet sees it', () => {
+	it('reports insufficient funds without sending', async () => {
+		const sendTransaction = vi.fn();
+		const {deps: d} = deps({sendTransaction});
+		(d as never as {payment: {publicClient: unknown}}).payment.publicClient = {
+			getBalance: async () => 1n,
+			getGasPrice: async () => 1_000_000_000n,
+		};
+
+		const result = await getCredits(d, {to: SIGNER, value: 10n ** 18n});
+
+		expect(result.status).toBe('insufficient');
+		expect(sendTransaction).not.toHaveBeenCalled();
 	});
 });

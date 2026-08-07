@@ -6,6 +6,7 @@ import {
 	getTransactionResult,
 	getEarliestBroadcastMs,
 	getInclusionBadgeVariant,
+	partitionOperationsBySender,
 	countPendingOperations,
 	sortOperationIdsDescending,
 } from '../../../src/lib/view/operation';
@@ -138,5 +139,54 @@ describe('sortOperationIdsDescending', () => {
 		const sorted = sortOperationIdsDescending(ids);
 		expect(sorted).toEqual(['2000', '100', '30']);
 		expect(ids).toEqual(['100', '2000', '30']);
+	});
+});
+
+describe('partitionOperationsBySender', () => {
+	const SIGNER = '0x00000000000000000000000000000000000000aa' as const;
+	const ACCOUNT = '0x0000000000000000000000000000000000000001' as const;
+
+	const op = (from: string) =>
+		({metadata: {tx: {from}}}) as unknown as OnchainOperation;
+
+	it('splits on who sent each operation', () => {
+		const entries: [string, OnchainOperation][] = [
+			['a', op(SIGNER)],
+			['b', op(ACCOUNT)],
+			['c', op(SIGNER)],
+		];
+		const {from, others} = partitionOperationsBySender(entries, SIGNER);
+		expect(from.map(([k]) => k)).toEqual(['a', 'c']);
+		expect(others.map(([k]) => k)).toEqual(['b']);
+	});
+
+	it('compares addresses case-insensitively', () => {
+		// `from` comes off the chain and the executor address comes from the
+		// wallet; the two disagree on checksum casing often enough that comparing
+		// raw strings would quietly put every operation in the wrong bucket.
+		const entries: [string, OnchainOperation][] = [
+			['a', op('0x00000000000000000000000000000000000000AA')],
+		];
+		const {from} = partitionOperationsBySender(entries, SIGNER);
+		expect(from).toHaveLength(1);
+	});
+
+	it('puts everything in others when there is no sender to match', () => {
+		// An executor that is not ready has no address. Claiming its operations
+		// would be worse than claiming none.
+		const entries: [string, OnchainOperation][] = [['a', op(SIGNER)]];
+		const {from, others} = partitionOperationsBySender(entries, undefined);
+		expect(from).toHaveLength(0);
+		expect(others).toHaveLength(1);
+	});
+
+	it('keeps the given order within each side', () => {
+		const entries: [string, OnchainOperation][] = [
+			['a', op(ACCOUNT)],
+			['b', op(SIGNER)],
+			['c', op(ACCOUNT)],
+		];
+		const {others} = partitionOperationsBySender(entries, SIGNER);
+		expect(others.map(([k]) => k)).toEqual(['a', 'c']);
 	});
 });

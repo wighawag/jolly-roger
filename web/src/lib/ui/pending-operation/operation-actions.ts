@@ -6,6 +6,30 @@ import type {
 } from '$lib/account/AccountData';
 import {InsufficientFundsError} from '$lib/core/transaction';
 import type {Context} from '$lib/context/types';
+import type {ExecutorStore} from '$lib/core/connection/executor';
+import type {BalanceStore} from '$lib/core/connection/balance';
+
+/**
+ * An account that can send, paired with the balance it spends.
+ *
+ * Kept together because a replacement needs both and they must agree: pick the
+ * executor by `from`, then measure affordability against THAT account, not
+ * against whichever balance happened to be to hand.
+ */
+type Sender = {executor: ExecutorStore; balance: BalanceStore};
+
+/** The accounts this app can send from, each with the balance it spends. */
+function senders(deps: {
+	accountExecutor: ExecutorStore;
+	signerExecutor: ExecutorStore;
+	accountBalance: BalanceStore;
+	signerBalance: BalanceStore;
+}): readonly Sender[] {
+	return [
+		{executor: deps.accountExecutor, balance: deps.accountBalance},
+		{executor: deps.signerExecutor, balance: deps.signerBalance},
+	];
+}
 import type {ExecutorState} from '$lib/core/connection/executor';
 
 type GasParameters = {
@@ -95,21 +119,48 @@ export function wrongAccountMessage(expected: `0x${string}`): string {
 
 /**
  * A replacement (resubmit/cancel) must be sent from the same account as the
- * original tx. Returns the ready executor when it matches, or a
- * ReplacementResult to bail out with.
+ * original tx, so this SELECTS the executor whose address matches, rather than
+ * checking one and hoping. Returns the ready executor, or a ReplacementResult
+ * to bail out with.
+ *
+ * Selecting matters now that more than one account can send. A transaction the
+ * signer made and one the user made sit in the same list, and the button that
+ * replaces either of them has to reach for the key that signed THAT one:
+ * replacements reuse the original nonce, nonces are per-account, and sending
+ * from the other account would broadcast a new transaction instead of
+ * replacing anything. `from` is the discriminator, which is also what the UI
+ * filters on, so there is one notion of "whose transaction is this".
  *
  * A not-ready executor is reported as an `error` (not `cancelled`): the user
  * explicitly clicked resubmit/cancel, so silently doing nothing would look
  * like a dead button. `cancelled` stays reserved for deliberate dismissal.
  */
-function requireSameAccountExecutor(
-	executor: Context['executor'],
+function selectExecutorForSender(
+	senders: readonly Sender[],
 	originalFrom: `0x${string}`,
 ):
-	| {ok: true; executor: Extract<ExecutorState, {status: 'ready'}>}
+	| {
+			ok: true;
+			executor: Extract<ExecutorState, {status: 'ready'}>;
+			balance: BalanceStore;
+	  }
 	| {ok: false; result: ReplacementResult} {
-	const $executor = get(executor);
-	if ($executor.status !== 'ready') {
+	const from = originalFrom.toLowerCase();
+	const states = senders.map((sender) => ({
+		state: get(sender.executor),
+		balance: sender.balance,
+	}));
+
+	for (const {state, balance} of states) {
+		if (state.status === 'ready' && state.address.toLowerCase() === from) {
+			return {ok: true, executor: state, balance};
+		}
+	}
+
+	// Nothing matched. Distinguish "no account is usable at all" from "the
+	// account that sent this one is not the one connected now", because the user
+	// can act on the second and not on the first.
+	if (!states.some(({state}) => state.status === 'ready')) {
 		return {
 			ok: false,
 			result: {
@@ -119,16 +170,21 @@ function requireSameAccountExecutor(
 			},
 		};
 	}
-	if ($executor.address.toLowerCase() !== originalFrom.toLowerCase()) {
-		return {
-			ok: false,
-			result: {status: 'wrong-account', expected: originalFrom},
-		};
-	}
-	return {ok: true, executor: $executor};
+	return {
+		ok: false,
+		result: {status: 'wrong-account', expected: originalFrom},
+	};
 }
 
-type ResubmitDeps = Pick<Context, 'executor' | 'deployments' | 'balanceCheck'>;
+type ResubmitDeps = Pick<
+	Context,
+	| 'accountExecutor'
+	| 'signerExecutor'
+	| 'accountBalance'
+	| 'signerBalance'
+	| 'deployments'
+	| 'balanceCheck'
+>;
 
 /**
  * Resubmit a stuck operation with a new gas price, reusing the original nonce
@@ -142,24 +198,27 @@ export async function resubmitOperation(
 		gasPrice: GasPrice;
 	},
 ): Promise<ReplacementResult> {
-	const {executor, deployments, balanceCheck} = deps;
+	const {deployments, balanceCheck} = deps;
 	const {operation, operationKey, gasPrice} = params;
 	const $deployments = get(deployments);
 	const originalTx = operation.metadata.tx;
 
-	const guarded = requireSameAccountExecutor(executor, originalTx.from);
+	const guarded = selectExecutorForSender(senders(deps), originalTx.from);
 	if (!guarded.ok) return guarded.result;
 	const $executor = guarded.executor;
 
 	try {
-		const txRequest = await balanceCheck.ensureCanAfford({
-			transaction: {
-				account: $executor.account,
-				to: originalTx.to as `0x${string}`,
-				data: originalTx.data,
-				value: originalTx.value,
+		const txRequest = await balanceCheck.ensureCanAfford(
+			{
+				transaction: {
+					account: $executor.account,
+					to: originalTx.to as `0x${string}`,
+					data: originalTx.data,
+					value: originalTx.value,
+				},
 			},
-		});
+			{balance: guarded.balance, sender: $executor.address},
+		);
 
 		// operationId links this resubmit to the existing operation.
 		const resubmitMetadata: ExtendedTransactionMetadata = {
@@ -198,7 +257,13 @@ export async function resubmitOperation(
 
 type CancelDeps = Pick<
 	Context,
-	'executor' | 'deployments' | 'balanceCheck' | 'gasFee'
+	| 'accountExecutor'
+	| 'signerExecutor'
+	| 'accountBalance'
+	| 'signerBalance'
+	| 'deployments'
+	| 'balanceCheck'
+	| 'gasFee'
 >;
 
 /**
@@ -209,12 +274,12 @@ export async function cancelOperation(
 	deps: CancelDeps,
 	params: {operation: OnchainOperation},
 ): Promise<ReplacementResult> {
-	const {executor, deployments, balanceCheck, gasFee} = deps;
+	const {deployments, balanceCheck, gasFee} = deps;
 	const {operation} = params;
 	const $deployments = get(deployments);
 	const originalTx = operation.metadata.tx;
 
-	const guarded = requireSameAccountExecutor(executor, originalTx.from);
+	const guarded = selectExecutorForSender(senders(deps), originalTx.from);
 	if (!guarded.ok) return guarded.result;
 	const $executor = guarded.executor;
 
@@ -227,13 +292,16 @@ export async function cancelOperation(
 			fastPrice,
 		);
 
-		const txRequest = await balanceCheck.ensureCanAfford({
-			transaction: {
-				account: $executor.account,
-				to: originalTx.from,
-				value: 0n,
+		const txRequest = await balanceCheck.ensureCanAfford(
+			{
+				transaction: {
+					account: $executor.account,
+					to: originalTx.from,
+					value: 0n,
+				},
 			},
-		});
+			{balance: guarded.balance, sender: $executor.address},
+		);
 
 		if (originalTx.chainId && originalTx.chainId !== $deployments.chain.id) {
 			throw new Error(

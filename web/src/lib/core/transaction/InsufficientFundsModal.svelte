@@ -10,7 +10,7 @@
 	import {getAppContext} from '$lib';
 	import {deriveInsufficientFundsView} from './insufficient-funds-view';
 
-	const {balanceCheck} = getAppContext();
+	const {balanceCheck, accountExecutor} = getAppContext();
 
 	let isOpen = $derived($balanceCheck.step !== 'idle');
 
@@ -20,9 +20,19 @@
 	);
 	let currentBalance = $derived(balanceStoreRef ? $balanceStoreRef : null);
 
-	// All balance math lives in the pure view-model helper.
+	// The faucet funds the authenticated account, so that is the only shortfall
+	// it can fix. Whether that matches the account which is actually short is
+	// decided in the view-model helper, along with all the balance math.
+	let accountAddress = $derived(
+		$accountExecutor.status === 'ready' ? $accountExecutor.address : undefined,
+	);
 	let view = $derived(
-		deriveInsufficientFundsView($balanceCheck, currentBalance),
+		deriveInsufficientFundsView(
+			$balanceCheck,
+			currentBalance,
+			accountAddress,
+			hasFaucet,
+		),
 	);
 	let hasSufficientFunds = $derived(view.hasSufficientFunds);
 	let displayBalance = $derived(view.displayBalance);
@@ -68,13 +78,23 @@
 				</p>
 			{:else}
 				<p class="text-muted-foreground">
-					You don't have enough funds to complete this transaction.
+					{#if view.sentFromAnotherAccount}
+						Your in-app spending account does not have enough to complete this
+						transaction. It is separate from the account you signed in with, and
+						is funded separately.
+					{:else}
+						You don't have enough funds to complete this transaction.
+					{/if}
 				</p>
 			{/if}
 
 			<div class="space-y-2 rounded-lg bg-muted p-4">
 				<div class="flex justify-between">
-					<span class="text-muted-foreground">Your balance:</span>
+					<span class="text-muted-foreground"
+						>{view.sentFromAnotherAccount
+							? 'In-app balance:'
+							: 'Your balance:'}</span
+					>
 					<span class="font-mono"
 						>{formatBalance(displayBalance)}
 						{$deployments.chain.nativeCurrency.symbol}</span
@@ -99,7 +119,7 @@
 				{/if}
 			</div>
 
-			{#if !hasSufficientFunds && !isWaitingForBalanceUpdate && hasFaucet}
+			{#if !hasSufficientFunds && !isWaitingForBalanceUpdate && view.canUseFaucet}
 				<FaucetButton />
 			{/if}
 		</div>
