@@ -60,11 +60,58 @@ This will re-run tests when files change.
 
 E2E tests automatically handle:
 
-1. **Starting Hardhat Node**: A local Ethereum node starts on port 8545
-2. **Contract Deployment**: Contracts are compiled and deployed to localhost
-3. **Export Deployments**: Contract addresses/ABIs are exported to the web app
-4. **Build Web App**: The SvelteKit app is built for localhost
-5. **Cleanup**: Node is stopped after tests complete
+1. **Worktree**: A throwaway git worktree is created, holding your working tree
+2. **Starting Hardhat Node**: A local Ethereum node starts on port 8545 (`E2E_RPC_PORT` moves it)
+3. **Contract Deployment**: Contracts are compiled and deployed to localhost
+4. **Export Deployments**: Contract addresses/ABIs are exported to the web app
+5. **Build Web App**: The SvelteKit app is built for localhost
+6. **Verify**: Each address the build shipped must be a contract on this run's chain
+7. **Cleanup**: Node is stopped, report is copied back, worktree is removed
+
+### The run happens in a git worktree
+
+Everything from step 3 on writes a file that a running `pnpm start` session is
+also using:
+
+| file                         | who else writes it                                  |
+| ---------------------------- | --------------------------------------------------- |
+| `contracts/generated`        | `compile`; `deploy:watch` **watches** it and reacts |
+| `contracts/deployments/*`    | every deploy, keyed by chain                        |
+| `web/src/lib/deployments.ts` | every export; a dev server hot-reloads from it      |
+| `web/build`                  | every build                                         |
+
+Sharing them means the two runs corrupt each other, in both directions. The e2e
+run deploys to a chain it deletes at exit, so its records point a dev server at
+contracts that no longer exist - and since the records carry that chain's
+genesis hash, the developer's next deploy sees a mismatch, wipes them and
+redeploys, discarding the deployment they had. Conversely a dev session's
+`deploy:watch` fires on any write under `contracts/generated`, deploys to ITS
+chain and rewrites the records and the exported module mid-run, so the app gets
+built against the wrong chain.
+
+So `scripts/run-e2e-tests.sh` runs in `$TMPDIR/<repo>-e2e-worktree`
+(`E2E_WORKTREE_DIR` moves it), and nothing in the app or the contracts config
+has to know that e2e exists.
+
+The worktree holds your **working tree**, not `HEAD`: uncommitted changes are
+applied as a patch, untracked-but-not-ignored files are copied, and so are the
+two kinds of ignored input a build needs (`.env*.local` and the generated PWA
+icons). `node_modules` is symlinked rather than installed again - same commit,
+same lockfile, and pnpm's links resolve relative to their real path.
+
+- `E2E_KEEP_WORKTREE=1` leaves it in place to poke at afterwards.
+- The Playwright report and `test-results` (traces, screenshots) are copied back
+  into `web/` before it is removed, so a failed run is still debuggable.
+
+Also worth knowing: the deploy runs with `--no-compile`, because the compile
+step already ran with the default build profile and the deploy task would
+otherwise compile everything again with `production` - two full compiles per
+run, and deployed bytecode that is not the bytecode just built.
+
+The verify step exists because every setup mistake in this area fails the same
+way: the app holds an address with no code on it, reads return `0x`, and the
+suite fails several tests deep with "Failed to load messages", which looks like
+an app bug rather than a setup one.
 
 ### Test Fixtures
 
@@ -211,9 +258,11 @@ The workflow includes:
 
 If the Hardhat node fails to start:
 
-1. Check if port 8545 is already in use: `lsof -i :8545`
-2. Kill any existing processes: `pkill -f "hardhat node"`
-3. Try running manually: `pnpm contracts:node:local`
+1. Check what is on the port: `lsof -i :8545`. It may be a chain you (or another
+   project) are using - the run reuses an existing node rather than taking it
+   down, and neither should you.
+2. Move the run instead: `E2E_RPC_PORT=21545 E2E_PORT=21473 pnpm test:e2e`.
+3. Try running the node manually: `pnpm contracts:node:local`
 
 ### Tests timing out
 
@@ -230,3 +279,14 @@ If wallet connection fails in tests:
 1. Ensure the app is built for localhost: `pnpm build localhost`
 2. Check that `PUBLIC_USE_BURNER_WALLET` is set in `.env.localhost`
 3. Verify the Dev Mode button appears in the connection modal
+
+### "Failed to load messages" / reads returning `0x`
+
+The app is holding a contract address that has no code on the chain it is
+talking to. The run's verify step should catch this before the tests do. Re-run
+with `E2E_KEEP_WORKTREE=1` and compare three things inside the worktree:
+
+1. The address in `web/src/lib/deployments.ts` (what the build shipped).
+2. The address in `contracts/deployments/localhost/GreetingsRegistry.json` (what
+   the deploy recorded).
+3. `eth_getCode` for it on `E2E_RPC_URL` (what the chain has).
