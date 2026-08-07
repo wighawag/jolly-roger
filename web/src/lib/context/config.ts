@@ -1,5 +1,9 @@
 import type {AugmentedChainInfo} from '$lib/core/connection/types.js';
 import type {TypedDeployments} from '$lib/deployments-store.js';
+import {
+	resolveCreditsConfig,
+	type CreditsConfig,
+} from '$lib/core/connection/credits.js';
 
 // ============================================================================
 // Default configuration values
@@ -37,6 +41,12 @@ export type ResolvedAppConfig = {
 	txObserverProcessInterval: number;
 	/** Max messages to display / load. */
 	maxMessages: number;
+	/**
+	 * How to denominate the signer's gas balance in the UI, or undefined to show
+	 * native currency. Undefined is the normal case for a chain that has not
+	 * declared what an action costs; see core/connection/credits.
+	 */
+	credits: CreditsConfig | undefined;
 };
 
 /**
@@ -53,6 +63,9 @@ export function resolveAppConfig(chain: AugmentedChainInfo): ResolvedAppConfig {
 		blockTimeMs,
 		txObserverProcessInterval: processIntervalFromBlockTime(blockTimeMs),
 		maxMessages: DEFAULT_MAX_MESSAGES,
+		// Deliberately NOT defaulted: an unconfigured chain shows native currency
+		// rather than a move count derived from a made-up action cost.
+		credits: resolveCreditsConfig(chain.properties),
 	};
 }
 

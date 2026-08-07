@@ -1,6 +1,7 @@
 import type {Account, CustomTransport} from 'viem';
 import type {Readable} from 'svelte/store';
 import type {BalanceStore} from '$lib/core/connection/balance';
+import type {SignerBalanceStore} from '$lib/core/connection/signerBalance';
 import type {GasFeeStore} from '$lib/core/connection/gasFee';
 import type {RpcHealthStore} from '$lib/core/connection/rpcHealth';
 import type {NonceCacheStore} from '$lib/core/connection/nonce-cache-store';
@@ -10,8 +11,10 @@ import type {
 	ChainConnection,
 	ChainInfo,
 	DeploymentsStore,
+	PaymentRailProvider,
 	TypedPublicClient,
 } from '$lib/core/connection/types';
+import type {CreditsConfig} from '$lib/core/connection/credits';
 import type {ExecutorStore} from '$lib/core/connection/executor';
 import type {ExecutionMode} from '$lib/core/connection/mode';
 import type {TrackedWalletClientAutoPopulate} from '@etherkit/viem-tx-tracker';
@@ -69,6 +72,34 @@ export type Context = {
 	 * separate poller for the owner (while `balance` follows the signer).
 	 */
 	ownerBalance: BalanceStore;
+	/**
+	 * Balances of the LOCAL SIGNER and of its owner, polled together.
+	 *
+	 * `balance`/`ownerBalance` follow ROLES (who pays, who is authenticated) and
+	 * so point at different addresses per execution mode; this one always points
+	 * at the signer, which is the account an app spends from when it sends moves
+	 * itself, and which holds nothing until someone funds it. Purely for
+	 * VISIBILITY (and for offering a top-up): transaction gating stays with
+	 * `balanceCheck`, which measures the executor.
+	 *
+	 * Inert when there is no signer: the poller is gated on the signer store, so
+	 * it never fetches before sign-in, nor in wallet-only deployments.
+	 */
+	signerBalance: SignerBalanceStore;
+	/**
+	 * How to denominate the signer's gas balance for the user, or undefined to
+	 * show native currency. Set only when the chain declares both an expected
+	 * worst gas price and the gas one action costs; see core/connection/credits.
+	 */
+	credits: CreditsConfig | undefined;
+	/**
+	 * The payment rail (buying credits): a second, wallet-only connection plus
+	 * its clients, built the FIRST time something asks for it. The payer is not
+	 * necessarily the player, and a session that never pays never builds it - nor
+	 * may it, while the app connection is still discovering wallets. See
+	 * core/connection/remote.
+	 */
+	payment: PaymentRailProvider;
 	rpcHealth: RpcHealthStore;
 	/**
 	 * Wallet nonce-cache detection (dev + app-RPC only; a no-op store otherwise).

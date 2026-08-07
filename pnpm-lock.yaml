@@ -147,8 +147,8 @@ importers:
         specifier: ^0.0.9
         version: 0.0.9(viem@2.55.11(typescript@6.0.3)(zod@4.4.3))
       '@etherplay/connect':
-        specifier: ^0.1.4
-        version: 0.1.4(svelte@5.56.8)
+        specifier: ^0.2.0
+        version: 0.2.0(svelte@5.56.8)
       '@internationalized/date':
         specifier: ^3.12.3
         version: 3.12.3
@@ -486,13 +486,13 @@ packages:
   '@etherplay/connect-core@0.1.0':
     resolution: {integrity: sha512-ENw/mX3FfMI8HjqsUVyYrPJhHeZ+AyC3sgJOzWXihbXJDjlJNkg4D+bVbMNTS56tiNBObPt6G57TosvkoqSZCQ==}
 
-  '@etherplay/connect@0.1.4':
-    resolution: {integrity: sha512-HzWESExCVdtFph0AGF/2IAbrArJ/Fh1dihpHvNgeL3L/QKZOVMRPKGEhqeeFGBY4p7intpf243bO036mT39BiA==}
+  '@etherplay/connect@0.2.0':
+    resolution: {integrity: sha512-x0g5t67PKkI8CZlrFqHYXveBxQ8DuI3Jd+/xFwcGK+qLJK87XODxSKyg87sHR2gr/J46COHOtjNiBS/xIhbFIA==}
     peerDependencies:
       svelte: ^5.0.0
 
-  '@etherplay/wallet-connector-ethereum@0.0.11':
-    resolution: {integrity: sha512-+A3OJmJcpjQt8TCkgiogLugnATAfVMcraZ8+7f3a8sQhd8fvIemyI3YK1W2Vo4/0wb0/MGOUTJuFuQYopHZqxw==}
+  '@etherplay/wallet-connector-ethereum@0.0.12':
+    resolution: {integrity: sha512-woNXPi5+oSy6vBbFlx5D4zHaPC/dENaHYObdqw0zUteU1xDhPMbxyCNgU/hjzMkGbR9abaJ0Rp44kMwTkOfE1Q==}
 
   '@etherplay/wallet-connector@0.0.5':
     resolution: {integrity: sha512-P9wMxN4HelrL+/56g4IjkVAjuIhz0Bhq/CFxAOWUQ2cwpFsdrVSQ0s1PCxR2+gsBca+RTxgsfQhOcYqjTbEhOQ==}
@@ -3123,14 +3123,14 @@ snapshots:
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
 
-  '@etherplay/connect@0.1.4(svelte@5.56.8)':
+  '@etherplay/connect@0.2.0(svelte@5.56.8)':
     dependencies:
       '@etherplay/connect-core': 0.1.0
       '@etherplay/wallet-connector': 0.0.5
-      '@etherplay/wallet-connector-ethereum': 0.0.11
+      '@etherplay/wallet-connector-ethereum': 0.0.12
       svelte: 5.56.8
 
-  '@etherplay/wallet-connector-ethereum@0.0.11':
+  '@etherplay/wallet-connector-ethereum@0.0.12':
     dependencies:
       '@etherplay/wallet-connector': 0.0.5
       '@noble/curves': 1.8.1

@@ -11,6 +11,11 @@
 	import {countPendingOperations} from '$lib/view/operation';
 	import {effectiveGasPrice} from '$lib/core/connection/gasFee';
 	import {FaucetButton, hasFaucet} from '$lib/core/ui/faucet/index.js';
+	import {
+		CreditsIndicator,
+		CreditsPanel,
+		createCreditsViewStore,
+	} from '$lib/ui/credits/index.js';
 	import MenuIcon from '@lucide/svelte/icons/menu';
 	import MessageCircleIcon from '@lucide/svelte/icons/message-circle';
 	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
@@ -27,21 +32,26 @@
 		communityURL?: string;
 	} = $props();
 
+	const context = getAppContext();
 	const {
 		connection,
 		accountData,
 		balance,
-		ownerBalance,
 		executionMode,
 		gasFee,
 		clock,
 		deployments,
-	} = getAppContext();
+	} = context;
 
-	// In signer mode the spending balance (top bar / `balance`) is the local
-	// signer's, distinct from the authenticated account's (`ownerBalance`); show
-	// both. In wallet mode they are the same account, so show a single balance.
-	const showSignerBalances = executionMode === 'signer';
+	// The signer's own funding view (credits when the chain prices an action,
+	// native currency otherwise). Every decision about what it shows lives in
+	// lib/ui/credits; subscribing here is also what starts the signer-balance
+	// poll, so a deployment with no signer never polls for one.
+	const creditsView = createCreditsViewStore({
+		...context,
+		signerIsSpender: executionMode === 'signer',
+		credits: context.credits,
+	});
 
 	let showMenu = $state(false);
 	let accountsOpen = $state(false);
@@ -58,15 +68,6 @@
 	let formattedBalance = $derived.by(() => {
 		if ($balance.step === 'Loaded') {
 			return formatBalance($balance.value, 18, 6);
-		}
-		return null;
-	});
-
-	// In wallet mode `ownerBalance` is the same store instance as `balance`
-	// (see lib/context), so reading it unconditionally never double-polls.
-	let formattedOwnerBalance = $derived.by(() => {
-		if ($ownerBalance.step === 'Loaded') {
-			return formatBalance($ownerBalance.value, 18, 6);
 		}
 		return null;
 	});
@@ -193,6 +194,10 @@
 						Balance error
 					</span>
 				{/if}
+				<CreditsIndicator
+					view={$creditsView}
+					onclick={() => (showMenu = true)}
+				/>
 			</div>
 		{:else}
 			<Button
@@ -316,9 +321,12 @@
 				<div class="mt-4 flex flex-col gap-2 border-t border-border px-4 pt-4">
 					<div class="flex flex-col gap-1 rounded-md bg-muted/50 px-3 py-2">
 						<div class="flex items-center justify-between">
-							<span class="text-sm text-muted-foreground"
-								>{showSignerBalances ? 'Signer balance' : 'Balance'}</span
-							>
+							<!-- The SPENDING balance: the wallet in wallet mode, the local
+							     signer in signer mode. The signer's own section below names
+							     the account and adds what it needs; this row stays about
+							     whoever is paying, which is what the errors and the faucet
+							     underneath it are about. -->
+							<span class="text-sm text-muted-foreground">Balance</span>
 							{#if $balanceStatus.loading && formattedBalance === null}
 								<Spinner class="h-4 w-4" />
 							{:else if formattedBalance !== null}
@@ -332,22 +340,6 @@
 								<span class="text-sm text-muted-foreground">—</span>
 							{/if}
 						</div>
-
-						{#if showSignerBalances}
-							<div class="flex items-center justify-between">
-								<span class="text-sm text-muted-foreground"
-									>Account balance</span
-								>
-								{#if formattedOwnerBalance !== null}
-									<span class="font-medium"
-										>{formattedOwnerBalance}
-										{$deployments.chain.nativeCurrency.symbol}</span
-									>
-								{:else}
-									<Spinner class="h-4 w-4" />
-								{/if}
-							</div>
-						{/if}
 
 						{#if $balanceStatus.error}
 							<div class="flex items-center justify-between">
@@ -375,6 +367,9 @@
 							<FaucetButton />
 						{/if}
 					</div>
+
+					<!-- Renders itself only when a signer exists. -->
+					<CreditsPanel view={$creditsView} />
 
 					<a
 						href={route('/transactions/')}

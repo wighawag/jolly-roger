@@ -5,6 +5,7 @@ import {privateKeyToAccount} from 'viem/accounts';
 import {createAccountData} from '$lib/account/AccountData.js';
 import {establishRemoteConnection} from '$lib/core/connection';
 import {createBalanceStore} from '$lib/core/connection/balance';
+import {createSignerBalanceStore} from '$lib/core/connection/signerBalance';
 import {createGasFeeStore} from '$lib/core/connection/gasFee';
 import {createRpcHealthStore} from '$lib/core/connection/rpcHealth';
 import {createOfflineStore} from '$lib/core/connection/offline';
@@ -115,6 +116,8 @@ export function createContext(): {
 		walletClient: rawWalletClient,
 		publicClient,
 		account,
+		signer,
+		payment,
 		deployments,
 		forceRpcFailure,
 	} = establishRemoteConnection({
@@ -139,7 +142,7 @@ export function createContext(): {
 	// Resolve chain-specific configuration (finality, block time, intervals)
 	// from the chain's optional properties + defaults.
 	const chain = deployments.get().chain as AugmentedChainInfo;
-	const {finality, txObserverProcessInterval, maxMessages} =
+	const {finality, txObserverProcessInterval, maxMessages, credits} =
 		resolveAppConfig(chain);
 
 	// Signer mode broadcasts from a local signer and so needs a real node RPC
@@ -311,6 +314,28 @@ export function createContext(): {
 			? createBalanceStore({publicClient, account})
 			: balance;
 
+	// Funding view of the LOCAL SIGNER: its own balance and its account's, polled
+	// together. Distinct from the two stores above, which follow ROLES (who pays,
+	// who is authenticated) and therefore point at different addresses depending
+	// on the execution mode. This one always points at the signer, so the UI can
+	// say "the key that signs your moves is empty" even in wallet execution mode,
+	// where the signer is not the executor and nothing else looks at it.
+	//
+	// Inert without a signer: the poller is gated on the `signer` store, which is
+	// only non-undefined at step 'SignedIn'. Wallet-only deployments never reach
+	// that step, so this never fetches there, and construction stays synchronous
+	// and IO-free for SSR/prerender either way (polling starts on first subscribe,
+	// in the browser only). See ADR-0002.
+	//
+	// KNOWN REDUNDANCY, measured: one address is fetched twice in either mode,
+	// because this re-fetches whichever address `balance` already covers (the
+	// signer under signer execution, the account under wallet execution). The pair
+	// shape is a leftover from when the account was expected to fund the signer
+	// directly; buying credits goes through the payment connection instead, so the
+	// second half no longer earns its fetch. Removed with the executor rework,
+	// which replaces this with a signer-scoped `createBalanceStore`.
+	const signerBalance = createSignerBalanceStore({publicClient, signer});
+
 	const gasFee = createGasFeeStore({
 		publicClient: publicClient,
 		fetchGate: chainFetchGate,
@@ -351,6 +376,9 @@ export function createContext(): {
 		void gasFee.update();
 		void balance.update();
 		if (ownerBalance !== balance) void ownerBalance.update();
+		// No-op when there is no signer (the poller's gate refuses the fetch), so
+		// this stays safe in wallet-only deployments.
+		void signerBalance.update();
 	};
 	const offline = createOfflineStore();
 
@@ -378,6 +406,9 @@ export function createContext(): {
 		gasFee,
 		balance,
 		ownerBalance,
+		signerBalance,
+		credits,
+		payment,
 		rpcHealth,
 		nonceCache,
 		refreshChainData,

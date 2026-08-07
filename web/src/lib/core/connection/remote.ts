@@ -13,6 +13,7 @@ import type {
 	EstablishedConnection,
 	OptionalSigner,
 	TypedPublicClient,
+	TypedWalletClient,
 } from './types';
 
 /**
@@ -44,6 +45,48 @@ export type ChainConnectionOptions = {
 export type ChainConnection =
 	| ConnectionStore<UnderlyingEthereumProvider, 'SignedIn', false>
 	| ConnectionStore<UnderlyingEthereumProvider, 'WalletConnected', true>;
+
+/**
+ * Create the PAYMENT connection: a second, independent connection used only to
+ * pay.
+ *
+ * Separate from the app connection because the payer is not necessarily the
+ * player. Credits are bought for a signer, and the wallet that funds them may
+ * be a different account, a different device's wallet, or eventually a card
+ * processor acting on the user's behalf. Sharing one connection would force the
+ * player to disconnect and reconnect as the payer to buy anything, and would
+ * overwrite the session they are playing in.
+ *
+ * Differences from the app connection, all deliberate:
+ * - `targetStep: 'WalletConnected'`: paying needs a wallet that can sign a
+ *   transaction, not an identity. There is nothing to sign in to.
+ * - `autoConnect: false`: this must stay dormant until the user asks to pay.
+ *   Auto-connecting would pop a wallet prompt on page load for a purchase
+ *   nobody has started.
+ * - `useCurrentAccount: 'always'`: a payment is a one-shot act, so it uses
+ *   whatever account the wallet has selected rather than putting an account
+ *   picker in front of it.
+ * - `storagePrefix`: REQUIRED for correctness, not tidiness. Both connections
+ *   persist "the wallet I last used", and without a prefix they share one slot:
+ *   paying with a different wallet than the player signed in with would leave
+ *   the app auto-reconnecting the player as the payer on the next page load.
+ *   Prefixing gives each connection its own slot, which is also what makes it
+ *   safe for the payment connection to remember its payer between purchases.
+ */
+export function createPaymentConnection(
+	chainInfo: ChainInfo,
+	options?: {nodeURL?: string},
+) {
+	return createConnection({
+		targetStep: 'WalletConnected',
+		nodeURL: options?.nodeURL,
+		chainInfo,
+		storagePrefix: PAYMENT_STORAGE_PREFIX,
+		prioritizeWalletProvider: true,
+		useCurrentAccount: 'always',
+		autoConnect: false,
+	});
+}
 
 /**
  * Create the app's connection store.
@@ -85,6 +128,79 @@ export function createChainConnection(
 		prioritizeWalletProvider: true,
 		autoConnect: true,
 	});
+}
+
+/**
+ * Namespace for the payment connection's persisted state. The app connection
+ * deliberately has none, so it keeps the unprefixed keys it has always used and
+ * existing sessions survive.
+ */
+export const PAYMENT_STORAGE_PREFIX = 'payment:';
+
+/**
+ * The payment connection plus the clients bound to it.
+ */
+export type PaymentRail = {
+	connection: ReturnType<typeof createPaymentConnection>;
+	walletClient: TypedWalletClient;
+	publicClient: TypedPublicClient;
+};
+
+/**
+ * Hands out the payment rail, building it the first time it is asked for.
+ *
+ * Lazy because there is nothing for it to do until someone pays. Building it
+ * costs a connection, two viem clients and a round of EIP-6963 wallet
+ * discovery, and an `autoConnect: false` connection will not have used any of
+ * that: the overwhelming majority of sessions never buy anything, and they now
+ * pay nothing for the ability to.
+ *
+ * Historical note, because it explains why this is a provider rather than a
+ * plain field: until @etherplay/connect 0.2.0, a second connection built during
+ * startup also CORRUPTED the first one's wallet list. Discovery is a page-wide
+ * conversation (dispatch `eip6963:requestProvider`, collect announcements), and
+ * the second connection's request made every wallet announce itself again while
+ * the first was still listening, which the first appended without
+ * deduplicating. A user with one wallet was shown "2 wallets available, choose
+ * one", listing it twice. 0.2.0 deduplicates by uuid/rdns, so deferring is no
+ * longer load-bearing for correctness - it is now only the cost argument above.
+ *
+ * `materialised` is exposed so the "nothing is built until it is needed"
+ * contract can be asserted rather than assumed (a server render in particular
+ * must build nothing; see ADR-0002).
+ */
+export type PaymentRailProvider = {
+	get(): PaymentRail;
+	readonly materialised: boolean;
+};
+
+export function createPaymentRailProvider(
+	chainInfo: ChainInfo,
+	options?: {nodeURL?: string},
+): PaymentRailProvider {
+	let rail: PaymentRail | undefined;
+	return {
+		get() {
+			if (!rail) {
+				const connection = createPaymentConnection(chainInfo, options);
+				rail = {
+					connection,
+					walletClient: createWalletClient({
+						chain: chainInfo,
+						transport: custom(connection.provider),
+					}),
+					publicClient: createPublicClient({
+						chain: chainInfo,
+						transport: custom(connection.provider),
+					}) as TypedPublicClient,
+				};
+			}
+			return rail;
+		},
+		get materialised() {
+			return rail !== undefined;
+		},
+	};
 }
 
 /**
@@ -146,6 +262,15 @@ export function establishRemoteConnection(options?: {
 		transport: custom(faultyProvider),
 	}) as TypedPublicClient;
 
+	// Payment rail: built on FIRST USE, not here. See createPaymentRailProvider.
+	// It shares the app's chainInfo (including the wallet-facing RPC url) but gets
+	// its own provider, so its clients bypass the fault-injection wrapper above:
+	// forcing an RPC outage is a debug tool for the app's own reads, not a way to
+	// break payments.
+	const payment = createPaymentRailProvider(chainInfo, {
+		nodeURL: options?.nodeURL,
+	});
+
 	const account = derived<typeof connection, Account>(
 		connection,
 		($connection) => {
@@ -172,6 +297,7 @@ export function establishRemoteConnection(options?: {
 		publicClient,
 		account,
 		signer,
+		payment,
 		deployments, // Use the imported HMR-aware store
 		forceRpcFailure,
 	};

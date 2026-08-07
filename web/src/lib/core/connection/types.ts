@@ -76,12 +76,23 @@ export type TypedPublicClient = PublicClient<CustomTransport, ChainInfo>;
 export type {ChainConnection} from './remote';
 import type {ChainConnection} from './remote';
 
+/**
+ * The payment rail: a wallet-only connection that never advances past
+ * 'WalletConnected', plus its clients. Its own type (rather than
+ * `ChainConnection`) so call sites cannot accidentally ask it for a signer or a
+ * sign-in it does not have.
+ */
+export type {PaymentRail, PaymentRailProvider} from './remote';
+import type {PaymentRailProvider} from './remote';
+
 export type EstablishedConnection = {
 	connection: ChainConnection;
 	walletClient: TypedWalletClient;
 	publicClient: TypedPublicClient;
 	account: AccountStore;
 	signer: OptionalSignerStore;
+	/** Second connection used only to pay, built on first use (see ./remote). */
+	payment: PaymentRailProvider;
 	deployments: DeploymentsStore;
 	/** Debug-only runtime flag: when set, all RPC requests fail (see rpc-fault). */
 	forceRpcFailure: import('svelte/store').Writable<boolean>;

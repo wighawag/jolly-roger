@@ -9,15 +9,23 @@ import {
 } from './polling-store';
 
 /**
- * Intentional template building block (not wired into the default app context).
+ * The signer's funding view: unlike `createBalanceStore` (one account), this
+ * polls BOTH the signer's and its owner's balance, in one pass.
  *
- * Unlike `createBalanceStore` (which tracks a single account), this store polls
- * BOTH the signer's and its owner's balance. It exists for smart-account /
- * session-key setups where the signer (a session key) is distinct from the
- * owner, and a UI wants to show both balances. Wire it up in
- * `src/lib/context/index.ts` if your app needs that; it is kept here as a
- * ready-made piece rather than deleted. See
- * work/notes/observations/signer-balance-store-appears-unused.md.
+ * The pair is the point. A signer is a key the app holds on the user's behalf
+ * (a session key derived at sign-in), so it starts empty and can only be filled
+ * from outside: by a faucet, or by its owner. Showing "your signer is empty"
+ * without knowing whether the owner can do anything about it produces a dead
+ * end, so the owner's balance is fetched alongside rather than left to a second
+ * store and a second, differently-timed poll.
+ *
+ * Scoped to the signer, not to a role: `balance`/`ownerBalance` in lib/context
+ * follow WHO PAYS and WHO IS AUTHENTICATED, which resolve to different
+ * addresses per execution mode. This one always follows the signer, including
+ * in wallet execution mode where nothing else does.
+ *
+ * Gated on the `signer` store, so it is inert (no fetch, no timer) whenever
+ * there is no signer: before sign-in, and forever in wallet-only deployments.
  */
 
 export type SignerBalanceValue = PollingValue<{signer: bigint; owner: bigint}>;
