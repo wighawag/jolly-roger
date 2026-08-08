@@ -30,20 +30,20 @@
 <AccountCannotSendModal />
 <ErrorDetailsModal />
 
-<!-- ORDER MATTERS, and it is the only thing that decides what is on top.
+<!-- ORDER MATTERS when two of these are open at once.
 
-     Every modal here portals into document.body at z-50 (shadcn's Dialog.Content
-     wraps itself in its own portal with no target), so among them the one
-     appended LAST paints on top. Appending happens when a dialog opens, but
-     dialogs that open in the SAME synchronous block are appended in the order
-     their components appear here - and that is the normal case, because an
-     action typically sets its own state and calls ensureConnected() before it
-     ever awaits.
+     They share one container (#--layer-modals, see core/ui/modal/modal.svelte)
+     and one z-index, so the one appended LAST paints on top. A dialog is
+     appended when it opens, but dialogs that open in the SAME synchronous block
+     are appended in the order their components appear here - and that is the
+     normal case, because an action typically sets its own state and calls
+     ensureConnected() before it ever awaits.
 
      So the connection flows come last: a connection flow is always a sub-step of
-     something else (a payment started from the top-up modal, say), and it has to
-     be able to sit on top of whatever asked for it. Declared earlier, the wallet
-     picker opened UNDERNEATH the top-up modal and the click appeared to hang. -->
+     something else, and it has to be able to sit on top of whatever asked for
+     it. This is not hypothetical here: declared before the modals, the wallet
+     picker raised by a payment opened UNDERNEATH the top-up modal, and the click
+     simply appeared to hang. -->
 <ConnectionFlow {connection} />
 <!-- The PAYMENT connection needs its own flow, or any step that requires the
      user (choosing between two installed wallets, approving a connection)
