@@ -2,6 +2,7 @@ import {describe, it, expect} from 'vitest';
 import {
 	BaseError,
 	ContractFunctionExecutionError,
+	InternalRpcError,
 	InvalidParamsRpcError,
 	RpcRequestError,
 	TransactionExecutionError,
@@ -9,6 +10,7 @@ import {
 import {
 	txErrorSummary,
 	txErrorDetails,
+	INSUFFICIENT_FUNDS_SUMMARY,
 } from '../../../../src/lib/core/transaction/tx-error-summary';
 
 describe('txErrorSummary', () => {
@@ -46,6 +48,31 @@ describe('txErrorSummary', () => {
 		expect(txErrorSummary('boom')).toBe('Transaction failed');
 		expect(txErrorSummary(undefined)).toBe('Transaction failed');
 	});
+
+	it('names an account that cannot pay, instead of repeating the node', () => {
+		expect(
+			txErrorSummary(new Error('insufficient funds for gas * price + value')),
+		).toBe(INSUFFICIENT_FUNDS_SUMMARY);
+	});
+
+	it("prefers that to viem's category for the same failure", () => {
+		// The case that motivates asking the classifier FIRST: hardhat reports an
+		// empty account under a generic JSON-RPC code, so viem's shortMessage sends
+		// the user to check their parameters.
+		const inner = new BaseError(
+			'Invalid parameters were provided to the RPC method.',
+			{
+				details: "Sender doesn't have enough funds to send tx.",
+			},
+		);
+		expect(txErrorSummary(inner)).toBe(INSUFFICIENT_FUNDS_SUMMARY);
+	});
+
+	it('leaves a revert to viem, even one that mentions funds', () => {
+		expect(
+			txErrorSummary(new Error('execution reverted: insufficient funds')),
+		).toBe('execution reverted: insufficient funds');
+	});
 });
 
 describe('txErrorDetails', () => {
@@ -60,11 +87,17 @@ describe('txErrorDetails', () => {
 });
 
 describe('txErrorSummary: generic RPC categories', () => {
-	it('prefers the node reason when viem only knows the RPC category', () => {
+	it("answers the real hardhat chain in the app's own words", () => {
 		// Hardhat reports "not enough funds" under -32602, which viem renders as
 		// "Invalid parameters were provided to the RPC method". Telling a user to
 		// check their parameters when their account is empty sends them looking in
-		// entirely the wrong place. Observed for real; this is that case.
+		// entirely the wrong place. Observed for real; this is that case, and it is
+		// the end-to-end check that the classifier beats viem on the actual shape.
+		//
+		// This used to assert the node's own sentence, surfaced by `nodeDetails`.
+		// Naming the problem is strictly better than repeating hardhat's phrasing
+		// at the user, and it is now the same sentence however the shortfall was
+		// found. What must not regress is the negative below.
 		const rpc = new RpcRequestError({
 			body: {},
 			error: {
@@ -82,8 +115,27 @@ describe('txErrorSummary: generic RPC categories', () => {
 		);
 
 		const summary = txErrorSummary(error);
-		expect(summary).toContain("doesn't have enough funds");
+		expect(summary).toBe(INSUFFICIENT_FUNDS_SUMMARY);
 		expect(summary.toLowerCase()).not.toContain('invalid parameters');
+	});
+
+	it('still prefers the node reason for categories that are not about funds', () => {
+		// The funds case no longer reaches `nodeDetails`, so without a second
+		// example the whole UNINFORMATIVE_SHORT_MESSAGE mechanism would be left
+		// unpinned and look like dead code. This is the same shape from a different
+		// cause: a specific, actionable problem reported under a generic code.
+		const rpc = new RpcRequestError({
+			body: {},
+			error: {code: -32603, message: 'replacement transaction underpriced'},
+			url: 'http://localhost:8545',
+		});
+		const error = new TransactionExecutionError(new InternalRpcError(rpc), {
+			account: null,
+		});
+
+		const summary = txErrorSummary(error);
+		expect(summary).toContain('replacement transaction underpriced');
+		expect(summary.toLowerCase()).not.toContain('internal error');
 	});
 
 	it('keeps viem the summary when viem models the error properly', () => {
