@@ -31,6 +31,16 @@ export type InsufficientFundsView = {
 	 * contradiction.
 	 */
 	sentFromAnotherAccount: boolean;
+	/**
+	 * Whether topping up can fix THIS shortfall.
+	 *
+	 * The mirror of `canUseFaucet`. The faucet funds the account the user signed
+	 * in as; the top-up funds the local signer, through a paying wallet. Exactly
+	 * one of them is the remedy for any given shortfall, and offering the wrong
+	 * one is worse than offering nothing: it appears to work, moves a balance
+	 * nobody was waiting on, and the transaction fails anyway.
+	 */
+	canTopUp: boolean;
 };
 
 type LoadedBalance = {step: 'Loaded'; value: bigint};
@@ -59,6 +69,7 @@ export function deriveInsufficientFundsView(
 			isWaitingForBalanceUpdate: false,
 			canUseFaucet: false,
 			sentFromAnotherAccount: false,
+			canTopUp: false,
 		};
 	}
 
@@ -88,5 +99,6 @@ export function deriveInsufficientFundsView(
 		isWaitingForBalanceUpdate: state.isWaitingForBalanceUpdate === true,
 		canUseFaucet: faucetConfigured && isAccount,
 		sentFromAnotherAccount: !!state.sender && !isAccount,
+		canTopUp: !!state.sender && !isAccount,
 	};
 }

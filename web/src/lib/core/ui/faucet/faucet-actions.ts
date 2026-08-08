@@ -131,6 +131,6 @@ export async function claimFaucet(
 	// change that is never coming, and then inviting the user to continue into
 	// the same failure.
 	if (address === executorAddress) {
-		balanceCheck.markFaucetClaimed(preFaucetBalance);
+		balanceCheck.markFundingRequested(preFaucetBalance);
 	}
 }

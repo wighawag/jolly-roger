@@ -37,7 +37,7 @@ describe('claimFaucet: funding an account other than the executor', () => {
 	const EXECUTOR = '0x0000000000000000000000000000000000000001' as const;
 	const PAYER = '0x00000000000000000000000000000000000000bb' as const;
 
-	function deps(markFaucetClaimed = vi.fn()) {
+	function deps(markFundingRequested = vi.fn()) {
 		return {
 			deps: {
 				accountExecutor: readable({status: 'ready', address: EXECUTOR}),
@@ -47,9 +47,9 @@ describe('claimFaucet: funding an account other than the executor', () => {
 				},
 				deployments: readable({chain: {id: 31337}}),
 				publicClient: {waitForTransactionReceipt: vi.fn(async () => ({}))},
-				balanceCheck: {markFaucetClaimed},
+				balanceCheck: {markFundingRequested},
 			} as never,
-			markFaucetClaimed,
+			markFundingRequested,
 		};
 	}
 
@@ -83,11 +83,11 @@ describe('claimFaucet: funding an account other than the executor', () => {
 			'fetch',
 			vi.fn(async () => ({ok: true, json: async () => ({txHash: '0xabc'})})),
 		);
-		const {deps: d, markFaucetClaimed} = deps();
+		const {deps: d, markFundingRequested} = deps();
 
 		await claimFaucet(d, config, PAYER);
 
-		expect(markFaucetClaimed).not.toHaveBeenCalled();
+		expect(markFundingRequested).not.toHaveBeenCalled();
 		vi.unstubAllGlobals();
 	});
 
@@ -96,11 +96,11 @@ describe('claimFaucet: funding an account other than the executor', () => {
 			'fetch',
 			vi.fn(async () => ({ok: true, json: async () => ({txHash: '0xabc'})})),
 		);
-		const {deps: d, markFaucetClaimed} = deps();
+		const {deps: d, markFundingRequested} = deps();
 
 		await claimFaucet(d, config);
 
-		expect(markFaucetClaimed).toHaveBeenCalledWith(5n);
+		expect(markFundingRequested).toHaveBeenCalledWith(5n);
 		vi.unstubAllGlobals();
 	});
 });

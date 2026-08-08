@@ -28,6 +28,7 @@ describe('deriveInsufficientFundsView', () => {
 			isWaitingForBalanceUpdate: false,
 			canUseFaucet: false,
 			sentFromAnotherAccount: false,
+			canTopUp: false,
 		});
 	});
 

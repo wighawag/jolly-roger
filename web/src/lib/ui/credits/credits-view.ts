@@ -46,12 +46,6 @@ export type CreditsView = {
 	topBarText: string;
 	/** Label for the action that funds the signer. */
 	topUpLabel: string;
-	/**
-	 * Whether the top-up asks for an amount. A configured credit unit gives a
-	 * fixed price per top-up, so there is nothing to ask; without one there is no
-	 * sensible preset and the user has to say how much.
-	 */
-	topUpNeedsAmount: boolean;
 };
 
 const HIDDEN: CreditsView = {
@@ -65,7 +59,6 @@ const HIDDEN: CreditsView = {
 	showTopBarIndicator: false,
 	topBarText: '',
 	topUpLabel: '',
-	topUpNeedsAmount: false,
 };
 
 /**
@@ -73,13 +66,27 @@ const HIDDEN: CreditsView = {
  * browser holds, which a player has no reason to know about. What they can act
  * on is which account pays for what, so it is named for its ROLE.
  *
- * One name, not two, now that there is no execution mode to change what the
- * signer is: it always pays for what the app does on the user's behalf, and
- * their own account always pays for what they do themselves.
+ * Short, because this is now a balance ROW sitting above the user's own account
+ * rather than a titled panel explaining itself. What it is stays available as
+ * the description, on hover; what it is FOR is the number next to it. When the
+ * chain prices actions the row is simply called what it holds.
  */
-const LABEL = 'In-app spending account';
+const LABEL_CREDITS = 'Credits';
+const LABEL_NATIVE = 'In-app balance';
 const DESCRIPTION =
 	'Held in this browser so the app can act on your behalf without asking you to sign every time. Separate from your account, and funded separately.';
+
+/**
+ * Name for the action that funds the signer.
+ *
+ * No amount in it, because the amount is no longer fixed: the flow works out
+ * what this payer can actually send (see ./top-up-flow). Exported so the button
+ * that opens the flow and the modal that runs it cannot drift apart, which they
+ * did: the panel said "Top up" and the modal it opened was titled "Get credits".
+ */
+export function topUpActionLabel(credits: CreditsConfig | undefined): string {
+	return credits ? 'Get credits' : 'Top up';
+}
 
 /**
  * Derive everything the credits UI shows from a single snapshot.
@@ -127,7 +134,7 @@ export function deriveCreditsView(input: CreditsViewInput): CreditsView {
 	return {
 		visible: true,
 		denominatedInCredits: !!credits,
-		label: LABEL,
+		label: credits ? LABEL_CREDITS : LABEL_NATIVE,
 		description: DESCRIPTION,
 		signerAddress: signer.address,
 		signerText: signerBalance === undefined ? null : denominate(signerBalance),
@@ -141,10 +148,7 @@ export function deriveCreditsView(input: CreditsViewInput): CreditsView {
 						? 'No credits'
 						: 'Needs funds'
 					: denominate(signerBalance),
-		topUpLabel: credits
-			? `Get ${credits.creditsPerTopUp} credits`
-			: `Add ${symbol}`,
-		topUpNeedsAmount: !credits,
+		topUpLabel: topUpActionLabel(credits),
 	};
 }
 

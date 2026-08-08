@@ -3,82 +3,12 @@ import {writable} from 'svelte/store';
 import {
 	checkPayerFunds,
 	getCredits,
-	resolveTopUpAmount,
 	TRANSFER_GAS,
 } from '$lib/ui/credits/get-credits';
-import type {CreditsConfig} from '$lib/core/connection/credits';
 import type {GetCreditsDeps} from '$lib/ui/credits/get-credits';
 
 const SIGNER = '0x00000000000000000000000000000000000000aA' as const;
 const PAYER = '0x00000000000000000000000000000000000000bB' as const;
-
-const CREDITS: CreditsConfig = {
-	creditUnit: 1_000_000_000n * 100_000n,
-	creditsPerTopUp: 100,
-};
-
-describe('resolveTopUpAmount: with credits configured', () => {
-	it('prices the top-up itself and ignores any typed amount', () => {
-		// A credit is a defined thing, so the user is never asked how much a
-		// hundred of them cost.
-		expect(resolveTopUpAmount(CREDITS, '')).toEqual({
-			ok: true,
-			value: CREDITS.creditUnit * 100n,
-		});
-		expect(resolveTopUpAmount(CREDITS, 'nonsense')).toEqual({
-			ok: true,
-			value: CREDITS.creditUnit * 100n,
-		});
-	});
-});
-
-describe('resolveTopUpAmount: without credits, the user says how much', () => {
-	it('parses a decimal amount into wei', () => {
-		expect(resolveTopUpAmount(undefined, '0.01')).toEqual({
-			ok: true,
-			value: 10_000_000_000_000_000n,
-		});
-	});
-
-	it('tolerates surrounding whitespace', () => {
-		expect(resolveTopUpAmount(undefined, '  2  ')).toEqual({
-			ok: true,
-			value: 2n * 10n ** 18n,
-		});
-	});
-
-	it('asks for an amount rather than sending nothing', () => {
-		expect(resolveTopUpAmount(undefined, '')).toEqual({
-			ok: false,
-			error: 'Enter an amount',
-		});
-	});
-
-	it.each(['abc', '1e2', '--1', '1,5'])('rejects %s', (input) => {
-		expect(resolveTopUpAmount(undefined, input).ok).toBe(false);
-	});
-
-	it('rejects zero and negative amounts', () => {
-		expect(resolveTopUpAmount(undefined, '0').ok).toBe(false);
-		expect(resolveTopUpAmount(undefined, '-1').ok).toBe(false);
-	});
-
-	it('rejects an amount that truncates to nothing', () => {
-		// parseUnits silently floors below the smallest unit, which would broadcast
-		// a transfer of 0 wei and look like a bug rather than a rejected input.
-		expect(resolveTopUpAmount(undefined, '0.0000000000000000001')).toEqual({
-			ok: false,
-			error: 'Enter an amount above zero',
-		});
-	});
-
-	it('honours a currency with fewer decimals', () => {
-		expect(resolveTopUpAmount(undefined, '1.5', 6)).toEqual({
-			ok: true,
-			value: 1_500_000n,
-		});
-	});
-});
 
 type Overrides = {
 	ensureConnected?: () => Promise<unknown>;

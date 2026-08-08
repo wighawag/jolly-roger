@@ -25,6 +25,7 @@ import type {ViewStateStore} from '$lib/view';
 import type {ClockStore} from '$lib/core/clock';
 import type {TransactionObserver} from '@etherkit/tx-observer';
 import type {BalanceCheckStore} from '$lib/core/transaction/balance-check-store';
+import type {TopUpFlow} from '$lib/ui/credits/top-up-flow';
 import type {AccountCannotSendStore} from '$lib/core/transaction/account-cannot-send-store';
 import type {ErrorDetailsStore} from '$lib/core/transaction/error-details-store';
 
@@ -88,6 +89,15 @@ export type Context = {
 	 * something calls `ensureConnected` on it. See core/connection/remote.
 	 */
 	payment: PaymentRail;
+	/**
+	 * Funding the local signer, as a flow the user is walked through.
+	 *
+	 * One per app, not one per component, because two places drive it: the
+	 * account panel, and the insufficient-funds modal when the signer is the
+	 * account that cannot pay. Separate instances would let a second top-up start
+	 * on top of one already running. See ui/credits/top-up-flow.
+	 */
+	topUp: TopUpFlow;
 	rpcHealth: RpcHealthStore;
 	/**
 	 * Wallet nonce-cache detection (dev + app-RPC only; a no-op store otherwise).

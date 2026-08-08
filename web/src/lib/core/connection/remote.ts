@@ -68,15 +68,22 @@ export type ChainConnection =
  * - `autoConnect: false`: this must stay dormant until the user asks to pay.
  *   Auto-connecting would pop a wallet prompt on page load for a purchase
  *   nobody has started.
- * - `useCurrentAccount: 'always'`: a payment is a one-shot act, so it uses
- *   whatever account the wallet has selected rather than putting an account
- *   picker in front of it.
+ * - `useCurrentAccount` is OMITTED, for the same reason the app connection omits
+ *   it: setting it makes the connection auto-pick an account and skip
+ *   `ChooseWalletAccount`, so a wallet holding several accounts never lets the
+ *   user choose. It was briefly set here on the theory that a payment is a
+ *   one-shot act that should just use whatever the wallet has selected. That is
+ *   backwards. WHICH account pays is the one decision a payment actually has,
+ *   and the account a wallet happens to have selected is rarely the one holding
+ *   the money the user means to spend. The symptom was a top-up naming a payer
+ *   the user had never picked, and a different one each time.
  * - `storagePrefix`: REQUIRED for correctness, not tidiness. Both connections
  *   persist "the wallet I last used", and without a prefix they share one slot:
  *   paying with a different wallet than the player signed in with would leave
  *   the app auto-reconnecting the player as the payer on the next page load.
- *   Prefixing gives each connection its own slot, which is also what makes it
- *   safe for the payment connection to remember its payer between purchases.
+ *   Prefixing gives each connection its own slot. The top-up flow additionally
+ *   clears it before every payment (see ui/credits/top-up-flow), so the payer is
+ *   chosen afresh each time rather than inherited from the last purchase.
  */
 export function createPaymentConnection(
 	chainInfo: ChainInfo,
@@ -88,7 +95,6 @@ export function createPaymentConnection(
 		chainInfo,
 		storagePrefix: PAYMENT_STORAGE_PREFIX,
 		prioritizeWalletProvider: true,
-		useCurrentAccount: 'always',
 		autoConnect: false,
 	});
 }

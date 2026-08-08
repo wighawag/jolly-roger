@@ -138,7 +138,20 @@ export function createBalanceCheckStore({
 		set({step: 'idle'});
 	};
 
-	const markFaucetClaimed = (preFaucetBalance: bigint) => {
+	/**
+	 * Something has been done that should raise the blocked account's balance:
+	 * start watching for it to move, and offer to continue once it does.
+	 *
+	 * Named for the effect rather than for the faucet, because there are now two
+	 * remedies that produce it. A faucet claim funds the authenticated account; a
+	 * top-up funds the local signer through the payment rail. The modal treats
+	 * them identically from here on, and calling this `markFaucetClaimed` from the
+	 * top-up path would describe the wrong one of the two.
+	 *
+	 * A no-op unless a transaction is actually blocked, so callers do not have to
+	 * check first.
+	 */
+	const markFundingRequested = (preFaucetBalance: bigint) => {
 		update((state) => {
 			if (state.step === 'insufficient') {
 				startPolling(state.balanceStore, preFaucetBalance);
@@ -353,7 +366,7 @@ export function createBalanceCheckStore({
 		startEstimating,
 		showInsufficientFunds,
 		close,
-		markFaucetClaimed,
+		markFundingRequested,
 		ensureCanAfford,
 	};
 }

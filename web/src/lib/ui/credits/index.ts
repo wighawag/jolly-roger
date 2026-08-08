@@ -1,5 +1,6 @@
 export {default as CreditsIndicator} from './CreditsIndicator.svelte';
-export {default as CreditsPanel} from './CreditsPanel.svelte';
+export {default as SignerBalance} from './SignerBalance.svelte';
+export {default as TopUpModal} from './TopUpModal.svelte';
 export {
 	createCreditsViewStore,
 	deriveCreditsView,
@@ -7,9 +8,13 @@ export {
 	type CreditsView,
 	type CreditsViewStore,
 } from './credits-view';
+export {getCredits, type GetCreditsResult} from './get-credits';
 export {
-	getCredits,
-	resolveTopUpAmount,
-	type GetCreditsResult,
-	type TopUpAmount,
-} from './get-credits';
+	createTopUpFlow,
+	formatAmount,
+	maxTopUp,
+	spendableBalance,
+	topUpCeiling,
+	type TopUpFlow,
+	type TopUpState,
+} from './top-up-flow';

@@ -10,7 +10,7 @@
 	import {getAppContext} from '$lib';
 	import {deriveInsufficientFundsView} from './insufficient-funds-view';
 
-	const {balanceCheck, accountExecutor} = getAppContext();
+	const {balanceCheck, accountExecutor, topUp} = getAppContext();
 
 	let isOpen = $derived($balanceCheck.step !== 'idle');
 
@@ -119,8 +119,20 @@
 				{/if}
 			</div>
 
-			{#if !hasSufficientFunds && !isWaitingForBalanceUpdate && view.canUseFaucet}
-				<FaucetButton />
+			{#if !hasSufficientFunds && !isWaitingForBalanceUpdate}
+				{#if view.canUseFaucet}
+					<FaucetButton />
+				{:else if view.canTopUp}
+					<!-- The account that is short is the in-app signer, which the faucet
+					     cannot fund. Topping up can, and it reports back to this store
+					     when it succeeds, so the footer below switches to "Continue
+					     Transaction" and the blocked transaction carries on. Opens over
+					     this modal rather than replacing it: this one is still the thing
+					     being resolved. -->
+					<Button class="w-full" onclick={() => topUp.start()}>
+						Top up the in-app balance
+					</Button>
+				{/if}
 			{/if}
 		</div>
 

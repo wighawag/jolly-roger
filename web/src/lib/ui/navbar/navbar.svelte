@@ -10,10 +10,9 @@
 	import {formatBalance} from '$lib/core/utils/format/balance';
 	import {countPendingOperations} from '$lib/view/operation';
 	import {effectiveGasPrice} from '$lib/core/connection/gasFee';
-	import {FaucetButton, hasFaucet} from '$lib/core/ui/faucet/index.js';
 	import {
 		CreditsIndicator,
-		CreditsPanel,
+		SignerBalance,
 		createCreditsViewStore,
 	} from '$lib/ui/credits/index.js';
 	import MenuIcon from '@lucide/svelte/icons/menu';
@@ -169,22 +168,29 @@
 			</Button>
 		{:else if connection.isTargetStepReached($connection)}
 			<div class="m-1 hidden h-8 items-center space-x-2 sm:flex">
-				{#if $balanceStatus.error && formattedBalance !== null}
-					<span class="flex items-center gap-1 text-sm text-muted-foreground">
-						<AlertCircleIcon class="h-3 w-3 text-amber-500" />
-						{formattedBalance}
-						{$deployments.chain.nativeCurrency.symbol}
-					</span>
-				{:else if formattedBalance !== null}
-					<span class="text-sm text-muted-foreground"
-						>{formattedBalance}
-						{$deployments.chain.nativeCurrency.symbol}</span
-					>
-				{:else if $balanceStatus.error}
-					<span class="flex items-center gap-1 text-sm text-destructive">
-						<AlertCircleIcon class="h-3 w-3" />
-						Balance error
-					</span>
+				<!-- The user's own account, shown here only when it is the ONLY balance
+				     there is. With a signer, what the app spends is the in-app balance,
+				     and two figures side by side invite the user to read the wrong one
+				     when deciding whether they can still play. The account balance is
+				     still a row in the panel, one tap away. -->
+				{#if !$creditsView.visible}
+					{#if $balanceStatus.error && formattedBalance !== null}
+						<span class="flex items-center gap-1 text-sm text-muted-foreground">
+							<AlertCircleIcon class="h-3 w-3 text-amber-500" />
+							{formattedBalance}
+							{$deployments.chain.nativeCurrency.symbol}
+						</span>
+					{:else if formattedBalance !== null}
+						<span class="text-sm text-muted-foreground"
+							>{formattedBalance}
+							{$deployments.chain.nativeCurrency.symbol}</span
+						>
+					{:else if $balanceStatus.error}
+						<span class="flex items-center gap-1 text-sm text-destructive">
+							<AlertCircleIcon class="h-3 w-3" />
+							Balance error
+						</span>
+					{/if}
 				{/if}
 				<CreditsIndicator
 					view={$creditsView}
@@ -311,13 +317,19 @@
 
 				<!-- Balance & Transactions Section -->
 				<div class="mt-4 flex flex-col gap-2 border-t border-border px-4 pt-4">
+					<!-- FIRST, and renders itself only when a signer exists: this is what
+					     pays for playing, so it is what a user checks. The account below
+					     is what they own, which matters less often. -->
+					<SignerBalance view={$creditsView} />
+
 					<div class="flex flex-col gap-1 rounded-md bg-muted/50 px-3 py-2">
 						<div class="flex items-center justify-between">
-							<!-- The user's OWN account. The signer's gas is its own section
-							     below, in its own units; this row, its errors and the faucet
-							     under it are all about the account the user thinks of as
-							     theirs. -->
-							<span class="text-sm text-muted-foreground">Balance</span>
+							<!-- The user's OWN account, and only theirs. It has no faucet
+							     button any more: funding now runs through the top-up flow
+							     above, which faucets the account that actually pays. A second
+							     button here funded a third account and moved nobody closer to
+							     being able to play. -->
+							<span class="text-sm text-muted-foreground">Your account</span>
 							{#if $balanceStatus.loading && formattedBalance === null}
 								<Spinner class="h-4 w-4" />
 							{:else if formattedBalance !== null}
@@ -353,14 +365,7 @@
 								</button>
 							</div>
 						{/if}
-
-						{#if hasFaucet && $accountBalance.step === 'Loaded' && $accountBalance.value === 0n}
-							<FaucetButton />
-						{/if}
 					</div>
-
-					<!-- Renders itself only when a signer exists. -->
-					<CreditsPanel view={$creditsView} />
 
 					<a
 						href={route('/transactions/')}

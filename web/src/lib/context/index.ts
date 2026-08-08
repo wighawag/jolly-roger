@@ -27,7 +27,11 @@ import {
 	PUBLIC_USE_BURNER_WALLET,
 	PUBLIC_WALLET_HOST,
 	PUBLIC_IMPERSONATE_ADDRESSES,
+	PUBLIC_FAUCET_LINK,
+	PUBLIC_FAUCET_API,
 } from '$env/static/public';
+import {hasFaucet} from '$lib/core/ui/faucet/index.js';
+import {createTopUpFlow} from '$lib/ui/credits/top-up-flow.js';
 import {burnerOverride} from '$lib';
 import {resolveBurnerWallet} from './burner.js';
 import {
@@ -416,6 +420,29 @@ export function createContext(): {
 		gasFee,
 	});
 
+	// Built here rather than in the component that shows it, because the account
+	// panel and the insufficient-funds modal must drive the SAME flow: the modal
+	// opens it for a transaction that is already blocked, and the panel opens it
+	// on its own, and a second instance would let both run at once.
+	const topUp = createTopUpFlow(
+		{
+			connection,
+			payment,
+			signerBalance,
+			credits,
+			deployments,
+			accountExecutor,
+			accountBalance,
+			publicClient,
+			balanceCheck,
+		},
+		{
+			faucetApi: PUBLIC_FAUCET_API,
+			faucetLink: PUBLIC_FAUCET_LINK,
+			hasFaucet,
+		},
+	);
+
 	// Debug store for tx-observer processing stats
 	const txObserverDebug = writable<TxObserverDebugState>({
 		processCount: 0,
@@ -454,6 +481,7 @@ export function createContext(): {
 		txObserver,
 		txObserverDebug: {subscribe: txObserverDebug.subscribe},
 		balanceCheck,
+		topUp,
 	};
 
 	// Dev/debug: expose the whole context on globalThis for console access

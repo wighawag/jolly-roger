@@ -118,16 +118,13 @@ describe('deriveCreditsView: the top bar', () => {
 });
 
 describe('deriveCreditsView: the top-up offer', () => {
-	it('names a fixed price when credits are configured, and asks for no amount', () => {
-		const v = view({credits: CREDITS});
-		expect(v.topUpLabel).toBe('Get 100 credits');
-		expect(v.topUpNeedsAmount).toBe(false);
-	});
-
-	it('asks for an amount when there is no credit unit to price a top-up with', () => {
-		const v = view({credits: undefined});
-		expect(v.topUpLabel).toBe('Add ETH');
-		expect(v.topUpNeedsAmount).toBe(true);
+	it('names the action without an amount, whatever the denomination', () => {
+		// The label no longer carries an amount: how much a top-up is worth is
+		// decided per payer, at the moment of paying (see top-up-flow), so naming a
+		// figure here would promise one the payer may not be able to send.
+		expect(view({credits: CREDITS}).topUpLabel).toBe('Get credits');
+		expect(view({credits: undefined}).topUpLabel).toBe('Top up');
+		expect(view({credits: CREDITS}).topUpLabel).not.toMatch(/\d/);
 	});
 
 	it('offers the top-up whether or not the signer is empty', () => {
@@ -140,7 +137,11 @@ describe('deriveCreditsView: the top-up offer', () => {
 
 describe('deriveCreditsView: naming', () => {
 	it('names the signer for its role, not for what it is', () => {
-		expect(view().label).toBe('In-app spending account');
+		expect(view().label).toBe('In-app balance');
+	});
+
+	it('calls the row what it holds once the chain prices actions', () => {
+		expect(view({credits: CREDITS}).label).toBe('Credits');
 	});
 
 	it('never uses the word "signer" in anything the user reads', () => {

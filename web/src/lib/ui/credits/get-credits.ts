@@ -1,51 +1,13 @@
-import {parseUnits} from 'viem';
 import {isUserRejectionError} from '$lib/core/transaction';
 import {
 	txErrorDetails,
 	txErrorSummary,
 } from '$lib/core/transaction/tx-error-summary';
-import {topUpAmount, type CreditsConfig} from '$lib/core/connection/credits';
 import {
 	claimFaucet,
 	type FaucetClaimDeps,
 } from '$lib/core/ui/faucet/faucet-actions';
 import type {Context} from '$lib/context/types';
-
-export type TopUpAmount =
-	{ok: true; value: bigint} | {ok: false; error: string};
-
-/**
- * How much one top-up sends.
- *
- * With a credit unit the price is fixed and the user is never asked: a credit
- * is a defined thing, so "get 100 credits" costs what 100 credits cost.
- * Without one there is no unit to price anything in, so the amount has to come
- * from the user, and is validated as a native-currency figure.
- */
-export function resolveTopUpAmount(
-	credits: CreditsConfig | undefined,
-	input: string,
-	decimals: number = 18,
-): TopUpAmount {
-	if (credits) return {ok: true, value: topUpAmount(credits)};
-
-	const trimmed = input.trim();
-	if (!trimmed) return {ok: false, error: 'Enter an amount'};
-
-	let value: bigint;
-	try {
-		value = parseUnits(trimmed, decimals);
-	} catch {
-		return {ok: false, error: 'Not a valid amount'};
-	}
-	// parseUnits throws on anything that is not a plain decimal, but happily
-	// returns a signed or zero result, and silently truncates below the
-	// currency's smallest unit ('0.0000000000000000001' becomes 0 wei). All three
-	// would broadcast a transfer of nothing, so they are rejected here rather
-	// than surfacing later as a transaction that changed no balance.
-	if (value <= 0n) return {ok: false, error: 'Enter an amount above zero'};
-	return {ok: true, value};
-}
 
 /** Gas a plain native transfer costs; this template's top-up is exactly that. */
 export const TRANSFER_GAS = 21_000n;

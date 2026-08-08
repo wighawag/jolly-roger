@@ -35,6 +35,8 @@ async function loadContextWith(env: Record<string, string>) {
 		PUBLIC_OPERATION_RETENTION_DAYS: '',
 		PUBLIC_ENS_NODE_URL: '',
 		PUBLIC_ENABLE_SW_IN_DEV: '',
+		PUBLIC_FAUCET_LINK: '',
+		PUBLIC_FAUCET_API: '',
 		...env,
 	}));
 	return (await import('$lib/context/index')).createContext;
