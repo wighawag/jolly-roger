@@ -2,7 +2,8 @@
 pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
-import {GreetingsRegistry} from "./GreetingsRegistry.sol";
+import {GreetingsRegistry} from "src/GreetingsRegistry/GreetingsRegistry.sol";
+import {Delegation} from "src/core/Delegation.sol";
 
 contract GreetingsRegistryTest is Test {
     uint256 internal testNumber;
@@ -370,73 +371,21 @@ contract GreetingsRegistryTest is Test {
         assertEq(messages[0].message, "PREFIX: hello");
     }
 
-    // ==================== Delegation ====================
+    // ==================== Greeting for somebody else ====================
+    //
+    // Whether a delegate is authorised is Delegation's business, and is tested
+    // there. What is tested here is the only thing this contract adds: WHOSE
+    // greeting gets written.
 
-    string internal constant ORIGIN = "https://jolly-roger.example";
-
-    // A key rather than a bare address, because half of these tests need the
-    // OWNER to sign. `ownerKey` stands for an account authenticated by email or
-    // social login: it can sign, and it can never send.
-    uint256 internal ownerKey = 0xA11CE;
     address internal signer = address(0xDE1E6A7E);
-    address payable internal payee = payable(address(0xFEE));
 
-    function _owner() internal view returns (address) {
-        return vm.addr(ownerKey);
-    }
-
-    function _sign(
-        uint256 key,
-        address delegate
-    ) internal view returns (bytes memory) {
-        bytes32 digest = registry.delegationDigest(ORIGIN, delegate);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(key, digest);
-        return abi.encodePacked(r, s, v);
-    }
-
-    // ---- registerDelegate (sent by the account itself) ----
-
-    function test_registerDelegate_setsDelegate() public {
-        vm.prank(alice);
-        registry.registerDelegate(signer, payable(address(0)));
-
-        assertEq(registry.delegateOf(alice), signer);
-    }
-
-    function test_registerDelegate_rejectsZeroDelegate() public {
-        vm.prank(alice);
-        vm.expectRevert(GreetingsRegistry.InvalidDelegate.selector);
-        registry.registerDelegate(address(0), payable(address(0)));
-    }
-
-    function test_registerDelegate_forwardsValueToPayee() public {
-        vm.deal(alice, 1 ether);
-
-        vm.prank(alice);
-        registry.registerDelegate{value: 0.4 ether}(signer, payee);
-
-        assertEq(payee.balance, 0.4 ether);
-        assertEq(address(registry).balance, 0);
-    }
-
-    function test_registerDelegate_keepsNothingWhenNoValueSent() public {
-        vm.prank(alice);
-        registry.registerDelegate(signer, payee);
-
-        assertEq(payee.balance, 0);
-    }
-
-    // ---- setMessageFor ----
-
-    function test_setMessageFor_attributesToOwnerNotDelegate() public {
+    function test_setMessageFor_attributesToTheOwnerNotTheSender() public {
         vm.prank(alice);
         registry.registerDelegate(signer, payable(address(0)));
 
         vm.prank(signer);
         registry.setMessageFor(alice, "hello from the app");
 
-        // The whole point: the greeting belongs to alice, and the key that
-        // actually signed the transaction appears nowhere.
         assertEq(registry.messages(alice), "hello from the app");
         assertEq(registry.messages(signer), "");
 
@@ -447,31 +396,29 @@ contract GreetingsRegistryTest is Test {
         assertEq(messages[0].account, alice);
     }
 
-    function test_setMessageFor_revertsForNonDelegate() public {
+    function test_setMessageFor_revertsForAnUnauthorisedSender() public {
         vm.prank(alice);
         registry.registerDelegate(signer, payable(address(0)));
 
         vm.prank(bob);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                GreetingsRegistry.NotDelegate.selector,
-                alice,
-                bob
-            )
+            abi.encodeWithSelector(Delegation.NotDelegate.selector, alice, bob)
         );
         registry.setMessageFor(alice, "not mine to set");
     }
 
-    function test_setMessageFor_revertsWhenNothingRegistered() public {
-        vm.prank(signer);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                GreetingsRegistry.NotDelegate.selector,
-                alice,
-                signer
-            )
-        );
-        registry.setMessageFor(alice, "not mine to set");
+    function test_setMessageFor_lettingTheSenderNameItself() public {
+        // Naming yourself needs no authorisation, so this is just setMessage
+        // with an extra argument. It matters because a call site that passes an
+        // owner through unconditionally must not break when there is no
+        // delegation involved.
+        vm.prank(alice);
+        registry.setMessageFor(alice, "myself");
+        assertEq(registry.messages(alice), "myself");
+
+        vm.prank(bob);
+        registry.setMessageFor(address(0), "also myself");
+        assertEq(registry.messages(bob), "also myself");
     }
 
     function test_setMessage_isUnaffectedByDelegation() public {
@@ -479,8 +426,7 @@ contract GreetingsRegistryTest is Test {
         registry.registerDelegate(signer, payable(address(0)));
 
         // The plain entry point still writes for whoever called it, which is
-        // what keeps a deployment that never delegates behaving exactly as
-        // before.
+        // what keeps a deployment that never delegates behaving as before.
         vm.prank(alice);
         registry.setMessage("set by alice herself");
         assertEq(registry.messages(alice), "set by alice herself");
@@ -490,247 +436,46 @@ contract GreetingsRegistryTest is Test {
         assertEq(registry.messages(signer), "set by the signer, as itself");
     }
 
-    // ---- registerDelegateViaSignature ----
+    /// @notice Inheriting {UsingDelegation} must not have moved this contract's
+    /// own storage.
+    ///
+    /// A base contract's state normally precedes the derived contract's, so
+    /// inheriting one usually shifts every slot. This contract is live behind a
+    /// proxy, where a shift would reinterpret every greeting ever stored as
+    /// something else. It is safe only because the mixin declares no state and
+    /// delegation lives in a namespaced region, and nothing in the source would
+    /// show that changing - hence this.
+    function test_inheritingDelegationDidNotMoveStorage() public {
+        GreetingsRegistry prefixed = new GreetingsRegistry("PREFIX: ");
 
-    function test_registerViaSignature_worksAndIsPaidForBySubmitter() public {
-        address owner = _owner();
-        bytes memory signature = _sign(ownerKey, signer);
+        // A short string lives inline in its slot: the bytes left-aligned, and
+        // twice the length in the lowest byte. `_prefix` is declared first, so
+        // this is slot 0 or the layout has moved.
+        bytes32 slot0 = vm.load(address(prefixed), bytes32(0));
+        assertEq(bytes8(slot0), bytes8(bytes("PREFIX: ")));
+        assertEq(uint8(uint256(slot0)), 16);
 
-        // bob is the payer: he submits, he pays the gas, he supplies the funds.
-        // The owner holds nothing and sends nothing, which is the entire reason
-        // this entry point exists.
-        vm.deal(bob, 1 ether);
-        vm.prank(bob);
-        registry.registerDelegateViaSignature{value: 0.25 ether}(
-            owner,
-            ORIGIN,
-            signer,
-            signature
-        );
-
-        assertEq(registry.delegateOf(owner), signer);
-        assertEq(signer.balance, 0.25 ether);
-        assertEq(owner.balance, 0);
+        // And using delegation writes nowhere near it.
+        vm.prank(alice);
+        prefixed.registerDelegate(signer, payable(address(0)));
+        assertEq(vm.load(address(prefixed), bytes32(0)), slot0);
     }
 
-    function test_registerViaSignature_letsDelegateGreetAsOwner() public {
-        address owner = _owner();
-
-        vm.prank(bob);
-        registry.registerDelegateViaSignature(
-            owner,
-            ORIGIN,
-            signer,
-            _sign(ownerKey, signer)
-        );
-
-        vm.prank(signer);
-        registry.setMessageFor(owner, "greetings");
-        assertEq(registry.messages(owner), "greetings");
-    }
-
-    function test_registerViaSignature_rejectsAnotherKeysSignature() public {
-        uint256 wrongKey = 0xB0B;
-        bytes memory signature = _sign(wrongKey, signer);
-
-        vm.prank(bob);
-        vm.expectRevert(GreetingsRegistry.InvalidSignature.selector);
-        registry.registerDelegateViaSignature(
-            _owner(),
-            ORIGIN,
-            signer,
-            signature
-        );
-    }
-
-    function test_registerViaSignature_rejectsADifferentDelegate() public {
-        // Signed for `signer`, submitted for someone else. The delegate is the
-        // one thing the signature actually pins down, so this must not pass.
-        bytes memory signature = _sign(ownerKey, signer);
-
-        vm.prank(bob);
-        vm.expectRevert(GreetingsRegistry.InvalidSignature.selector);
-        registry.registerDelegateViaSignature(
-            _owner(),
-            ORIGIN,
-            address(0xBAD),
-            signature
-        );
-    }
-
-    function test_registerViaSignature_rejectsADifferentOrigin() public {
-        bytes memory signature = _sign(ownerKey, signer);
-
-        vm.prank(bob);
-        vm.expectRevert(GreetingsRegistry.InvalidSignature.selector);
-        registry.registerDelegateViaSignature(
-            _owner(),
-            "https://not-the-app.example",
-            signer,
-            signature
-        );
-    }
-
-    function test_registerViaSignature_rejectsMalformedSignature() public {
-        vm.prank(bob);
-        vm.expectRevert(GreetingsRegistry.InvalidSignature.selector);
-        registry.registerDelegateViaSignature(
-            _owner(),
-            ORIGIN,
-            signer,
-            hex"1234"
-        );
-    }
-
-    function test_registerViaSignature_replayIsHarmlessBeforeRevocation()
-        public
-    {
-        address owner = _owner();
-        bytes memory signature = _sign(ownerKey, signer);
-
-        vm.prank(bob);
-        registry.registerDelegateViaSignature(owner, ORIGIN, signer, signature);
-
-        // No nonce, so this succeeds - and that is fine, because it re-asserts
-        // the same fact at the replayer's expense.
-        vm.prank(charlie);
-        registry.registerDelegateViaSignature(owner, ORIGIN, signer, signature);
-
-        assertEq(registry.delegateOf(owner), signer);
-    }
-
-    // ---- revokeDelegate ----
-
-    function test_revoke_stopsTheDelegate() public {
+    function test_revokedDelegateCanNoLongerGreet() public {
         vm.prank(alice);
         registry.registerDelegate(signer, payable(address(0)));
 
         vm.prank(alice);
         registry.revokeDelegate();
 
-        assertEq(registry.delegateOf(alice), address(0));
-        assertTrue(registry.delegationWithdrawn(alice));
-
         vm.prank(signer);
         vm.expectRevert(
             abi.encodeWithSelector(
-                GreetingsRegistry.NotDelegate.selector,
+                Delegation.NotDelegate.selector,
                 alice,
                 signer
             )
         );
         registry.setMessageFor(alice, "should not land");
-    }
-
-    /// @notice The reason `_delegationWithdrawn` exists at all.
-    ///
-    /// The registration signature has no nonce and never expires, so without the
-    /// flag anyone could replay it and quietly undo a revocation the user
-    /// deliberately made.
-    function test_revoke_cannotBeUndoneByReplayingTheSignature() public {
-        address owner = _owner();
-        bytes memory signature = _sign(ownerKey, signer);
-
-        vm.prank(bob);
-        registry.registerDelegateViaSignature(owner, ORIGIN, signer, signature);
-
-        vm.prank(owner);
-        registry.revokeDelegate();
-
-        vm.prank(bob);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                GreetingsRegistry.DelegationWithdrawn.selector,
-                owner
-            )
-        );
-        registry.registerDelegateViaSignature(owner, ORIGIN, signer, signature);
-
-        assertEq(registry.delegateOf(owner), address(0));
-    }
-
-    /// @notice Withdrawal is one-way for signatures, but the ACCOUNT can always
-    /// change its mind, because sending the transaction itself is live consent
-    /// rather than a replayed static message.
-    function test_revoke_isClearedByTheAccountRegisteringAgain() public {
-        address owner = _owner();
-
-        vm.prank(owner);
-        registry.revokeDelegate();
-        assertTrue(registry.delegationWithdrawn(owner));
-
-        vm.prank(owner);
-        registry.registerDelegate(signer, payable(address(0)));
-
-        assertFalse(registry.delegationWithdrawn(owner));
-        assertEq(registry.delegateOf(owner), signer);
-
-        // ...and the signature works again from here on.
-        vm.prank(bob);
-        registry.registerDelegateViaSignature(
-            owner,
-            ORIGIN,
-            signer,
-            _sign(ownerKey, signer)
-        );
-        assertEq(registry.delegateOf(owner), signer);
-    }
-
-    /// @notice One account cannot damage another by claiming its delegate.
-    ///
-    /// The mapping is keyed by OWNER precisely so that this is a no-op against
-    /// the victim: bob registering alice's signer only makes bob's own account
-    /// controllable by a key bob does not hold.
-    function test_claimingSomeoneElsesDelegateDoesNotAffectThem() public {
-        vm.prank(alice);
-        registry.registerDelegate(signer, payable(address(0)));
-
-        vm.prank(bob);
-        registry.registerDelegate(signer, payable(address(0)));
-
-        vm.prank(signer);
-        registry.setMessageFor(alice, "still alice");
-
-        assertEq(registry.delegateOf(alice), signer);
-        assertEq(registry.messages(alice), "still alice");
-    }
-
-    // ---- message encoding ----
-
-    /// @notice The exact bytes the signing library has to reproduce.
-    ///
-    /// Pinned as a literal rather than rebuilt, so that changing the wording is
-    /// a deliberate act with a failing test attached, instead of something that
-    /// silently invalidates every signature ever generated.
-    function test_delegationMessage_isExactlyThis() public view {
-        string memory expected = string(
-            abi.encodePacked(
-                "Origin: https://jolly-roger.example\n\n",
-                "IMPORTANT: Only sign on trusted websites.\n\n",
-                "This authorizes the following address to act on your behalf onchain:\n\n",
-                "0x00000000000000000000000000000000de1e6a7e\n\n",
-                "Apps at this origin can use it to send transactions in your name."
-            )
-        );
-        assertEq(registry.delegationMessage(ORIGIN, signer), expected);
-    }
-
-    /// @notice The address is rendered lowercase, never checksummed. Whatever
-    /// produces the signature has to spell it the same way or nothing verifies.
-    function test_delegationMessage_lowercasesTheAddress() public view {
-        // Deliberately a mixed-case literal, to prove the case is not carried
-        // through from however the address was written.
-        address vector = 0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed;
-        string memory expected = string(
-            abi.encodePacked(
-                "Origin: ",
-                ORIGIN,
-                "\n\nIMPORTANT: Only sign on trusted websites.\n\n",
-                "This authorizes the following address to act on your behalf onchain:\n\n",
-                "0x5aaeb6053f3e94c9b9a09f33669435e7ef1beaed",
-                "\n\nApps at this origin can use it to send transactions in your name."
-            )
-        );
-        assertEq(registry.delegationMessage(ORIGIN, vector), expected);
     }
 }

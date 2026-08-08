@@ -79,14 +79,15 @@ describe('Delegation', function () {
 			// viem hands out EIP-55 checksummed addresses, so this is the casing
 			// the library actually receives. Both sides have to lowercase it.
 			const checksummed = privateKeyToAccount(generatePrivateKey()).address;
-			expect(checksummed).not.toEqual(checksummed.toLowerCase());
+			const lowercased = checksummed.toLowerCase() as `0x${string}`;
+			expect(checksummed).not.toEqual(lowercased);
 
 			const onchain = await env.read(GreetingsRegistry, {
 				functionName: 'delegationMessage',
 				args: [ORIGIN, checksummed],
 			});
 
-			expect(onchain).toInclude(checksummed.toLowerCase());
+			expect(onchain).toInclude(lowercased);
 			expect(onchain).not.toInclude(checksummed);
 		});
 	});

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
-import {StringUtils} from "./StringUtils.sol";
+import {StringUtils} from "src/core/utils/StringUtils.sol";
 
 contract StringUtilsTest is Test {
     // ==================== toHexString ====================

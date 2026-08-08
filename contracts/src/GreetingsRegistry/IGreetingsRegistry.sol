@@ -17,36 +17,8 @@ interface IGreetingsRegistry {
     function getLastMessages(
         uint256 limit
     ) external view returns (Message[] memory);
-
-    // ------------------------------------------------------------------------
-    // DELEGATION
-    // ------------------------------------------------------------------------
-
-    function delegateOf(address owner) external view returns (address);
-
-    function delegationWithdrawn(address owner) external view returns (bool);
-
-    function delegationMessage(
-        string calldata origin,
-        address delegate
-    ) external pure returns (string memory);
-
-    function delegationDigest(
-        string calldata origin,
-        address delegate
-    ) external pure returns (bytes32);
-
-    function registerDelegate(
-        address delegate,
-        address payable payee
-    ) external payable;
-
-    function registerDelegateViaSignature(
-        address owner,
-        string calldata origin,
-        address delegate,
-        bytes calldata signature
-    ) external payable;
-
-    function revokeDelegate() external;
 }
+
+// Delegation is deliberately NOT declared here. It is a capability the registry
+// gains by inheriting core/UsingDelegation, not part of what a greetings
+// registry is, and a contract could implement this interface without it.
