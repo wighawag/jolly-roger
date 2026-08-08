@@ -22,6 +22,7 @@
 		clock,
 		accountCannotSend,
 		errorDetails,
+		topUp,
 	} = context;
 
 	const viewStatus = viewState.status;
@@ -49,6 +50,20 @@
 				greetingInput = '';
 			} else if (result.status === 'cannot-send') {
 				accountCannotSend.show();
+			} else if (result.status === 'cannot-pay') {
+				// The remedy replaces the explanation: "Details" on this failure only
+				// ever showed the node's dump of a problem the toast already named.
+				toast.error('Transaction failed', {
+					description: result.message,
+					duration: 8000,
+					closeButton: true,
+					action: result.canTopUp
+						? {label: 'Top up', onClick: () => topUp.start()}
+						: {
+								label: 'Details',
+								onClick: () => errorDetails.show(result.details),
+							},
+				});
 			} else if (result.status === 'error') {
 				toast.error('Transaction failed', {
 					description: result.message,

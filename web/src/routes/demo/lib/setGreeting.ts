@@ -1,6 +1,7 @@
 import {get} from 'svelte/store';
 import {
 	InsufficientFundsError,
+	isInsufficientFundsFailure,
 	isUserRejectionError,
 } from '$lib/core/transaction';
 import {
@@ -13,6 +14,13 @@ export type SetGreetingResult =
 	| {status: 'submitted'}
 	| {status: 'cancelled'}
 	| {status: 'cannot-send'}
+	| {
+			status: 'cannot-pay';
+			/** Whether the top-up flow is the remedy for THIS account. */
+			canTopUp: boolean;
+			message: string;
+			details: string;
+	  }
 	| {status: 'error'; message: string; details: string};
 
 export type SetGreetingDeps = Pick<
@@ -35,6 +43,8 @@ export type SetGreetingDeps = Pick<
  *   (no error should be shown).
  * - `cannot-send`: the connected account cannot send under the configured
  *   execution mode (e.g. an email/social account in wallet execution mode).
+ * - `cannot-pay`: the transaction was sent and the account could not pay for
+ *   it, which is the one failure with a remedy attached.
  * - `error`: a real failure, with a user-facing message.
  */
 export async function setGreeting(
@@ -110,6 +120,27 @@ export async function setGreeting(
 			// User dismissed the funds modal or rejected in their wallet.
 			return {status: 'cancelled'};
 		}
+
+		// Strictly after the two checks above, which is the ordering the classifier
+		// warns about: a dismissed funds modal IS an account that cannot pay, and it
+		// is still a cancellation, because the user was already shown the shortfall
+		// and said no. This branch is the case nobody was offered anything for - the
+		// pre-flight estimate passed and the node refused it anyway, which is what
+		// happens when the signer's balance moves between the two.
+		if (isInsufficientFundsFailure(error)) {
+			console.error('Failed to set greeting, account cannot pay:', error);
+			return {
+				status: 'cannot-pay',
+				// Only when a local signer is what sent it. Topping up funds the
+				// signer, so on the wallet fallback it would move money nobody was
+				// waiting on and the transaction would fail again - the same trap
+				// `canTopUp` exists for on the pre-flight modal.
+				canTopUp: hasLocalSigner,
+				message: txErrorSummary(error),
+				details: txErrorDetails(error),
+			};
+		}
+
 		console.error('Failed to set greeting:', error);
 		return {
 			status: 'error',
