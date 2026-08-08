@@ -2,7 +2,8 @@
 pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
-import {GreetingsRegistry} from "./GreetingsRegistry.sol";
+import {GreetingsRegistry} from "src/GreetingsRegistry/GreetingsRegistry.sol";
+import {Delegation} from "src/core/Delegation.sol";
 
 contract GreetingsRegistryTest is Test {
     uint256 internal testNumber;
@@ -368,5 +369,113 @@ contract GreetingsRegistryTest is Test {
         GreetingsRegistry.Message[] memory messages = prefixedRegistry
             .getLastMessages(10);
         assertEq(messages[0].message, "PREFIX: hello");
+    }
+
+    // ==================== Greeting for somebody else ====================
+    //
+    // Whether a delegate is authorised is Delegation's business, and is tested
+    // there. What is tested here is the only thing this contract adds: WHOSE
+    // greeting gets written.
+
+    address internal signer = address(0xDE1E6A7E);
+
+    function test_setMessageFor_attributesToTheOwnerNotTheSender() public {
+        vm.prank(alice);
+        registry.registerDelegate(signer, payable(address(0)));
+
+        vm.prank(signer);
+        registry.setMessageFor(alice, "hello from the app");
+
+        assertEq(registry.messages(alice), "hello from the app");
+        assertEq(registry.messages(signer), "");
+
+        GreetingsRegistry.Message[] memory messages = registry.getLastMessages(
+            10
+        );
+        assertEq(messages.length, 1);
+        assertEq(messages[0].account, alice);
+    }
+
+    function test_setMessageFor_revertsForAnUnauthorisedSender() public {
+        vm.prank(alice);
+        registry.registerDelegate(signer, payable(address(0)));
+
+        vm.prank(bob);
+        vm.expectRevert(
+            abi.encodeWithSelector(Delegation.NotDelegate.selector, alice, bob)
+        );
+        registry.setMessageFor(alice, "not mine to set");
+    }
+
+    function test_setMessageFor_lettingTheSenderNameItself() public {
+        // Naming yourself needs no authorisation, so this is just setMessage
+        // with an extra argument. It matters because a call site that passes an
+        // owner through unconditionally must not break when there is no
+        // delegation involved.
+        vm.prank(alice);
+        registry.setMessageFor(alice, "myself");
+        assertEq(registry.messages(alice), "myself");
+
+        vm.prank(bob);
+        registry.setMessageFor(address(0), "also myself");
+        assertEq(registry.messages(bob), "also myself");
+    }
+
+    function test_setMessage_isUnaffectedByDelegation() public {
+        vm.prank(alice);
+        registry.registerDelegate(signer, payable(address(0)));
+
+        // The plain entry point still writes for whoever called it, which is
+        // what keeps a deployment that never delegates behaving as before.
+        vm.prank(alice);
+        registry.setMessage("set by alice herself");
+        assertEq(registry.messages(alice), "set by alice herself");
+
+        vm.prank(signer);
+        registry.setMessage("set by the signer, as itself");
+        assertEq(registry.messages(signer), "set by the signer, as itself");
+    }
+
+    /// @notice Inheriting {UsingDelegation} must not have moved this contract's
+    /// own storage.
+    ///
+    /// A base contract's state normally precedes the derived contract's, so
+    /// inheriting one usually shifts every slot. This contract is live behind a
+    /// proxy, where a shift would reinterpret every greeting ever stored as
+    /// something else. It is safe only because the mixin declares no state and
+    /// delegation lives in a namespaced region, and nothing in the source would
+    /// show that changing - hence this.
+    function test_inheritingDelegationDidNotMoveStorage() public {
+        GreetingsRegistry prefixed = new GreetingsRegistry("PREFIX: ");
+
+        // A short string lives inline in its slot: the bytes left-aligned, and
+        // twice the length in the lowest byte. `_prefix` is declared first, so
+        // this is slot 0 or the layout has moved.
+        bytes32 slot0 = vm.load(address(prefixed), bytes32(0));
+        assertEq(bytes8(slot0), bytes8(bytes("PREFIX: ")));
+        assertEq(uint8(uint256(slot0)), 16);
+
+        // And using delegation writes nowhere near it.
+        vm.prank(alice);
+        prefixed.registerDelegate(signer, payable(address(0)));
+        assertEq(vm.load(address(prefixed), bytes32(0)), slot0);
+    }
+
+    function test_revokedDelegateCanNoLongerGreet() public {
+        vm.prank(alice);
+        registry.registerDelegate(signer, payable(address(0)));
+
+        vm.prank(alice);
+        registry.revokeDelegate();
+
+        vm.prank(signer);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Delegation.NotDelegate.selector,
+                alice,
+                signer
+            )
+        );
+        registry.setMessageFor(alice, "should not land");
     }
 }

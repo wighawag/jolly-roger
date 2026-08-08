@@ -409,9 +409,26 @@ export function createContext(): {
 	};
 	const offline = createOfflineStore();
 
+	// See the note on `createViewState` below: the address greetings currently
+	// land under, which is whoever signs them.
+	const greetingAuthor = derived(signerExecutor, ($executor) =>
+		$executor.status === 'ready' ? $executor.address : undefined,
+	);
+
 	const viewState = createViewState({
 		onchainState,
 		operations: accountData.watchField('operations'),
+		// Which address a pending greeting is filed under: it has to be the one the
+		// CHAIN will report, or the optimistic entry never reconciles with the
+		// confirmed one and sits in the list as a permanent duplicate.
+		//
+		// On this branch that is the SIGNER, because the demo sends plain
+		// `setMessage` and the registry records `msg.sender`. It should be the
+		// account: the registry now understands delegation (`setMessageFor`, see
+		// contracts/src/core/Delegation.sol), so once this app registers its signer
+		// as a delegate and switches call sites over, this becomes `account` and
+		// greetings stop being attributed to a key the user never chose.
+		account: greetingAuthor,
 		config,
 	});
 

@@ -3,7 +3,7 @@
  *
  * Two knobs, and only one of them is env:
  *
- * - `targetStep` is CONFIG, set in code below. It decides how far the
+ * - `TARGET_STEP` is CONFIG, set in code below. It decides how far the
  *   connection goes and so whether a local signer exists at all.
  * - `PUBLIC_WALLET_HOST` decides only whether HOSTED mechanisms (email, social)
  *   are on offer. It no longer decides the target step.
