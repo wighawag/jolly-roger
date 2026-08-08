@@ -31,6 +31,46 @@ export E2E_RPC_URL="$RPC_URL"
 # .env.localhost without editing it.
 export ETH_NODE_URI_localhost="$RPC_URL"
 export PUBLIC_NODE_URL="$RPC_URL"
+# Also the WALLET-facing url, which .env.localhost pins to 127.0.0.1:8545.
+# Overriding PUBLIC_NODE_URL alone is not enough: this one is handed to the
+# wallet as the chain's RPC, so leaving it at 8545 points part of the stack at
+# whatever happens to be on that port - another project's chain, or nothing.
+# Either way the run is not isolated, which is the whole purpose of
+# E2E_RPC_PORT. Symptom when it goes wrong: reads return "0x" for contracts
+# that were definitely just deployed.
+export PUBLIC_CHAIN_INFO_NODE_URL="$RPC_URL"
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# A run happens in a THROWAWAY GIT WORKTREE, never in the developer's checkout.
+#
+# The suite needs to compile, deploy to its own chain, export the deployment and
+# build the app - and every one of those steps writes a file that a `pnpm start`
+# session is also using:
+#
+#   contracts/generated        rewritten by `compile`; `deploy:watch` watches it
+#                              and reacts by deploying to ITS chain
+#   contracts/deployments/*    the deployment records, keyed by chain
+#   web/src/lib/deployments.ts the exported addresses the app is built against,
+#                              hot-reloaded by a running dev server
+#   web/build                  the built app
+#
+# Sharing them means the two runs corrupt each other. The e2e run's records
+# describe a chain that is deleted at exit, so a dev server left holding them
+# points at contracts that no longer exist; and because the records carry that
+# chain's genesis hash, the developer's next deploy sees a mismatch, wipes them
+# and redeploys, discarding the deployment they had. In the other direction the
+# dev session's deploy:watch rewrites the records and the exported module in the
+# middle of this run, and the app gets built against ITS chain - which shows up,
+# several tests deep, as "Failed to load messages" and reads returning "0x".
+#
+# A separate worktree removes the whole class of problem at once, without the
+# app or the contracts config needing to know that e2e exists.
+WORKTREE_DIR="${E2E_WORKTREE_DIR:-${TMPDIR:-/tmp}/$(basename "$REPO_DIR")-e2e-worktree}"
+CONTRACTS_DIR="$WORKTREE_DIR/contracts"
+WEB_DIR="$WORKTREE_DIR/web"
 
 # Track the node for cleanup.
 #
@@ -72,6 +112,28 @@ cleanup() {
     # The preview server is started and stopped by Playwright's `webServer`, so
     # it is not ours to kill.
 
+    # Rescue the report and traces before the worktree goes: they are written
+    # inside it, and they are exactly what a failed run is consulted for. They
+    # land where a developer expects them, in the real checkout.
+    for artifact in playwright-report test-results; do
+        if [ -d "$WEB_DIR/$artifact" ]; then
+            rm -rf "${REPO_DIR:?}/web/$artifact"
+            cp -r "$WEB_DIR/$artifact" "$REPO_DIR/web/$artifact"
+        fi
+    done
+
+    if [ -d "$WORKTREE_DIR" ]; then
+        if [ -n "${E2E_KEEP_WORKTREE:-}" ]; then
+            echo -e "${YELLOW}Keeping the worktree: ${WORKTREE_DIR}${NC}"
+            echo -e "${YELLOW}  Remove it with: git worktree remove --force ${WORKTREE_DIR}${NC}"
+        else
+            echo "Removing the e2e worktree..."
+            git -C "$REPO_DIR" worktree remove --force "$WORKTREE_DIR" >/dev/null 2>&1 ||
+                rm -rf "$WORKTREE_DIR"
+            git -C "$REPO_DIR" worktree prune >/dev/null 2>&1 || true
+        fi
+    fi
+
     echo -e "${GREEN}✓ Cleanup complete${NC}"
 }
 
@@ -80,11 +142,80 @@ trap cleanup EXIT
 
 echo -e "${GREEN}🚀 Starting E2E test setup...${NC}\n"
 
-# Get the directory where this script is located
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-CONTRACTS_DIR="$ROOT_DIR/contracts"
-WEB_DIR="$ROOT_DIR/web"
+echo -e "${GREEN}🌳 Creating the e2e worktree at ${WORKTREE_DIR}...${NC}"
+
+if ! git -C "$REPO_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo -e "${RED}✗ ${REPO_DIR} is not a git checkout.${NC}"
+    echo -e "${RED}  The suite runs in a git worktree so it cannot collide with a${NC}"
+    echo -e "${RED}  dev session's deployments and generated files.${NC}"
+    exit 1
+fi
+
+# Anything left by an interrupted run: the worktree is disposable by design, so
+# it is always rebuilt rather than reused (a stale one would test stale code).
+git -C "$REPO_DIR" worktree remove --force "$WORKTREE_DIR" >/dev/null 2>&1 || true
+rm -rf "$WORKTREE_DIR"
+git -C "$REPO_DIR" worktree prune >/dev/null 2>&1 || true
+
+# Detached: the branch is checked out in the developer's tree, and git refuses
+# to have it in two worktrees at once.
+git -C "$REPO_DIR" worktree add --detach "$WORKTREE_DIR" HEAD >/dev/null
+
+# HEAD is not what the developer is looking at. Tests must run against the
+# WORKING TREE - uncommitted work is the normal case, and a suite that quietly
+# tested the last commit instead would be worse than no suite. Two transfers,
+# because git tracks the two kinds of change differently.
+UNCOMMITTED_PATCH="$(mktemp)"
+git -C "$REPO_DIR" diff HEAD --binary >"$UNCOMMITTED_PATCH"
+if [ -s "$UNCOMMITTED_PATCH" ]; then
+    echo "  Applying uncommitted changes..."
+    if ! git -C "$WORKTREE_DIR" apply "$UNCOMMITTED_PATCH"; then
+        echo -e "${RED}✗ Could not apply the working tree's changes to the worktree.${NC}"
+        rm -f "$UNCOMMITTED_PATCH"
+        exit 1
+    fi
+fi
+rm -f "$UNCOMMITTED_PATCH"
+
+# Untracked but not ignored: a new source file that has not been `git add`ed yet
+# is still part of what is being tested.
+if [ -n "$(git -C "$REPO_DIR" ls-files --others --exclude-standard)" ]; then
+    echo "  Copying untracked files..."
+    (cd "$REPO_DIR" && git ls-files --others --exclude-standard -z |
+        tar --null --files-from - --create --file -) |
+        tar --extract --file - --directory "$WORKTREE_DIR"
+fi
+
+# Ignored, and still inputs: local env overrides (the run pins the variables it
+# cares about, but the rest of a developer's configuration should still apply)
+# and the PWA icons, which are generated by `pnpm install`'s prepare script and
+# so are absent from a fresh worktree.
+while IFS= read -r -d '' env_file; do
+    target="$WORKTREE_DIR/${env_file#"$REPO_DIR"/}"
+    mkdir -p "$(dirname "$target")"
+    cp "$env_file" "$target"
+done < <(find "$REPO_DIR" -maxdepth 2 -name '.env*.local' -not -path '*/node_modules/*' -print0)
+
+if [ -d "$REPO_DIR/web/static/pwa" ]; then
+    cp -r "$REPO_DIR/web/static/pwa" "$WEB_DIR/static/pwa"
+else
+    (cd "$WEB_DIR" && pnpm generate-pwa-icons)
+fi
+
+# Dependencies are LINKED, not installed again: the worktree is the same commit
+# with the same lockfile, so a second install would spend a minute reproducing
+# a tree that already exists. pnpm's layout survives this - every link inside
+# node_modules is relative to its real path, which is still the main checkout.
+for pkg in . web contracts; do
+    if [ -d "$REPO_DIR/$pkg/node_modules" ]; then
+        ln -s "$REPO_DIR/$pkg/node_modules" "$WORKTREE_DIR/$pkg/node_modules"
+    else
+        echo -e "${RED}✗ ${REPO_DIR}/$pkg/node_modules is missing. Run pnpm i first.${NC}"
+        exit 1
+    fi
+done
+
+echo -e "${GREEN}✓ Worktree ready${NC}"
 
 # Nothing is pre-killed: whatever is on these ports may not be ours (see
 # cleanup above). An already-running node is reused instead.
@@ -152,9 +283,14 @@ cd "$CONTRACTS_DIR"
 pnpm compile
 
 # Deploy contracts
+#
+# --no-compile: the step above just compiled, with the DEFAULT build profile.
+# Without the flag the deploy task compiles again with the `production` profile
+# instead, so every run pays for two full compiles and deploys bytecode that is
+# not the bytecode just built.
 echo -e "\n${GREEN}📋 Deploying contracts to localhost...${NC}"
 cd "$CONTRACTS_DIR"
-pnpm run deploy localhost --skip-prompts
+pnpm run deploy localhost --skip-prompts --no-compile
 
 # Export deployments
 echo -e "\n${GREEN}📋 Exporting deployments...${NC}"
@@ -172,6 +308,48 @@ cd "$WEB_DIR"
 # free to use them.
 PUBLIC_WALLET_HOST= PUBLIC_EXECUTION_MODE= pnpm build localhost
 echo -e "${GREEN}✓ Web app built${NC}"
+
+# Prove the build can reach the contracts before spending four minutes finding
+# out through the UI.
+#
+# Every way the setup can go wrong ends identically: the app holds an address
+# with no code on it, reads return "0x", and the suite fails several tests deep
+# with "Failed to load messages" - a symptom that points at the app rather than
+# at the setup. Two questions settle it in a second: is each exported address a
+# contract on THIS run's chain, and is it the address the build shipped?
+echo -e "\n${GREEN}🔎 Verifying the build points at this run's contracts...${NC}"
+
+# The exported module is `export default {...} as const;`, i.e. JSON with a
+# wrapper - parsed rather than grepped, so this reads the contracts' own
+# addresses and not the first hex string that happens to look like one.
+DEPLOYED_ADDRESSES="$(node -e '
+  const fs = require("fs");
+  const src = fs.readFileSync(process.argv[1], "utf-8");
+  const json = src.replace(/^\s*export default\s*/, "").replace(/\s*as const;?\s*$/, "");
+  const addresses = Object.values(JSON.parse(json).contracts || {}).map((c) => c.address);
+  if (addresses.length === 0) throw new Error(`no contracts in ${process.argv[1]}`);
+  console.log(addresses.join(" "));
+' "$WEB_DIR/src/lib/deployments.ts")"
+
+for address in $DEPLOYED_ADDRESSES; do
+    CODE="$(curl -s -X POST "$RPC_URL" \
+        -H "Content-Type: application/json" \
+        -d "{\"jsonrpc\":\"2.0\",\"method\":\"eth_getCode\",\"params\":[\"$address\",\"latest\"],\"id\":1}")"
+    if ! echo "$CODE" | grep -q '"result":"0x[0-9a-f]'; then
+        echo -e "${RED}✗ No contract code at ${address} on ${RPC_URL}.${NC}"
+        echo -e "${RED}  The exported deployment describes a different chain than${NC}"
+        echo -e "${RED}  the one this run started, so every read will return 0x.${NC}"
+        exit 1
+    fi
+
+    if ! grep -qri "$address" "$WEB_DIR/build" >/dev/null 2>&1; then
+        echo -e "${RED}✗ The built app does not contain ${address}.${NC}"
+        echo -e "${RED}  It was built against a different deployment than the one${NC}"
+        echo -e "${RED}  just exported.${NC}"
+        exit 1
+    fi
+    echo -e "${GREEN}✓ Build talks to ${address} on ${RPC_URL}${NC}"
+done
 
 # Run Playwright tests
 echo -e "\n${GREEN}🧪 Running E2E tests...${NC}"
