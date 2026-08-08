@@ -357,6 +357,10 @@ export function createContext(): {
 	const viewState = createViewState({
 		onchainState,
 		operations: accountData.watchField('operations'),
+		// The account a pending greeting belongs to, which is not necessarily the
+		// address that sent it: an app acting for its user sends from its own key
+		// and the registry files the greeting under the account. See lib/view.
+		account,
 		config,
 	});
 
