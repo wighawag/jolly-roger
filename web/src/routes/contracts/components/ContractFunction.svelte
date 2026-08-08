@@ -9,6 +9,7 @@
 		formatOutputJSON,
 	} from '../lib/utils';
 	import {readContractValue, executeContractWrite} from '../lib/contractCall';
+	import {txErrorSummary} from '$lib/core/transaction/tx-error-summary';
 	import {Spinner} from '$lib/shadcn/ui/spinner/index.js';
 	import * as Alert from '$lib/shadcn/ui/alert';
 	import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
@@ -109,7 +110,10 @@
 				accountCannotSend.show();
 			}
 		} catch (e: any) {
-			error = e.message || 'Failed to execute transaction';
+			// Summarised rather than shown raw: `e.message` on a viem error is the
+			// whole multi-line dump, and for an account that cannot pay it is the
+			// node's own prose (or viem's misleading category for it).
+			error = txErrorSummary(e);
 			console.error('Error executing transaction:', e);
 		} finally {
 			loading = false;

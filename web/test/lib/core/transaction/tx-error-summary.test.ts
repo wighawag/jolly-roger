@@ -3,6 +3,7 @@ import {BaseError, ContractFunctionExecutionError} from 'viem';
 import {
 	txErrorSummary,
 	txErrorDetails,
+	INSUFFICIENT_FUNDS_SUMMARY,
 } from '../../../../src/lib/core/transaction/tx-error-summary';
 
 describe('txErrorSummary', () => {
@@ -39,6 +40,31 @@ describe('txErrorSummary', () => {
 	it('falls back for non-Error values', () => {
 		expect(txErrorSummary('boom')).toBe('Transaction failed');
 		expect(txErrorSummary(undefined)).toBe('Transaction failed');
+	});
+
+	it('names an account that cannot pay, instead of repeating the node', () => {
+		expect(
+			txErrorSummary(new Error('insufficient funds for gas * price + value')),
+		).toBe(INSUFFICIENT_FUNDS_SUMMARY);
+	});
+
+	it("prefers that to viem's category for the same failure", () => {
+		// The case that motivates asking the classifier FIRST: hardhat reports an
+		// empty account under a generic JSON-RPC code, so viem's shortMessage sends
+		// the user to check their parameters.
+		const inner = new BaseError(
+			'Invalid parameters were provided to the RPC method.',
+			{
+				details: "Sender doesn't have enough funds to send tx.",
+			},
+		);
+		expect(txErrorSummary(inner)).toBe(INSUFFICIENT_FUNDS_SUMMARY);
+	});
+
+	it('leaves a revert to viem, even one that mentions funds', () => {
+		expect(
+			txErrorSummary(new Error('execution reverted: insufficient funds')),
+		).toBe('execution reverted: insufficient funds');
 	});
 });
 
