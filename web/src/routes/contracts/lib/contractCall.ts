@@ -54,7 +54,7 @@ export type ExecuteContractWriteResult =
  */
 export async function executeContractWrite(params: {
 	connection: AnyConnectionStore<UnderlyingEthereumProvider>;
-	executor: ExecutorStore;
+	accountExecutor: ExecutorStore;
 	balanceCheck: BalanceCheckStore;
 	abiItem: AbiFunction;
 	contractAddress: string;
@@ -62,7 +62,7 @@ export async function executeContractWrite(params: {
 }): Promise<ExecuteContractWriteResult> {
 	const {
 		connection,
-		executor,
+		accountExecutor,
 		balanceCheck,
 		abiItem,
 		contractAddress,
@@ -82,9 +82,9 @@ export async function executeContractWrite(params: {
 		throw e;
 	}
 
-	const $executor = get(executor);
-	if ($executor.status === 'cannot-send') return {status: 'cannot-send'};
-	if ($executor.status !== 'ready') return {status: 'cancelled'};
+	const $accountExecutor = get(accountExecutor);
+	if ($accountExecutor.status === 'cannot-send') return {status: 'cannot-send'};
+	if ($accountExecutor.status !== 'ready') return {status: 'cancelled'};
 
 	try {
 		const contractRequest = await balanceCheck.ensureCanAfford({
@@ -93,11 +93,11 @@ export async function executeContractWrite(params: {
 				abi: [abiItem],
 				functionName: abiItem.name,
 				args: args as any,
-				account: $executor.account,
+				account: $accountExecutor.account,
 			},
 		});
 
-		const hash = await $executor.client.writeContract(contractRequest);
+		const hash = await $accountExecutor.client.writeContract(contractRequest);
 		return {status: 'submitted', transactionHash: hash};
 	} catch (e) {
 		if (e instanceof InsufficientFundsError) {

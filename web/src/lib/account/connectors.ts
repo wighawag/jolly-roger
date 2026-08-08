@@ -7,7 +7,6 @@ import type {
 import type {TransactionObserver} from '@etherkit/tx-observer';
 import {hookTxObserverToAccountData} from '$lib/core/utils/data/synqable-transactions';
 import type {OnchainStateStore} from '$lib/onchain/state';
-import type {ExecutorStore} from '$lib/core/connection/executor';
 import {createConnector, combineTeardowns} from './connector';
 
 type TrackedClient = TrackedWalletClientType<TransactionMetadata, true>;
@@ -22,8 +21,7 @@ type TrackedTxSource = Pick<TrackedClient, 'on'>;
 
 /**
  * Attach the broadcast/fetched listeners that feed tracked transactions into
- * Account Data. Returns a teardown. Reused for both the wallet-mode client and
- * any signer-mode client the executor builds.
+ * Account Data. Returns a teardown.
  */
 function attachTrackedClient(
 	walletClient: TrackedTxSource,
@@ -50,53 +48,22 @@ function attachTrackedClient(
 
 /// Listen for broadcasted transactions and save them in the Account Data.
 ///
-/// Attaches to the always-present wallet-mode client, and, so signer-mode
-/// transactions are tracked identically, to the signer client the executor
-/// exposes in signer mode. At most ONE signer client is attached at a time:
-/// when the executor exposes a different client (re-sign-in as a different
-/// identity derives a different key, hence a new client), the previous
-/// client's listeners are detached first. This is a correctness requirement,
-/// not just hygiene: `accountData` follows the CURRENT account, so a stale
-/// client's late events would be looked up in (or worse, written into) the
-/// wrong account's data.
+/// One client, always attached, for the app's lifetime. The executor sends from
+/// the authenticated account through this same client, so its events always
+/// belong to the current account's data and there is nothing to swap when the
+/// account changes.
+///
+/// An app that also sends from a local signer has a SECOND client, and then this
+/// grows a subscription: that client is derived per identity, so it has to be
+/// detached and replaced when the identity changes, or a stale client's late
+/// events get written into the wrong account's data. See the signer variant.
 export function createTrackedWalletConnector(params: {
 	walletClient: TrackedTxSource;
-	executor: ExecutorStore;
 	accountData: MultiAccountDataStore;
 }) {
-	const {accountData, walletClient, executor} = params;
+	const {accountData, walletClient} = params;
 
-	return createConnector(() => {
-		// Wallet-mode client: one instance for the app's lifetime, always attached
-		// (in wallet mode the sender is always the current account, so its events
-		// always belong to the current account's data).
-		const walletTeardown = attachTrackedClient(walletClient, accountData);
-
-		let signerClient: TrackedTxSource | undefined;
-		let signerTeardown: (() => void) | undefined;
-
-		const unsubscribe = executor.subscribe(($executor) => {
-			// Transient not-ready states (reconnection steps) keep the current
-			// attachment: detaching would drop follow-up events (e.g.
-			// transaction:fetched) for a same-account reconnect. Only an actual
-			// REPLACEMENT client (a different identity) triggers a swap.
-			if ($executor.status !== 'ready') return;
-			const client = $executor.client;
-			// In wallet mode the executor's client IS the wallet-mode client, which
-			// is already attached above; attaching again would double-record every
-			// transaction.
-			if (client === walletClient || client === signerClient) return;
-			signerTeardown?.();
-			signerClient = client;
-			signerTeardown = attachTrackedClient(client, accountData);
-		});
-
-		return () => {
-			unsubscribe();
-			signerTeardown?.();
-			walletTeardown();
-		};
-	});
+	return createConnector(() => attachTrackedClient(walletClient, accountData));
 }
 
 /// Listen for Account Data transaction being added/removed

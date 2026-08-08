@@ -30,7 +30,6 @@ async function loadContextWith(env: Record<string, string>) {
 		PUBLIC_NODE_URL: '',
 		PUBLIC_CHAIN_INFO_NODE_URL: '',
 		PUBLIC_WALLET_HOST: '',
-		PUBLIC_EXECUTION_MODE: '',
 		PUBLIC_USE_BURNER_WALLET: '',
 		PUBLIC_OPERATION_RETENTION_DAYS: '',
 		PUBLIC_ENS_NODE_URL: '',
@@ -47,21 +46,6 @@ describe('fatal', () => {
 			const createContext = await loadContextWith({});
 			const {context} = createContext();
 			expect(get(context.fatal)).toBe(undefined);
-		},
-		IMPORT_TIMEOUT,
-	);
-
-	it(
-		'is set at construction for an illegal env combination',
-		async () => {
-			// signer execution requires hosted sign-in (PUBLIC_WALLET_HOST).
-			const createContext = await loadContextWith({
-				PUBLIC_EXECUTION_MODE: 'signer',
-			});
-			const {context} = createContext();
-
-			// Known before anything mounts, so the error screen prerenders.
-			expect(get(context.fatal)).toEqual(expect.any(String));
 		},
 		IMPORT_TIMEOUT,
 	);

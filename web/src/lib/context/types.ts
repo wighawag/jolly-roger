@@ -13,7 +13,6 @@ import type {
 	TypedPublicClient,
 } from '$lib/core/connection/types';
 import type {ExecutorStore} from '$lib/core/connection/executor';
-import type {ExecutionMode} from '$lib/core/connection/mode';
 import type {TrackedWalletClientAutoPopulate} from '@etherkit/viem-tx-tracker';
 import type {
 	MultiAccountDataStore,
@@ -60,15 +59,14 @@ export type Context = {
 	 */
 	fatal: Readable<string | undefined>;
 	gasFee: GasFeeStore;
-	/** Balance of the spending address (executor: wallet/owner or local signer). */
-	balance: BalanceStore;
 	/**
-	 * Balance of the authenticated account (wallet/owner). In wallet mode owner
-	 * and spender are the same account, so this is the SAME store instance as
-	 * `balance` (subscribing to both never polls twice); in signer mode it is a
-	 * separate poller for the owner (while `balance` follows the signer).
+	 * Balance of the authenticated account: what `accountExecutor` spends.
+	 *
+	 * Named for whose it is rather than for the role it plays, so a call site
+	 * that named the executor it sends from names the matching balance and the
+	 * two cannot drift apart.
 	 */
-	ownerBalance: BalanceStore;
+	accountBalance: BalanceStore;
 	rpcHealth: RpcHealthStore;
 	/**
 	 * Wallet nonce-cache detection (dev + app-RPC only; a no-op store otherwise).
@@ -106,15 +104,12 @@ export type Context = {
 	 */
 	walletClient: WalletClient;
 	/**
-	 * Mode-agnostic transaction executor (wallet account vs local signer).
-	 * Prefer this over `walletClient` for sending transactions: it resolves the
-	 * correct `from` address and client, and reports when the connected account
-	 * cannot send under the configured execution mode.
+	 * Sends from the AUTHENTICATED ACCOUNT, with a wallet prompt. Prefer it over
+	 * `walletClient` for sending: it resolves the `from` address and client
+	 * together, and reports when the connected account cannot send at all.
 	 */
-	executor: ExecutorStore;
-	/** Configured execution mode ('wallet' or 'signer'). */
-	executionMode: ExecutionMode;
-	/** Notice shown when the connected account cannot send in the current mode. */
+	accountExecutor: ExecutorStore;
+	/** Notice shown when the connected account cannot send. */
 	accountCannotSend: AccountCannotSendStore;
 	/** Full transaction-error text shown on demand (the toast shows a summary). */
 	errorDetails: ErrorDetailsStore;

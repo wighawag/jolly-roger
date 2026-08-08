@@ -36,9 +36,9 @@ describe('app context off-browser', () => {
 		expect(get(context.account)).toBe(undefined);
 
 		// Pollers stay unloaded: no fetch, no interval.
-		expect(get(context.balance)).toEqual({step: 'Unloaded'});
+		expect(get(context.accountBalance)).toEqual({step: 'Unloaded'});
 		expect(get(context.gasFee)).toEqual({step: 'Unloaded'});
-		expect(get(context.balance.status)).toEqual({loading: false});
+		expect(get(context.accountBalance.status)).toEqual({loading: false});
 		expect(get(context.gasFee.status)).toEqual({loading: false});
 
 		// navigator/window absent means "not offline", not a crash.

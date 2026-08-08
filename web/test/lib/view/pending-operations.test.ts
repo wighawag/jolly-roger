@@ -93,7 +93,12 @@ describe('applyPendingOperations', () => {
 		});
 
 		expect(result).toEqual([
-			{account: owner, message: 'sent by the app', timestamp: 1000, pending: true},
+			{
+				account: owner,
+				message: 'sent by the app',
+				timestamp: 1000,
+				pending: true,
+			},
 		]);
 		expect(result.some((view) => view.account === signer)).toBe(false);
 	});
