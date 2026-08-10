@@ -244,24 +244,10 @@
 		</button>
 	</div>
 	<Drawer.Root bind:open={showMenu} direction="right">
-		<!--
-			The target goes to Content, because Content supplies its own portal (see
-			shadcn's drawer-content.svelte, which wraps itself in DrawerPortal). A bare
-			`<Drawer.Portal to="..." />` sibling, which is what stood here, has no
-			children and so does nothing at all: #--layer-drawer sat empty and the
-			drawer was portalled to document.body instead.
-
-			That matters because the drawer and every modal carry the same z-50, so
-			what lands on top is decided by DOM order - and body-appended content
-			comes AFTER the layer divs. Topping up from this panel opened the payment
-			modal UNDERNEATH the panel that raised it. #--layer-drawer sits before
-			#--layer-modals in +layout.svelte, which is the ordering we want: modals
-			above the drawer, always.
-		-->
-		<Drawer.Content
-			portalProps={{to: '#--layer-drawer'}}
-			class="select-text **:select-text"
-		>
+		<!-- Lands in the drawer layer, which is Drawer.Content's own default (see
+		     lib/core/ui/layers.ts). That is what keeps the modals this panel opens,
+		     Top up above all, ABOVE the panel itself. -->
+		<Drawer.Content class="select-text **:select-text">
 			{#if connection.isTargetStepReached($connection)}
 				<!-- Account Section -->
 				<div class="flex flex-col gap-2 px-4 pt-4">

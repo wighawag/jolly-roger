@@ -65,23 +65,14 @@
 	{...restProps}
 >
 	<!--
-		Every modal in the app goes into #--layer-modals, the container +layout.svelte
-		puts LAST in the document.
-
-		This has to be passed to Content, because Content supplies its own portal (see
-		shadcn's dialog-content.svelte, which wraps itself in DialogPortal). A bare
-		`<Dialog.Portal to="..." />` sibling, which is what stood here, has no children
-		and so does nothing at all: the layer div sat empty and every modal was
-		portalled to document.body instead.
-
-		That matters because these dialogs all carry the same z-50, so what lands on
-		top is decided by DOM order. Sharing one container, placed after everything
-		else, makes that order predictable and keeps modals above the drawer, the
-		toasts and the notification overlay, rather than depending on where in the
-		page each modal's component happens to live.
+		The modal layer is Dialog.Content's own default (see
+		shadcn/ui/dialog/dialog-content.svelte and lib/core/ui/layers.ts), so there
+		is nothing to pass here. Every modal in the app comes through this component,
+		and every one of them lands in #--layer-modals: above the account panel,
+		below popovers, and ordered among its peers by the order they are declared in
+		context/AcrossPages.svelte.
 	-->
 	<Dialog.Content
-		portalProps={{to: '#--layer-modals'}}
 		interactOutsideBehavior={onCancel ? 'close' : 'ignore'}
 		{onInteractOutside}
 		escapeKeydownBehavior={onCancel ? 'close' : 'ignore'}

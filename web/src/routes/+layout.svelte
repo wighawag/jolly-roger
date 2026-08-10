@@ -19,6 +19,7 @@
 	import {PUBLIC_ENS_NODE_URL} from '$env/static/public';
 	import {Toaster} from '$lib/shadcn/ui/sonner';
 	import AcrossPages from '$lib/context/AcrossPages.svelte';
+	import {LAYERS} from '$lib/core/ui/layers';
 	import {page} from '$app/state';
 
 	let {children} = $props();
@@ -79,5 +80,14 @@
 	<Notifications {notifications} />
 </NotificationOverlay>
 
-<div id="--layer-drawer"></div>
-<div id="--layer-modals"></div>
+<!-- The containers every portalled overlay is sent to. Rendered from the one
+     list that also tells components which layer to target, so a new layer
+     cannot exist as a target with no container to land in (or the reverse).
+
+     `position: relative` + `z-index` makes each one a stacking context, which
+     is what confines the `z-50` that shadcn puts on every overlay to sorting
+     WITHIN its layer. The divs are empty and unsized, so they cost no layout.
+     See lib/core/ui/layers.ts for the order and the reasoning. -->
+{#each LAYERS as layer (layer.id)}
+	<div id={layer.id} style="position: relative; z-index: {layer.z};"></div>
+{/each}

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Drawer as DrawerPrimitive } from "vaul-svelte";
 	import DrawerPortal from "./drawer-portal.svelte";
+	import { DRAWER_LAYER } from "$lib/core/ui/layers";
 	import DrawerOverlay from "./drawer-overlay.svelte";
 	import { cn } from "$lib/shadcn/utils.js";
 	import type { ComponentProps } from "svelte";
@@ -17,7 +18,13 @@
 	} = $props();
 </script>
 
-<DrawerPortal {...portalProps}>
+<!-- KEEP THE `to` DEFAULT IF YOU REGENERATE THIS FILE from the shadcn CLI.
+	 Content owns the portal, so this is the only place a drawer's layer can be
+	 decided for every call site; a sibling `<Drawer.Portal to="..." />` has no
+	 children and silently does nothing, which is exactly how the drawer ended up
+	 in `body`, painting over the modals it opened itself. See
+	 lib/core/ui/layers.ts. -->
+<DrawerPortal to={DRAWER_LAYER} {...portalProps}>
 	<DrawerOverlay />
 	<DrawerPrimitive.Content
 		bind:ref
