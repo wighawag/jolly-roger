@@ -49,7 +49,15 @@
 			</p>
 		{/if}
 
-		<Button size="sm" class="w-full" onclick={() => topUp.start()}>
+		<!-- Reached by testid, not by label: the wording is deployment-dependent
+		     (credits or native currency), and the row also contains the address's own
+		     copy button, so "the button in here" is ambiguous. -->
+		<Button
+			size="sm"
+			class="w-full"
+			data-testid="open-top-up"
+			onclick={() => topUp.start()}
+		>
 			{view.topUpLabel}
 		</Button>
 	</div>

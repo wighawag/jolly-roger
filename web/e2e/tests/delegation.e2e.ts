@@ -150,6 +150,27 @@ describe('Delegation - authorising this browser', () => {
 		await expect(
 			page.locator('[data-testid="revoke-delegation"]'),
 		).toBeEnabled();
+
+		// A modal opened FROM the panel has to be usable, which is a stacking
+		// question, not a rendering one: the panel's overlay is `fixed inset-0`, so
+		// a panel painting above the modal swallows every click over it. That is
+		// exactly what happened when the panel was portalled outside its layer, and
+		// the only symptom was a Top up button that appeared to do nothing.
+		//
+		// The click below is the assertion. Playwright hit-tests before clicking, so
+		// it fails with "intercepts pointer events" if anything covers the dialog.
+		// Reaching for it by role would pass just as well while the dialog sat
+		// underneath, unclickable.
+		await page.locator('[data-testid="open-top-up"]').click();
+		// Located BY ITS LAYER, which is the invariant itself: the dialog has to be
+		// in the modal layer, not in `body` where a portal with no target lands, and
+		// not in the panel's own. Neither its title nor the button that opens it can
+		// be matched on text, both being deployment-dependent (credits or native
+		// currency), and the panel is itself a role=dialog containing the word.
+		const topUp = page.locator('#--layer-modals [role="dialog"]');
+		await expect(topUp).toBeVisible({timeout: 15_000});
+		await topUp.getByRole('button', {name: 'Cancel'}).click();
+		await expect(topUp).toBeHidden({timeout: 15_000});
 	});
 });
 
