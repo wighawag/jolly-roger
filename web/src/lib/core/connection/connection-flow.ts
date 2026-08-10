@@ -261,6 +261,28 @@ export function isBurnerWalletInSelectionPhase(
 }
 
 /**
+ * Whether a dismissal (clicking away, or escape) should be honoured.
+ *
+ * NOT WHILE THE WALLET IS THINKING. A wallet opens in its own window and takes
+ * the focus; the first click back on the page lands outside whatever dialog is
+ * up, which a dialog reads as "close me". Cancelling a connection at that
+ * moment throws away a request the user has already started answering, and the
+ * only symptom is that the flow silently stops.
+ *
+ * It only affects the ACCIDENTAL route out. Every one of these steps also has a
+ * Cancel button, which is a deliberate act and still works, so nobody is
+ * trapped waiting on a wallet that will never answer.
+ */
+export function canDismissConnection(state: ConnectionStateSnapshot): boolean {
+	return (
+		state.step !== 'WaitingForWalletConnection' &&
+		state.step !== 'WaitingForSignature' &&
+		state.step !== 'PopupLaunched' &&
+		!hasPendingWalletRequest(state)
+	);
+}
+
+/**
  * Whether to show the "confirm the request in your wallet" prompt: there is a
  * pending wallet request and we're not in the burner-wallet selection phase.
  */
