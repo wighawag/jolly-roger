@@ -9,6 +9,7 @@ import {
 	txErrorSummary,
 } from '$lib/core/transaction/tx-error-summary';
 import type {Context} from '$lib/context/types';
+import {NotRegisteredError} from '$lib/ui/delegation/delegation-check';
 
 export type SetGreetingResult =
 	| {status: 'submitted'}
@@ -31,18 +32,32 @@ export type SetGreetingDeps = Pick<
 	| 'hasLocalSigner'
 	| 'deployments'
 	| 'balanceCheck'
+	| 'delegation'
+	| 'delegationCheck'
 >;
 
 /**
- * Submit a `setMessage` transaction to the GreetingsRegistry.
+ * Submit a `setMessageFor` transaction to the GreetingsRegistry.
  *
- * Owns the whole onchain flow (ensure connected, balance check, write) and
- * normalises outcomes so the component only has to render:
+ * `setMessageFor(owner, message)`, not `setMessage(message)`: the signer sends
+ * it, but the greeting belongs to the ACCOUNT. The registry attributes it to
+ * the owner the sender is acting for, which is the whole point of registering
+ * the signer as a delegate - otherwise every greeting is filed under a key the
+ * user never chose and cannot be recognised by.
+ *
+ * Owns the whole onchain flow (ensure connected, delegation check, balance
+ * check, write) and normalises outcomes so the component only has to render:
  * - `submitted`: the tx was sent.
  * - `cancelled`: the user dismissed the funds modal or rejected in-wallet
  *   (no error should be shown).
  * - `cannot-send`: the connected account cannot send under the configured
  *   execution mode (e.g. an email/social account in wallet execution mode).
+ * A signer that may not act for the account yet does not fail here: the send
+ *   WAITS while the user authorises this browser (one transaction, which funds
+ *   the signer too) and then resumes on their say-so. Checked before sending
+ *   rather than discovered as a `NotDelegate` revert, which costs a transaction
+ *   and says nothing the user can act on. Backing out of that is a
+ *   `cancelled`, exactly as backing out of the funds modal is.
  * - `cannot-pay`: the transaction was sent and the account could not pay for
  *   it, which is the one failure with a remedy attached.
  * - `error`: a real failure, with a user-facing message.
@@ -64,6 +79,8 @@ export async function setGreeting(
 		hasLocalSigner,
 		deployments,
 		balanceCheck,
+		delegation,
+		delegationCheck,
 	} = deps;
 
 	const trimmed = message.trim();
@@ -96,13 +113,34 @@ export async function setGreeting(
 			return {status: 'cancelled'};
 		}
 
+		// The account the greeting belongs to, and the one the registry will record.
+		const $connection = get(connection);
+		const owner =
+			'account' in $connection ? $connection.account.address : undefined;
+		if (!owner) return {status: 'cancelled'};
+
+		// Asked BEFORE sending. The registry reverts with `NotDelegate` when the
+		// sender may not act for the owner, and a revert is a transaction spent to
+		// learn something a read already knows.
+		//
+		// This BLOCKS rather than returning: if the browser is not authorised yet it
+		// walks the user through authorising it and resolves when they choose to
+		// carry on, so the greeting they typed is still the greeting that gets sent.
+		await delegationCheck.ensureRegistered({
+			signer: $executor.address,
+			// This app's half of the question asked at the end: what the action is
+			// called, and the greeting itself, shown back to them. The gate supplies
+			// the other half (what changed), and knows nothing about greetings.
+			resume: {action: 'Send your greeting', detail: trimmed},
+		});
+
 		const contractRequest = await balanceCheck.ensureCanAfford(
 			{
 				contract: {
 					address: $deployments.contracts.GreetingsRegistry.address,
 					abi: $deployments.contracts.GreetingsRegistry.abi,
-					functionName: 'setMessage',
-					args: [trimmed],
+					functionName: 'setMessageFor',
+					args: [owner, trimmed],
 					account: $executor.account,
 				},
 			},
@@ -115,9 +153,11 @@ export async function setGreeting(
 	} catch (error) {
 		if (
 			error instanceof InsufficientFundsError ||
+			error instanceof NotRegisteredError ||
 			isUserRejectionError(error)
 		) {
-			// User dismissed the funds modal or rejected in their wallet.
+			// User dismissed the funds modal, backed out of authorising this browser,
+			// or rejected in their wallet. All three are answers, not failures.
 			return {status: 'cancelled'};
 		}
 

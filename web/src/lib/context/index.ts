@@ -10,6 +10,9 @@ import {createRpcHealthStore} from '$lib/core/connection/rpcHealth';
 import {createOfflineStore} from '$lib/core/connection/offline';
 import {createClockStore} from '$lib/core/clock';
 import {createOnchainState} from '$lib/onchain/state.js';
+import {createDelegationState} from '$lib/onchain/delegation.js';
+import {createDelegationCheckStore} from '$lib/ui/delegation/delegation-check.js';
+import {createConfirmation} from '$lib/core/ui/confirm/confirmation.js';
 import {createViewState} from '$lib/view/index.js';
 import {createTransactionObserver} from '@etherkit/tx-observer';
 import {createTabLeaderService} from '$lib/core/tab-leader';
@@ -296,6 +299,17 @@ export function createContext(): {
 		fetchGate: chainFetchGate,
 	});
 
+	// Whether this browser's signer may act for the account. Scoped to the
+	// account, so it resets when the user signs out or signs in as somebody else,
+	// and gated the same way the message poll is: with no app RPC there is
+	// nothing to read it over until a wallet is connected.
+	const delegation = createDelegationState({
+		publicClient,
+		deployments: deployments.get(),
+		account,
+		fetchGate: chainFetchGate,
+	});
+
 	const accountData = createAccountData({
 		accountStore: account,
 		deployments: deployments.get(),
@@ -335,9 +349,13 @@ export function createContext(): {
 		accountData,
 	});
 
+	// Both chain reads that a transaction of ours can invalidate: the messages,
+	// and whether the signer is still a delegate. The registration lands in a
+	// transaction the app itself sent, so without the second one the UI would go
+	// on refusing to send until the next slow poll.
 	const onchainStateRefreshConnector = createOnchainStateRefreshConnector({
 		txObserver,
-		onchainState,
+		stores: [onchainState, delegation],
 	});
 
 	// ----------------------------------------------------------------------------
@@ -409,12 +427,6 @@ export function createContext(): {
 	};
 	const offline = createOfflineStore();
 
-	// See the note on `createViewState` below: the address greetings currently
-	// land under, which is whoever signs them.
-	const greetingAuthor = derived(signerExecutor, ($executor) =>
-		$executor.status === 'ready' ? $executor.address : undefined,
-	);
-
 	const viewState = createViewState({
 		onchainState,
 		operations: accountData.watchField('operations'),
@@ -422,13 +434,10 @@ export function createContext(): {
 		// CHAIN will report, or the optimistic entry never reconciles with the
 		// confirmed one and sits in the list as a permanent duplicate.
 		//
-		// On this branch that is the SIGNER, because the demo sends plain
-		// `setMessage` and the registry records `msg.sender`. It should be the
-		// account: the registry now understands delegation (`setMessageFor`, see
-		// contracts/src/core/Delegation.sol), so once this app registers its signer
-		// as a delegate and switches call sites over, this becomes `account` and
-		// greetings stop being attributed to a key the user never chose.
-		account: greetingAuthor,
+		// The ACCOUNT, because the demo sends `setMessageFor` through the signer
+		// registered as its delegate, and the registry attributes the greeting to
+		// the account rather than to whichever key signed the transaction.
+		account,
 		config,
 	});
 
@@ -436,6 +445,12 @@ export function createContext(): {
 		publicClient,
 		gasFee,
 	});
+
+	// The yes/no questions the app has to ask before going on: "carry on with
+	// what you were doing?", "your wallet may still have this, really stop?".
+	// One mechanism, one modal, and the words come from whoever asks.
+	// See core/ui/confirm.
+	const confirmation = createConfirmation();
 
 	// Built here rather than in the component that shows it, because the account
 	// panel and the insufficient-funds modal must drive the SAME flow: the modal
@@ -452,6 +467,8 @@ export function createContext(): {
 			accountBalance,
 			publicClient,
 			balanceCheck,
+			delegation,
+			confirmation,
 		},
 		{
 			faucetApi: PUBLIC_FAUCET_API,
@@ -459,6 +476,16 @@ export function createContext(): {
 			hasFaucet,
 		},
 	);
+
+	// Getting past "this browser may not act for you yet" WITHOUT losing what the
+	// user was doing. Built here for the same reason the top-up flow is: the send
+	// that was interrupted waits on it, and the modal that resumes it has to be
+	// driven by the same instance. See ui/delegation/delegation-check.
+	const delegationCheck = createDelegationCheckStore({
+		delegation,
+		topUp,
+		confirmation,
+	});
 
 	// Debug store for tx-observer processing stats
 	const txObserverDebug = writable<TxObserverDebugState>({
@@ -493,12 +520,15 @@ export function createContext(): {
 		deployments,
 		accountData,
 		onchainState,
+		delegation,
 		viewState,
 		clock,
 		txObserver,
 		txObserverDebug: {subscribe: txObserverDebug.subscribe},
 		balanceCheck,
 		topUp,
+		delegationCheck,
+		confirmation,
 	};
 
 	// Dev/debug: expose the whole context on globalThis for console access

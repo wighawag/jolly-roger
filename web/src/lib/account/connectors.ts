@@ -6,7 +6,6 @@ import type {
 } from './AccountData';
 import type {TransactionObserver} from '@etherkit/tx-observer';
 import {hookTxObserverToAccountData} from '$lib/core/utils/data/synqable-transactions';
-import type {OnchainStateStore} from '$lib/onchain/state';
 import type {ExecutorStore} from '$lib/core/connection/executor';
 import {createConnector, combineTeardowns} from './connector';
 
@@ -140,18 +139,28 @@ export function createTransactionObserverConnector(params: {
 	);
 }
 
-/// Listen for tx observer events and refresh onchain state when transactions are included
+/**
+ * The refreshable chain reads: anything a transaction of ours can invalidate.
+ *
+ * A LIST rather than the one store this started with, because there is now more
+ * than one read the app gates behaviour on. The delegation read in particular is
+ * changed BY a transaction the app sends, so leaving it to its own poll means
+ * the UI goes on refusing a send for something that already landed.
+ */
+type RefreshableStore = {update: () => Promise<unknown>};
+
+/// Listen for tx observer events and refresh chain reads when transactions are included
 export function createOnchainStateRefreshConnector(params: {
 	txObserver: TransactionObserver;
-	onchainState: OnchainStateStore;
+	stores: readonly RefreshableStore[];
 }) {
-	const {txObserver, onchainState} = params;
+	const {txObserver, stores} = params;
 
 	return createConnector(() =>
 		txObserver.on('intent:status', (event) => {
-			// Refresh onchain state when a transaction is included
+			// Refresh when a transaction is included
 			if (event.intent.state?.inclusion === 'Included') {
-				onchainState.update();
+				for (const store of stores) void store.update();
 			}
 		}),
 	);

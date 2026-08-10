@@ -7,6 +7,7 @@
 
 	import InsufficientFundsModal from '$lib/core/transaction/InsufficientFundsModal.svelte';
 	import {TopUpModal} from '$lib/ui/credits/index.js';
+	import ConfirmationModal from '$lib/core/ui/confirm/ConfirmationModal.svelte';
 	import AccountCannotSendModal from '$lib/core/transaction/AccountCannotSendModal.svelte';
 	import ErrorDetailsModal from '$lib/core/transaction/ErrorDetailsModal.svelte';
 
@@ -27,6 +28,10 @@
 <!-- After the funds modal, because it is opened FROM it when the signer is the
      account that cannot pay, and both are then on screen at once. -->
 <TopUpModal />
+<!-- After the top-up modal: it asks ABOUT that flow (carry on with what was
+     interrupted, or really give up on a request the wallet may still act on),
+     so it has to be able to sit on top of it. Belongs to no feature. -->
+<ConfirmationModal />
 <AccountCannotSendModal />
 <ErrorDetailsModal />
 

@@ -21,13 +21,17 @@ export function isValidTxHash(value: unknown): value is `0x${string}` {
 /**
  * Claim funds via the faucet HTTP API and wait for the resulting tx to be
  * included. Throws on any API/validation error.
+ *
+ * Returns the transaction, because WHAT THE FAUCET SENT is worth more than a
+ * balance read afterwards: a wallet serves a cached balance until it sees a new
+ * block, so asking it right after a claim routinely reports the old figure.
  */
 export async function claimViaApi(params: {
 	publicClient: PublicClient;
 	apiBase: string;
 	address: `0x${string}`;
 	chainId: number;
-}): Promise<void> {
+}): Promise<`0x${string}`> {
 	const {publicClient, apiBase, address, chainId} = params;
 
 	// The faucet API expects POST /api/claim with JSON body {token, chainId, address}.
@@ -53,6 +57,33 @@ export async function claimViaApi(params: {
 	}
 
 	await publicClient.waitForTransactionReceipt({hash: data.txHash});
+	return data.txHash;
+}
+
+/**
+ * How much a claim actually dispensed, read from its own transaction.
+ *
+ * The point of asking the CHAIN about the transaction rather than asking the
+ * wallet for a balance: an injected wallet answers `eth_getBalance` from a
+ * cache until it sees a new block, so a balance read straight after a faucet
+ * claim reports the balance from before it. The transaction's value is a fact
+ * that does not go stale.
+ *
+ * Undefined when it cannot be read, which is a reason to fall back to the
+ * balance rather than to fail: the money did arrive either way.
+ */
+export async function dispensedByClaim(params: {
+	publicClient: PublicClient;
+	txHash: `0x${string}` | undefined;
+}): Promise<bigint | undefined> {
+	if (!params.txHash) return undefined;
+	try {
+		const tx = await params.publicClient.getTransaction({hash: params.txHash});
+		return tx.value;
+	} catch (error) {
+		console.error('Could not read what the faucet sent', error);
+		return undefined;
+	}
 }
 
 export type FaucetClaimDeps = Pick<
@@ -85,7 +116,7 @@ export async function claimFaucet(
 	deps: FaucetClaimDeps,
 	config: {faucetApi?: string; faucetLink: string},
 	target?: `0x${string}`,
-): Promise<void> {
+): Promise<{txHash?: `0x${string}`; dispensed?: bigint}> {
 	const {
 		accountExecutor,
 		accountBalance,
@@ -104,19 +135,26 @@ export async function claimFaucet(
 
 	const chainId = get(deployments).chain.id;
 
+	// Both paths hand back the transaction they sent, which is what lets a caller
+	// know how much arrived without asking a wallet that may still be answering
+	// from cache.
+	let txHash: `0x${string}` | undefined;
 	if (config.faucetApi && config.faucetApi.trim()) {
-		await claimViaApi({
+		txHash = await claimViaApi({
 			publicClient,
 			apiBase: config.faucetApi,
 			address,
 			chainId,
 		});
 	} else {
-		await claimFund(
+		const claimed = await claimFund(
 			{faucetUrl: config.faucetLink, chainId, address},
 			{width: 600, height: 700},
 		);
+		txHash = isValidTxHash(claimed) ? claimed : undefined;
 	}
+
+	const dispensed = await dispensedByClaim({publicClient, txHash});
 
 	// Record pre-faucet balance before triggering update.
 	const currentBalance = get(accountBalance);
@@ -130,7 +168,14 @@ export async function claimFaucet(
 	// pointing it at a claim made for the payer would leave it waiting for a
 	// change that is never coming, and then inviting the user to continue into
 	// the same failure.
-	if (address === executorAddress) {
+	// Case-insensitively: these two arrive from different places (one from the
+	// caller, one from the executor) and an address that differs only in casing is
+	// the same account. A strict compare here would silently skip the notice and
+	// leave a blocked transaction waiting for a change it had already been told
+	// about.
+	if (address.toLowerCase() === executorAddress?.toLowerCase()) {
 		balanceCheck.markFundingRequested(preFaucetBalance);
 	}
+
+	return {txHash, dispensed};
 }

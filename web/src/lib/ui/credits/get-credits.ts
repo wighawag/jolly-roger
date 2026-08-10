@@ -1,3 +1,4 @@
+import {get} from 'svelte/store';
 import {isUserRejectionError} from '$lib/core/transaction';
 import {
 	txErrorDetails,
@@ -124,35 +125,99 @@ export async function getCredits(
 	}
 }
 
+export type FundFromAccountDeps = Pick<Context, 'accountExecutor'>;
+
+/**
+ * Move gas to the signer from the account the user signed in with.
+ *
+ * The other half of "who pays": no second connection, no second wallet, one
+ * prompt. Available only when that account has a wallet and holds enough, which
+ * is decided before this is offered (see ui/credits/payment-methods).
+ *
+ * A plain transfer rather than a contract call, because the signer is already a
+ * delegate by the time this path is taken - a signer that is NOT goes through
+ * the registration instead, which carries the funding in the same transaction.
+ */
+export async function fundSignerFromAccount(
+	deps: FundFromAccountDeps,
+	params: {to: `0x${string}`; value: bigint},
+): Promise<GetCreditsResult> {
+	const $executor = get(deps.accountExecutor);
+	if ($executor.status !== 'ready') {
+		return {
+			status: 'error',
+			message: 'This account cannot send a transaction.',
+			details: `account executor status: ${$executor.status}`,
+		};
+	}
+
+	try {
+		await $executor.client.sendTransaction({
+			account: $executor.account,
+			to: params.to,
+			value: params.value,
+			// Spelled out because only `writeContract` auto-populates it: a plain
+			// transfer has no function name to read one from. Without it this
+			// transfer would land in the user's operation list as an untitled entry.
+			metadata: {type: 'unknown', name: 'topUp', data: []},
+		});
+		return {status: 'bought'};
+	} catch (error) {
+		if (isUserRejectionError(error)) return {status: 'cancelled'};
+		console.error('Failed to fund the signer from your account:', error);
+		return {
+			status: 'error',
+			message: txErrorSummary(error),
+			details: txErrorDetails(error),
+		};
+	}
+}
+
 export type FundPayerResult =
-	| {status: 'funded'}
+	| {
+			status: 'funded';
+			/**
+			 * How much the faucet actually sent, when its transaction could be read.
+			 *
+			 * Carried back because it is worth more than the balance read that
+			 * follows: an injected wallet answers `eth_getBalance` from a cache until
+			 * it sees a new block, so asking it straight after a claim reports the
+			 * balance from before the claim, and the flow then tells the user their
+			 * freshly funded account is empty.
+			 */
+			dispensed?: bigint;
+	  }
 	| {status: 'cancelled'}
 	| {status: 'error'; message: string; details: string};
 
-export type FundPayerDeps = FaucetClaimDeps & Pick<Context, 'payment'>;
+export type FundAddressDeps = FaucetClaimDeps;
 
 /**
- * Send the faucet at the account that PAYS for credits.
+ * Send the faucet at ONE NAMED ADDRESS.
  *
- * Buying credits spends the payer's money, and on a local chain the payer is a
- * fresh account with none: the purchase then fails for a reason the user cannot
- * do anything about from inside the app. This funds it, and deliberately funds
- * only it - the purchase itself still runs, so the flow being exercised is the
- * real one rather than a shortcut around it.
+ * THE ADDRESS IS A PARAMETER, and that is the whole point. There used to be two
+ * of these: one for the authenticated account, and one for "the payer" which
+ * asked the payment connection afresh who that was. Either answer could differ
+ * from the address the UI was naming, and then the faucet funded an account the
+ * user was not looking at while the screen went on showing an empty one.
  *
- * Connects the payment rail first, because the payer's address is not known
- * before that: which account pays is a choice made in the wallet, at the moment
- * of paying. That connect is the same one the purchase would trigger, so doing
- * it here costs the user nothing extra.
+ * Whoever is paying is always already known by the time a faucet is asked for,
+ * so the caller passes it and there is nothing left to disagree about.
+ *
+ * RETURNS the outcome rather than throwing, and the caller must look at it. A
+ * faucet refuses for ordinary reasons - one claim per address and per IP per
+ * day, a recipient that already holds enough - and a caller that ignores this
+ * goes on to tell the user the claim completed and then blames the balance for
+ * being empty.
  */
-export async function fundPayer(
-	deps: FundPayerDeps,
+export async function fundAddress(
+	deps: FundAddressDeps,
 	config: {faucetApi?: string; faucetLink: string},
+	address: `0x${string}`,
 ): Promise<FundPayerResult> {
 	try {
-		const $payment = await deps.payment.connection.ensureConnected();
-		await claimFaucet(deps, config, $payment.account.address);
-		return {status: 'funded'};
+		const {dispensed} = await claimFaucet(deps, config, address);
+		return {status: 'funded', dispensed};
 	} catch (error) {
 		if (isUserRejectionError(error)) return {status: 'cancelled'};
 		console.error('Failed to fund the paying account:', error);

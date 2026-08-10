@@ -48,6 +48,7 @@ describe('Demo Page - Greetings Registry', () => {
 	test('should connect wallet and submit when clicking send', async ({
 		connectedPage,
 		connectWallet,
+		authoriseBrowser,
 		waitForTransaction,
 	}) => {
 		const page = connectedPage;
@@ -71,6 +72,12 @@ describe('Demo Page - Greetings Registry', () => {
 		// The connect helper walks whatever dialogs appear and returns quickly
 		// when none do.
 		await connectWallet(page);
+
+		// A fresh browser holds a key the account has never authorised, so the
+		// first send is answered with the flow that authorises it (and funds it)
+		// rather than reaching the chain. The send is not lost: it waits, and the
+		// app offers it back once the authorisation lands.
+		await authoriseBrowser(page);
 
 		// Wait for the transaction to complete
 		await waitForTransaction(page);
@@ -117,6 +124,30 @@ describe('Demo Page - Greetings Registry', () => {
 		// this test is about.
 		await submitGreeting(page, uniqueGreeting);
 		await expect(page.getByText(uniqueGreeting)).toBeVisible();
+
+		// Filed under the ACCOUNT the user signed in as, not under the key this
+		// browser signs with. The app sends `setMessageFor` through a signer
+		// registered as the account's delegate, so the registry records the
+		// account - which is the address the user chose and can be recognised by.
+		const addresses = await page.evaluate(() => {
+			const read = (store: any) => {
+				let value: any;
+				store.subscribe((v: any) => (value = v))();
+				return value;
+			};
+			const context = (globalThis as any).context;
+			return {
+				account: read(context.account),
+				signer: read(context.signerExecutor)?.address,
+			};
+		});
+		const row = page
+			.locator('[data-testid="message-row"]')
+			.filter({hasText: uniqueGreeting});
+		const filedUnder = (await row.getAttribute('data-account'))?.toLowerCase();
+
+		expect(filedUnder).toBe(String(addresses.account).toLowerCase());
+		expect(filedUnder).not.toBe(String(addresses.signer).toLowerCase());
 	});
 
 	test('should display existing messages with avatars', async ({page}) => {
