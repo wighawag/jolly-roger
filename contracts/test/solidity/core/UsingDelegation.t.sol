@@ -149,7 +149,7 @@ contract UsingDelegationTest is Test {
         adopter.registerDelegate(delegate, payable(address(0)));
 
         assertEq(adopter.delegateOf(stranger), delegate);
-        assertFalse(adopter.delegationWithdrawn(stranger));
+        assertFalse(adopter.delegationWithdrawn(stranger, delegate));
     }
 
     function test_registerForwardsValue() public {
@@ -190,7 +190,7 @@ contract UsingDelegationTest is Test {
         adopter.revokeDelegate();
 
         assertEq(adopter.delegateOf(stranger), address(0));
-        assertTrue(adopter.delegationWithdrawn(stranger));
+        assertTrue(adopter.delegationWithdrawn(stranger, delegate));
     }
 
     function test_messageMatchesTheLibrary() public view {

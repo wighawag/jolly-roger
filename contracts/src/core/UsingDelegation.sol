@@ -86,11 +86,12 @@ abstract contract UsingDelegation {
         return Delegation.delegateOf(owner);
     }
 
-    /// @notice whether `owner` has withdrawn its authorisation.
+    /// @notice whether `owner` has withdrawn its authorisation for `delegate`.
     function delegationWithdrawn(
-        address owner
+        address owner,
+        address delegate
     ) external view virtual returns (bool) {
-        return Delegation.isWithdrawn(owner);
+        return Delegation.isWithdrawn(owner, delegate);
     }
 
     /// @notice the exact text an owner signs to authorise `delegate`.
