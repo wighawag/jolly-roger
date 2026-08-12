@@ -45,11 +45,12 @@ export type PaymentMethodsInput = {
 	walletsAvailable: number;
 	/**
 	 * Whether this payment also has to register the signer, and the account has
-	 * withdrawn its authorisation before.
+	 * withdrawn its authorisation for that signer before.
 	 *
-	 * Only an owner-sent `registerDelegate` clears that flag, so re-authorising
-	 * cannot go through another wallet. Saying so here keeps the user from
-	 * choosing a route that would revert.
+	 * Withdrawal is per delegate: only an owner-sent `registerDelegate` clears
+	 * it, so re-authorising the SAME signer cannot go through another wallet.
+	 * A different signer can still be registered by signature. Saying so here
+	 * keeps the user from choosing a route that would revert.
 	 */
 	blockedFromSignatureRoute?: boolean;
 };

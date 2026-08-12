@@ -30,8 +30,9 @@ export type RevokeDeps = Pick<
  * account with no wallet therefore cannot call it, which is why the UI disables
  * it with an explanation rather than letting the click revert. That same fact
  * disposes of the re-registration dead end: `delegationWithdrawn` is only ever
- * set by a successful revoke, so an account that cannot revoke can never be
- * blocked from registering by signature.
+ * set by a successful revoke for the delegate that was current at the time, so
+ * an account that cannot revoke can never be blocked from registering by
+ * signature, and a withdrawn delegate can be replaced by a different one.
  *
  * Waits for the receipt and refreshes the delegation read, so the panel says
  * what is true rather than what was true when the button was pressed.

@@ -469,9 +469,10 @@ describe('createTopUpFlow: who can pay', () => {
 		expect(state.explanation).toContain('no way to pay');
 	});
 
-	it('closes the signature route once the account has withdrawn access', async () => {
-		// `delegationWithdrawn` is cleared only by an owner-sent registerDelegate,
-		// so paying with another wallet could only produce a revert.
+	it('closes the signature route once the account has withdrawn this signer', async () => {
+		// `delegationWithdrawn` is per delegate: cleared only by an owner-sent
+		// registerDelegate, so paying with another wallet could only produce a
+		// revert for the signer that was withdrawn.
 		const {flowDeps} = deps({
 			payerBalance: ETH,
 			accountBalance: ETH,

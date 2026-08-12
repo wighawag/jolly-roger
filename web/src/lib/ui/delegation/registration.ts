@@ -70,11 +70,14 @@ export type RouteInput = {
 	/** Whether the owner's wallet is on hand to sign a message right now. */
 	ownerCanSignLive: boolean;
 	/**
-	 * Whether the owner has withdrawn its authorisation (`delegationWithdrawn`).
+	 * Whether the owner has withdrawn its authorisation for this signer
+	 * (`delegationWithdrawn`).
 	 *
-	 * One-way as far as signatures go: only an owner-sent `registerDelegate`
-	 * clears it, precisely so an old signature (which carries no nonce) cannot
-	 * undo a revocation. So this rules out both signature routes.
+	 * One-way as far as signatures go for THIS delegate: only an owner-sent
+	 * `registerDelegate` clears it, precisely so an old signature (which
+	 * carries no nonce) cannot undo a revocation. A DIFFERENT delegate can still
+	 * be authorised by a fresh signature, so this rules out the signature routes
+	 * only for the signer that was withdrawn.
 	 */
 	withdrawn: boolean;
 };

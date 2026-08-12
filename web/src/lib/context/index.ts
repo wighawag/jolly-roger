@@ -300,13 +300,15 @@ export function createContext(): {
 	});
 
 	// Whether this browser's signer may act for the account. Scoped to the
-	// account, so it resets when the user signs out or signs in as somebody else,
-	// and gated the same way the message poll is: with no app RPC there is
-	// nothing to read it over until a wallet is connected.
+	// account AND its signer, so it resets when either changes, and gated the
+	// same way the message poll is: with no app RPC there is nothing to read it
+	// over until a wallet is connected.
+	const signerAddress = derived(signer, ($signer) => $signer?.address);
 	const delegation = createDelegationState({
 		publicClient,
 		deployments: deployments.get(),
 		account,
+		signer: signerAddress,
 		fetchGate: chainFetchGate,
 	});
 

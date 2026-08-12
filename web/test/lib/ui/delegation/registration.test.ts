@@ -79,9 +79,10 @@ describe('chooseRegistrationRoute: how the authorisation is proven', () => {
 		expect(route.kind).toBe('unavailable');
 	});
 
-	it('closes both signature routes once the owner has withdrawn access', () => {
-		// `delegationWithdrawn` is cleared only by an owner-sent registerDelegate,
-		// precisely so a signature carrying no nonce cannot undo a revocation.
+	it('closes the signature routes once the owner has withdrawn this signer', () => {
+		// `delegationWithdrawn` is per delegate: cleared only by an owner-sent
+		// registerDelegate, precisely so a signature carrying no nonce cannot undo
+		// a revocation of that delegate.
 		const route = chooseRegistrationRoute({
 			...base,
 			withdrawn: true,
@@ -92,7 +93,8 @@ describe('chooseRegistrationRoute: how the authorisation is proven', () => {
 
 	it('still lets a withdrawn owner re-authorise by sending it themselves', () => {
 		// An account that CAN revoke has a wallet by definition, so this route is
-		// always open to it, and the re-registration dead end never exists.
+		// always open to it, and the re-registration dead end for that delegate
+		// never exists.
 		expect(
 			chooseRegistrationRoute({...base, payer: OWNER, withdrawn: true}),
 		).toEqual({kind: 'direct'});
