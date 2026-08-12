@@ -53,8 +53,8 @@ contract DelegationHarness {
         return Delegation.delegateOf(owner);
     }
 
-    function delegationWithdrawn(address owner) external view returns (bool) {
-        return Delegation.isWithdrawn(owner);
+    function delegationWithdrawn(address owner, address delegate) external view returns (bool) {
+        return Delegation.isWithdrawn(owner, delegate);
     }
 
     function delegationMessage(
@@ -379,13 +379,14 @@ contract DelegationTest is Test {
         harness.revokeDelegate();
 
         assertEq(harness.delegateOf(stranger), address(0));
-        assertTrue(harness.delegationWithdrawn(stranger));
+        assertTrue(harness.delegationWithdrawn(stranger, delegate));
     }
 
     /// @notice The reason the withdrawal flag exists at all.
     ///
     /// The signature has no nonce and never expires, so without the flag anyone
     /// could present it again and quietly undo a revocation the owner meant.
+    /// The flag is per delegate, so only the REVOKED delegate is blocked.
     function test_revoke_cannotBeUndoneByPresentingTheSignatureAgain() public {
         address owner = _owner();
         bytes memory signature = _sign(ownerKey, delegate);
@@ -405,7 +406,8 @@ contract DelegationTest is Test {
         vm.expectRevert(
             abi.encodeWithSelector(
                 Delegation.DelegationWithdrawn.selector,
-                owner
+                owner,
+                delegate
             )
         );
         harness.registerDelegateViaSignature(
@@ -418,19 +420,63 @@ contract DelegationTest is Test {
         assertEq(harness.delegateOf(owner), address(0));
     }
 
-    /// @notice Withdrawal is one-way for signatures, but the OWNER can always
-    /// change its mind: sending the transaction is live consent, not a static
-    /// message presented again.
-    function test_revoke_isClearedByTheOwnerRegisteringAgain() public {
+    /// @notice Withdrawing one delegate does not block a different one: the
+    /// withdrawal flag is keyed per delegate, so a fresh signature for a new
+    /// address still registers. This is what lets a user replace one signer
+    /// with another by signature alone, without sending a transaction.
+    function test_revoke_aDifferentDelegateCanStillRegisterViaSignature() public {
         address owner = _owner();
+        address otherDelegate = address(0xBAD);
+        bytes memory signature = _sign(ownerKey, delegate);
+
+        vm.prank(submitter);
+        harness.registerDelegateViaSignature(
+            owner,
+            ORIGIN,
+            delegate,
+            signature
+        );
 
         vm.prank(owner);
         harness.revokeDelegate();
-        assertTrue(harness.delegationWithdrawn(owner));
+
+        // The withdrawn delegate is still blocked ...
+        assertTrue(harness.delegationWithdrawn(owner, delegate));
+        // ... but a new delegate registers by signature just fine.
+        vm.prank(submitter);
+        harness.registerDelegateViaSignature(
+            owner,
+            ORIGIN,
+            otherDelegate,
+            _sign(ownerKey, otherDelegate)
+        );
+        assertEq(harness.delegateOf(owner), otherDelegate);
+        assertFalse(harness.delegationWithdrawn(owner, otherDelegate));
+    }
+
+    /// @notice Withdrawal is one-way for signatures, but the OWNER can always
+    /// change its mind: sending the transaction is live consent, not a static
+    /// message presented again. The owner can also re-authorise a withdrawn
+    /// delegate directly, which clears the flag for that delegate.
+    function test_revoke_isClearedByTheOwnerRegisteringAgain() public {
+        address owner = _owner();
+        bytes memory signature = _sign(ownerKey, delegate);
+
+        vm.prank(submitter);
+        harness.registerDelegateViaSignature(
+            owner,
+            ORIGIN,
+            delegate,
+            signature
+        );
+
+        vm.prank(owner);
+        harness.revokeDelegate();
+        assertTrue(harness.delegationWithdrawn(owner, delegate));
 
         vm.prank(owner);
         harness.registerDelegate(delegate, payable(address(0)));
-        assertFalse(harness.delegationWithdrawn(owner));
+        assertFalse(harness.delegationWithdrawn(owner, delegate));
 
         // ...and signatures work again from here on.
         vm.prank(submitter);

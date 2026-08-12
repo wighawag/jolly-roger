@@ -45,9 +45,9 @@ library Delegation {
     /// @notice `sender` is not the delegate registered for `owner`
     error NotDelegate(address owner, address sender);
 
-    /// @notice the owner withdrew its authorisation; only the owner itself can
-    /// authorise again (see {revoke})
-    error DelegationWithdrawn(address owner);
+    /// @notice the owner withdrew its authorisation for `delegate`; only the
+    /// owner itself can authorise that delegate again (see {revoke})
+    error DelegationWithdrawn(address owner, address delegate);
 
     /// @notice the signature was not produced by `owner`
     error InvalidSignature();
@@ -66,13 +66,18 @@ library Delegation {
         /// worst an attacker achieves is making their OWN account answer to an
         /// address they do not control, which harms nobody.
         mapping(address => address) delegateOf;
-        /// owner => whether the owner has withdrawn its authorisation.
+        /// owner => delegate => whether the owner withdrew the authorisation for
+        /// that specific delegate.
         ///
         /// The signature that registers a delegate carries no nonce and never
         /// expires, so without this flag anyone could present it again and undo
-        /// a revocation. Set by {revoke}, cleared only by {register}, which the
-        /// owner sends itself.
-        mapping(address => bool) withdrawn;
+        /// a revocation. KEYED BY DELEGATE so that withdrawing one signer does not
+        /// block a different one: the signature is permanently derivable from the
+        /// web UI, and per-owner withdrawal would make it impossible to replace
+        /// one signer with another by signature alone. Set by {revoke} for the
+        /// delegate that was current at the time, cleared by {register} for the
+        /// delegate it authorises.
+        mapping(address => mapping(address => bool)) withdrawn;
     }
 
     /// keccak256(abi.encode(uint256(keccak256("jolly-roger.storage.Delegation")) - 1)) & ~bytes32(uint256(0xff))
@@ -106,10 +111,11 @@ library Delegation {
         return layout().delegateOf[owner];
     }
 
-    /// @notice whether `owner` has withdrawn its authorisation, which blocks
-    /// {registerViaSignature} until the owner authorises again itself.
-    function isWithdrawn(address owner) internal view returns (bool) {
-        return layout().withdrawn[owner];
+    /// @notice whether `owner` has withdrawn its authorisation for `delegate`,
+    /// which blocks {registerViaSignature} for that delegate until the owner
+    /// authorises it again itself.
+    function isWithdrawn(address owner, address delegate) internal view returns (bool) {
+        return layout().withdrawn[owner][delegate];
     }
 
     /// @notice whether `sender` may act as `onBehalfOf`.
@@ -168,10 +174,10 @@ library Delegation {
     ///
     /// AUTHORISES NOTHING ITSELF: the adopting contract must already have
     /// established that `owner` is the one asking, normally by passing
-    /// `msg.sender`. It also CLEARS a previous withdrawal, which is only sound
-    /// BECAUSE the owner is acting directly - that is a fresh decision, not a
-    /// signature presented again - so passing anything else here would let one
-    /// account undo another's revocation.
+    /// `msg.sender`. It also CLEARS a previous withdrawal of `delegate`, which
+    /// is only sound BECAUSE the owner is acting directly - that is a fresh
+    /// decision, not a signature presented again - so passing anything else
+    /// here would let one account undo another's revocation.
     ///
     /// @param owner the account authorising, i.e. `msg.sender`
     /// @param delegate the address to authorise; use {revoke} to clear
@@ -180,7 +186,7 @@ library Delegation {
             revert InvalidDelegate();
         }
         Layout storage $ = layout();
-        $.withdrawn[owner] = false;
+        $.withdrawn[owner][delegate] = false;
         $.delegateOf[owner] = delegate;
         emit DelegateChanged(owner, delegate);
     }
@@ -195,7 +201,8 @@ library Delegation {
     /// grants a standing authorisation to one named address, so presenting it a
     /// second time only re-asserts what is already true, at the submitter's
     /// expense. The one thing repetition could undo is a revocation, which is
-    /// why {revoke} raises a flag this refuses to cross.
+    /// why {revoke} raises a flag this refuses to cross for THAT delegate only -
+    /// a different delegate can still be authorised by a fresh signature.
     ///
     /// @param owner the account being represented
     /// @param origin the scope the authorisation was granted for. Part of the
@@ -213,8 +220,8 @@ library Delegation {
             revert InvalidDelegate();
         }
         Layout storage $ = layout();
-        if ($.withdrawn[owner]) {
-            revert DelegationWithdrawn(owner);
+        if ($.withdrawn[owner][delegate]) {
+            revert DelegationWithdrawn(owner, delegate);
         }
         if (
             SignatureUtils.recover(digest(origin, delegate), signature) != owner
@@ -227,24 +234,29 @@ library Delegation {
     }
 
     /// @notice withdraw `owner`'s authorisation: its delegate can no longer
-    /// act, and no signature can put it back.
+    /// act, and no signature can put THAT delegate back.
     ///
     /// AUTHORISES NOTHING ITSELF: the adopting contract must already have
     /// established that `owner` is the one asking, normally by passing
     /// `msg.sender`.
     ///
     /// One-way as far as signatures are concerned, deliberately. Re-authorising
-    /// takes a transaction from the owner ({register}), because a signature
-    /// that carries no nonce can state a standing authorisation but cannot
-    /// express a decision to reverse one, and reading it as such would let an
-    /// old signature outrank a newer intent.
+    /// the SAME delegate takes a transaction from the owner ({register}),
+    /// because a signature that carries no nonce can state a standing
+    /// authorisation but cannot express a decision to reverse one, and reading
+    /// it as such would let an old signature outrank a newer intent. A DIFFERENT
+    /// delegate can still be authorised by a fresh signature, because the
+    /// withdrawal flag is keyed per delegate.
     ///
     /// This is withdrawal of consent, not key rotation. If a delegate key leaks
     /// there is nothing to rotate to that the same leak would not also expose,
     /// so the useful response is to stop.
     function revoke(address owner) internal {
         Layout storage $ = layout();
-        $.withdrawn[owner] = true;
+        address current = $.delegateOf[owner];
+        if (current != address(0)) {
+            $.withdrawn[owner][current] = true;
+        }
         $.delegateOf[owner] = address(0);
         emit DelegateChanged(owner, address(0));
     }
