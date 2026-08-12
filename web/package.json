@@ -23,7 +23,7 @@
 		"prepare": "pnpm generate-pwa-icons-and-tags && svelte-kit sync || echo ''",
 		"generate-pwa-icons-and-tags": "pwag static/icon.png src/web-config.json",
 		"dev": "vite dev",
-		"build": "vite build && node scripts/enable-eruda-plugins.mjs",
+		"build": "vite build",
 		"preview": "vite preview",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",

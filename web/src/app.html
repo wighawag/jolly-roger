@@ -3,7 +3,7 @@
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<meta name="eruda-plugins" content="false" />
+		<meta name="eruda-plugins" content="%sveltekit.env.PUBLIC_ERUDA_PLUGINS%" />
 
 		<!-- inject named-logs-console -->
 		<!-- prettier-ignore -->
@@ -12,9 +12,13 @@
 		</script>
 
 		<!-- inject eruda loader (use ?eruda or even ?eruda=<plugin package name separated by ",">).
-		     Custom plugin loading is gated by the eruda-plugins meta above and is
-		     enabled only in a debug build (see scripts/enable-eruda-plugins.mjs).
-		     Core eruda loading and the active-eruda/localStorage gate are unchanged. -->
+		     Custom plugin loading is gated by the eruda-plugins meta above. The meta
+		     value is substituted at build time from the PUBLIC_ERUDA_PLUGINS env var
+		     via SvelteKit's %sveltekit.env.PUBLIC_ERUDA_PLUGINS% placeholder, so it
+		     is baked into every prerendered page. Unset (normal/prod build) =
+		     empty = disabled (fail-closed); set PUBLIC_ERUDA_PLUGINS=true for a
+		     debug build (pnpm build:debug). Core eruda loading and the
+		     active-eruda/localStorage gate are unchanged. -->
 		<!--prettier-ignore -->
 		<script>
 		(function () {
