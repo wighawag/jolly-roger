@@ -218,25 +218,85 @@ describe('Delegation - paying with another wallet', () => {
 	});
 
 	/**
-	 * BLOCKED BY THE DEV WALLET, not by the app.
+	 * THE ONE TEST THAT PROVES THE SIGNATURE ITSELF.
 	 *
-	 * The burner wallet's `personal_sign` (eip-1193-accounts-wrapper@0.1.1) does
-	 * not implement EIP-191: it treats the hex-encoded data parameter as a
-	 * literal string, and hand-prefixes "\x19Ethereum Signed Message:\n" before
-	 * calling viem's `signMessage`, which prefixes it again. The signature it
-	 * returns therefore recovers to a different address than the signer, so a
-	 * contract verifying the message text - which is what `Delegation` does, and
-	 * what every real wallet supports - can only reject it.
+	 * Everything either side of it is covered elsewhere - route selection and the
+	 * exact bytes submitted in test/lib/ui/credits/top-up-flow.test.ts, the
+	 * message text pinned against the contract in
+	 * contracts/test/js/Delegation.test.ts - but only this one takes a signature
+	 * produced by a wallet, hands it to the contract, and finds out whether the
+	 * address it recovers is the one that signed. That agreement spans a wallet,
+	 * a message builder and Solidity, and when it breaks NOTHING says so: the
+	 * signature is well-formed, the transaction is well-formed, and the contract
+	 * simply rejects it as somebody else's.
 	 *
-	 * Verified directly against that package: signing a message and recovering it
-	 * with viem's `recoverMessageAddress` yields an unrelated address.
-	 *
-	 * The burner is the only wallet an e2e run has, so this half cannot be
-	 * exercised here until that package is fixed or patched. Everything the app
-	 * decides on this path IS covered: the route selection, the collapse onto the
-	 * direct route, the pre-signed branch and the exact bytes submitted are in
-	 * test/lib/ui/credits/top-up-flow.test.ts, and the message the owner signs is
-	 * pinned against the contract in contracts/test/js/Delegation.test.ts.
+	 * It was skipped until recently, and the reason is worth keeping: the burner's
+	 * `personal_sign` (eip-1193-accounts-wrapper before 0.2.0) hand-rolled the
+	 * EIP-191 prefix and then passed the result to viem's `signMessage`, which
+	 * prefixes again, over a length counted in hex characters rather than bytes.
+	 * Every signature it produced recovered to an unrelated address. So if this
+	 * test ever fails on a signature the app plainly did request, suspect the
+	 * wallet before the contract.
 	 */
-	test.skip('completes the registration once the owner has signed', async () => {});
+	test('completes the registration once the owner has signed', async ({
+		connectedPage,
+		fundWalletAccounts,
+		authoriseBrowser,
+		isDelegateRegistered,
+	}) => {
+		const page = connectedPage;
+		const greeting = `Signature registration ${Date.now()}`;
+
+		// Any of the wallet's accounts may be the one the payment picker lands on.
+		await fundWalletAccounts(page);
+
+		await page.getByPlaceholder('Enter your greeting...').fill(greeting);
+		await page.getByRole('button', {name: /send/i}).click();
+
+		const outcome = await authoriseBrowser(page, {via: 'wallet'});
+		expect(outcome.offered).toBe(true);
+
+		// Somebody else is paying, so sending is not the proof and the owner's
+		// say-so has to travel in a signature it is asked for now.
+		expect(outcome.route).toBe('live-signature');
+		// And it was explained BEFORE the wallet opened, which is the whole reason
+		// that step exists.
+		expect(outcome.explained).toBe(true);
+
+		const account = String(await readStore(page, 'account')).toLowerCase();
+		expect(
+			outcome.payer?.toLowerCase(),
+			'the point of this route is that somebody other than the owner pays',
+		).not.toBe(account);
+
+		// The registration landed, so the chain now says this browser may act.
+		// `authoriseBrowser` has already waited for the flow to close, which it only
+		// does once the transaction is in a block, so this is the read catching up
+		// rather than the transaction.
+		await expect
+			.poll(async () => isDelegateRegistered(page), {timeout: 60_000})
+			.toBe(true);
+
+		// The greeting that ran into all this is offered back and goes out.
+		expect(outcome.resumed).toBe(true);
+
+		const row = page
+			.locator('[data-testid="message-row"]')
+			.filter({hasText: greeting});
+		await expect(row).toBeVisible({timeout: 60_000});
+		await expect(row.locator('[data-testid="message-pending"]')).toHaveCount(
+			0,
+			{timeout: 60_000},
+		);
+
+		// Filed under the ACCOUNT: not under the signer that sent it, and not under
+		// the wallet that paid for the authorisation. Three different addresses,
+		// which is exactly why this is worth asserting on this route.
+		const signer = (await readStore(page, 'signerExecutor'))?.address;
+		const filedUnder = (await row.getAttribute('data-account'))?.toLowerCase();
+
+		expect(filedUnder).toBe(account);
+		expect(filedUnder).not.toBe(String(signer).toLowerCase());
+		expect(filedUnder).not.toBe(outcome.payer?.toLowerCase());
+	});
 });

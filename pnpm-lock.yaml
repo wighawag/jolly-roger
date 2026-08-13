@@ -141,8 +141,8 @@ importers:
   web:
     devDependencies:
       '@etherkit/burner-wallet':
-        specifier: ^0.0.8
-        version: 0.0.8(typescript@6.0.3)(viem@2.55.11(typescript@6.0.3)(zod@4.4.3))(zod@4.4.3)
+        specifier: ^0.0.9
+        version: 0.0.9(typescript@6.0.3)(viem@2.55.11(typescript@6.0.3)(zod@4.4.3))(zod@4.4.3)
       '@etherkit/tx-observer':
         specifier: 0.1.0
         version: 0.1.0
@@ -473,8 +473,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@etherkit/burner-wallet@0.0.8':
-    resolution: {integrity: sha512-Suj/A3PexoP7GuII90cXDGkk3t/XBznkDU1TCAhvmKwk+fmaj0GMHnqFS31R+BQ4mlxfzYt0Q0m9LgM2s4c3AA==}
+  '@etherkit/burner-wallet@0.0.9':
+    resolution: {integrity: sha512-36gaZdnfL3ZLu2g4vtBQ87w1UC2QAfV20P//0NVphiaDcHjnmMxQcyXEQymK8euj5cOPeI9y9bFIX4HM9vbUuQ==}
     peerDependencies:
       viem: ^2.0.0
 
@@ -1695,8 +1695,8 @@ packages:
   earl@2.0.0:
     resolution: {integrity: sha512-je2x7VWHNN3kN5zqcUUeEEokHoL7HWwiOxCdlLi66LkMqUnLECVZGePdgBtrqLrUg25bHLFrM+bkBXwcI7f+EQ==}
 
-  eip-1193-accounts-wrapper@0.1.1:
-    resolution: {integrity: sha512-qjokfEtJ+3783hfO3+CUNSK7/7eLRm5YAvAuP47/Oo6wvFxdoYopDH+O+r0cWbGosSo3ga4J39s/JVYWFKDXvg==}
+  eip-1193-accounts-wrapper@0.2.0:
+    resolution: {integrity: sha512-hdMI4dOClOIckbq+rKQKxOTovlnhWLg1OHJvR0pcAXS1uJr5RLPXfieYpesKFyFtxIT3AZyL2heNgJYNMH1eCw==}
 
   eip-1193-jsonrpc-provider@0.4.3:
     resolution: {integrity: sha512-xcrz22ArOqvbXt4LHOeV5JooL8jTt/sv8WIH7MLQTn8z7fQwRDDzUECgIwZaX1Irpn/HIZGiu6YZwIoRVfPEow==}
@@ -3094,10 +3094,10 @@ snapshots:
   '@esbuild/win32-x64@0.28.1':
     optional: true
 
-  '@etherkit/burner-wallet@0.0.8(typescript@6.0.3)(viem@2.55.11(typescript@6.0.3)(zod@4.4.3))(zod@4.4.3)':
+  '@etherkit/burner-wallet@0.0.9(typescript@6.0.3)(viem@2.55.11(typescript@6.0.3)(zod@4.4.3))(zod@4.4.3)':
     dependencies:
       eip-1193: 0.6.5
-      eip-1193-accounts-wrapper: 0.1.1(typescript@6.0.3)(zod@4.4.3)
+      eip-1193-accounts-wrapper: 0.2.0(typescript@6.0.3)(zod@4.4.3)
       remote-procedure-call: 0.1.2
       viem: 2.55.11(typescript@6.0.3)(zod@4.4.3)
     transitivePeerDependencies:
@@ -4349,7 +4349,7 @@ snapshots:
     dependencies:
       error-stack-parser: 2.1.4
 
-  eip-1193-accounts-wrapper@0.1.1(typescript@6.0.3)(zod@4.4.3):
+  eip-1193-accounts-wrapper@0.2.0(typescript@6.0.3)(zod@4.4.3):
     dependencies:
       named-logs: 0.4.1
       viem: 2.55.11(typescript@6.0.3)(zod@4.4.3)
