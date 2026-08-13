@@ -15,7 +15,7 @@ export type RevokeResult =
 
 export type RevokeDeps = Pick<
 	Context,
-	'accountExecutor' | 'deployments' | 'publicClient' | 'delegation'
+	'accountExecutor' | 'publicClient' | 'delegation'
 >;
 
 /**
@@ -40,13 +40,16 @@ export type RevokeDeps = Pick<
 export async function revokeDelegation(
 	deps: RevokeDeps,
 ): Promise<RevokeResult> {
-	const {accountExecutor, deployments, publicClient, delegation} = deps;
+	const {accountExecutor, publicClient, delegation} = deps;
 
 	const $executor = get(accountExecutor);
 	if ($executor.status === 'cannot-send') return {status: 'cannot-send'};
 	if ($executor.status !== 'ready') return {status: 'cancelled'};
 
-	const registry = get(deployments).contracts.GreetingsRegistry;
+	// The contract the delegation state was READ from, rather than a second
+	// lookup: withdrawing from anywhere else would leave the panel reporting an
+	// authorisation that is still live. See onchain/delegation.
+	const {registry} = delegation;
 
 	try {
 		const hash = await $executor.client.writeContract({

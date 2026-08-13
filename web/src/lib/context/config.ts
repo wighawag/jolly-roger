@@ -86,3 +86,23 @@ export function operationScopeAddress(
 ): `0x${string}` {
 	return deployments.contracts.GreetingsRegistry.address;
 }
+
+/**
+ * The contract this app's delegation lives in.
+ *
+ * WHICH contract adopted `core/UsingDelegation` is the one thing about
+ * delegation that is app-specific: the entry points it exposes are fixed by
+ * the library, and the client declares them itself (see
+ * onchain/delegation's DELEGATION_ABI). So a descendant that replaces the demo
+ * points this at its own contract and changes nothing else, and pointing it at
+ * a contract that did not adopt the library is a compile error rather than a
+ * read that answers nothing.
+ *
+ * Same rule as above about which address: the one that is stable for the
+ * deployment (the proxy), not an implementation.
+ */
+export function delegationRegistryAddress(
+	deployments: TypedDeployments,
+): `0x${string}` {
+	return deployments.contracts.GreetingsRegistry.address;
+}

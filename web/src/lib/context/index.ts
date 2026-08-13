@@ -56,7 +56,11 @@ import {createAccountCannotSendStore} from '$lib/core/transaction/account-cannot
 import {createErrorDetailsStore} from '$lib/core/transaction/error-details-store.js';
 import type {AugmentedChainInfo} from '$lib/core/connection/types.js';
 import {createBalanceCheckStore} from '$lib/core/transaction/balance-check-store.js';
-import {resolveAppConfig, operationScopeAddress} from './config.js';
+import {
+	resolveAppConfig,
+	operationScopeAddress,
+	delegationRegistryAddress,
+} from './config.js';
 import {startTxObserverLoop} from '$lib/core/tx-observer';
 import {parseImpersonateAddresses} from '$lib/dev-accounts.js';
 
@@ -306,7 +310,9 @@ export function createContext(): {
 	const signerAddress = derived(signer, ($signer) => $signer?.address);
 	const delegation = createDelegationState({
 		publicClient,
-		deployments: deployments.get(),
+		// The one delegation fact this app owns: which of its contracts adopted
+		// the library. The entry points come with the module.
+		registry: delegationRegistryAddress(deployments.get()),
 		account,
 		signer: signerAddress,
 		fetchGate: chainFetchGate,
