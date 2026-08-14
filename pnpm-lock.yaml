@@ -151,8 +151,8 @@ importers:
         specifier: ^0.0.9
         version: 0.0.9(viem@2.55.11(typescript@6.0.3)(zod@4.4.3))
       '@etherplay/connect':
-        specifier: ^0.6.0
-        version: 0.6.0(svelte@5.56.8)
+        specifier: ^0.7.0
+        version: 0.7.0(svelte@5.56.8)
       '@internationalized/date':
         specifier: ^3.12.3
         version: 3.12.3
@@ -487,11 +487,11 @@ packages:
     peerDependencies:
       viem: ^2.46.3
 
-  '@etherplay/connect-core@0.5.0':
-    resolution: {integrity: sha512-5Sw67eB61HDnWBJ+qcLCDm6GnETDbxPkQGmz82YlD3ozfyMWvxxpHSSffd57YSkAZuH0/7lzVhBxD/2HTo16WA==}
+  '@etherplay/connect-core@0.6.0':
+    resolution: {integrity: sha512-kANLkNrxezyxE9NHUASflyAUTZ7W78QY7R1KCsqDHHvxJGTQ3I1JnPoi3GZ67hpPhZz/L8yq2RnpZ2dIMe/TIQ==}
 
-  '@etherplay/connect@0.6.0':
-    resolution: {integrity: sha512-+Pr6jl9+xjqGzzoHoi1s56UuBtY84aa3U1brbJk4Foiu4emNL3LwoUYFfG+d1EkpS8Krl3QGuaAQ/cu6/ySszg==}
+  '@etherplay/connect@0.7.0':
+    resolution: {integrity: sha512-/TF47hjj85e49nDhISeOWxSLidXKjJqXmIzVZGNdmQCOwS+DluGgHniceBBgeyIF9k17IxD5DNdX+j0CUNCZuw==}
     peerDependencies:
       svelte: ^5.0.0
 
@@ -3121,7 +3121,7 @@ snapshots:
       radiate: 0.3.2
       viem: 2.55.11(typescript@6.0.3)(zod@4.4.3)
 
-  '@etherplay/connect-core@0.5.0':
+  '@etherplay/connect-core@0.6.0':
     dependencies:
       '@etherplay/delegation': 0.1.0
       '@etherplay/wallet-connector': 0.0.5
@@ -3131,9 +3131,9 @@ snapshots:
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
 
-  '@etherplay/connect@0.6.0(svelte@5.56.8)':
+  '@etherplay/connect@0.7.0(svelte@5.56.8)':
     dependencies:
-      '@etherplay/connect-core': 0.5.0
+      '@etherplay/connect-core': 0.6.0
       '@etherplay/wallet-connector': 0.0.5
       '@etherplay/wallet-connector-ethereum': 0.0.12
       svelte: 5.56.8
