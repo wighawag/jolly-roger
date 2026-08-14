@@ -83,6 +83,27 @@
 			<p class="text-muted-foreground" data-testid="no-payment-method">
 				{$topUp.explanation}
 			</p>
+		{:else if $topUp.phase === 're-authorise'}
+			<!-- The credential that would have authorised this browser is missing or
+			     spent. One remedy (sign in again, which is where credentials are
+			     minted) and three different reasons, so the sentence comes from the
+			     routing that decided it rather than from here. -->
+			<p class="text-muted-foreground" data-testid="re-authorise">
+				{$topUp.explanation}
+			</p>
+			<!-- SAID BEFORE THE BUTTON IS PRESSED, because it is the one thing here
+			     that can leave the user worse off than they started: a new credential
+			     is minted at sign-in, so signing in again means signing out first,
+			     and a sign-in they abandon halfway leaves them signed out. -->
+			<p class="text-sm text-muted-foreground">
+				This signs you out first. If you stop halfway you will need to sign in
+				again before you can carry on.
+			</p>
+		{:else if $topUp.phase === 'signing-in'}
+			<p class="flex items-center gap-2 text-muted-foreground">
+				<Spinner class="h-4 w-4" />
+				Waiting for you to sign in again.
+			</p>
 		{:else if $topUp.phase === 'connecting'}
 			<p class="flex items-center gap-2 text-muted-foreground">
 				<Spinner class="h-4 w-4" />
@@ -267,7 +288,7 @@
 		     modal with only its close cross, which is what the connecting step did
 		     when a wallet failed to connect: a spinner, an error, and no way to
 		     retry. -->
-		{#if $topUp.phase === 'preparing' || $topUp.phase === 'connecting' || $topUp.phase === 'claiming'}
+		{#if $topUp.phase === 'preparing' || $topUp.phase === 'connecting' || $topUp.phase === 'signing-in' || $topUp.phase === 'claiming'}
 			{#if $topUp.error}
 				<Button
 					class="flex-1"
@@ -286,6 +307,19 @@
 			<Button variant="outline" class="w-full" onclick={() => topUp.cancel()}>
 				Close
 			</Button>
+		{:else if $topUp.phase === 're-authorise'}
+			<!-- A user gesture, which is what makes it safe to open a popup from:
+			     signing in may need one, and a browser blocks a popup that was not
+			     asked for by a click. -->
+			<Button
+				class="flex-1"
+				onclick={() => topUp.reauthorise()}
+				disabled={$topUp.busy}
+				data-testid="re-authorise-confirm"
+			>
+				Sign in again
+			</Button>
+			<Button variant="outline" onclick={() => topUp.cancel()}>Cancel</Button>
 		{:else if $topUp.phase === 'empty'}
 			{#if $topUp.claimed}
 				<!-- The claim already returned, and it returns once its transaction is

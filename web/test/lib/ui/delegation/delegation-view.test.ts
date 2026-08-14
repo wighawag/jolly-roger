@@ -4,37 +4,29 @@ import {isRegistered} from '$lib/onchain/delegation';
 
 const OWNER = '0x00000000000000000000000000000000000000dD' as const;
 const SIGNER = '0x00000000000000000000000000000000000000aA' as const;
-const OTHER = '0x00000000000000000000000000000000000000cC' as const;
-const ZERO = '0x0000000000000000000000000000000000000000' as const;
 
 const registered = {
 	step: 'Loaded' as const,
-	delegate: SIGNER,
+	allowed: true,
 	withdrawn: false,
 };
-const none = {step: 'Loaded' as const, delegate: ZERO, withdrawn: false};
+const none = {step: 'Loaded' as const, allowed: false, withdrawn: false};
 const unknown = {step: 'Unloaded' as const};
 
 describe('isRegistered', () => {
-	it('is true only for the signer the chain names', () => {
-		expect(isRegistered(registered, SIGNER)).toBe(true);
-		expect(isRegistered(registered, OTHER)).toBe(false);
-		expect(isRegistered(none, SIGNER)).toBe(false);
-	});
-
-	it('ignores address casing, which the chain does not care about', () => {
-		expect(
-			isRegistered(
-				{...registered, delegate: SIGNER.toLowerCase() as `0x${string}`},
-				SIGNER,
-			),
-		).toBe(true);
+	it('reads the answer the chain gave about THIS signer', () => {
+		// A field, not an address comparison: `delegationStatus` was asked about
+		// the (account, signer) pair, so there is no second address to check and no
+		// casing to get wrong. An account may have several delegates now, so "the"
+		// delegate is not a question with an answer.
+		expect(isRegistered(registered)).toBe(true);
+		expect(isRegistered(none)).toBe(false);
 	});
 
 	it('reads an unknown answer as NOT registered', () => {
 		// Guessing this way costs a prompt to register that turns out to be
 		// unnecessary. Guessing the other way sends a transaction that reverts.
-		expect(isRegistered(unknown, SIGNER)).toBe(false);
+		expect(isRegistered(unknown)).toBe(false);
 	});
 });
 

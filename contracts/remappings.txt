@@ -1,2 +1,3 @@
 forge-std/=node_modules/forge-std/src/
 src/=src/
+@etherplay/delegation/=node_modules/@etherplay/delegation/

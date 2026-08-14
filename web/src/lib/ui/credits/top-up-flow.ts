@@ -12,8 +12,11 @@ import type {Context} from '$lib/context/types';
 import {isRegistered} from '$lib/onchain/delegation';
 import {
 	chooseRegistrationRoute,
+	reauthoriseExplanation,
 	registrationRequest,
 	sameAddress,
+	type DelegationCredential,
+	type DelegationTarget,
 	type RegistrationRoute,
 } from '$lib/ui/delegation/registration';
 import {
@@ -190,6 +193,15 @@ export type TopUpPhase =
 	| 'choosing'
 	/** Nothing here can work, with an honest explanation of why. */
 	| 'unavailable'
+	/**
+	 * The credential that would have authorised this browser is missing or
+	 * spent, and the remedy is to sign in again - which is where credentials are
+	 * minted. Its own step because the action differs from every other one here:
+	 * nothing is paid, and what happens next is an authentication.
+	 */
+	| 're-authorise'
+	/** Waiting for that sign-in to come back. */
+	| 'signing-in'
 	| 'connecting'
 	| 'empty'
 	| 'claiming'
@@ -263,7 +275,10 @@ export type TopUpState = {
 	 * have nothing, with the app insisting they do.
 	 */
 	fundsPending: boolean;
-	/** Why nothing can be done, on the `unavailable` phase. */
+	/**
+	 * Why nothing can be done, on the `unavailable` phase, and what has to be
+	 * renewed and why, on the `re-authorise` one.
+	 */
 	explanation: string | undefined;
 	/**
 	 * The account the wallet has to be switched back to, on `switch-account`,
@@ -332,6 +347,17 @@ export type TopUpFlowConfig = {
  */
 type Sendable = {value: bigint; pending: boolean};
 
+/**
+ * What a registration can end as: everything a purchase can, plus the one
+ * outcome only a registration has.
+ *
+ * `stale-credential` is deliberately NOT an error. The contract refusing the
+ * owner's stored signature says the stored copy and the signed copy disagree,
+ * which no amount of retrying fixes and which nothing local could have
+ * detected; the remedy is a fresh credential. See ui/delegation/register-delegate.
+ */
+type RegistrationOutcome = GetCreditsResult | {status: 'stale-credential'};
+
 export type TopUpFlow = Readable<TopUpState> & {
 	/** Open the flow: work out who can pay, and offer the choice. */
 	start(): Promise<void>;
@@ -344,6 +370,15 @@ export type TopUpFlow = Readable<TopUpState> & {
 	confirm(): Promise<void>;
 	/** Try again once the user says they have switched account in their wallet. */
 	retry(): Promise<void>;
+	/**
+	 * Sign in again, to be handed a fresh credential, and carry on.
+	 *
+	 * The remedy for every missing or spent credential, and the reason
+	 * `re-authorise` is one route rather than three: a hosted account mints its
+	 * credentials at sign-in, so that is where a new one comes from. Driven from
+	 * a button, which is a user gesture and therefore allowed to open a popup.
+	 */
+	reauthorise(): Promise<void>;
 	/** Back to the list of payment methods. */
 	back(): void;
 	/**
@@ -386,15 +421,49 @@ export function createTopUpFlow(
 	const stale = (mine: number) => mine !== session;
 
 	/**
-	 * The owner's signature, once obtained, for the rest of THIS run.
+	 * The owner's credential, once obtained, for the rest of THIS run.
 	 *
 	 * Held because the run can pause after it: a wallet that exposes one account
 	 * at a time has to be switched back to the payer before the transaction can
 	 * be sent, and re-entering the flow must not ask the owner to sign the same
 	 * authorisation again. Dropped with the run, since it authorises one specific
-	 * signer for one specific origin.
+	 * signer at one specific contract.
+	 *
+	 * The deadline travels WITH the signature, always: it is inside the signed
+	 * bytes and the contract cannot know it any other way, so a signature
+	 * separated from its deadline is a signature that cannot be submitted.
 	 */
-	let signature: `0x${string}` | undefined;
+	let credential: DelegationCredential | undefined;
+
+	/**
+	 * Credentials the contract has already refused, for as long as this app is
+	 * loaded.
+	 *
+	 * The stored record belongs to the WALLET, and the connect library offers no
+	 * way to delete one, so "invalidate the stored credential" can only be done
+	 * here: a refused signature is remembered and never chosen again. Without it,
+	 * cancelling out of the remedy and reopening the flow would pick the same
+	 * doomed credential and fail the same way, forever.
+	 *
+	 * Outlives a run, and deliberately: a refusal is a fact about the credential,
+	 * not about the attempt. It dies with the page, which is the same lifetime as
+	 * the copy of the record the app is reading.
+	 */
+	const refusedCredentials = new Set<`0x${string}`>();
+
+	/**
+	 * The (chain, contract) pair everything about delegation here is scoped to.
+	 *
+	 * ONE value, from the store that READ the chain, so the credential that is
+	 * picked, the message that is signed and the contract that is written to
+	 * cannot disagree. The contract's address and the chain id are inside the
+	 * signed bytes, which is what bounds the authority to this app - and it also
+	 * means a mismatch here is not detectable locally, only by a revert.
+	 */
+	const delegationTarget: DelegationTarget = {
+		chainId: delegation.registry.chainId,
+		contract: delegation.registry.address,
+	};
 
 	const set = (patch: Partial<TopUpState>) => {
 		const was = state.phase;
@@ -403,6 +472,7 @@ export function createTopUpFlow(
 		state.busy =
 			state.phase === 'preparing' ||
 			state.phase === 'connecting' ||
+			state.phase === 'signing-in' ||
 			state.phase === 'claiming' ||
 			state.phase === 'sending';
 
@@ -441,7 +511,7 @@ export function createTopUpFlow(
 
 	/** The account, its signer and what the connection can prove about them. */
 	const delegationAccount = (): DelegationAccount | undefined =>
-		delegationAccountOf(get(connection));
+		delegationAccountOf(get(connection), delegationTarget, refusedCredentials);
 
 	/** Whether the authenticated account can submit a transaction at all. */
 	const ownerCanSend = (): boolean => get(accountExecutor).status === 'ready';
@@ -569,9 +639,33 @@ export function createTopUpFlow(
 			owner: account?.owner,
 			payer,
 			ownerCanSend: ownerCanSend(),
-			savedSignature: account?.savedSignature,
+			// What the connection holds FOR THIS CONTRACT, which is the same pair the
+			// chain read above was scoped to. See delegationTarget.
+			credential: account?.credential ?? {kind: 'none'},
 			ownerCanSignLive: !!account?.canSignLive,
 			withdrawn: $delegation.step === 'Loaded' ? $delegation.withdrawn : false,
+		});
+	};
+
+	/**
+	 * Park the flow on a route nothing here can carry out.
+	 *
+	 * Two endings rather than one, because the remedy differs: `unavailable`
+	 * means nothing the user does from here can work, while `re-authorise` has a
+	 * next step, it just is not a payment.
+	 */
+	const park = (
+		route: Extract<RegistrationRoute, {kind: 'unavailable' | 're-authorise'}>,
+		payer?: `0x${string}`,
+	) => {
+		set({
+			phase: route.kind === 'unavailable' ? 'unavailable' : 're-authorise',
+			...(payer ? {payer} : {}),
+			route: route.kind,
+			explanation:
+				route.kind === 'unavailable'
+					? route.reason
+					: reauthoriseExplanation(route.reason),
 		});
 	};
 
@@ -582,13 +676,8 @@ export function createTopUpFlow(
 
 		// A payer that cannot prove the authorisation is a dead end for THIS
 		// payer, and saying so beats sending a transaction that reverts.
-		if (route?.kind === 'unavailable') {
-			set({
-				phase: 'unavailable',
-				payer,
-				route: 'unavailable',
-				explanation: route.reason,
-			});
+		if (route?.kind === 'unavailable' || route?.kind === 're-authorise') {
+			park(route, payer);
 			return;
 		}
 
@@ -698,7 +787,7 @@ export function createTopUpFlow(
 		account: DelegationAccount,
 		mine: number,
 	): Promise<
-		| {status: 'signed'; signature: `0x${string}`}
+		| {status: 'signed'; credential: DelegationCredential}
 		| {status: 'cancelled'}
 		| {status: 'error'; message: string; details: string}
 	> => {
@@ -706,9 +795,10 @@ export function createTopUpFlow(
 			const signed = await signDelegation({
 				$connection: get(connection),
 				account,
+				target: delegationTarget,
 			});
 			if (stale(mine)) return {status: 'cancelled'};
-			return {status: 'signed', signature: signed};
+			return {status: 'signed', credential: signed};
 		} catch (error) {
 			if (isUserRejectionError(error)) return {status: 'cancelled'};
 			console.error('Could not sign the delegation message', error);
@@ -730,7 +820,7 @@ export function createTopUpFlow(
 	 */
 	const cancelRun = () => {
 		session++;
-		signature = undefined;
+		credential = undefined;
 		set({...CLOSED});
 	};
 
@@ -758,7 +848,7 @@ export function createTopUpFlow(
 		// work and how much gas to keep back, and a stale "already registered"
 		// would size the top-up for a transfer and then send a contract call.
 		const $delegation = await delegation.update();
-		return !isRegistered($delegation, account.delegate);
+		return !isRegistered($delegation);
 	};
 
 	/** Perform the payment (and the registration, when there is one). */
@@ -806,21 +896,17 @@ export function createTopUpFlow(
 		// explanation the user was promised.
 		const route = state.registering ? routeFor(state.payer) : undefined;
 
-		if (route?.kind === 'unavailable') {
-			set({
-				phase: 'unavailable',
-				route: 'unavailable',
-				explanation: route.reason,
-			});
+		if (route?.kind === 'unavailable' || route?.kind === 're-authorise') {
+			park(route);
 			return;
 		}
 
-		// THE OWNER'S SIGNATURE, taken while the wallet is actually on the owner's
+		// THE OWNER'S CREDENTIAL, taken while the wallet is actually on the owner's
 		// account. Held for the run, so a wallet that has to be switched back and
 		// forth is never asked to sign the same thing twice.
-		if (route?.kind === 'pre-signed') signature = route.signature;
+		if (route?.kind === 'pre-signed') credential = route.credential;
 
-		if (route?.kind === 'live-signature' && !signature) {
+		if (route?.kind === 'live-signature' && !credential) {
 			if (!(await ensureWalletIsOn(connection, account.owner, 'sign'))) return;
 
 			set({phase: 'sending', error: undefined, details: undefined});
@@ -838,7 +924,7 @@ export function createTopUpFlow(
 				);
 				return;
 			}
-			signature = signed.signature;
+			credential = signed.credential;
 		}
 
 		// AND ONLY THEN the payer, which for a one-account-at-a-time wallet is the
@@ -860,8 +946,8 @@ export function createTopUpFlow(
 
 		set({phase: 'sending', error: undefined, details: undefined});
 
-		const result = route
-			? await registerAndFund(account, signature, mine)
+		const result: RegistrationOutcome = route
+			? await registerAndFund(account, credential, mine)
 			: await fundOnly(signer.address);
 
 		if (stale(mine)) return;
@@ -888,6 +974,19 @@ export function createTopUpFlow(
 				settle(payer, sendable);
 			}
 			set({error: 'The paying account can no longer cover that amount'});
+		} else if (result.status === 'stale-credential') {
+			// NOT a contract error, however it arrived. Every field stored beside the
+			// signature is a copy of what is inside it, so a disagreement cannot be
+			// noticed until the contract refuses to recover the owner's address - and
+			// at that point the only thing to do is throw the credential away and get
+			// a fresh one, which is what makes the mismatch self-healing.
+			//
+			// Thrown away in BOTH senses: dropped from this run, and remembered as
+			// refused so that no later run picks the same one out of the wallet's
+			// records again.
+			if (credential) refusedCredentials.add(credential.signature);
+			credential = undefined;
+			park({kind: 're-authorise', reason: 'expired'});
 		} else if (result.status === 'cancelled') {
 			set({phase: 'ready'});
 		} else {
@@ -917,20 +1016,20 @@ export function createTopUpFlow(
 	 */
 	const registerAndFund = async (
 		account: DelegationAccount,
-		signature: `0x${string}` | undefined,
+		credential: DelegationCredential | undefined,
 		mine: number,
-	): Promise<GetCreditsResult> => {
+	): Promise<RegistrationOutcome> => {
 		if (stale(mine)) return {status: 'cancelled'};
 
 		const request = registrationRequest({
 			owner: account.owner,
-			// The signer's OWN origin, in both places. It is part of the signed
-			// text, so a value derived again here could differ by a byte and the
-			// contract would recover a different address.
-			origin: account.origin,
 			delegate: account.delegate,
 			value: state.value,
-			signature,
+			// The deadline that was SIGNED, carried through untouched. It is inside
+			// the signed bytes, so a value made up here (or a zero standing in for a
+			// forgotten one) makes the contract recover a different address, with
+			// nothing about the failure saying which field was wrong.
+			credential,
 		});
 
 		// The contract the delegation state was READ from, rather than a second
@@ -980,13 +1079,17 @@ export function createTopUpFlow(
 		return result;
 	};
 
-	return {
+	// Named, rather than returned inline, so one step can drive another (see
+	// `reauthorise`) without depending on how it was called: `this` in an object
+	// literal is whatever the caller bound, and these are routinely passed around
+	// as bare functions in event handlers.
+	const flow: TopUpFlow = {
 		subscribe: store.subscribe,
 
 		async start() {
 			if (state.busy) return;
 			const mine = ++session;
-			signature = undefined;
+			credential = undefined;
 			set({...CLOSED, phase: 'preparing'});
 			try {
 				const registering = await resolveRegistering();
@@ -1251,12 +1354,83 @@ export function createTopUpFlow(
 			await perform();
 		},
 
+		/**
+		 * Sign in again, then pick the flow up where it stopped.
+		 *
+		 * Signing OUT first, because a connection that is already signed in has
+		 * nothing to mint: the credentials are handed over as part of the sign-in
+		 * result. The whole account is replaced by that round trip, so nothing from
+		 * before it is reused - the payer's figures are read again and the route is
+		 * chosen again, which is also what lands the user back here (with the same
+		 * sentence) if the new sign-in still produces nothing.
+		 */
+		async reauthorise() {
+			if (state.phase !== 're-authorise' || state.busy) return;
+			const mine = session;
+			const payer = state.payer;
+			credential = undefined;
+			set({phase: 'signing-in', error: undefined, details: undefined});
+			try {
+				// SIGNING OUT IS PART OF THE REMEDY, not an implementation detail: a
+				// connection that is already signed in has nothing to mint, since the
+				// credentials are handed over as part of the sign-in result. It is
+				// also the one thing about this button that can leave the user worse
+				// off than before pressing it, which is why the step says so before
+				// they press it and why the branches below say so afterwards.
+				connection.disconnect();
+				await connection.ensureConnected();
+				if (stale(mine)) return;
+
+				// Back to the payment methods when there is no payer to return to: the
+				// account itself has changed, so who can pay is worth asking again.
+				if (!payer) {
+					await flow.start();
+					return;
+				}
+
+				// RE-READ, do not reuse: the sign-in may have landed on a different
+				// account, and this decides both which routes exist and how much gas
+				// to keep back. Carrying the old answer over would size a top-up for a
+				// registration the new account may not need.
+				const registering = await resolveRegistering();
+				if (stale(mine)) return;
+				set({registering});
+
+				const sendable = await readSendable(
+					payer,
+					state.method,
+					registering,
+					state.dispensed,
+				);
+				if (stale(mine)) return;
+				settle(payer, sendable);
+			} catch (error) {
+				if (stale(mine)) return;
+				// Backing out of a sign-in is an answer, not a fault - but the session
+				// is gone either way, so the user is told rather than left to discover
+				// it from a screen that still names their account.
+				if (isUserRejectionError(error)) {
+					set({
+						phase: 're-authorise',
+						error: 'You are signed out. Sign in again to carry on.',
+					});
+					return;
+				}
+				console.error('Could not sign in again', error);
+				set({
+					phase: 're-authorise',
+					error: 'Could not sign in again, and you are now signed out.',
+					details: error instanceof Error ? error.stack : String(error),
+				});
+			}
+		},
+
 		back() {
 			if (state.busy) return;
 			if (state.methods.length === 0) return;
 			// A different payer may not need a signature at all (it may be the owner),
 			// so nothing about the last one carries over.
-			signature = undefined;
+			credential = undefined;
 			set({
 				phase: 'choosing',
 				method: undefined,
@@ -1334,4 +1508,6 @@ export function createTopUpFlow(
 			if (stop) cancelRun();
 		},
 	};
+
+	return flow;
 }

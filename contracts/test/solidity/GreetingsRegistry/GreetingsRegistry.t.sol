@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 import {GreetingsRegistry} from "src/GreetingsRegistry/GreetingsRegistry.sol";
-import {Delegation} from "src/core/Delegation.sol";
+import {Delegation} from "@etherplay/delegation/contracts/Delegation.sol";
 
 contract GreetingsRegistryTest is Test {
     uint256 internal testNumber;
@@ -466,7 +466,7 @@ contract GreetingsRegistryTest is Test {
         registry.registerDelegate(signer, payable(address(0)));
 
         vm.prank(alice);
-        registry.revokeDelegate();
+        registry.revokeDelegate(signer);
 
         vm.prank(signer);
         vm.expectRevert(

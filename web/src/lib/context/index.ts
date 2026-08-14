@@ -1,4 +1,9 @@
 import type {Context, TxObserverDebugState} from './types.js';
+// The same store the connection hands back below, imported here because the
+// permission the app declares has to be known BEFORE the connection is built.
+// Aliased so the name the rest of this function uses keeps coming from the
+// connection, which is where every other consumer gets it.
+import {deployments as deploymentsStore} from '$lib/deployments-store';
 import {writable, derived} from 'svelte/store';
 import {createWalletClient, custom, http} from 'viem';
 import {privateKeyToAccount} from 'viem/accounts';
@@ -143,6 +148,25 @@ export function createContext(): {
 		targetStep,
 		walletHost,
 		walletOnly,
+		// WHAT THIS APP ASKS FOR, declared where the user can still say no: the
+		// authority to act in their name at one contract on one chain, and nowhere
+		// else. The pair is the same one the chain read and every writer use, from
+		// the same place (see context/config's delegationRegistryAddress).
+		//
+		// OPTIONAL, deliberately. Required would make a refusal a wall at the door
+		// for something the user cannot evaluate yet; optional keeps the app
+		// browsable read-only and turns a refusal into a remedy the app offers at
+		// the moment it actually needs the authorisation (see the `re-authorise`
+		// route in ui/delegation/registration). A game that genuinely cannot
+		// function read-only is the case for setting `required: true`.
+		permissions: [
+			{
+				type: 'delegation',
+				required: false,
+				chainId: deploymentsStore.get().chain.id,
+				contract: delegationRegistryAddress(deploymentsStore.get()),
+			},
+		],
 		// The RPC url handed to the WALLET, which is not necessarily the one the
 		// app uses. Without it the exported chain info carries an empty rpc list
 		// (rocketh does not bake a public endpoint into chain info), and a wallet
@@ -313,6 +337,10 @@ export function createContext(): {
 		// The one delegation fact this app owns: which of its contracts adopted
 		// the library. The entry points come with the module.
 		registry: delegationRegistryAddress(deployments.get()),
+		// And the chain it is on, because a credential is bound to the PAIR: the
+		// same address on another chain is another contract entirely. Same value
+		// the connection declares its permission for, from the same place.
+		chainId: deployments.get().chain.id,
 		account,
 		signer: signerAddress,
 		fetchGate: chainFetchGate,

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.4;
 
 import {IGreetingsRegistry} from "./IGreetingsRegistry.sol";
-import {UsingDelegation} from "../core/UsingDelegation.sol";
+import {UsingDelegation} from "@etherplay/delegation/contracts/UsingDelegation.sol";
 import {Proxied} from "@rocketh/proxy/solc_0_8/ERC1967/Proxied.sol";
 
 /// @title Greetings Registry
@@ -14,7 +14,16 @@ import {Proxied} from "@rocketh/proxy/solc_0_8/ERC1967/Proxied.sol";
 /// may act for whom, it only asks who a call belongs to and records the answer.
 ///
 /// A contract wanting only some of those entry points, or different ones, uses
-/// the library directly instead and writes its own. See core/UsingDelegation.
+/// the library directly instead and writes its own. See the UsingDelegation.sol
+/// that ships in the etherplay delegation package.
+///
+/// WHAT INHERITING IT GRANTS: a delegate authorised here may do anything at
+/// THIS contract that its owner could do through {_requireAccountForSender} -
+/// the whole contract, not one action - and nothing anywhere else, since the
+/// address of this contract and the chain id are inside the message the owner
+/// signs. That is why the library ships as SOURCE compiled into each adopter
+/// and never as a shared registry deployment: a registry would put its own
+/// address in every signature, making one credential good at every game on it.
 contract GreetingsRegistry is IGreetingsRegistry, UsingDelegation, Proxied {
     /// @notice emitted whenever a user updates their greeting
     /// @param user the account whose greeting was updated

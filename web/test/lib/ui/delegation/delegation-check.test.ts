@@ -12,7 +12,6 @@ import type {TopUpFlow} from '$lib/ui/credits/top-up-flow';
 import type {DelegationStore} from '$lib/onchain/delegation';
 
 const SIGNER = '0x00000000000000000000000000000000000000aA' as const;
-const ZERO = '0x0000000000000000000000000000000000000000' as const;
 
 /**
  * A stand-in for the registration flow: a store that is open while it runs, and
@@ -30,16 +29,23 @@ function fakeFlow() {
 	};
 }
 
-function fakeDelegation(delegate: `0x${string}`) {
-	const value = () => ({step: 'Loaded' as const, delegate, withdrawn: false});
+/**
+ * The chain's answer about THIS browser's signer.
+ *
+ * A field rather than an address, because the read is scoped to the (account,
+ * signer) pair: `delegationStatus` was asked about this signer, so there is no
+ * delegate to compare against.
+ */
+function fakeDelegation(allowed: boolean) {
+	const value = () => ({step: 'Loaded' as const, allowed, withdrawn: false});
 	const store = writable(value());
 	return {
 		delegation: Object.assign(store, {
 			update: vi.fn(async () => value()),
 			status: writable({loading: false}),
 		}) as unknown as DelegationStore,
-		register: (address: `0x${string}`) => {
-			delegate = address;
+		register: () => {
+			allowed = true;
 			store.set(value());
 		},
 	};
@@ -47,9 +53,9 @@ function fakeDelegation(delegate: `0x${string}`) {
 
 const RESUME = {action: 'Send your greeting', detail: 'Hello from here'};
 
-function setup(delegate: `0x${string}`) {
+function setup(allowed: boolean) {
 	const {flow, start, close} = fakeFlow();
-	const {delegation, register} = fakeDelegation(delegate);
+	const {delegation, register} = fakeDelegation(allowed);
 	const confirmation = createConfirmation();
 	const check = createDelegationCheckStore({
 		delegation,
@@ -64,7 +70,7 @@ function setup(delegate: `0x${string}`) {
 
 describe('ensureRegistered: when this browser is already authorised', () => {
 	it('returns at once, without opening or asking anything', async () => {
-		const {check, confirmation, start} = setup(SIGNER);
+		const {check, confirmation, start} = setup(true);
 
 		await check.ensureRegistered({signer: SIGNER, resume: RESUME});
 
@@ -80,7 +86,7 @@ describe('ensureRegistered: when it is not', () => {
 		// rather than the user having to notice the app forgot and ask again. It
 		// comes back on their say-so, because by now they have been through a
 		// wallet and several dialogs.
-		const {check, asking, start, close, register} = setup(ZERO);
+		const {check, asking, start, close, register} = setup(false);
 
 		let resumed = false;
 		const pending = check
@@ -95,7 +101,7 @@ describe('ensureRegistered: when it is not', () => {
 		expect(resumed).toBe(false);
 
 		// It lands, and the flow closes.
-		register(SIGNER);
+		register();
 		close();
 
 		// Still not resumed: it asks first, and the question carries BOTH halves.
@@ -120,7 +126,7 @@ describe('ensureRegistered: when it is not', () => {
 	it('gives up when the user closes the flow without registering', async () => {
 		// Read from the CHAIN, not from how the flow ended: a flow can close for
 		// reasons that say nothing about whether the registration landed.
-		const {check, confirmation, close} = setup(ZERO);
+		const {check, confirmation, close} = setup(false);
 
 		const pending = check.ensureRegistered({signer: SIGNER, resume: RESUME});
 		await vi.waitFor(() => expect(get(check).step).toBe('registering'));
@@ -132,11 +138,11 @@ describe('ensureRegistered: when it is not', () => {
 	});
 
 	it('treats declining the question as backing out, not as a failure', async () => {
-		const {check, asking, close, register} = setup(ZERO);
+		const {check, asking, close, register} = setup(false);
 
 		const pending = check.ensureRegistered({signer: SIGNER, resume: RESUME});
 		await vi.waitFor(() => expect(get(check).step).toBe('registering'));
-		register(SIGNER);
+		register();
 		close();
 		await vi.waitFor(() => expect(asking().step).toBe('asking'));
 
@@ -150,8 +156,8 @@ describe('ensureRegistered: when it is not', () => {
 		// A registration that just landed may not be in the polled value yet, and
 		// sending the user through a flow with nothing left to do is worse than
 		// one direct read.
-		const {start} = setup(ZERO);
-		const {delegation} = fakeDelegation(SIGNER);
+		const {start} = setup(false);
+		const {delegation} = fakeDelegation(true);
 		const fresh = createDelegationCheckStore({
 			delegation,
 			topUp: {subscribe: () => () => {}, start} as unknown as TopUpFlow,

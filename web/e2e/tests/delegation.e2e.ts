@@ -222,13 +222,13 @@ describe('Delegation - paying with another wallet', () => {
 	 *
 	 * Everything either side of it is covered elsewhere - route selection and the
 	 * exact bytes submitted in test/lib/ui/credits/top-up-flow.test.ts, the
-	 * message text pinned against the contract in
-	 * contracts/test/js/Delegation.test.ts - but only this one takes a signature
-	 * produced by a wallet, hands it to the contract, and finds out whether the
-	 * address it recovers is the one that signed. That agreement spans a wallet,
-	 * a message builder and Solidity, and when it breaks NOTHING says so: the
-	 * signature is well-formed, the transaction is well-formed, and the contract
-	 * simply rejects it as somebody else's.
+	 * message text pinned against the contract by the vectors that ship with
+	 * @etherplay/delegation and are read from both languages - but only this one
+	 * takes a signature produced by a wallet, hands it to the contract, and finds
+	 * out whether the address it recovers is the one that signed. That agreement
+	 * spans a wallet, a message builder and Solidity, and when it breaks NOTHING
+	 * says so: the signature is well-formed, the transaction is well-formed, and
+	 * the contract simply rejects it as somebody else's.
 	 *
 	 * It was skipped until recently, and the reason is worth keeping: the burner's
 	 * `personal_sign` (eip-1193-accounts-wrapper before 0.2.0) hand-rolled the

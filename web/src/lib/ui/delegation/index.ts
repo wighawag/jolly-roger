@@ -13,14 +13,19 @@ export {
 } from './delegation-view';
 export {
 	chooseRegistrationRoute,
-	delegationMessage,
+	credentialExpired,
+	credentialState,
+	reauthoriseExplanation,
 	registrationRequest,
 	sameAddress,
+	type CredentialState,
+	type DelegationTarget,
 	type RegistrationRequest,
 	type RegistrationRoute,
 } from './registration';
 export {
 	delegationAccountOf,
+	isCredentialRejection,
 	signDelegation,
 	submitRegistration,
 	type DelegationAccount,

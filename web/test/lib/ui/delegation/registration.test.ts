@@ -1,17 +1,27 @@
 import {describe, it, expect} from 'vitest';
-import {originDelegationMessage} from '@etherplay/connect';
+import {delegationMessage} from '@etherplay/connect';
 import {
 	chooseRegistrationRoute,
-	delegationMessage,
+	credentialExpired,
+	credentialState,
 	registrationRequest,
 	sameAddress,
+	type CredentialState,
 } from '$lib/ui/delegation/registration';
 
 const OWNER = '0x00000000000000000000000000000000000000dD' as const;
 const SIGNER = '0x00000000000000000000000000000000000000aA' as const;
 const PAYER = '0x00000000000000000000000000000000000000bB' as const;
+const CONTRACT = '0x00000000000000000000000000000000000000eE' as const;
+const OTHER_CONTRACT = '0x00000000000000000000000000000000000000fF' as const;
 const SIGNATURE = `0x${'ab'.repeat(65)}` as const;
-const ORIGIN = 'https://greetings.test';
+const CHAIN_ID = 31337;
+const TARGET = {chainId: CHAIN_ID, contract: CONTRACT};
+
+const held: CredentialState = {
+	kind: 'held',
+	credential: {signature: SIGNATURE, deadline: 0},
+};
 
 /**
  * The decision is TWO questions, not three account types: who pays, and how the
@@ -21,7 +31,7 @@ const base = {
 	owner: OWNER,
 	payer: PAYER,
 	ownerCanSend: true,
-	savedSignature: undefined,
+	credential: {kind: 'none'} as CredentialState,
 	ownerCanSignLive: true,
 	withdrawn: false,
 };
@@ -53,40 +63,99 @@ describe('chooseRegistrationRoute: how the authorisation is proven', () => {
 			payer: OWNER,
 			ownerCanSend: false,
 			ownerCanSignLive: false,
-			savedSignature: SIGNATURE,
+			credential: held,
 		});
-		expect(route).toEqual({kind: 'pre-signed', signature: SIGNATURE});
+		expect(route).toEqual({
+			kind: 'pre-signed',
+			credential: {signature: SIGNATURE, deadline: 0},
+		});
 	});
 
-	it('uses a signature the connection already carries, with nothing to prompt', () => {
-		// Detected by ASKING whether the signature is there. Inferring it from the
-		// account type would encode an assumption about which mechanisms pre-sign.
+	it('uses a credential the connection already carries, with nothing to prompt', () => {
+		// Detected by ASKING what the connection holds for this contract.
+		// Inferring it from the account type would encode an assumption about
+		// which mechanisms pre-sign.
+		expect(chooseRegistrationRoute({...base, credential: held})).toEqual({
+			kind: 'pre-signed',
+			credential: {signature: SIGNATURE, deadline: 0},
+		});
+	});
+
+	it('carries the DEADLINE alongside the signature', () => {
+		// It is inside the signed bytes and the contract cannot know it otherwise,
+		// so a signature that arrives without its deadline cannot be submitted.
 		expect(
-			chooseRegistrationRoute({...base, savedSignature: SIGNATURE}),
-		).toEqual({kind: 'pre-signed', signature: SIGNATURE});
+			chooseRegistrationRoute({
+				...base,
+				credential: {
+					kind: 'held',
+					credential: {signature: SIGNATURE, deadline: 1893456000},
+				},
+			}),
+		).toEqual({
+			kind: 'pre-signed',
+			credential: {signature: SIGNATURE, deadline: 1893456000},
+		});
 	});
 
-	it('asks the wallet to sign when there is no saved signature', () => {
+	it('asks the wallet to sign when it is on hand, whatever is stored', () => {
 		expect(chooseRegistrationRoute(base)).toEqual({kind: 'live-signature'});
+		// Even with a spent credential: an owner that can be asked has no reason
+		// to sign in again.
+		expect(
+			chooseRegistrationRoute({...base, credential: {kind: 'stale'}}),
+		).toEqual({kind: 'live-signature'});
 	});
 
-	it('has nothing to offer when the owner can neither send nor sign', () => {
+	it('sends an account that cannot sign live back to sign in again', () => {
+		// ONE route, because the remedy is the same in all three cases: a hosted
+		// account mints its credentials at sign-in, so that is where another one
+		// comes from.
+		const reasonFor = (credential: CredentialState) =>
+			chooseRegistrationRoute({
+				...base,
+				ownerCanSend: false,
+				ownerCanSignLive: false,
+				credential,
+			});
+
+		expect(reasonFor({kind: 'stale'})).toEqual({
+			kind: 're-authorise',
+			reason: 'expired',
+		});
+		expect(reasonFor({kind: 'denied'})).toEqual({
+			kind: 're-authorise',
+			reason: 'denied',
+		});
+		// A misconfiguration of the app, and named as one rather than blamed on
+		// the user, who declined nothing.
+		expect(reasonFor({kind: 'none'})).toEqual({
+			kind: 're-authorise',
+			reason: 'not-requested',
+		});
+	});
+
+	it('has nothing to offer when the wallet did not understand the request', () => {
+		// Signing in again cannot help: the wallet refused because it cannot
+		// describe what was asked for, so `unavailable` keeps its meaning of
+		// "nothing the user does from here can work".
 		const route = chooseRegistrationRoute({
 			...base,
 			ownerCanSend: false,
 			ownerCanSignLive: false,
+			credential: {kind: 'unsupported'},
 		});
 		expect(route.kind).toBe('unavailable');
 	});
 
 	it('closes the signature routes once the owner has withdrawn this signer', () => {
-		// `delegationWithdrawn` is per delegate: cleared only by an owner-sent
-		// registerDelegate, precisely so a signature carrying no nonce cannot undo
-		// a revocation of that delegate.
+		// The withdrawn flag is per delegate: cleared only by an owner-sent
+		// registerDelegate, so a signature carrying no nonce cannot undo a
+		// revocation of that delegate.
 		const route = chooseRegistrationRoute({
 			...base,
 			withdrawn: true,
-			savedSignature: SIGNATURE,
+			credential: held,
 		});
 		expect(route.kind).toBe('unavailable');
 	});
@@ -107,11 +176,164 @@ describe('chooseRegistrationRoute: how the authorisation is proven', () => {
 	});
 });
 
+describe('credentialState: what the connection holds for ONE contract', () => {
+	const saved = {
+		chainId: CHAIN_ID,
+		contract: CONTRACT,
+		delegate: SIGNER,
+		deadline: 0,
+		signature: SIGNATURE,
+	};
+
+	it('picks the record for this (chain, contract) and no other', () => {
+		expect(
+			credentialState({
+				savedDelegations: [
+					{...saved, contract: OTHER_CONTRACT},
+					{...saved, chainId: 1},
+					saved,
+				],
+				permissions: undefined,
+				target: TARGET,
+				delegate: SIGNER,
+			}),
+		).toEqual({kind: 'held', credential: {signature: SIGNATURE, deadline: 0}});
+	});
+
+	it('matches the contract case-insensitively, since spelling is presentation', () => {
+		expect(
+			credentialState({
+				savedDelegations: [
+					{...saved, contract: CONTRACT.toLowerCase() as `0x${string}`},
+				],
+				permissions: undefined,
+				target: TARGET,
+				delegate: SIGNER,
+			}).kind,
+		).toBe('held');
+	});
+
+	it('will not submit a credential made for a different delegate', () => {
+		// `delegate` is redundant with what is inside the signature, and that is
+		// the point: it catches the mismatch here rather than by registering
+		// somebody else's key with the user's money.
+		expect(
+			credentialState({
+				savedDelegations: [{...saved, delegate: PAYER}],
+				permissions: undefined,
+				target: TARGET,
+				delegate: SIGNER,
+			}),
+		).toEqual({kind: 'stale'});
+	});
+
+	it('treats one past its deadline as spent', () => {
+		expect(
+			credentialState({
+				savedDelegations: [{...saved, deadline: 1}],
+				permissions: undefined,
+				target: TARGET,
+				delegate: SIGNER,
+			}),
+		).toEqual({kind: 'stale'});
+	});
+
+	it('never picks a signature the contract has already refused', () => {
+		// The record belongs to the wallet and the app cannot delete it, so a
+		// refusal has to stick HERE or the next run picks the same doomed
+		// credential and fails the same way. Without this, "self-healing" would
+		// mean "healing if the user does as they are told".
+		expect(
+			credentialState({
+				savedDelegations: [saved],
+				permissions: undefined,
+				target: TARGET,
+				delegate: SIGNER,
+				refused: new Set([SIGNATURE]),
+			}),
+		).toEqual({kind: 'stale'});
+	});
+
+	it('tells a refusal apart from a question nobody asked', () => {
+		// The whole reason `permissions` exists: an absent credential says
+		// neither, and the two call for different sentences.
+		const outcomeFor = (reason: 'denied' | 'unsupported') =>
+			credentialState({
+				savedDelegations: [],
+				permissions: [
+					{
+						request: {
+							type: 'delegation',
+							required: false,
+							chainId: CHAIN_ID,
+							contract: CONTRACT,
+						},
+						granted: false,
+						reason,
+					},
+				],
+				target: TARGET,
+				delegate: SIGNER,
+			});
+
+		expect(outcomeFor('denied')).toEqual({kind: 'denied'});
+		expect(outcomeFor('unsupported')).toEqual({kind: 'unsupported'});
+		expect(
+			credentialState({
+				savedDelegations: [],
+				permissions: [],
+				target: TARGET,
+				delegate: SIGNER,
+			}),
+		).toEqual({kind: 'none'});
+	});
+
+	it('ignores an outcome about a different contract', () => {
+		expect(
+			credentialState({
+				savedDelegations: [],
+				permissions: [
+					{
+						request: {
+							type: 'delegation',
+							required: false,
+							chainId: CHAIN_ID,
+							contract: OTHER_CONTRACT,
+						},
+						granted: false,
+						reason: 'denied',
+					},
+				],
+				target: TARGET,
+				delegate: SIGNER,
+			}),
+		).toEqual({kind: 'none'});
+	});
+});
+
+describe('credentialExpired: the browser clock, with a margin', () => {
+	const now = 1_700_000_000_000; // ms
+
+	it('never expires a deadline of zero, which is the absence of one', () => {
+		// The bug the vectors pin against: a falsy deadline is not an absent one.
+		expect(credentialExpired(0, now)).toBe(false);
+		expect(credentialExpired(1, now)).toBe(true);
+	});
+
+	it('treats one about to lapse as already spent', () => {
+		// Between reading the clock and the transaction being mined there is a
+		// wallet prompt, a network and a block. The margin is the difference
+		// between saying so here and a revert after the user has paid the gas.
+		const inSeconds = Math.floor(now / 1000);
+		expect(credentialExpired(inSeconds + 30, now)).toBe(true);
+		expect(credentialExpired(inSeconds + 3600, now)).toBe(false);
+	});
+});
+
 describe('registrationRequest: which entry point, and what it forwards', () => {
 	it('registers directly when the owner is sending, with the delegate as payee', () => {
 		const request = registrationRequest({
 			owner: OWNER,
-			origin: ORIGIN,
 			delegate: SIGNER,
 			value: 1000n,
 		});
@@ -121,17 +343,19 @@ describe('registrationRequest: which entry point, and what it forwards', () => {
 		expect(request.value).toBe(1000n);
 	});
 
-	it('registers by signature when one is supplied', () => {
+	it('registers by signature when one is supplied, deadline included', () => {
 		const request = registrationRequest({
 			owner: OWNER,
-			origin: ORIGIN,
 			delegate: SIGNER,
 			value: 1000n,
-			signature: SIGNATURE,
+			credential: {signature: SIGNATURE, deadline: 1893456000},
 		});
 
 		expect(request.functionName).toBe('registerDelegateViaSignature');
-		expect(request.args).toEqual([OWNER, ORIGIN, SIGNER, SIGNATURE]);
+		// No origin, and no contract or chain either: those two the contract reads
+		// off `address(this)` and `block.chainid`, which is what stops a caller
+		// choosing them.
+		expect(request.args).toEqual([OWNER, SIGNER, 1893456000n, SIGNATURE]);
 	});
 
 	it('never names the zero address as payee, which would revert on value', () => {
@@ -140,7 +364,6 @@ describe('registrationRequest: which entry point, and what it forwards', () => {
 		expect(() =>
 			registrationRequest({
 				owner: OWNER,
-				origin: ORIGIN,
 				delegate: '0x0000000000000000000000000000000000000000',
 				value: 1000n,
 			}),
@@ -148,19 +371,24 @@ describe('registrationRequest: which entry point, and what it forwards', () => {
 	});
 });
 
-describe('delegationMessage: the text the contract verifies', () => {
-	it('is the library builder, verbatim', () => {
-		// Never hand-rolled. The wording and the address casing are consensus with
-		// Delegation.message in Solidity; changing either invalidates every
-		// signature ever produced, silently.
-		expect(delegationMessage(ORIGIN, SIGNER)).toBe(
-			originDelegationMessage(ORIGIN, SIGNER),
-		);
-	});
-
-	it('lowercases the delegate, because that is what the contract renders', () => {
-		expect(delegationMessage(ORIGIN, SIGNER)).toContain(SIGNER.toLowerCase());
-		expect(delegationMessage(ORIGIN, SIGNER)).not.toContain(SIGNER);
+describe('the message an owner signs', () => {
+	it('comes from the library that the contract is pinned against', () => {
+		// Never hand-rolled here. The wording, the field order and the address
+		// casing are consensus between Delegation.message in Solidity, this
+		// builder and the vectors file both are tested against; changing either
+		// invalidates every signature ever produced, silently. This asserts only
+		// that the app has not started building its own.
+		const message = delegationMessage({
+			delegate: SIGNER,
+			contract: CONTRACT,
+			chainId: CHAIN_ID,
+			deadline: 0,
+		});
+		expect(message).toContain(SIGNER.toLowerCase());
+		expect(message).toContain(CONTRACT.toLowerCase());
+		expect(message).toContain(`Chain ID: ${CHAIN_ID}`);
+		expect(message).toContain('Expires: never');
+		expect(message).not.toContain(SIGNER);
 	});
 });
 

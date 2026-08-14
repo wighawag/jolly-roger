@@ -2,7 +2,6 @@ import {derived, type Readable} from 'svelte/store';
 import type {Connection, UnderlyingEthereumProvider} from '@etherplay/connect';
 import {isRegistered, type DelegationValue} from '$lib/onchain/delegation';
 import type {Context} from '$lib/context/types';
-import {delegationAccountOf} from './register-delegate';
 
 /**
  * What the account panel says about this browser's authority, and whether the
@@ -47,10 +46,12 @@ export function deriveDelegationRow(input: {
 	const {owner, signer, delegation, ownerCanSend} = input;
 
 	// No signer means nothing has been authorised and nothing can be: a
-	// wallet-only deployment, or any step before sign-in.
+	// wallet-only deployment, or any step before sign-in. It is also what makes
+	// the read below meaningful: the chain was asked about THIS signer, so the
+	// answer is a field rather than an address to compare.
 	if (!owner || !signer) return HIDDEN;
 
-	const authorised = isRegistered(delegation, signer);
+	const authorised = isRegistered(delegation);
 
 	return {
 		visible: true,
@@ -82,12 +83,15 @@ export function createDelegationRowStore(
 	return derived(
 		[connection, delegation, accountExecutor],
 		([$connection, $delegation, $executor]) => {
-			const account = delegationAccountOf(
-				$connection as Connection<UnderlyingEthereumProvider>,
-			);
+			// The account and its signer, read straight off the connection: this row
+			// says whether THIS browser may act, which needs no credential and no
+			// contract, only the two addresses and what the chain answered.
+			const signedIn = $connection as Connection<UnderlyingEthereumProvider>;
+			const account =
+				signedIn.step === 'SignedIn' ? signedIn.account : undefined;
 			return deriveDelegationRow({
-				owner: account?.owner,
-				signer: account?.delegate,
+				owner: account?.address,
+				signer: account?.signer.address,
 				delegation: $delegation,
 				ownerCanSend: $executor.status === 'ready',
 			});

@@ -118,8 +118,11 @@ async function isDelegateRegistered(page: Page): Promise<boolean> {
 		if (!context) return false;
 		const delegation = read(context.delegation);
 		const signer = read(context.signerExecutor)?.address;
+		// The read is scoped to this signer, so `allowed` IS the answer about it.
+		// The signer is still required: without one there is nothing authorised and
+		// nothing the value could be describing.
 		if (!signer || delegation?.step !== 'Loaded') return false;
-		return delegation.delegate.toLowerCase() === signer.toLowerCase();
+		return delegation.allowed === true;
 	});
 }
 

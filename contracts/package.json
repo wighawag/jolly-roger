@@ -15,8 +15,10 @@
 		"src",
 		"deployments"
 	],
+	"dependencies": {
+		"@etherplay/delegation": "^0.1.0"
+	},
 	"devDependencies": {
-		"@etherplay/connect-core": "^0.2.0",
 		"@nomicfoundation/hardhat-keystore": "^3.0.8",
 		"@nomicfoundation/hardhat-network-helpers": "^3.0.7",
 		"@nomicfoundation/hardhat-node-test-runner": "^3.1.0",

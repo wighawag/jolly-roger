@@ -2,6 +2,7 @@ import {deployments} from '$lib/deployments-store';
 import {
 	createConnection,
 	type ConnectionStore,
+	type PermissionDeclaration,
 	type UnderlyingEthereumProvider,
 } from '@etherplay/connect';
 import {derived} from 'svelte/store';
@@ -29,6 +30,17 @@ export type ChainConnectionOptions = {
 	targetStep: TargetStep;
 	walletHost?: string;
 	walletOnly: boolean;
+	/**
+	 * What the app asks the wallet for at connect time, and gets an answer to
+	 * for every entry.
+	 *
+	 * Passed through rather than assembled here: WHICH contract on WHICH chain
+	 * an app wants to act at is the app's own fact (see context/config), while
+	 * this module only knows how a connection is made. Only the sign-in
+	 * configurations take it - there is nobody to ask when the app stops at a
+	 * connected wallet, because a wallet is asked at the moment of use instead.
+	 */
+	permissions?: PermissionDeclaration[];
 };
 
 /**
@@ -111,7 +123,7 @@ export function createChainConnection(
 	chainInfo: ChainInfo,
 	options: ChainConnectionOptions,
 ): ChainConnection {
-	const {nodeURL, targetStep, walletHost, walletOnly} = options;
+	const {nodeURL, targetStep, walletHost, walletOnly, permissions} = options;
 
 	// Note: `useCurrentAccount` is intentionally omitted. Setting it would make
 	// the connection auto-pick an account and skip `ChooseWalletAccount`, so a
@@ -142,6 +154,7 @@ export function createChainConnection(
 				walletOnly: true,
 				nodeURL,
 				chainInfo,
+				permissions,
 				prioritizeWalletProvider: true,
 				autoConnect: true,
 			});
@@ -151,6 +164,7 @@ export function createChainConnection(
 			walletHost,
 			nodeURL,
 			chainInfo,
+			permissions,
 			prioritizeWalletProvider: true,
 			autoConnect: true,
 		});
@@ -232,6 +246,7 @@ export function establishRemoteConnection(options: {
 	targetStep: TargetStep;
 	walletHost?: string;
 	walletOnly: boolean;
+	permissions?: PermissionDeclaration[];
 }): EstablishedConnection {
 	// Use deployments.get() for synchronous access
 	const currentDeployments = deployments.get();
@@ -259,6 +274,7 @@ export function establishRemoteConnection(options: {
 		targetStep: options.targetStep,
 		walletHost: options.walletHost,
 		walletOnly: options.walletOnly,
+		permissions: options.permissions,
 	});
 
 	// Debug-only RPC fault injection: a runtime flag (exposed on the context as

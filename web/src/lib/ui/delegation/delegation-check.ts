@@ -135,12 +135,12 @@ export function createDelegationCheckStore(params: {
 		async ensureRegistered({signer, resume: request}) {
 			if (!signer) throw new NotRegisteredError();
 
-			if (isRegistered(get(delegation), signer)) return;
+			if (isRegistered(get(delegation))) return;
 
 			// One direct read before troubling the user: the poll may simply not
 			// have caught up with a registration that just landed, and sending them
 			// through a flow with nothing left to do would be worse than the wait.
-			if (isRegistered(await delegation.update(), signer)) return;
+			if (isRegistered(await delegation.update())) return;
 
 			// The registration flow funds the signer in the same transaction, so
 			// this is also how an empty signer gets its gas. It renders its own
@@ -151,7 +151,7 @@ export function createDelegationCheckStore(params: {
 
 			// The CHAIN decides, not the flow: it can close for reasons that say
 			// nothing about whether the registration landed.
-			if (!isRegistered(await delegation.update(), signer)) {
+			if (!isRegistered(await delegation.update())) {
 				close();
 				throw new NotRegisteredError();
 			}

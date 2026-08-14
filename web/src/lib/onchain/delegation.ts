@@ -1,3 +1,4 @@
+import {DELEGATION_ABI} from '@etherplay/connect';
 import {
 	createPollingStore,
 	type PollingStore,
@@ -7,86 +8,44 @@ import {derived, type Readable} from 'svelte/store';
 import type {PublicClient} from 'viem';
 
 /**
- * The delegation surface, declared here rather than read off an app's ABI.
+ * The delegation surface comes from the package that DEFINES it.
  *
- * These five functions are the external surface of
- * `contracts/src/core/UsingDelegation.sol`, which is fixed for anything that
- * adopts the library. Nothing about them is app-specific, so reaching them
- * through one app's named contract would leave every descendant of this
- * template either keeping a contract by that name or forking this file. The
- * ABI of the FEATURE belongs to the feature; WHICH contract carries it belongs
- * to the app, and arrives as an address (see `createDelegationState`).
+ * It used to be hand-written here, which was the wrong place for it twice over:
+ * the ABI is not app-specific (it is fixed for anything adopting the library),
+ * and a hand-maintained copy of a contract's surface is a copy that drifts. It
+ * now travels with the Solidity and the message builder in one package,
+ * `@etherplay/delegation`, where a test pins the three together against a
+ * shared vectors file.
  *
- * Only what this module and its writers call: the two reads, and the three
- * entry points behind registering and withdrawing. `delegationMessage` and
- * `delegationDigest` are deliberately absent - the text an owner signs is
- * built off chain by the connect library (see ui/delegation/registration), so
- * declaring a way to read it here would invite a second source for a string
- * that has to match byte for byte.
+ * Imported from `@etherplay/connect` rather than from that package directly,
+ * and so the web has no dependency on it: connect re-exports the whole feature
+ * (this, `delegationMessage`, `findSavedDelegation`) precisely so an app has
+ * one import and cannot end up with two versions of the message. The contracts
+ * workspace depends on the package itself, for the Solidity.
+ *
+ * Re-exported here so the rest of the app keeps importing the feature from one
+ * place, whatever the package is called.
  */
-export const DELEGATION_ABI = [
-	{
-		inputs: [{internalType: 'address', name: 'owner', type: 'address'}],
-		name: 'delegateOf',
-		outputs: [{internalType: 'address', name: '', type: 'address'}],
-		stateMutability: 'view',
-		type: 'function',
-	},
-	{
-		inputs: [
-			{internalType: 'address', name: 'owner', type: 'address'},
-			{internalType: 'address', name: 'delegate', type: 'address'},
-		],
-		name: 'delegationWithdrawn',
-		outputs: [{internalType: 'bool', name: '', type: 'bool'}],
-		stateMutability: 'view',
-		type: 'function',
-	},
-	{
-		inputs: [
-			{internalType: 'address', name: 'delegate', type: 'address'},
-			{internalType: 'address payable', name: 'payee', type: 'address'},
-		],
-		name: 'registerDelegate',
-		outputs: [],
-		stateMutability: 'payable',
-		type: 'function',
-	},
-	{
-		inputs: [
-			{internalType: 'address', name: 'owner', type: 'address'},
-			{internalType: 'string', name: 'origin', type: 'string'},
-			{internalType: 'address', name: 'delegate', type: 'address'},
-			{internalType: 'bytes', name: 'signature', type: 'bytes'},
-		],
-		name: 'registerDelegateViaSignature',
-		outputs: [],
-		stateMutability: 'payable',
-		type: 'function',
-	},
-	{
-		inputs: [],
-		name: 'revokeDelegate',
-		outputs: [],
-		stateMutability: 'nonpayable',
-		type: 'function',
-	},
-] as const;
+export {DELEGATION_ABI};
 
 /**
  * The contract this app's delegation lives in: the one that adopted
- * {UsingDelegation}, addressed with the surface above.
+ * {UsingDelegation}, addressed with the surface above, on the chain it is
+ * deployed to.
  *
- * Carried on the store so that everything touching delegation - the read here,
- * the registration in the top-up flow, the withdrawal in the account panel -
- * addresses the SAME contract. Every writer has to write to the contract the
- * reader just answered about, and two independent lookups is two chances to
- * disagree. That disagreement is invisible in the worst way: a UI stating the
- * browser is already authorised while sends keep reverting, or a registration
- * that spends the user's money and leaves the send it was unblocking still
- * blocked.
+ * THE PAIR IS THE UNIT. The contract's own address and the chain id are inside
+ * the message the owner signs, so a credential is worth nothing at any other
+ * contract or on any other chain. Which is also why the two travel together
+ * here: the chain read, the writers and the lookup that picks the credential
+ * out of `savedDelegations` must all mean the same (chainId, contract), and
+ * three independent lookups is three chances to disagree.
+ *
+ * That disagreement is invisible in the worst way: a UI stating the browser is
+ * already authorised while sends keep reverting, or a registration that spends
+ * the user's money and leaves the send it was unblocking still blocked.
  */
 export type DelegationRegistry = {
+	readonly chainId: number;
 	readonly address: `0x${string}`;
 	readonly abi: typeof DELEGATION_ABI;
 };
@@ -103,18 +62,24 @@ export type DelegationRegistry = {
  * registration lands in a transaction the app itself sent, and the
  * authorisation can be withdrawn from the account panel or from another tab.
  *
- * `withdrawn` comes along because it decides which registration routes are
- * still open. It is PER DELEGATE: set only by a successful `revokeDelegate` for
- * the delegate that was current at the time, and cleared only by an
- * owner-sent `registerDelegate`. So once it is up the signature route for
- * THAT delegate is closed, but a different delegate can still be authorised
- * by a fresh signature - which is what lets a user replace one signer with
- * another without sending a transaction themselves.
+ * ONE read answers both halves. `delegationStatus(owner, delegate)` is a single
+ * cold SLOAD for the pair, and it replaced a `delegateOf` whose answer was
+ * compared against this browser's signer and then thrown away, plus a second
+ * call for the withdrawal. An account may have SEVERAL delegates now, so there
+ * is no single address to return anyway.
  */
 export type DelegationState = {
-	/** The address currently allowed to act for the account; zero when none. */
-	delegate: `0x${string}`;
-	/** Whether the account has withdrawn its authorisation for this signer. */
+	/** Whether this browser's signer may act for the account, right now. */
+	allowed: boolean;
+	/**
+	 * Whether the account has withdrawn its authorisation for this signer.
+	 *
+	 * PER DELEGATE: set only by a successful `revokeDelegate` for that delegate,
+	 * and cleared only by an owner-sent `registerDelegate`. So once it is up the
+	 * signature route for THAT delegate is closed, but a different delegate can
+	 * still be authorised by a fresh signature - which is what lets a user
+	 * replace one signer with another without sending a transaction themselves.
+	 */
 	withdrawn: boolean;
 };
 
@@ -124,24 +89,19 @@ export type DelegationStore = PollingStore<DelegationState> & {
 	readonly registry: DelegationRegistry;
 };
 
-export const ZERO_ADDRESS =
-	'0x0000000000000000000000000000000000000000' as const;
-
 /**
- * Whether `signer` is the registered delegate of the account this value
- * describes.
+ * Whether this browser's signer is currently a delegate of the account.
+ *
+ * A FIELD READ, not an address comparison: the read is already scoped to the
+ * (owner, signer) pair, so the contract has answered the question about this
+ * signer rather than about whichever delegate happens to be first in a list.
  *
  * Unknown reads as NOT registered, deliberately. The consequence of guessing
  * wrong in that direction is a prompt to register that turns out to be
  * unnecessary; guessing the other way sends a transaction that reverts.
  */
-export function isRegistered(
-	value: DelegationValue,
-	signer: `0x${string}` | undefined,
-): boolean {
-	if (!signer) return false;
-	if (value.step !== 'Loaded') return false;
-	return value.delegate.toLowerCase() === signer.toLowerCase();
+export function isRegistered(value: DelegationValue): boolean {
+	return value.step === 'Loaded' && value.allowed;
 }
 
 /** What the polling engine fetches: the account and its signer as one scope. */
@@ -155,18 +115,20 @@ type DelegationScope =
 export function createDelegationState(params: {
 	publicClient: PublicClient;
 	/**
-	 * The contract that adopted {UsingDelegation}.
+	 * The contract that adopted {UsingDelegation}, and the chain it is on.
 	 *
 	 * An address rather than a deployments object: only the app knows which of
 	 * its contracts carries the library, and the surface is already known here.
+	 * The chain id comes with it because the credential is bound to the pair.
 	 */
 	registry: `0x${string}`;
+	chainId: number;
 	/** The authenticated account. The read is scoped to it, and resets with it. */
 	account: Readable<`0x${string}` | undefined>;
 	/**
-	 * This browser's signer address. The `withdrawn` read is scoped to it,
-	 * because withdrawal is per delegate: a withdrawn signer does not block a
-	 * different one.
+	 * This browser's signer address. The read is scoped to it, because both
+	 * halves of the answer are per delegate: a withdrawn signer does not block a
+	 * different one, and neither does an authorised one authorise it.
 	 */
 	signer: Readable<`0x${string}` | undefined>;
 	/** Optional gate, for an app that can only reach the chain via the wallet. */
@@ -175,6 +137,7 @@ export function createDelegationState(params: {
 }): DelegationStore {
 	const {publicClient, account, signer, fetchGate} = params;
 	const registry: DelegationRegistry = {
+		chainId: params.chainId,
 		address: params.registry,
 		abi: DELEGATION_ABI,
 	};
@@ -182,9 +145,8 @@ export function createDelegationState(params: {
 	// The polling engine takes ONE source, so the account, the signer and the
 	// gate are folded into one: a closed gate reads as "no account to look up",
 	// which is already the state that stops the fetch and resets the value.
-	// The signer is part of the scope because `delegationWithdrawn` is now
-	// keyed per delegate - a change in the signer (e.g. after re-derivation)
-	// changes the answer.
+	// The signer is part of the scope because the status is keyed per delegate -
+	// a change in the signer (e.g. after re-derivation) changes the answer.
 	const source: Readable<DelegationScope> = fetchGate
 		? derived([account, signer, fetchGate], ([$account, $signer, $open]) =>
 				$open && $account && $signer
@@ -201,23 +163,17 @@ export function createDelegationState(params: {
 			// "nothing to fetch". Narrowed for the type rather than for the case.
 			if (!scope) throw new Error('no account to read delegation for');
 			const {owner, signer} = scope;
-			const [delegate, withdrawn] = await Promise.all([
-				publicClient.readContract({
-					...registry,
-					functionName: 'delegateOf',
-					args: [owner],
-				}),
-				publicClient.readContract({
-					...registry,
-					functionName: 'delegationWithdrawn',
-					args: [owner, signer],
-				}),
-			]);
-			return {delegate, withdrawn};
+			const [allowed, withdrawn] = await publicClient.readContract({
+				address: registry.address,
+				abi: registry.abi,
+				functionName: 'delegationStatus',
+				args: [owner, signer],
+			});
+			return {allowed, withdrawn};
 		},
 		{
 			// Slower than the message poll: this changes about once per account, so
-			// the value of a tighter loop is nil and the cost is two reads.
+			// the value of a tighter loop is nil.
 			fetchInterval: params.fetchInterval ?? 15_000,
 			source: {
 				store: source,

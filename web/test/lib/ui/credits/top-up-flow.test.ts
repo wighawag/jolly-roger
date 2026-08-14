@@ -22,6 +22,15 @@ const OWNER = '0x00000000000000000000000000000000000000dD' as const;
 const SAVED_SIGNATURE = `0x${'ab'.repeat(65)}` as const;
 const LIVE_SIGNATURE = `0x${'cd'.repeat(65)}` as const;
 const ORIGIN = 'https://greetings.test';
+/**
+ * The contract this app delegates at, and the chain it is on.
+ *
+ * The PAIR, everywhere: it is what the credential is bound to (both are inside
+ * the signed bytes), so the fixture uses one value for the chain read, the
+ * stored record and the write.
+ */
+const REGISTRY = '0x00000000000000000000000000000000000000eE' as const;
+const CHAIN_ID = 31337;
 
 const GWEI = 1_000_000_000n;
 const ETH = 10n ** 18n;
@@ -106,10 +115,22 @@ type DepsParams = {
 	ownerCanSend?: boolean;
 	/** Whether the account's own wallet is on hand to sign a message. */
 	ownerHasWallet?: boolean;
-	/** The signature the connection carries, when it carries one. */
+	/** The signature the connection carries for this contract, if any. */
 	savedDelegationSignature?: `0x${string}`;
-	/** Who the chain says may act for the account. Defaults to the signer. */
-	delegate?: `0x${string}`;
+	/** Its deadline, in unix seconds. Zero, the default, means no expiry. */
+	savedDeadline?: number;
+	/** Who the stored credential is FOR. Defaults to this browser's signer. */
+	savedDelegate?: `0x${string}`;
+	/** The answer to every permission the app asked for at connect time. */
+	permissions?: unknown[];
+	/**
+	 * The credential a fresh sign-in hands over, when the user takes the
+	 * re-authorise remedy. Undefined means signing in again produced nothing,
+	 * which lands them back on the same step.
+	 */
+	credentialAfterSignIn?: `0x${string}`;
+	/** Whether the chain says this signer may act for the account. */
+	allowed?: boolean;
 	withdrawn?: boolean;
 	/** How many wallets the payment connection can see. */
 	walletsAvailable?: number;
@@ -202,13 +223,33 @@ function deps(params: DepsParams) {
 		},
 	);
 
-	const connection = writable<unknown>({
+	/**
+	 * The signed-in account, as the connection reports it.
+	 *
+	 * Built from a signature rather than hardcoded, because signing in AGAIN is
+	 * how a hosted account gets a fresh credential: the same shape comes back
+	 * with a different record in it. See `credentialAfterSignIn`.
+	 */
+	const signedInState = (signature: `0x${string}` | undefined) => ({
 		step: 'SignedIn',
 		mechanism: {type: 'wallet', name: params.walletName ?? 'Test Wallet'},
 		account: {
 			address: OWNER,
 			signer: {address: SIGNER, origin: ORIGIN},
-			savedDelegationSignature: params.savedDelegationSignature,
+			// A LIST, one entry per (chainId, contract) the app asked for and the
+			// wallet granted. There is no such thing as "the" delegation.
+			savedDelegations: signature
+				? [
+						{
+							chainId: CHAIN_ID,
+							contract: REGISTRY,
+							delegate: params.savedDelegate ?? SIGNER,
+							deadline: params.savedDeadline ?? 0,
+							signature,
+						},
+					]
+				: [],
+			permissions: params.permissions,
 		},
 		// A wallet on the connection is what lets the owner be asked for a live
 		// signature. A hosted account has none.
@@ -222,9 +263,28 @@ function deps(params: DepsParams) {
 				: undefined,
 	});
 
+	// A store AND the two methods the re-authorise step drives. `disconnect`
+	// really does drop the session in the library (it deletes the stored origin
+	// account), which is why the flow tells the user so.
+	const connection = Object.assign(
+		writable<unknown>(signedInState(params.savedDelegationSignature)),
+		{
+			disconnect: vi.fn(() => {
+				connection.set({step: 'Idle'});
+			}),
+			ensureConnected: vi.fn(async () => {
+				const state = signedInState(
+					params.credentialAfterSignIn ?? params.savedDelegationSignature,
+				);
+				connection.set(state);
+				return state;
+			}),
+		},
+	);
+
 	const delegationValue = () => ({
 		step: 'Loaded' as const,
-		delegate: params.delegate ?? SIGNER,
+		allowed: params.allowed ?? true,
 		withdrawn: params.withdrawn ?? false,
 	});
 
@@ -238,7 +298,7 @@ function deps(params: DepsParams) {
 			// The registration writes to the contract the delegation state was read
 			// from, which the store carries. Nothing here has to know what the app
 			// called it.
-			registry: {address: '0xREG', abi: []},
+			registry: {chainId: CHAIN_ID, address: REGISTRY, abi: []},
 		}),
 		payment: {
 			connection: paymentConnection,
@@ -459,7 +519,7 @@ describe('createTopUpFlow: who can pay', () => {
 			ownerHasWallet: false,
 			savedDelegationSignature: SAVED_SIGNATURE,
 			walletsAvailable: 0,
-			delegate: '0x0000000000000000000000000000000000000000',
+			allowed: false,
 			credits: CREDITS,
 		});
 		const flow = createTopUpFlow(flowDeps, CONFIG);
@@ -473,13 +533,13 @@ describe('createTopUpFlow: who can pay', () => {
 	});
 
 	it('closes the signature route once the account has withdrawn this signer', async () => {
-		// `delegationWithdrawn` is per delegate: cleared only by an owner-sent
+		// The withdrawn flag is per delegate: cleared only by an owner-sent
 		// registerDelegate, so paying with another wallet could only produce a
 		// revert for the signer that was withdrawn.
 		const {flowDeps} = deps({
 			payerBalance: ETH,
 			accountBalance: ETH,
-			delegate: '0x0000000000000000000000000000000000000000',
+			allowed: false,
 			withdrawn: true,
 			credits: CREDITS,
 		});
@@ -632,7 +692,7 @@ describe('createTopUpFlow: the first top-up is the registration', () => {
 			payerBalance: ETH,
 			accountBalance: ETH,
 			credits: CREDITS,
-			delegate: '0x0000000000000000000000000000000000000000',
+			allowed: false,
 			...extra,
 		});
 
@@ -669,10 +729,12 @@ describe('createTopUpFlow: the first top-up is the registration', () => {
 		expect(get(flow).value).toBe(topUpCeiling(CREDITS) - REGISTRATION_COST);
 	});
 
-	it('uses the pre-generated signature when the connection carries one', async () => {
-		// Detected by the signature BEING there, not by inferring an account type.
+	it('uses the pre-generated credential when the connection carries one', async () => {
+		// Detected by the credential BEING there for THIS contract, not by
+		// inferring an account type.
 		const {flowDeps, paymentWriteContract, signMessage} = unregistered({
 			savedDelegationSignature: SAVED_SIGNATURE,
+			savedDeadline: 1893456000,
 			ownerCanSend: false,
 			ownerHasWallet: false,
 		});
@@ -688,7 +750,168 @@ describe('createTopUpFlow: the first top-up is the registration', () => {
 		expect(signMessage).not.toHaveBeenCalled();
 		const call = paymentWriteContract.mock.calls[0][0];
 		expect(call.functionName).toBe('registerDelegateViaSignature');
-		expect(call.args).toEqual([OWNER, ORIGIN, SIGNER, SAVED_SIGNATURE]);
+		// The deadline that was SIGNED travels with the signature: the contract
+		// cannot know it otherwise, and a wrong one recovers a different address.
+		expect(call.args).toEqual([OWNER, SIGNER, 1893456000n, SAVED_SIGNATURE]);
+	});
+
+	it('ignores a credential minted for a DIFFERENT contract', async () => {
+		// The contract's own address is inside the signed bytes, so a credential
+		// for another contract is worth nothing here. Submitting it would spend the
+		// user's money on a transaction that cannot succeed.
+		const {flowDeps} = unregistered({
+			savedDelegationSignature: SAVED_SIGNATURE,
+			ownerCanSend: false,
+			ownerHasWallet: false,
+		});
+		// Move the stored record to another contract, leaving the read (and so the
+		// write) pointed where it was.
+		const account = (
+			get(flowDeps.connection) as unknown as {
+				account: {savedDelegations: {contract: string}[]};
+			}
+		).account;
+		account.savedDelegations[0].contract =
+			'0x00000000000000000000000000000000000000ff';
+		const flow = createTopUpFlow(flowDeps, CONFIG);
+
+		await flow.start();
+		await flow.choose('wallet');
+
+		// Nothing to submit and nobody to ask, so the remedy is a fresh sign-in.
+		expect(get(flow).phase).toBe('re-authorise');
+		expect(get(flow).route).toBe('re-authorise');
+	});
+
+	it('sends a hosted account back to sign in when it was DENIED, and says so', async () => {
+		// A denial has to be REPORTED, not merely reflected in a missing
+		// credential: "you declined" and "nobody asked" call for different
+		// sentences, and an absent record says neither.
+		const {flowDeps} = unregistered({
+			ownerCanSend: false,
+			ownerHasWallet: false,
+			permissions: [
+				{
+					request: {
+						type: 'delegation',
+						required: false,
+						chainId: CHAIN_ID,
+						contract: REGISTRY,
+					},
+					granted: false,
+					reason: 'denied',
+				},
+			],
+		});
+		const flow = createTopUpFlow(flowDeps, CONFIG);
+
+		await flow.start();
+		await flow.choose('wallet');
+
+		expect(get(flow).phase).toBe('re-authorise');
+		expect(get(flow).explanation).toContain('declined');
+	});
+
+	it('signs in again on the remedy, and carries on with the fresh credential', async () => {
+		// THE REMEDY the re-authorise route exists for: a hosted account mints its
+		// credentials at sign-in, so the way to get another is to sign in again.
+		// Driven from a button, which is a user gesture and therefore popup-safe.
+		const FRESH = `0x${'ef'.repeat(65)}` as const;
+		const {flowDeps} = unregistered({
+			ownerCanSend: false,
+			ownerHasWallet: false,
+			permissions: [
+				{
+					request: {
+						type: 'delegation',
+						required: false,
+						chainId: CHAIN_ID,
+						contract: REGISTRY,
+					},
+					granted: false,
+					reason: 'denied',
+				},
+			],
+			credentialAfterSignIn: FRESH,
+		});
+		const connection = flowDeps.connection as unknown as {
+			disconnect: {mock: {calls: unknown[]}};
+			ensureConnected: {mock: {calls: unknown[]}};
+		};
+		const flow = createTopUpFlow(flowDeps, CONFIG);
+
+		await flow.start();
+		await flow.choose('wallet');
+		expect(get(flow).phase).toBe('re-authorise');
+
+		await flow.reauthorise();
+
+		// Signed OUT first, because a connection that is already signed in has
+		// nothing to mint.
+		expect(connection.disconnect.mock.calls).toHaveLength(1);
+		expect(connection.ensureConnected.mock.calls).toHaveLength(1);
+		// And back where the user was, now with something to submit.
+		expect(get(flow).phase).toBe('ready');
+		expect(get(flow).route).toBe('pre-signed');
+	});
+
+	it('says the user is signed out when they back out of that sign-in', async () => {
+		// The one thing about that button that can leave someone worse off than
+		// before pressing it, so it is not left to be discovered from a screen
+		// that still names their account.
+		const {flowDeps} = unregistered({
+			ownerCanSend: false,
+			ownerHasWallet: false,
+		});
+		const connection = flowDeps.connection as unknown as {
+			ensureConnected: {mockRejectedValueOnce: (e: unknown) => void};
+		};
+		connection.ensureConnected.mockRejectedValueOnce(
+			Object.assign(new Error('User rejected the request'), {code: 4001}),
+		);
+		const flow = createTopUpFlow(flowDeps, CONFIG);
+
+		await flow.start();
+		await flow.choose('wallet');
+		await flow.reauthorise();
+
+		expect(get(flow).phase).toBe('re-authorise');
+		expect(get(flow).error).toContain('signed out');
+	});
+
+	it('treats a credential the contract refuses as one to replace, not an error', async () => {
+		// Every field stored beside the signature is a copy of what is inside it,
+		// so a disagreement cannot be noticed until the contract fails to recover
+		// the owner. That is not a contract error to report, it is a credential to
+		// throw away - which is what makes the mismatch self-healing.
+		const {flowDeps, paymentWriteContract} = unregistered({
+			savedDelegationSignature: SAVED_SIGNATURE,
+			ownerCanSend: false,
+			ownerHasWallet: false,
+		});
+		paymentWriteContract.mockRejectedValueOnce(
+			Object.assign(new Error('execution reverted'), {
+				cause: {data: {errorName: 'InvalidSignature'}},
+			}),
+		);
+		const flow = createTopUpFlow(flowDeps, CONFIG);
+
+		await flow.start();
+		await flow.choose('wallet');
+		await flow.confirm();
+
+		expect(get(flow).phase).toBe('re-authorise');
+		expect(get(flow).error).toBeUndefined();
+
+		// AND IT STICKS. The record belongs to the wallet and the app cannot
+		// delete it, so without remembering the refusal, backing out and starting
+		// again would pick the same doomed credential and fail the same way.
+		await flow.cancel();
+		await flow.start();
+		await flow.choose('wallet');
+
+		expect(get(flow).phase).toBe('re-authorise');
+		expect(paymentWriteContract).toHaveBeenCalledTimes(1);
 	});
 
 	it('explains the authorisation BEFORE asking the wallet to sign it', async () => {
@@ -712,14 +935,20 @@ describe('createTopUpFlow: the first top-up is the registration', () => {
 		expect(signMessage).toHaveBeenCalledTimes(1);
 		const [message, address] = signMessage.mock.calls[0];
 		// The exact text the contract verifies, built by the library it is pinned
-		// against, with the address lowercased as the contract renders it.
-		expect(message).toContain(`Origin: ${ORIGIN}`);
+		// against: the delegate, the contract and the chain, all lowercased as the
+		// contract renders them. No origin - the wallet always knows the true one.
 		expect(message).toContain(SIGNER.toLowerCase());
+		expect(message).toContain(REGISTRY.toLowerCase());
+		expect(message).toContain(`Chain ID: ${CHAIN_ID}`);
+		expect(message).not.toContain('Origin:');
 		expect(address).toBe(OWNER);
 
 		const call = paymentWriteContract.mock.calls[0][0];
 		expect(call.functionName).toBe('registerDelegateViaSignature');
-		expect(call.args).toEqual([OWNER, ORIGIN, SIGNER, LIVE_SIGNATURE]);
+		// A PROMPTED credential carries no deadline: renewing one costs a popup and
+		// re-consent in the middle of what the user was doing. Dates are for the
+		// auto-signed ones, which are minted with nobody in the loop.
+		expect(call.args).toEqual([OWNER, SIGNER, 0n, LIVE_SIGNATURE]);
 	});
 
 	it('collapses to a direct registration when the payer IS the owner', async () => {
@@ -1139,7 +1368,7 @@ describe('createTopUpFlow: a wallet that holds one account at a time', () => {
 			payerBalance: ETH,
 			accountBalance: ETH,
 			credits: CREDITS,
-			delegate: '0x0000000000000000000000000000000000000000',
+			allowed: false,
 			...extra,
 		});
 
@@ -1230,7 +1459,7 @@ describe('createTopUpFlow: not losing a run to a stray click', () => {
 		deps({
 			payerBalance: ETH,
 			credits: CREDITS,
-			delegate: '0x0000000000000000000000000000000000000000',
+			allowed: false,
 			...extra,
 		});
 
@@ -1357,7 +1586,7 @@ describe('createTopUpFlow: what the confirm step promises', () => {
 		deps({
 			payerBalance: ETH,
 			credits: CREDITS,
-			delegate: '0x0000000000000000000000000000000000000000',
+			allowed: false,
 			...extra,
 		});
 
