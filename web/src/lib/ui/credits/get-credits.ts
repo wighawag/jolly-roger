@@ -61,10 +61,37 @@ export type GetCreditsDeps = Pick<Context, 'payment' | 'signerBalance'>;
  * one confirmation: the player buys in, and the signer comes out funded.
  *
  * This template has nothing to sell, so what is left of that call is the gas
- * transfer alone. Replacing this function body with a `writeContract` against a
- * sale contract is the whole of what a game has to change; everything around it
- * (the payment connection, the credit denomination, the empty-signer prompt)
- * already assumes a purchase rather than a faucet.
+ * transfer alone. Everything around it (the payment connection, the credit
+ * denomination, the empty-signer prompt) already assumes a purchase rather than
+ * a faucet, but replacing this body with a `writeContract` is not the whole of
+ * what a game changes. Paying and funding the signer do compose across a hop,
+ * because a sale can split `msg.value`. The registration does not:
+ * `registerDelegate` takes its authority from `msg.sender`, and with a separate
+ * sale in the middle `msg.sender` at the game is the sale rather than the
+ * buyer. A game that changes only this function gets two of those three effects
+ * and loses the third without a word.
+ *
+ * Three arrangements recover it. Best is to take the payment on the contract
+ * that carries the delegations, which makes the buyer the sender at the one
+ * place that has to know who they are; `template-commit-reveal` is already in
+ * that shape, staking through `addToReserve` on the same proxy that carries
+ * `GameDelegation`. Where a sale already exists and cannot move, have the buyer
+ * call the delegation contract instead and let it make a typed call to a pinned
+ * sale, with arguments it encodes itself. Or carry the owner's credential and
+ * submit `registerDelegateViaSignature`, which reads no `msg.sender` at any
+ * depth and so works through any number of hops.
+ *
+ * Note also that "one prompt" is not one problem. A native-token sale has the
+ * identity problem above; a token stake has an allowance problem, whose answers
+ * are different ones (ERC-2612 `permit`, EIP-5792 batching, a transfer-and-call
+ * token), and which `template-commit-reveal` currently pays in up to three
+ * transactions in its `placement/reserve.ts`.
+ *
+ * What none of these may collapse into: naming the buyer in the payload and
+ * having the game believe it. A payment proves that somebody spent money, never
+ * whose account they are. Consent from an account is evidenced by exactly two
+ * things, the account is the sender or the account signed. Paying for somebody
+ * is always safe, speaking for somebody never is.
  *
  * Sent from the PAYMENT connection, not from the app's connection: the payer
  * need not be the player (see core/connection/remote). Its connect flow renders
