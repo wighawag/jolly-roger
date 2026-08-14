@@ -93,8 +93,15 @@ export function credentialExpired(
  * neither. That is what `account.permissions` is for.
  */
 export type CredentialState =
-	/** A credential this browser can submit right now. */
-	| {kind: 'held'; credential: DelegationCredential}
+	/**
+	 * A credential exists for this pair and is worth asking for.
+	 *
+	 * Carries nothing. It decides which ROUTE the app offers, and the bytes come
+	 * from `connection.getDelegation` at the moment of submission, so a copy of
+	 * the signature here would be a second source for the one thing that must
+	 * have exactly one.
+	 */
+	| {kind: 'held'}
 	/**
 	 * One exists and cannot be used: past its deadline, made for a delegate that
 	 * is not this browser's signer, or already refused by the contract. All three
@@ -116,6 +123,42 @@ export type CredentialState =
  * here: the comparison (exact chain, case-insensitive contract) is the same one
  * the host used when it minted the record.
  */
+/** The app's own permission outcome for one pair, if it asked about it. */
+function outcomeFor(
+	permissions: PermissionOutcome[] | undefined,
+	target: DelegationTarget,
+): PermissionOutcome | undefined {
+	return (permissions || []).find(
+		(entry) =>
+			entry.request.type === 'delegation' &&
+			entry.request.chainId === target.chainId &&
+			sameAddress(entry.request.contract, target.contract),
+	);
+}
+
+/**
+ * Whether the owner will sign this pair on demand, rather than having had a
+ * credential minted for it in advance.
+ *
+ * A fact about the OWNER, not about the credential, which is why it is read
+ * separately and folded into "can this owner sign live" by the caller. It
+ * arrives as a `granted: false` outcome, so an app reading that flag alone would
+ * send a user who declined nothing off to sign in again, for a credential that
+ * was never going to exist in advance and does not need to.
+ *
+ * It says the same thing as a wallet being present on the connection, from the
+ * other end: the host reporting "this owner is a live signer" and the app
+ * holding a wallet to ask are one fact reported twice. Neither is a reason to
+ * write a branch of its own.
+ */
+export function signsOnDemand(
+	permissions: PermissionOutcome[] | undefined,
+	target: DelegationTarget,
+): boolean {
+	const outcome = outcomeFor(permissions, target);
+	return !!outcome && !outcome.granted && outcome.reason === 'sign-on-demand';
+}
+
 export function credentialState(params: {
 	savedDelegations: SavedDelegation[] | undefined;
 	/** The outcome of every permission the app asked for, when it asked. */
@@ -146,23 +189,34 @@ export function credentialState(params: {
 		if (!sameAddress(saved.delegate, delegate)) return {kind: 'stale'};
 		if (credentialExpired(saved.deadline, params.now)) return {kind: 'stale'};
 		if (params.refused?.has(saved.signature)) return {kind: 'stale'};
-		return {
-			kind: 'held',
-			credential: {signature: saved.signature, deadline: saved.deadline},
-		};
+		return {kind: 'held'};
 	}
 
-	const outcome = (params.permissions || []).find(
-		(entry) =>
-			entry.request.type === 'delegation' &&
-			entry.request.chainId === target.chainId &&
-			sameAddress(entry.request.contract, target.contract),
-	);
+	const outcome = outcomeFor(params.permissions, target);
 
 	if (outcome && !outcome.granted) {
-		return outcome.reason === 'unsupported'
-			? {kind: 'unsupported'}
-			: {kind: 'denied'};
+		switch (outcome.reason) {
+			case 'denied':
+				return {kind: 'denied'};
+			case 'unsupported':
+				return {kind: 'unsupported'};
+			case 'sign-on-demand':
+				// Nothing was pre-generated and nothing is missing: this owner signs
+				// live. There is genuinely no credential to describe, which is what
+				// `none` says; that the owner can be ASKED for one is a fact about
+				// the owner rather than about the credential, and it is read by
+				// {@link signsOnDemand} instead.
+				return {kind: 'none'};
+			default:
+				// A reason this app has never heard of, which means the library
+				// gained one and this switch did not. The compiler catches that on
+				// the next bump (`never` below); at runtime the answer must not be
+				// "you declined", because an answer we cannot interpret is no
+				// evidence at all that a human refused anything, and offering the
+				// wrong remedy is worse than admitting we have none.
+				outcome.reason satisfies never;
+				return {kind: 'unsupported'};
+		}
 	}
 
 	// Including the impossible-looking case of an outcome that says GRANTED with
@@ -178,10 +232,10 @@ export type RegistrationRoute =
 	 */
 	| {kind: 'direct'}
 	/**
-	 * The connection already carries the owner's credential for this contract.
-	 * Nothing to prompt.
+	 * The owner's credential for this contract exists already, minted at
+	 * sign-in. Nothing to prompt: it is fetched and submitted.
 	 */
-	| {kind: 'pre-signed'; credential: DelegationCredential}
+	| {kind: 'pre-signed'}
 	/** The owner's wallet is present and can be asked to sign now. */
 	| {kind: 'live-signature'}
 	/**
@@ -263,24 +317,29 @@ export function chooseRegistrationRoute(input: RouteInput): RegistrationRoute {
 		};
 	}
 
-	if (credential.kind === 'held') {
-		return {kind: 'pre-signed', credential: credential.credential};
-	}
-
-	// BEFORE the re-authorise routes: an owner that can be asked to sign has no
-	// reason to sign in again, whatever the stored credential says.
+	// FIRST among the signature routes, because it is the same question the
+	// library asks: `getDelegation` signs live when the owner is a wallet and
+	// returns a stored record otherwise, so deciding it here on "is there a
+	// record" instead would let the two disagree, and a `pre-signed` route that
+	// quietly opens a wallet is one with no consent step and no account check in
+	// front of it. It is also where an owner reported as signing on demand lands;
+	// see signsOnDemand, which the caller folds into this flag.
 	if (ownerCanSignLive) {
 		return {kind: 'live-signature'};
 	}
 
+	if (credential.kind === 'held') {
+		return {kind: 'pre-signed'};
+	}
+
 	if (credential.kind === 'unsupported') {
-		// Signing in again cannot help: the wallet refused because it cannot
-		// describe what was asked for, which is a version gap between the app and
-		// the wallet rather than anything the user decided.
+		// Signing in again cannot help: one side of this asked for something the
+		// other cannot describe, which is a version gap between the app and the
+		// wallet rather than anything the user decided.
 		return {
 			kind: 'unavailable',
 			reason:
-				'Your wallet does not understand the permission this app asked for, so it cannot authorise this browser.',
+				'This app and your wallet do not agree about the permission that was asked for, so this browser cannot be authorised here.',
 		};
 	}
 

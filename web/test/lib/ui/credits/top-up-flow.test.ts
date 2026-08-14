@@ -1,6 +1,11 @@
 import {describe, it, expect, vi} from 'vitest';
 import {get, writable} from 'svelte/store';
 import {
+	delegationMessage,
+	findSavedDelegation,
+	type SavedDelegation,
+} from '@etherplay/connect';
+import {
 	createTopUpFlow,
 	DEFAULT_TOP_UP_CEILING,
 	formatAmount,
@@ -263,12 +268,70 @@ function deps(params: DepsParams) {
 				: undefined,
 	});
 
-	// A store AND the two methods the re-authorise step drives. `disconnect`
-	// really does drop the session in the library (it deletes the stored origin
-	// account), which is why the flow tells the user so.
+	/**
+	 * The library's `getDelegation`, with the behaviour that matters here.
+	 *
+	 * TWO SOURCES, ONE SHAPE, which is the whole reason the app calls this
+	 * instead of reading `savedDelegations`: a wallet owner is asked to sign now
+	 * (so the wallet mock is still what the prompt assertions watch), and a
+	 * hosted account hands back what it minted at sign-in, or throws, since it
+	 * cannot sign after the fact.
+	 *
+	 * The BYTES are deliberately not asserted anywhere in this file any more.
+	 * They are consensus between the Solidity, the library's builder and the
+	 * vectors the two are pinned against, all of which live in
+	 * @etherplay/delegation; a message this fixture built itself would only ever
+	 * agree with itself. What is worth pinning here is the TARGET the app asks
+	 * about, which is the app's own decision and the thing that can silently be
+	 * wrong.
+	 */
+	const getDelegation = vi.fn(
+		async (target: {
+			chainId: number;
+			contract: `0x${string}`;
+			deadline?: number;
+		}) => {
+			if (params.ownerHasWallet ?? true) {
+				const deadline = target.deadline ?? 0;
+				const signature = await signMessage(
+					delegationMessage({
+						delegate: SIGNER,
+						contract: target.contract,
+						chainId: target.chainId,
+						deadline,
+					}),
+					OWNER,
+				);
+				return {
+					chainId: target.chainId,
+					contract: target.contract,
+					delegate: SIGNER,
+					deadline,
+					signature,
+				};
+			}
+			const account = (
+				get(connection) as {
+					account?: {savedDelegations?: SavedDelegation[]};
+				}
+			).account;
+			const saved = findSavedDelegation(account?.savedDelegations, target);
+			if (!saved) {
+				throw new Error(
+					`no delegation credential for contract ${target.contract} on chain ${target.chainId}; sign in again to request one`,
+				);
+			}
+			return saved;
+		},
+	);
+
+	// A store AND the methods the flow drives on it. `disconnect` really does
+	// drop the session in the library (it deletes the stored origin account),
+	// which is why the flow tells the user so.
 	const connection = Object.assign(
 		writable<unknown>(signedInState(params.savedDelegationSignature)),
 		{
+			getDelegation,
 			disconnect: vi.fn(() => {
 				connection.set({step: 'Idle'});
 			}),
@@ -381,6 +444,7 @@ function deps(params: DepsParams) {
 		paymentWriteContract,
 		accountWriteContract,
 		signMessage,
+		getDelegation,
 		markFundingRequested,
 		setPayerBalance: (value: bigint) => {
 			payerBalance = value;
@@ -879,6 +943,34 @@ describe('createTopUpFlow: the first top-up is the registration', () => {
 		expect(get(flow).error).toContain('signed out');
 	});
 
+	it('offers the remedy when a hosted account cannot produce its credential', async () => {
+		// A hosted account cannot sign after sign-in, so a `getDelegation` that
+		// fails is not something to report and retry: there is nothing to retry.
+		// The library says as much in its own error, and the app has a step for it.
+		const {flowDeps} = unregistered({
+			savedDelegationSignature: SAVED_SIGNATURE,
+			ownerCanSend: false,
+			ownerHasWallet: false,
+		});
+		const connection = flowDeps.connection as unknown as {
+			getDelegation: {mockRejectedValueOnce: (e: unknown) => void};
+		};
+		connection.getDelegation.mockRejectedValueOnce(
+			new Error(
+				'no delegation credential for contract 0x; sign in again to request one',
+			),
+		);
+		const flow = createTopUpFlow(flowDeps, CONFIG);
+
+		await flow.start();
+		await flow.choose('wallet');
+		await flow.confirm();
+
+		expect(get(flow).phase).toBe('re-authorise');
+		// And NOT told that a signature failed, which on this path never happened.
+		expect(get(flow).error).toBeUndefined();
+	});
+
 	it('treats a credential the contract refuses as one to replace, not an error', async () => {
 		// Every field stored beside the signature is a copy of what is inside it,
 		// so a disagreement cannot be noticed until the contract fails to recover
@@ -915,7 +1007,8 @@ describe('createTopUpFlow: the first top-up is the registration', () => {
 	});
 
 	it('explains the authorisation BEFORE asking the wallet to sign it', async () => {
-		const {flowDeps, signMessage, paymentWriteContract} = unregistered();
+		const {flowDeps, signMessage, getDelegation, paymentWriteContract} =
+			unregistered();
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
 		await flow.start();
@@ -933,15 +1026,20 @@ describe('createTopUpFlow: the first top-up is the registration', () => {
 		await flow.confirm();
 
 		expect(signMessage).toHaveBeenCalledTimes(1);
-		const [message, address] = signMessage.mock.calls[0];
-		// The exact text the contract verifies, built by the library it is pinned
-		// against: the delegate, the contract and the chain, all lowercased as the
-		// contract renders them. No origin - the wallet always knows the true one.
-		expect(message).toContain(SIGNER.toLowerCase());
-		expect(message).toContain(REGISTRY.toLowerCase());
-		expect(message).toContain(`Chain ID: ${CHAIN_ID}`);
-		expect(message).not.toContain('Origin:');
-		expect(address).toBe(OWNER);
+		// Asked for THE PAIR the chain read was scoped to, which is the app's own
+		// decision and the thing that can silently be wrong: a credential names
+		// the contract and the chain inside its bytes, so asking about the wrong
+		// pair produces a signature that cannot verify anywhere.
+		expect(getDelegation).toHaveBeenCalledWith({
+			chainId: CHAIN_ID,
+			contract: REGISTRY,
+		});
+		// And NO deadline is named. The deadline is inside the signed bytes, so a
+		// request naming one only matches a credential minted with the same one:
+		// asking for zero would reject a hosted record carrying a real date.
+		expect(getDelegation.mock.calls[0][0]).not.toHaveProperty('deadline');
+		// The owner is who signs, not the payer and not the signer.
+		expect(signMessage.mock.calls[0][1]).toBe(OWNER);
 
 		const call = paymentWriteContract.mock.calls[0][0];
 		expect(call.functionName).toBe('registerDelegateViaSignature');

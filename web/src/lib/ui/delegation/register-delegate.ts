@@ -1,5 +1,8 @@
-import {delegationMessage} from '@etherplay/connect';
-import type {Connection, UnderlyingEthereumProvider} from '@etherplay/connect';
+import type {
+	Connection,
+	ConnectionStore,
+	UnderlyingEthereumProvider,
+} from '@etherplay/connect';
 import type {Account} from 'viem';
 import {isUserRejectionError} from '$lib/core/transaction';
 import {
@@ -13,6 +16,8 @@ import {
 } from '$lib/core/transaction/tx-error-summary';
 import {
 	credentialState,
+	sameAddress,
+	signsOnDemand,
 	type CredentialState,
 	type DelegationCredential,
 	type DelegationTarget,
@@ -22,9 +27,11 @@ import {
 /**
  * Everything the registration needs to read off a connection snapshot.
  *
- * One reader, so the credential the app SUBMITS and the credential it decides
- * its route from can never come from two places, and so both are picked for the
- * same (chainId, contract) pair that the chain read used.
+ * One reader, so every decision about delegation is made from one description
+ * of the situation, scoped to the same (chainId, contract) pair the chain read
+ * used. It decides the ROUTE and nothing else: the bytes come from
+ * {@link fetchDelegation} at the moment of submission, which is the only place
+ * a credential is ever obtained.
  */
 export type DelegationAccount = {
 	/** The account a greeting should be attributed to. */
@@ -36,7 +43,14 @@ export type DelegationAccount = {
 	 * Its shape IS the capability; see chooseRegistrationRoute.
 	 */
 	credential: CredentialState;
-	/** Whether the owner's wallet is on hand to sign a message right now. */
+	/**
+	 * Whether the owner can be asked to sign right now.
+	 *
+	 * TWO SOURCES OF ONE FACT, folded here rather than branched on twice: a
+	 * wallet on the connection is the app's own evidence, and a `sign-on-demand`
+	 * permission outcome is the host saying the same thing about an owner it
+	 * declined to pre-generate for. Both mean "ask now".
+	 */
 	canSignLive: boolean;
 };
 
@@ -69,22 +83,6 @@ export function signsWithoutPrompt(
 }
 
 /**
- * The deadline on a credential this app asks a wallet for, live.
- *
- * Zero, meaning no expiry, and that is the deliberate half of the rule: a
- * PROMPTED credential costs a popup and the user's attention to renew, in the
- * middle of what they were doing. The credentials that carry a real date are
- * the ones minted with nobody in the loop - the host's allowlisted, auto-signed
- * ones - because a date is the only lever anyone has over those once an
- * allowlist entry turns out to be wrong. That decision belongs to the wallet,
- * and this app reads whatever deadline the credential it was handed carries.
- *
- * The deadline bounds how long a credential may be PRESENTED, never how long
- * the authority lasts: once registered, a delegate stands until it is revoked.
- */
-export const LIVE_SIGNATURE_DEADLINE = 0;
-
-/**
  * Read the delegation-relevant parts of a connection, for one contract.
  *
  * Undefined before sign-in, and in a deployment that never signs in: there is
@@ -111,47 +109,71 @@ export function delegationAccountOf(
 			delegate,
 			refused,
 		}),
-		canSignLive: !!$connection.wallet,
+		canSignLive:
+			!!$connection.wallet ||
+			signsOnDemand($connection.account.permissions, target),
 	};
 }
 
 /**
- * Ask the owner's wallet to sign the delegation message.
+ * The minimum of a connection this needs: the one call that yields a credential.
  *
- * Goes through the wallet on the CONNECTION, which is the owner's, rather than
- * through any client the app happens to hold: the point of this signature is
- * that the owner produced it.
- *
- * ALWAYS through the library's builder. The wording, the field order and the
- * address casing are consensus between `Delegation.message` in Solidity, this
- * builder and the vectors file all three are pinned against; hand-rolling the
- * string, or checksumming an address the builder lowercases, produces a
- * signature the contract rejects with no clue as to why.
- *
- * The user has already been shown what this means (see the consent step in the
- * top-up flow); this is only the request.
+ * Derived from the library's own type rather than restated, so a change to the
+ * signature is a compile error here instead of a silent divergence.
  */
-export async function signDelegation(params: {
-	$connection: Connection<UnderlyingEthereumProvider>;
-	account: DelegationAccount;
+export type DelegationSource = Pick<
+	ConnectionStore<UnderlyingEthereumProvider>,
+	'getDelegation'
+>;
+
+/**
+ * Get the credential authorising this browser at one contract.
+ *
+ * ONE CALL FOR BOTH KINDS OF OWNER, which is why the app no longer reads
+ * `savedDelegations` to submit anything. A hosted account returns what it minted
+ * at sign-in, because that is the only moment its key is reachable; a
+ * wallet-owned account is asked to sign right now, which is the better moment
+ * anyway (consent at the point of use, and nothing minted for a contract the
+ * app never touches). The same line of app code covers both, and keeps covering
+ * them as live signing widens.
+ *
+ * NO DEADLINE IS PASSED, deliberately. The deadline is inside the signed bytes,
+ * so a stored credential only answers a request naming the same one: asking for
+ * zero would reject a hosted record that was minted with a real date, which is
+ * exactly what an allowlisted, auto-signed credential carries. Omitting it says
+ * "whatever this credential was made with", and for a live signature the
+ * library's own default of no expiry applies - the right default for a PROMPTED
+ * credential, whose renewal costs a popup in the middle of a game.
+ *
+ * The user has already been shown what a live signature means (see the consent
+ * step in the top-up flow); this is only the request.
+ */
+export async function fetchDelegation(params: {
+	connection: DelegationSource;
 	/** The contract the authorisation is good at, and nowhere else. */
 	target: DelegationTarget;
+	/** This browser's signer, which is who the credential has to be for. */
+	delegate: `0x${string}`;
 }): Promise<DelegationCredential> {
-	const {$connection, account, target} = params;
-	if (!$connection.wallet) {
-		throw new Error('This account has no wallet, so it cannot sign a message');
+	const record = await params.connection.getDelegation({
+		chainId: params.target.chainId,
+		contract: params.target.contract,
+	});
+	// The record is self-describing, so a mismatch is caught here rather than by
+	// spending the user's money on a registration that cannot do what it is for.
+	// All three fields are inside the signed bytes: a wrong delegate authorises
+	// an address this browser holds no key for, and a wrong pair produces bytes
+	// that verify nowhere.
+	if (
+		!sameAddress(record.delegate, params.delegate) ||
+		!sameAddress(record.contract, params.target.contract) ||
+		record.chainId !== params.target.chainId
+	) {
+		throw new Error(
+			`the credential authorises ${record.delegate} at ${record.contract} on chain ${record.chainId}, not ${params.delegate} at ${params.target.contract} on chain ${params.target.chainId}`,
+		);
 	}
-	const deadline = LIVE_SIGNATURE_DEADLINE;
-	const signature = await $connection.wallet.provider.signMessage(
-		delegationMessage({
-			delegate: account.delegate,
-			contract: target.contract,
-			chainId: target.chainId,
-			deadline,
-		}),
-		account.owner,
-	);
-	return {signature, deadline};
+	return {signature: record.signature, deadline: record.deadline};
 }
 
 /**

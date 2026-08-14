@@ -31,14 +31,19 @@ export type ChainConnectionOptions = {
 	walletHost?: string;
 	walletOnly: boolean;
 	/**
-	 * What the app asks the wallet for at connect time, and gets an answer to
-	 * for every entry.
+	 * What the app asks the HOST for at connect time, and gets an answer to for
+	 * every entry.
 	 *
 	 * Passed through rather than assembled here: WHICH contract on WHICH chain
 	 * an app wants to act at is the app's own fact (see context/config), while
-	 * this module only knows how a connection is made. Only the sign-in
-	 * configurations take it - there is nobody to ask when the app stops at a
-	 * connected wallet, because a wallet is asked at the moment of use instead.
+	 * this module only knows how a connection is made.
+	 *
+	 * Hosted configurations only, and the library's types now enforce that: it
+	 * is refused on `walletOnly: true` and on `targetStep: 'WalletConnected'`,
+	 * because neither has a host that could mint anything. Those owners sign at
+	 * the moment of use instead, through `connection.getDelegation`, which is
+	 * the better moment anyway: consent at the point of use rather than at the
+	 * door, and nothing minted for a contract the app never touches.
 	 */
 	permissions?: PermissionDeclaration[];
 };
@@ -149,12 +154,15 @@ export function createChainConnection(
 		// decides something, since it decides which MECHANISMS exist, never the
 		// target step.
 		if (walletOnly || !walletHost) {
+			// NO `permissions` here, and the overload refuses them: this
+			// configuration has no host, so there is nobody to ask and nothing to
+			// pre-generate. The owner is a live wallet, so the credential is asked
+			// for when it is wanted. Nothing is missing as a result.
 			return createConnection({
 				targetStep: 'SignedIn',
 				walletOnly: true,
 				nodeURL,
 				chainInfo,
-				permissions,
 				prioritizeWalletProvider: true,
 				autoConnect: true,
 			});

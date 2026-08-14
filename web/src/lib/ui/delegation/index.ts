@@ -26,7 +26,7 @@ export {
 export {
 	delegationAccountOf,
 	isCredentialRejection,
-	signDelegation,
+	fetchDelegation,
 	submitRegistration,
 	type DelegationAccount,
 	type RegisterResult,

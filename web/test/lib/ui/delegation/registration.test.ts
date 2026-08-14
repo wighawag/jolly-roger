@@ -1,11 +1,13 @@
 import {describe, it, expect} from 'vitest';
 import {delegationMessage} from '@etherplay/connect';
+import type {PermissionOutcome} from '@etherplay/connect';
 import {
 	chooseRegistrationRoute,
 	credentialExpired,
 	credentialState,
 	registrationRequest,
 	sameAddress,
+	signsOnDemand,
 	type CredentialState,
 } from '$lib/ui/delegation/registration';
 
@@ -18,9 +20,22 @@ const SIGNATURE = `0x${'ab'.repeat(65)}` as const;
 const CHAIN_ID = 31337;
 const TARGET = {chainId: CHAIN_ID, contract: CONTRACT};
 
-const held: CredentialState = {
-	kind: 'held',
-	credential: {signature: SIGNATURE, deadline: 0},
+const held: CredentialState = {kind: 'held'};
+
+/**
+ * What a hosted-capable connection reports when the owner turns out to be a
+ * wallet: every declared entry comes back refused, for a reason that is not a
+ * refusal at all.
+ */
+const signOnDemandOutcome: PermissionOutcome = {
+	request: {
+		type: 'delegation',
+		required: false,
+		chainId: CHAIN_ID,
+		contract: CONTRACT,
+	},
+	granted: false,
+	reason: 'sign-on-demand',
 };
 
 /**
@@ -65,36 +80,35 @@ describe('chooseRegistrationRoute: how the authorisation is proven', () => {
 			ownerCanSignLive: false,
 			credential: held,
 		});
-		expect(route).toEqual({
-			kind: 'pre-signed',
-			credential: {signature: SIGNATURE, deadline: 0},
-		});
+		expect(route).toEqual({kind: 'pre-signed'});
 	});
 
-	it('uses a credential the connection already carries, with nothing to prompt', () => {
+	it('takes the pre-signed route when a credential exists and nobody can be asked', () => {
 		// Detected by ASKING what the connection holds for this contract.
 		// Inferring it from the account type would encode an assumption about
 		// which mechanisms pre-sign.
-		expect(chooseRegistrationRoute({...base, credential: held})).toEqual({
-			kind: 'pre-signed',
-			credential: {signature: SIGNATURE, deadline: 0},
-		});
-	});
-
-	it('carries the DEADLINE alongside the signature', () => {
-		// It is inside the signed bytes and the contract cannot know it otherwise,
-		// so a signature that arrives without its deadline cannot be submitted.
+		//
+		// The route carries no bytes. It decides what to SAY (nothing to prompt,
+		// so no consent step and no wallet), while the bytes come from
+		// `getDelegation` at the moment of submission, which is the only place a
+		// credential is ever obtained.
 		expect(
 			chooseRegistrationRoute({
 				...base,
-				credential: {
-					kind: 'held',
-					credential: {signature: SIGNATURE, deadline: 1893456000},
-				},
+				ownerCanSignLive: false,
+				credential: held,
 			}),
-		).toEqual({
-			kind: 'pre-signed',
-			credential: {signature: SIGNATURE, deadline: 1893456000},
+		).toEqual({kind: 'pre-signed'});
+	});
+
+	it('prefers asking the owner over any stored credential', () => {
+		// The same question the library asks: `getDelegation` signs live when the
+		// owner is a wallet, whatever is stored. Deciding it here on "is there a
+		// record" instead would let the two disagree, and a `pre-signed` route
+		// that quietly opens a wallet has no consent step and no account check in
+		// front of it.
+		expect(chooseRegistrationRoute({...base, credential: held})).toEqual({
+			kind: 'live-signature',
 		});
 	});
 
@@ -197,7 +211,7 @@ describe('credentialState: what the connection holds for ONE contract', () => {
 				target: TARGET,
 				delegate: SIGNER,
 			}),
-		).toEqual({kind: 'held', credential: {signature: SIGNATURE, deadline: 0}});
+		).toEqual({kind: 'held'});
 	});
 
 	it('matches the contract case-insensitively, since spelling is presentation', () => {
@@ -282,6 +296,22 @@ describe('credentialState: what the connection holds for ONE contract', () => {
 			credentialState({
 				savedDelegations: [],
 				permissions: [],
+				target: TARGET,
+				delegate: SIGNER,
+			}),
+		).toEqual({kind: 'none'});
+	});
+
+	it('reports an owner that signs on demand as having no credential', () => {
+		// Which is true: nothing was pre-generated. That the owner can be ASKED is
+		// a fact about the owner, and it is read separately - see signsOnDemand.
+		// The trap this avoids is the reason arriving as `granted: false`, where
+		// reading the flag alone would offer a re-authorisation to a user who
+		// declined nothing.
+		expect(
+			credentialState({
+				savedDelegations: [],
+				permissions: [signOnDemandOutcome],
 				target: TARGET,
 				delegate: SIGNER,
 			}),
@@ -389,6 +419,40 @@ describe('the message an owner signs', () => {
 		expect(message).toContain(`Chain ID: ${CHAIN_ID}`);
 		expect(message).toContain('Expires: never');
 		expect(message).not.toContain(SIGNER);
+	});
+});
+
+describe('signsOnDemand: the owner is a live signer, said by the host', () => {
+	it('is true only for a sign-on-demand outcome about THIS pair', () => {
+		expect(signsOnDemand([signOnDemandOutcome], TARGET)).toBe(true);
+		expect(
+			signsOnDemand(
+				[
+					{
+						...signOnDemandOutcome,
+						request: {
+							type: 'delegation',
+							required: false,
+							chainId: CHAIN_ID,
+							contract: OTHER_CONTRACT,
+						},
+					},
+				],
+				TARGET,
+			),
+		).toBe(false);
+	});
+
+	it('is false for a refusal, and for nothing at all', () => {
+		// A denial is not an offer to sign later, and silence is not either.
+		expect(
+			signsOnDemand(
+				[{...signOnDemandOutcome, granted: false, reason: 'denied'}],
+				TARGET,
+			),
+		).toBe(false);
+		expect(signsOnDemand(undefined, TARGET)).toBe(false);
+		expect(signsOnDemand([], TARGET)).toBe(false);
 	});
 });
 
