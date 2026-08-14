@@ -32,6 +32,10 @@ import {
 	walletSelectedInstead,
 } from '$lib/core/connection/wallet-account';
 import {
+	connectionRefusal,
+	refusalExplanation,
+} from '$lib/core/connection/refusal';
+import {
 	fundAddress,
 	fundSignerFromAccount,
 	getCredits,
@@ -1445,10 +1449,44 @@ export function createTopUpFlow(
 				// Backing out of a sign-in is an answer, not a fault - but the session
 				// is gone either way, so the user is told rather than left to discover
 				// it from a screen that still names their account.
-				if (isUserRejectionError(error)) {
+				//
+				// THIS STEP HAS TO SPEAK FOR ITSELF, unlike the call sites that merely
+				// await a connection and can leave the reporting to the connection's own
+				// modal: `disconnect` is part of the remedy, so however this ends the
+				// user is signed out, with this flow still open in front of them.
+				const refusal = connectionRefusal(error);
+				if (isUserRejectionError(error) || refusal?.kind === 'cancelled') {
+					// Now reached by a CLOSED POPUP too, which it was not before 0.6.0:
+					// `ConnectionFailure('Connection cancelled')` carries no 4001 and does
+					// not say "user cancelled", so backing out of a hosted sign-in used to
+					// fall through and be reported as a failure with a stack trace.
 					set({
 						phase: 're-authorise',
 						error: 'You are signed out. Sign in again to carry on.',
+					});
+					return;
+				}
+				if (refusal?.kind === 'cross-origin-blocked') {
+					// `unavailable`, not `re-authorise`: the consent that would allow this
+					// lives in the wallet host, so signing in again cannot reach it and
+					// the step's "Sign in again" button would be an invitation to press a
+					// button that can only fail. `unavailable` already means "nothing the
+					// user does from here can work" and offers Close alone.
+					set({
+						phase: 'unavailable',
+						route: undefined,
+						explanation: refusalExplanation(refusal),
+					});
+					return;
+				}
+				if (refusal?.kind === 'permission-denied') {
+					// Stays on `re-authorise`, which keeps the button that is already
+					// there. Nothing is added: the remedy for a declined permission is the
+					// person answering differently, and this button is how they say so by
+					// hand. Nothing here retries on their behalf.
+					set({
+						phase: 're-authorise',
+						error: refusalExplanation(refusal),
 					});
 					return;
 				}

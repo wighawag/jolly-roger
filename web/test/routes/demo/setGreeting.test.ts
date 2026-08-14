@@ -1,5 +1,6 @@
 import {describe, it, expect} from 'vitest';
 import {readable} from 'svelte/store';
+import {ConnectionFailure} from '@etherplay/connect';
 import {UserRejectedRequestError} from 'viem';
 import {setGreeting} from '../../../src/routes/demo/lib/setGreeting';
 import type {SetGreetingDeps} from '../../../src/routes/demo/lib/setGreeting';
@@ -18,6 +19,8 @@ const ACCOUNT = '0x2222222222222222222222222222222222222222';
 
 function deps(overrides: {
 	throws?: unknown;
+	/** What `ensureConnected` rejects with, when the user never got signed in. */
+	connectFails?: unknown;
 	hasLocalSigner?: boolean;
 	/** Who the chain says may act for the account. Defaults to the signer. */
 	delegate?: string;
@@ -31,7 +34,9 @@ function deps(overrides: {
 	};
 	return {
 		connection: Object.assign(readable(connectionState), {
-			ensureConnected: async () => {},
+			ensureConnected: async () => {
+				if (overrides.connectFails) throw overrides.connectFails;
+			},
 		}),
 		delegation: Object.assign(
 			readable({
@@ -208,5 +213,56 @@ describe('setGreeting, when the send fails', () => {
 		);
 
 		expect(result.status).toBe('error');
+	});
+
+	describe('a connection that never happened', () => {
+		/**
+		 * SILENT HERE, because it is reported somewhere better.
+		 *
+		 * Every one of these rests on the connection with its own reason, where
+		 * core/connection/ConnectionFlow renders it in the app's own words, and that
+		 * component is mounted for the life of the app. Before this, all three fell
+		 * through to the same toast - "Transaction failed: Connection cancelled" -
+		 * about a transaction that was never built, stacked on top of the modal that
+		 * had just explained the real reason.
+		 */
+		const refusals = {
+			'a closed popup': new ConnectionFailure('Connection cancelled'),
+			'a declined required permission': new ConnectionFailure(
+				'a required permission was denied',
+				{
+					type: 'permission-denied',
+					message: 'a required permission was denied',
+				},
+			),
+			'a blocked cross-origin request': new ConnectionFailure(
+				'https://game.example may not request an account for https://wallet.example',
+				{
+					type: 'cross-origin-blocked',
+					windowOrigin: 'https://game.example',
+					signingOrigin: 'https://wallet.example',
+				},
+			),
+		};
+
+		for (const [what, error] of Object.entries(refusals)) {
+			it(`says nothing about ${what}`, async () => {
+				const result = await setGreeting(deps({connectFails: error}), 'hello');
+
+				expect(result.status).toBe('cancelled');
+			});
+		}
+
+		it('still reports a failure that is not the connection\u2019s', async () => {
+			// The boundary that keeps the rule above from swallowing real errors: this
+			// call site wraps a delegation check, a balance check and a writeContract
+			// in the same `try`, and none of those is a connection.
+			const result = await setGreeting(
+				deps({connectFails: new Error('the RPC is down')}),
+				'hello',
+			);
+
+			expect(result.status).toBe('error');
+		});
 	});
 });

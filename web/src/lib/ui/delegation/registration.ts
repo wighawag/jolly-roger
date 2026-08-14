@@ -113,7 +113,15 @@ export type CredentialState =
 	| {kind: 'denied'}
 	/** The wallet did not understand the request, so nobody was asked. */
 	| {kind: 'unsupported'}
-	/** Nothing was asked for this pair, so nothing was ever minted. */
+	/**
+	 * Nothing was asked for this pair, so nothing was ever minted.
+	 *
+	 * Only trustworthy since @etherplay/connect-core 0.5.0. Before it, the
+	 * declaration was dropped from the OAuth callback URL, so a hosted account
+	 * signed in through social login came back with no outcomes whatever the app
+	 * had asked for, and landed here - saying "this app did not ask" to a user of
+	 * an app that had. The same account signing in by email did not.
+	 */
 	| {kind: 'none'};
 
 /**
@@ -377,6 +385,12 @@ export function reauthoriseExplanation(
 		case 'not-requested':
 			// A misconfiguration, and named as one: the user did nothing wrong and
 			// signing in again only helps once the app asks for the right pair.
+			//
+			// It can be said with a straight face since connect-core 0.5.0. While the
+			// permissions were being lost on the OAuth round trip this was the routine
+			// ending of a social sign-in, and it blamed the app for a request the app
+			// had made and the library had dropped - with a remedy ('sign in again')
+			// that would drop it a second time.
 			return 'This app did not ask your account for permission at this contract, so there is nothing to submit. Signing in again is worth a try, and if it keeps happening it is the app that needs fixing.';
 	}
 }

@@ -9,6 +9,7 @@ import {
 	txErrorSummary,
 } from '$lib/core/transaction/tx-error-summary';
 import type {Context} from '$lib/context/types';
+import {connectionRefusal} from '$lib/core/connection/refusal';
 import {NotRegisteredError} from '$lib/ui/delegation/delegation-check';
 
 export type SetGreetingResult =
@@ -48,8 +49,8 @@ export type SetGreetingDeps = Pick<
  * Owns the whole onchain flow (ensure connected, delegation check, balance
  * check, write) and normalises outcomes so the component only has to render:
  * - `submitted`: the tx was sent.
- * - `cancelled`: the user dismissed the funds modal or rejected in-wallet
- *   (no error should be shown).
+ * - `cancelled`: the user dismissed the funds modal, rejected in-wallet, or
+ *   never got signed in (no error should be shown HERE - see the catch).
  * - `cannot-send`: the connected account cannot send under the configured
  *   execution mode (e.g. an email/social account in wallet execution mode).
  * A signer that may not act for the account yet does not fail here: the send
@@ -160,6 +161,18 @@ export async function setGreeting(
 			// or rejected in their wallet. All three are answers, not failures.
 			return {status: 'cancelled'};
 		}
+
+		// A CONNECTION THAT DID NOT HAPPEN IS NOT A TRANSACTION THAT FAILED, and it
+		// is not this call site's to report either way. `ensureConnected` rejects
+		// with a `ConnectionFailure` whose reason (a closed popup, a declined
+		// required permission, a blocked origin) is already resting on the
+		// connection, where core/connection/ConnectionFlow renders it in the app's
+		// own words - and that component is mounted for the life of the app, so it
+		// cannot be missed. Falling through to the toast below said all of them the
+		// same way, as "Transaction failed: Connection cancelled", about a
+		// transaction that was never built, on top of the modal that had just
+		// explained it properly.
+		if (connectionRefusal(error)) return {status: 'cancelled'};
 
 		// Strictly after the two checks above, which is the ordering the classifier
 		// warns about: a dismissed funds modal IS an account that cannot pay, and it

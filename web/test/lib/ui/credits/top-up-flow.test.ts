@@ -1,6 +1,7 @@
 import {describe, it, expect, vi} from 'vitest';
 import {get, writable} from 'svelte/store';
 import {
+	ConnectionFailure,
 	delegationMessage,
 	findSavedDelegation,
 	type SavedDelegation,
@@ -36,6 +37,39 @@ const ORIGIN = 'https://greetings.test';
  */
 const REGISTRY = '0x00000000000000000000000000000000000000eE' as const;
 const CHAIN_ID = 31337;
+
+/** The one permission this app declares at connect time; see context/index. */
+const DECLARED = {
+	type: 'delegation',
+	required: false,
+	chainId: CHAIN_ID,
+	contract: REGISTRY,
+} as const;
+
+/**
+ * What a wallet host answers about that declaration.
+ *
+ * ONE OUTCOME PER DECLARED ENTRY, ON EVERY HOSTED MECHANISM. Until
+ * @etherplay/connect-core 0.5.0 that held for email and quietly failed for
+ * OAuth: `permissions` was dropped from the callback URL, so the popup came
+ * back as a new document that had parsed no request at all. A Google sign-in
+ * therefore produced an account with no credential AND no outcome explaining
+ * it, which is precisely the "nobody asked" versus "you declined" ambiguity the
+ * outcomes exist to remove - and it looked implemented, because the same app
+ * asking for the same thing by email worked.
+ *
+ * So a hosted fixture here carries outcomes. One that carries none no longer
+ * stands for "a social sign-in", it stands for an app that declared nothing.
+ */
+const grantedDelegation = (deadline = 0) => ({
+	request: DECLARED,
+	granted: true,
+	deadline,
+});
+
+const refusedDelegation = (
+	reason: 'denied' | 'unsupported' | 'sign-on-demand',
+) => ({request: DECLARED, granted: false, reason});
 
 const GWEI = 1_000_000_000n;
 const ETH = 10n ** 18n;
@@ -126,7 +160,13 @@ type DepsParams = {
 	savedDeadline?: number;
 	/** Who the stored credential is FOR. Defaults to this browser's signer. */
 	savedDelegate?: `0x${string}`;
-	/** The answer to every permission the app asked for at connect time. */
+	/**
+	 * The answer to every permission the app asked for at connect time.
+	 *
+	 * Undefined means the app declared nothing, NOT "a hosted sign-in that lost
+	 * the request": since @etherplay/connect-core 0.5.0 every hosted mechanism
+	 * answers, OAuth included. See {@link grantedDelegation}.
+	 */
 	permissions?: unknown[];
 	/**
 	 * The credential a fresh sign-in hands over, when the user takes the
@@ -134,6 +174,13 @@ type DepsParams = {
 	 * which lands them back on the same step.
 	 */
 	credentialAfterSignIn?: `0x${string}`;
+	/**
+	 * The outcomes that come back with it. Defaults to the ones the first
+	 * sign-in reported, so a test that does not care says nothing; a test taking
+	 * the remedy sets it, because a sign-in where the user answered differently
+	 * is the whole reason the remedy exists.
+	 */
+	permissionsAfterSignIn?: unknown[];
 	/** Whether the chain says this signer may act for the account. */
 	allowed?: boolean;
 	withdrawn?: boolean;
@@ -235,7 +282,10 @@ function deps(params: DepsParams) {
 	 * how a hosted account gets a fresh credential: the same shape comes back
 	 * with a different record in it. See `credentialAfterSignIn`.
 	 */
-	const signedInState = (signature: `0x${string}` | undefined) => ({
+	const signedInState = (
+		signature: `0x${string}` | undefined,
+		permissions: unknown[] | undefined = params.permissions,
+	) => ({
 		step: 'SignedIn',
 		mechanism: {type: 'wallet', name: params.walletName ?? 'Test Wallet'},
 		account: {
@@ -254,7 +304,7 @@ function deps(params: DepsParams) {
 						},
 					]
 				: [],
-			permissions: params.permissions,
+			permissions,
 		},
 		// A wallet on the connection is what lets the owner be asked for a live
 		// signature. A hosted account has none.
@@ -338,6 +388,7 @@ function deps(params: DepsParams) {
 			ensureConnected: vi.fn(async () => {
 				const state = signedInState(
 					params.credentialAfterSignIn ?? params.savedDelegationSignature,
+					params.permissionsAfterSignIn ?? params.permissions,
 				);
 				connection.set(state);
 				return state;
@@ -582,6 +633,7 @@ describe('createTopUpFlow: who can pay', () => {
 			ownerCanSend: false,
 			ownerHasWallet: false,
 			savedDelegationSignature: SAVED_SIGNATURE,
+			permissions: [grantedDelegation()],
 			walletsAvailable: 0,
 			allowed: false,
 			credits: CREDITS,
@@ -799,6 +851,7 @@ describe('createTopUpFlow: the first top-up is the registration', () => {
 		const {flowDeps, paymentWriteContract, signMessage} = unregistered({
 			savedDelegationSignature: SAVED_SIGNATURE,
 			savedDeadline: 1893456000,
+			permissions: [grantedDelegation(1893456000)],
 			ownerCanSend: false,
 			ownerHasWallet: false,
 		});
@@ -825,6 +878,10 @@ describe('createTopUpFlow: the first top-up is the registration', () => {
 		// user's money on a transaction that cannot succeed.
 		const {flowDeps} = unregistered({
 			savedDelegationSignature: SAVED_SIGNATURE,
+			// The host says it granted the pair, and the record below says something
+			// else - which is the one case `credentialState` calls impossible-looking
+			// and answers anyway: there is nothing to submit either way.
+			permissions: [grantedDelegation()],
 			ownerCanSend: false,
 			ownerHasWallet: false,
 		});
@@ -854,18 +911,7 @@ describe('createTopUpFlow: the first top-up is the registration', () => {
 		const {flowDeps} = unregistered({
 			ownerCanSend: false,
 			ownerHasWallet: false,
-			permissions: [
-				{
-					request: {
-						type: 'delegation',
-						required: false,
-						chainId: CHAIN_ID,
-						contract: REGISTRY,
-					},
-					granted: false,
-					reason: 'denied',
-				},
-			],
+			permissions: [refusedDelegation('denied')],
 		});
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
@@ -876,6 +922,48 @@ describe('createTopUpFlow: the first top-up is the registration', () => {
 		expect(get(flow).explanation).toContain('declined');
 	});
 
+	it('registers a hosted account that signed in through SOCIAL login', async () => {
+		// THE PATH @etherplay/connect-core 0.5.0 RESTORES, and the one that had no
+		// test of its own. `permissions` was being dropped from the OAuth callback
+		// URL, so signing in with Google came back with an empty `savedDelegations`
+		// and no outcomes, and this flow read that as "this app never asked" and
+		// sent the user to sign in again - which mints nothing, because the request
+		// would be dropped a second time. The same account signing in by email got
+		// here, which is why it survived: the feature looked implemented.
+		//
+		// Nothing in the app changed to fix it and nothing here is social-specific,
+		// which is the point: what arrives is an account carrying a granted outcome
+		// and the record it was granted, and the app cannot tell which hosted
+		// mechanism produced it. The assertion is that this shape registers.
+		const {flowDeps, paymentWriteContract, signMessage} = unregistered({
+			savedDelegationSignature: SAVED_SIGNATURE,
+			savedDeadline: 1893456000,
+			permissions: [grantedDelegation(1893456000)],
+			// A hosted account: no wallet to send with, and none to sign with either.
+			ownerCanSend: false,
+			ownerHasWallet: false,
+		});
+		const flow = createTopUpFlow(flowDeps, CONFIG);
+
+		await flow.start();
+		await flow.choose('wallet');
+
+		// NOT `re-authorise`, which is where this used to land.
+		expect(get(flow).phase).toBe('ready');
+		expect(get(flow).route).toBe('pre-signed');
+
+		await flow.confirm();
+
+		// Nothing was asked of the owner: it cannot sign after sign-in, and it does
+		// not need to, because the credential was minted at the door.
+		expect(signMessage).not.toHaveBeenCalled();
+		const call = paymentWriteContract.mock.calls[0][0];
+		expect(call.functionName).toBe('registerDelegateViaSignature');
+		// The deadline the host signed WITH, travelling beside the signature: it is
+		// inside the signed bytes and the contract cannot know it any other way.
+		expect(call.args).toEqual([OWNER, SIGNER, 1893456000n, SAVED_SIGNATURE]);
+	});
+
 	it('signs in again on the remedy, and carries on with the fresh credential', async () => {
 		// THE REMEDY the re-authorise route exists for: a hosted account mints its
 		// credentials at sign-in, so the way to get another is to sign in again.
@@ -884,19 +972,13 @@ describe('createTopUpFlow: the first top-up is the registration', () => {
 		const {flowDeps} = unregistered({
 			ownerCanSend: false,
 			ownerHasWallet: false,
-			permissions: [
-				{
-					request: {
-						type: 'delegation',
-						required: false,
-						chainId: CHAIN_ID,
-						contract: REGISTRY,
-					},
-					granted: false,
-					reason: 'denied',
-				},
-			],
+			permissions: [refusedDelegation('denied')],
 			credentialAfterSignIn: FRESH,
+			// The user answered differently this time, and the outcome moves with the
+			// record: a sign-in reporting a refusal while handing over a credential
+			// for it is a host contradicting itself, which is not what is being
+			// tested here.
+			permissionsAfterSignIn: [grantedDelegation()],
 		});
 		const connection = flowDeps.connection as unknown as {
 			disconnect: {mock: {calls: unknown[]}};
@@ -943,12 +1025,101 @@ describe('createTopUpFlow: the first top-up is the registration', () => {
 		expect(get(flow).error).toContain('signed out');
 	});
 
+	/**
+	 * How a hosted sign-in came back empty, which @etherplay/connect 0.6.0 is the
+	 * first version to say.
+	 *
+	 * THIS STEP HAS TO SPEAK FOR ITSELF, unlike the call sites that merely await
+	 * a connection and can leave the reporting to the connection's own modal:
+	 * signing out is part of the remedy, so however this ends the user is signed
+	 * out with this flow still open in front of them.
+	 */
+	describe('when that sign-in is refused', () => {
+		const refusedBy = async (error: unknown) => {
+			const {flowDeps} = unregistered({
+				ownerCanSend: false,
+				ownerHasWallet: false,
+				permissions: [refusedDelegation('denied')],
+			});
+			(
+				flowDeps.connection as unknown as {
+					ensureConnected: {mockRejectedValueOnce: (e: unknown) => void};
+				}
+			).ensureConnected.mockRejectedValueOnce(error);
+			const flow = createTopUpFlow(flowDeps, CONFIG);
+
+			await flow.start();
+			await flow.choose('wallet');
+			await flow.reauthorise();
+			return get(flow);
+		};
+
+		it('treats a closed popup as the answer it is', async () => {
+			// NEW BEHAVIOUR, and the reason this branch stopped keying on
+			// `isUserRejectionError` alone: a closed popup rejects with a
+			// `ConnectionFailure` carrying no 4001 and not saying "user cancelled", so
+			// it used to fall through and be reported as a failure, with a stack trace
+			// behind a Details link, for someone who had simply changed their mind.
+			const state = await refusedBy(
+				new ConnectionFailure('Connection cancelled'),
+			);
+
+			expect(state.phase).toBe('re-authorise');
+			expect(state.error).toContain('signed out');
+			expect(state.details).toBeUndefined();
+		});
+
+		it('says a declined permission was declined, and leaves the way back open', async () => {
+			const state = await refusedBy(
+				new ConnectionFailure('a required permission was denied', {
+					type: 'permission-denied',
+					message: 'a required permission was denied',
+					permissions: [refusedDelegation('denied')],
+				}),
+			);
+
+			// STAYS on the step that already carries "Sign in again". Nothing is added
+			// and nothing retries on the user's behalf: the remedy for a declined
+			// permission is the person answering differently, and that button is how
+			// they say so by hand.
+			expect(state.phase).toBe('re-authorise');
+			expect(state.error).toContain('declined');
+			// Not the cancellation wording, which is the whole point of the reason
+			// travelling back at all.
+			expect(state.error?.toLowerCase()).not.toContain('cancel');
+		});
+
+		it('takes the retry away entirely when the origin is blocked', async () => {
+			// The consent that would allow this lives in the wallet host, so signing
+			// in again cannot reach it. `unavailable` already means "nothing the user
+			// does from here can work" and offers Close alone, where `re-authorise`
+			// would invite them to press a button that can only fail.
+			const state = await refusedBy(
+				new ConnectionFailure(
+					'https://game.example may not request an account for https://wallet.example',
+					{
+						type: 'cross-origin-blocked',
+						windowOrigin: 'https://game.example',
+						signingOrigin: 'https://wallet.example',
+					},
+				),
+			);
+
+			expect(state.phase).toBe('unavailable');
+			expect(state.explanation).toContain('trying again will not change that');
+			// The stale route from before the sign-in is cleared with it, so nothing
+			// downstream reads this as a registration that is still on offer.
+			expect(state.route).toBeUndefined();
+		});
+	});
+
 	it('offers the remedy when a hosted account cannot produce its credential', async () => {
 		// A hosted account cannot sign after sign-in, so a `getDelegation` that
 		// fails is not something to report and retry: there is nothing to retry.
 		// The library says as much in its own error, and the app has a step for it.
 		const {flowDeps} = unregistered({
 			savedDelegationSignature: SAVED_SIGNATURE,
+			permissions: [grantedDelegation()],
 			ownerCanSend: false,
 			ownerHasWallet: false,
 		});
@@ -978,6 +1149,7 @@ describe('createTopUpFlow: the first top-up is the registration', () => {
 		// throw away - which is what makes the mismatch self-healing.
 		const {flowDeps, paymentWriteContract} = unregistered({
 			savedDelegationSignature: SAVED_SIGNATURE,
+			permissions: [grantedDelegation()],
 			ownerCanSend: false,
 			ownerHasWallet: false,
 		});
@@ -1080,6 +1252,7 @@ describe('createTopUpFlow: the first top-up is the registration', () => {
 			ownerCanSend: false,
 			ownerHasWallet: false,
 			savedDelegationSignature: SAVED_SIGNATURE,
+			permissions: [grantedDelegation()],
 		});
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
