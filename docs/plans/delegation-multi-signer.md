@@ -1,6 +1,6 @@
 # Delegation: many signers, bounded authorisation
 
-Status: steps zero to three done, step four outstanding. Step zero landed in `ba5a28a`; steps one and two shipped from the `etherplay-connect` monorepo as `@etherplay/delegation` 0.1.0, `@etherplay/connect-core` 0.3.0, `@etherplay/connect` 0.4.0 and `@etherplay/openfort` 0.2.0; step three is this repo's working tree.
+Status: steps zero to three done, steps four and five outstanding. Step zero landed in `ba5a28a`; steps one and two shipped from the `etherplay-connect` monorepo as `@etherplay/delegation` 0.1.0, `@etherplay/connect-core` 0.3.0, `@etherplay/connect` 0.4.0 and `@etherplay/openfort` 0.2.0; step three is this repo's working tree.
 
 Scope: `jolly-roger` on `variant/full`, the `etherplay-connect` monorepo, and `template-commit-reveal` as the first downstream adopter.
 
@@ -187,6 +187,14 @@ One route because the remedy is identical in all three cases, sign in again, and
 
 Note that live signing is **not** required anywhere in this design. For a hosted account the credential is minted at connect time, so the remedy for every missing or lapsed credential is "sign in again", which is implementable today. Live signing stays a genuine future capability rather than a hole this design has to apologise for.
 
+### `main` carries no delegation
+
+Decided after step three, having been parked until the library became a package. `main` stays the plain template: no delegation, no dependency on the package, `GreetingsRegistry is IGreetingsRegistry, Proxied`. `variant/full` is where the feature lives.
+
+The argument is maintenance, not taste. While the library was source in the tree, "main keeps it" and "main drops it" were both a fork of the same files, and holding the two branches in step was work whichever was chosen. As a package, keeping it would be one dependency and one import, and dropping it costs nothing to maintain: there is no shared source left to drift, so nothing has to be kept in sync by any other means. What dropping it buys is the simpler thing to read and to descend from, which is what `main` is for.
+
+The Sepolia split is a consequence, accepted rather than paid for. Removing `UsingDelegation` changes `GreetingsRegistry`'s bytecode, so the two branches stop sharing a deployment. They were going to diverge the moment `variant/full` moved to the package anyway, and the implementation currently deployed to Sepolia predates delegation on both branches (its ABI has no delegation entry points), so nothing live is disturbed by either branch redeploying on its own.
+
 ## Order of work
 
 One change, not two. See "Why" for the reason a partial ship is worse than no ship.
@@ -203,11 +211,11 @@ Done. Three things settled while doing it, none of them a change of design. The 
 
 **Step four: `template-commit-reveal`** merges down. Also the first real test of whether the package boundary works for an adopter that is not this template.
 
+**Step five: `main` sheds delegation.** Remove `contracts/src/core` and its tests, and drop `UsingDelegation` from `GreetingsRegistry`. Contracts only: `main`'s web has carried no delegation UI since `d537e7d`. Independent of step four, so it can happen either side of it. Gate: `main`'s suite green, and each branch deployed to Sepolia on its own from then on.
+
 ## Parked, deliberately
 
-**`main` and the Sepolia split.** `main` carries `contracts/src/core/Delegation.sol` and `GreetingsRegistry is IGreetingsRegistry, UsingDelegation, Proxied`, so removing delegation there is a bytecode change and ends shared Sepolia deployments between `main` and `variant/full`. Once the library is a package, "remove it" and "keep it via a one-line import" are both cheap, so the decision stays open rather than being forced by this work.
-
-**Whether `jolly-roger` marks its delegation permission required.** The protocol supports both. Recommended optional, so the app stays browsable read-only and a denial becomes the `re-authorise` route with reason `denied` rather than a permission wall at the door for something the user cannot evaluate yet. Required is defensible for a game that genuinely cannot function without it.
+**Whether `jolly-roger` marks its delegation permission required.** Settled in step three: optional, for the reason recommended here. The app stays browsable read-only and a denial becomes the `re-authorise` route with reason `denied` rather than a permission wall at the door for something the user cannot evaluate yet. Required remains defensible for a game that genuinely cannot function without it, and the protocol supports both, so the question stays live for an adopter rather than for this template.
 
 **How the host renders a required permission.** If an app may mark one required, the host should render it as "this site will not let you in unless you agree", so the coercion is visible and attributed to the site rather than looking like the wallet's own demand.
 
