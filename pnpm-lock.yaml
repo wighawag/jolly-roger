@@ -29,9 +29,6 @@ importers:
 
   contracts:
     devDependencies:
-      '@etherplay/connect-core':
-        specifier: ^0.2.0
-        version: 0.2.0
       '@nomicfoundation/hardhat-keystore':
         specifier: ^3.0.8
         version: 3.0.12(hardhat@3.12.0)

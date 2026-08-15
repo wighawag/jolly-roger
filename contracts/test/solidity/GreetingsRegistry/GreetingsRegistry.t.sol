@@ -3,7 +3,6 @@ pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 import {GreetingsRegistry} from "src/GreetingsRegistry/GreetingsRegistry.sol";
-import {Delegation} from "src/core/Delegation.sol";
 
 contract GreetingsRegistryTest is Test {
     uint256 internal testNumber;
@@ -371,81 +370,20 @@ contract GreetingsRegistryTest is Test {
         assertEq(messages[0].message, "PREFIX: hello");
     }
 
-    // ==================== Greeting for somebody else ====================
-    //
-    // Whether a delegate is authorised is Delegation's business, and is tested
-    // there. What is tested here is the only thing this contract adds: WHOSE
-    // greeting gets written.
+    // ==================== Storage layout ====================
 
-    address internal signer = address(0xDE1E6A7E);
-
-    function test_setMessageFor_attributesToTheOwnerNotTheSender() public {
-        vm.prank(alice);
-        registry.registerDelegate(signer, payable(address(0)));
-
-        vm.prank(signer);
-        registry.setMessageFor(alice, "hello from the app");
-
-        assertEq(registry.messages(alice), "hello from the app");
-        assertEq(registry.messages(signer), "");
-
-        GreetingsRegistry.Message[] memory messages = registry.getLastMessages(
-            10
-        );
-        assertEq(messages.length, 1);
-        assertEq(messages[0].account, alice);
-    }
-
-    function test_setMessageFor_revertsForAnUnauthorisedSender() public {
-        vm.prank(alice);
-        registry.registerDelegate(signer, payable(address(0)));
-
-        vm.prank(bob);
-        vm.expectRevert(
-            abi.encodeWithSelector(Delegation.NotDelegate.selector, alice, bob)
-        );
-        registry.setMessageFor(alice, "not mine to set");
-    }
-
-    function test_setMessageFor_lettingTheSenderNameItself() public {
-        // Naming yourself needs no authorisation, so this is just setMessage
-        // with an extra argument. It matters because a call site that passes an
-        // owner through unconditionally must not break when there is no
-        // delegation involved.
-        vm.prank(alice);
-        registry.setMessageFor(alice, "myself");
-        assertEq(registry.messages(alice), "myself");
-
-        vm.prank(bob);
-        registry.setMessageFor(address(0), "also myself");
-        assertEq(registry.messages(bob), "also myself");
-    }
-
-    function test_setMessage_isUnaffectedByDelegation() public {
-        vm.prank(alice);
-        registry.registerDelegate(signer, payable(address(0)));
-
-        // The plain entry point still writes for whoever called it, which is
-        // what keeps a deployment that never delegates behaving as before.
-        vm.prank(alice);
-        registry.setMessage("set by alice herself");
-        assertEq(registry.messages(alice), "set by alice herself");
-
-        vm.prank(signer);
-        registry.setMessage("set by the signer, as itself");
-        assertEq(registry.messages(signer), "set by the signer, as itself");
-    }
-
-    /// @notice Inheriting {UsingDelegation} must not have moved this contract's
-    /// own storage.
+    /// @notice This contract's state must stay in the slots it already occupies.
     ///
-    /// A base contract's state normally precedes the derived contract's, so
-    /// inheriting one usually shifts every slot. This contract is live behind a
-    /// proxy, where a shift would reinterpret every greeting ever stored as
-    /// something else. It is safe only because the mixin declares no state and
-    /// delegation lives in a namespaced region, and nothing in the source would
-    /// show that changing - hence this.
-    function test_inheritingDelegationDidNotMoveStorage() public {
+    /// It is live behind an ERC-1967 proxy, so the storage belongs to the proxy
+    /// and outlives any implementation deployed against it. A slot shift would
+    /// not lose the greetings, it would reinterpret them: whatever sat at a slot
+    /// before is read back as whatever the new layout says lives there.
+    ///
+    /// Nothing in the source shows that happening. Declaring a state variable
+    /// above the existing ones, reordering them, or inheriting a base contract
+    /// that declares state of its own all move the whole layout down while every
+    /// line that reads it still compiles and still looks right. Hence this.
+    function test_storageLayoutIsWhatTheProxyExpects() public {
         GreetingsRegistry prefixed = new GreetingsRegistry("PREFIX: ");
 
         // A short string lives inline in its slot: the bytes left-aligned, and
@@ -455,27 +393,26 @@ contract GreetingsRegistryTest is Test {
         assertEq(bytes8(slot0), bytes8(bytes("PREFIX: ")));
         assertEq(uint8(uint256(slot0)), 16);
 
-        // And using delegation writes nowhere near it.
         vm.prank(alice);
-        prefixed.registerDelegate(signer, payable(address(0)));
-        assertEq(vm.load(address(prefixed), bytes32(0)), slot0);
-    }
+        prefixed.setMessage("hello");
 
-    function test_revokedDelegateCanNoLongerGreet() public {
-        vm.prank(alice);
-        registry.registerDelegate(signer, payable(address(0)));
-
-        vm.prank(alice);
-        registry.revokeDelegate();
-
-        vm.prank(signer);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                Delegation.NotDelegate.selector,
-                alice,
-                signer
-            )
+        // `_accountToMessage` is declared next, so alice's entry is at the slot
+        // a mapping at index 1 puts it, and holds the id of her only message.
+        assertEq(
+            uint256(
+                vm.load(
+                    address(prefixed),
+                    keccak256(abi.encode(alice, uint256(1)))
+                )
+            ),
+            1
         );
-        registry.setMessageFor(alice, "should not land");
+
+        // `_messages` takes index 2, and `_lastMessage` is the plain word after
+        // it, now holding that same id.
+        assertEq(uint256(vm.load(address(prefixed), bytes32(uint256(3)))), 1);
+
+        // Writing a greeting left the prefix where it was.
+        assertEq(vm.load(address(prefixed), bytes32(0)), slot0);
     }
 }

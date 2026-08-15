@@ -2,20 +2,18 @@
 pragma solidity ^0.8.4;
 
 import {IGreetingsRegistry} from "./IGreetingsRegistry.sol";
-import {UsingDelegation} from "../core/UsingDelegation.sol";
 import {Proxied} from "@rocketh/proxy/solc_0_8/ERC1967/Proxied.sol";
 
 /// @title Greetings Registry
 /// @notice let user set a greeting
 ///
-/// Inherits {UsingDelegation}, so a greeting can be sent by an address acting
-/// for the greeter rather than by the greeter itself. That brings the standard
-/// registration and revocation entry points with it; nothing here decides who
-/// may act for whom, it only asks who a call belongs to and records the answer.
+/// A greeting belongs to the account that sent it: every write reads
+/// `msg.sender` and files the greeting under it, so the sender and the greeter
+/// are always the same address.
 ///
-/// A contract wanting only some of those entry points, or different ones, uses
-/// the library directly instead and writes its own. See core/UsingDelegation.
-contract GreetingsRegistry is IGreetingsRegistry, UsingDelegation, Proxied {
+/// The registry keeps one greeting per account, and threads them into a list so
+/// the most recent ones can be read back in order without an indexer.
+contract GreetingsRegistry is IGreetingsRegistry, Proxied {
     /// @notice emitted whenever a user updates their greeting
     /// @param user the account whose greeting was updated
     /// @param message the new greeting
@@ -96,19 +94,6 @@ contract GreetingsRegistry is IGreetingsRegistry, UsingDelegation, Proxied {
     /// @param message the new greeting
     function setMessage(string calldata message) external {
         _setMessage(msg.sender, message);
-    }
-
-    /// @notice called by a registered delegate to set an account's greeting.
-    ///
-    /// The greeting is attributed to `owner`, not to the sender, which is the
-    /// whole point of delegating: otherwise the registry records whichever
-    /// address happened to send the transaction, and that is not the identity
-    /// the greeting belongs to.
-    ///
-    /// @param owner the account whose greeting is being set
-    /// @param message the new greeting
-    function setMessageFor(address owner, string calldata message) external {
-        _setMessage(_requireAccountForSender(owner), message);
     }
 
     function _setMessage(address user, string calldata message) internal {
