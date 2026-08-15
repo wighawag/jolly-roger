@@ -153,6 +153,9 @@ importers:
       '@etherplay/connect':
         specifier: ^0.7.0
         version: 0.7.0(svelte@5.56.8)
+      '@etherplay/dev-wallet-host':
+        specifier: ^0.1.1
+        version: 0.1.1
       '@internationalized/date':
         specifier: ^3.12.3
         version: 3.12.3
@@ -497,6 +500,11 @@ packages:
 
   '@etherplay/delegation@0.1.0':
     resolution: {integrity: sha512-K48jxs+QPCwQ5JjjLlVdL+D/1bBjPuhrVN2J6ZC3x4wkgnHKjZpOxoRDFbkmKZXHAmYbzEaZdGDxTAxd2ytNjQ==}
+
+  '@etherplay/dev-wallet-host@0.1.1':
+    resolution: {integrity: sha512-gpuSU/y1sr8eYLSnv78UlHiVR0bt0c7HAPfyYo+WuZnGcJ9Xjo55FOAwy/XJOHVZXzfKXqEspzHGTmHDpffZ/g==}
+    engines: {node: '>=18'}
+    hasBin: true
 
   '@etherplay/wallet-connector-ethereum@0.0.12':
     resolution: {integrity: sha512-woNXPi5+oSy6vBbFlx5D4zHaPC/dENaHYObdqw0zUteU1xDhPMbxyCNgU/hjzMkGbR9abaJ0Rp44kMwTkOfE1Q==}
@@ -3141,6 +3149,8 @@ snapshots:
   '@etherplay/delegation@0.1.0':
     dependencies:
       '@noble/hashes': 1.8.0
+
+  '@etherplay/dev-wallet-host@0.1.1': {}
 
   '@etherplay/wallet-connector-ethereum@0.0.12':
     dependencies:

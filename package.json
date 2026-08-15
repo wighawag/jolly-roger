@@ -45,6 +45,7 @@
     "contracts:export": "pnpm --filter ./contracts export",
     "---------------------- WEB ----------------------": "",
     "web:dev": "pnpm --filter ./web dev",
+    "web:wallet-host": "pnpm --filter ./web wallet-host",
     "web:build": "pnpm --filter ./web build",
     "web:serve": "pnpm --filter ./web serve",
     "web:check": "pnpm --filter ./web check",

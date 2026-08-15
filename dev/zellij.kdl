@@ -22,6 +22,12 @@ layout {
 		pane name="faucet" command="pnpm"  {
 			args "contracts:faucet"
 		}
+		// The sign-in host, run here for the same reason the faucet is: hosted
+		// sign-in is then just there while you work, instead of being something
+		// you go and set up. A development build, unfit for real accounts.
+		pane name="wallet host" command="pnpm"  {
+			args "web:wallet-host"
+		}
 	}
 
 	pane split_direction="vertical" {

@@ -212,7 +212,7 @@ class NodeRefusedCall extends Error {
  * serve while it is being hammered by eight workers - so it is retried along
  * with the transport failures.
  */
-async function fundAddressViaHardhat(
+export async function fundAddressViaHardhat(
 	address: string,
 	amountInEth = '100',
 ): Promise<void> {
@@ -748,6 +748,17 @@ async function waitForTransactionComplete(page: Page): Promise<void> {
 export async function connectPaymentWallet(
 	page: Page,
 	accountIndex = 1,
+	/**
+	 * The other way this can legitimately END, besides reaching the transfer step.
+	 *
+	 * A payer that cannot prove the authorisation is parked rather than sent
+	 * (`re-authorise`, `unavailable`), and that is an OUTCOME, not a failure to
+	 * connect. Without this the caller waits 45 seconds and is then told the
+	 * payment connection never produced a payer, which is both untrue and the
+	 * opposite of a useful message. Defaults to nothing, so existing callers are
+	 * unchanged.
+	 */
+	alsoSettledOn: string[] = [],
 ): Promise<void> {
 	const deadline = Date.now() + 45_000;
 
@@ -758,6 +769,14 @@ export async function connectPaymentWallet(
 			.isVisible()
 			.catch(() => false);
 		if (ready) return;
+
+		for (const selector of alsoSettledOn) {
+			const settled = await page
+				.locator(selector)
+				.isVisible()
+				.catch(() => false);
+			if (settled) return;
+		}
 
 		// The top-up modal is itself a dialog, so every open one is inspected and
 		// only the connect-flow steps are acted on.

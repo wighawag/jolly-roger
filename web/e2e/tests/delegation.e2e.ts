@@ -13,10 +13,12 @@ import {test, expect, describe, connectPaymentWallet} from '../fixtures/test';
  *  - live signature: another wallet pays, and the account's own wallet is asked
  *    to sign the authorisation first, after being told what it means.
  *
- * The pre-signed route (an account whose key lives at a wallet host) cannot be
- * reached from here, because this configuration has no such account. It is
- * covered in test/lib/ui/credits/top-up-flow.test.ts, along with the collapse
- * onto the direct route and the empty set of payment methods.
+ * The pre-signed route (an account whose key lives at a wallet host) is not
+ * here: it needs an account of that kind, which needs a host to sign in at.
+ * This variant now runs one, so it is covered end to end in
+ * hosted-signin.e2e.ts. The route selection itself, the collapse onto the
+ * direct route and the empty set of payment methods stay in
+ * test/lib/ui/credits/top-up-flow.test.ts, where they cost no chain.
  */
 
 // Its own wallet account, so these writes cannot race the demo suite's (which

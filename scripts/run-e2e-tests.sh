@@ -26,6 +26,18 @@ RPC_URL="http://127.0.0.1:${RPC_PORT}"
 export E2E_RPC_PORT="$RPC_PORT"
 export E2E_RPC_URL="$RPC_URL"
 
+# The sign-in host this run serves, from @etherplay/dev-wallet-host: a
+# development build of the popup the app opens for hosted sign-in, unfit for
+# real accounts by construction and needing no key, no account and no network.
+#
+# `localhost` and not `127.0.0.1`, and it matters: the popup delivers its result
+# by postMessage to the origin the APP declares, so the two spellings are two
+# origins and a mismatch produces a sign-in that visibly completes and a result
+# nobody receives. This one string is what the app is built with below.
+WALLET_HOST_PORT="${E2E_WALLET_HOST_PORT:-50000}"
+WALLET_HOST_URL="http://localhost:${WALLET_HOST_PORT}"
+export E2E_WALLET_HOST_URL="$WALLET_HOST_URL"
+
 # Point the deploy/export at that chain, and build the app against it. Exported
 # shell env outranks every .env file in ldenv, so this beats the 8545 baked into
 # .env.localhost without editing it.
@@ -84,6 +96,12 @@ NODE_PID=""
 NODE_PGID=""
 NODE_LOG="${TMPDIR:-/tmp}/jolly-roger-e2e-node.log"
 
+# Same treatment for the sign-in host, and for the same reason: `pnpm
+# wallet-host` is a wrapper and the server is its child.
+WALLET_HOST_PID=""
+WALLET_HOST_PGID=""
+WALLET_HOST_LOG="${TMPDIR:-/tmp}/jolly-roger-e2e-wallet-host.log"
+
 # Cleanup function to kill background processes
 #
 # Only ever stops what THIS run started. Port 8545 (and 4173) may belong to a
@@ -107,6 +125,20 @@ cleanup() {
         kill "$NODE_PID" 2>/dev/null || true
         sleep 1
         kill -9 "$NODE_PID" 2>/dev/null || true
+    fi
+
+    # The sign-in host, if we started it. Same rule as the node: only what this
+    # run started, by process group, never by port.
+    if [ -n "$WALLET_HOST_PGID" ]; then
+        echo "Stopping the sign-in host this run started (PGID: $WALLET_HOST_PGID)..."
+        kill -- "-$WALLET_HOST_PGID" 2>/dev/null || true
+        sleep 1
+        kill -9 -- "-$WALLET_HOST_PGID" 2>/dev/null || true
+    elif [ -n "$WALLET_HOST_PID" ]; then
+        echo "Stopping the sign-in host this run started (PID: $WALLET_HOST_PID)..."
+        kill "$WALLET_HOST_PID" 2>/dev/null || true
+        sleep 1
+        kill -9 "$WALLET_HOST_PID" 2>/dev/null || true
     fi
 
     # The preview server is started and stopped by Playwright's `webServer`, so
@@ -277,6 +309,51 @@ else
     done
 fi
 
+# The sign-in host, started the same way and under the same rule: nothing is
+# pre-killed, and an already-running one is reused, because that port may be a
+# host the developer is using for something else.
+wallet_host_is_up() {
+    curl -sf "${WALLET_HOST_URL}/login/" >/dev/null 2>&1
+}
+
+if wallet_host_is_up; then
+    echo -e "${YELLOW}⚠ A sign-in host is already listening on ${WALLET_HOST_URL}; reusing it.${NC}"
+else
+    echo -e "\n${GREEN}🔐 Starting the sign-in host on ${WALLET_HOST_URL}...${NC}"
+    cd "$WEB_DIR"
+    # Output to a log for the same reason the node's is: its startup banner and
+    # the pnpm wrapper's death rattle otherwise interleave with the test report.
+    # The banner is worth reading when a sign-in fails to deliver, since it
+    # names the exact origin the app must have been built with.
+    setsid pnpm wallet-host --port "$WALLET_HOST_PORT" >"$WALLET_HOST_LOG" 2>&1 &
+    WALLET_HOST_PID=$!
+
+    OWN_PGID="$(ps -o pgid= -p $$ 2>/dev/null | tr -d ' ')"
+    for _ in 1 2 3 4 5; do
+        WALLET_HOST_PGID="$(ps -o pgid= -p "$WALLET_HOST_PID" 2>/dev/null | tr -d ' ')"
+        [ -n "$WALLET_HOST_PGID" ] && break
+        sleep 0.2
+    done
+    if [ -z "$WALLET_HOST_PGID" ] || [ "$WALLET_HOST_PGID" = "$OWN_PGID" ]; then
+        WALLET_HOST_PGID=""
+    fi
+
+    echo "Waiting for the sign-in host to be ready..."
+    for i in {1..30}; do
+        if wallet_host_is_up; then
+            echo -e "${GREEN}✓ Sign-in host is ready${NC}"
+            break
+        fi
+        if [ $i -eq 30 ]; then
+            echo -e "${RED}✗ Sign-in host failed to start${NC}"
+            echo -e "${RED}  Host output: ${WALLET_HOST_LOG}${NC}"
+            tail -20 "$WALLET_HOST_LOG" 2>/dev/null || true
+            exit 1
+        fi
+        sleep 1
+    done
+fi
+
 # Compile contracts
 echo -e "\n${GREEN}📋 Compiling contracts...${NC}"
 cd "$CONTRACTS_DIR"
@@ -301,15 +378,23 @@ echo -e "${GREEN}✓ Contracts deployed and exported${NC}"
 # Build web app
 echo -e "\n${GREEN}🔨 Building web app...${NC}"
 cd "$WEB_DIR"
-# Pin the e2e build to wallet-only sign-in. Exported shell env has the highest
-# priority in ldenv (it beats every .env file), so a developer's .env.local
-# overrides (e.g. PUBLIC_WALLET_HOST for testing hosted sign-in) cannot leak
-# into the e2e build, while manual `pnpm dev` remains free to use them.
+# Pin the e2e build to the host THIS RUN started. Exported shell env has the
+# highest priority in ldenv (it beats every .env file), so a developer's
+# .env.local cannot leak into the e2e build, while manual `pnpm dev` remains
+# free to use them.
 #
-# The suite still exercises the signer: TARGET_STEP is code, not env, so the
-# build signs in either way and the demo sends through the local signer. What
-# this pin removes is the hosted popup flow, which needs a service to talk to.
-PUBLIC_WALLET_HOST= pnpm build localhost
+# It used to be pinned EMPTY, and the reason was that the hosted popup flow
+# needs a service to talk to and there was none to start. There is now:
+# @etherplay/dev-wallet-host, running above. So this variant tests the flow the
+# other one cannot, and the wallet path it shares with local-signer is still
+# covered, since TARGET_STEP is code rather than env and the build signs in
+# either way.
+#
+# The value must be the started host's origin TO THE CHARACTER. The popup posts
+# its result to whatever origin the app declares, so a build pointing at another
+# spelling of the same machine produces a sign-in that completes in the popup
+# and a result the app never receives, with no error on either side.
+PUBLIC_WALLET_HOST="$WALLET_HOST_URL" pnpm build localhost
 echo -e "${GREEN}✓ Web app built${NC}"
 
 # Prove the build can reach the contracts before spending four minutes finding
