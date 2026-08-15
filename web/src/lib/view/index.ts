@@ -65,12 +65,7 @@ function latestGreeting(operations: Operations): Entry | undefined {
 		if (state?.status === 'Failure') continue;
 		if (state && ignoredInclusions.includes(state.inclusion)) continue;
 		if (operation.metadata.type !== 'functionCall') continue;
-		if (
-			operation.metadata.functionName !== 'setMessage' &&
-			operation.metadata.functionName !== 'setMessageFor'
-		) {
-			continue;
-		}
+		if (operation.metadata.functionName !== 'setMessage') continue;
 
 		const entry = {operationID, operation};
 		if (!latest || isLater(entry, latest)) {
@@ -81,19 +76,14 @@ function latestGreeting(operations: Operations): Entry | undefined {
 }
 
 /**
- * The greeting the operation is trying to set.
- *
- * Which argument that is depends on the function: `setMessage(message)` is sent
- * by the greeter itself, `setMessageFor(owner, message)` by an address acting
- * for them. Reading it positionally is why this has to know the difference.
+ * The greeting the operation is trying to set: the sole argument of
+ * `setMessage(message)`, read positionally.
  */
 function messageArgOf(operation: OnchainOperation): string {
 	const metadata = operation.metadata as {
-		functionName?: string;
 		args?: unknown[];
 	};
-	const index = metadata.functionName === 'setMessageFor' ? 1 : 0;
-	return (metadata.args?.[index] as string) || '';
+	return (metadata.args?.[0] as string) || '';
 }
 
 /**
@@ -101,12 +91,11 @@ function messageArgOf(operation: OnchainOperation): string {
  * laid over the top.
  *
  * The pending greeting is attributed to the AUTHENTICATED ACCOUNT, never to
- * whichever address signed the transaction. Those can differ: an app that acts
- * on its user's behalf sends from a key of its own, and the registry attributes
- * the greeting to the account that key represents. Keying off the sender would
- * file the optimistic entry under an address the chain will never report, so it
- * would sit in the list as a second, permanent duplicate of a greeting that did
- * in fact confirm.
+ * whichever address signed the transaction. Keying off the sender would file
+ * the optimistic entry under whatever address happened to send, and if that is
+ * ever not the account the chain reports, the entry never matches a confirmed
+ * greeting and sits in the list as a second, permanent duplicate of one that
+ * did in fact confirm.
  *
  * Pure, so the merge rules can be argued with in tests rather than by getting a
  * transaction into exactly the right state.

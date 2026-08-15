@@ -4,7 +4,7 @@ import type {OnchainOperation} from '../../../src/lib/account/AccountData';
 import type {Message} from '../../../src/lib/onchain/state';
 
 const owner = '0x1111111111111111111111111111111111111111' as const;
-const signer = '0x2222222222222222222222222222222222222222' as const;
+const sender = '0x2222222222222222222222222222222222222222' as const;
 const other = '0x3333333333333333333333333333333333333333' as const;
 const stranger = '0x4444444444444444444444444444444444444444' as const;
 
@@ -75,43 +75,30 @@ describe('applyPendingOperations', () => {
 	});
 
 	/**
-	 * The reason this function exists. An app acting for its user sends from its
-	 * own key, and the registry files the greeting under the account. Keying the
-	 * optimistic entry off the SENDER would put it under an address the chain
-	 * never reports, leaving a permanent duplicate next to the confirmed one.
+	 * Why this function takes the account at all, rather than reading the sender
+	 * off the operation. Here the two are the same address, because the app sends
+	 * from the authenticated account and nothing else. Keying the optimistic entry
+	 * off the SENDER would still pass every other test in this file and would put
+	 * the entry under whatever address happened to send, which for an app that
+	 * sends from a key of its own is one the chain never reports, leaving a
+	 * permanent duplicate beside the confirmed greeting.
 	 */
-	it('files a delegate-sent greeting under the owner, not the sender', () => {
+	it('files the pending greeting under the account, whoever sent it', () => {
 		const result = apply({
-			account: owner,
-			operations: {
-				a: operation({
-					from: signer,
-					functionName: 'setMessageFor',
-					args: [owner, 'sent by the app'],
-				}),
-			},
+			operations: {a: operation({from: sender, args: ['mine']})},
 		});
 
 		expect(result).toEqual([
-			{
-				account: owner,
-				message: 'sent by the app',
-				timestamp: 1000,
-				pending: true,
-			},
+			{account: owner, message: 'mine', timestamp: 1000, pending: true},
 		]);
-		expect(result.some((view) => view.account === signer)).toBe(false);
+		expect(result.some((view) => view.account === sender)).toBe(false);
 	});
 
 	it('replaces the account\u2019s confirmed greeting rather than duplicating it', () => {
 		const result = apply({
 			messages: [message(owner, 'old', 500), message(other, 'theirs', 400)],
 			operations: {
-				a: operation({
-					from: signer,
-					functionName: 'setMessageFor',
-					args: [owner, 'new'],
-				}),
+				a: operation({from: owner, args: ['new']}),
 			},
 		});
 
@@ -221,7 +208,7 @@ describe('applyPendingOperations', () => {
 			messages: [
 				message(other, 'a', 300),
 				message(stranger, 'b', 200),
-				message(signer, 'c', 100),
+				message(sender, 'c', 100),
 			],
 			operations: {a: operation({from: owner, args: ['mine']})},
 			maxMessages: 2,
