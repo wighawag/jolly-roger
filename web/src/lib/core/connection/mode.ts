@@ -1,99 +1,71 @@
 /**
- * Connection + execution mode resolution.
+ * How the app authenticates, and therefore whether it has a local signer.
  *
- * Two independent, env-derived knobs govern how the app authenticates and how
- * it sends transactions:
+ * Two knobs, and only one of them is env:
  *
- * - `targetStep`: derived from `PUBLIC_WALLET_HOST`.
- *   - set   -> `'SignedIn'`: hosted sign-in (email/social) + a local signer.
- *   - empty -> `'WalletConnected'`: wallet-only authentication.
+ * - `TARGET_STEP` is CONFIG, set in code below. It decides how far the
+ *   connection goes and so whether a local signer exists at all.
+ * - `PUBLIC_WALLET_HOST` decides only whether HOSTED mechanisms (email, social)
+ *   are on offer. It does not decide the target step.
  *
- * - `executionMode` (`PUBLIC_EXECUTION_MODE`): how transactions are sent.
- *   - `'wallet'` (default): send from the connected wallet account.
- *   - `'signer'`: send from the local signer (works for every account,
- *     including wallet-authenticated ones).
- *
- * The two are independent except for one constraint: `'signer'` execution needs
- * a local signer, which only exists under `'SignedIn'`. That single illegal
- * combination is rejected here (fail fast) rather than blowing up later.
- *
- * The valid matrix:
- *
- *   targetStep        executionMode  result
- *   WalletConnected   wallet         tx via wallet (current default)
- *   WalletConnected   signer         INVALID (no signer without SignedIn)
- *   SignedIn          wallet         wallet accounts send; email/social accounts
- *                                    cannot send directly (runtime typed error)
- *   SignedIn          signer         everyone sends via the local signer
+ * Splitting them is deliberate. Signing in derives a local signer from a
+ * signature, which costs the user a wallet prompt; an app that will never use a
+ * signer should not pay it. That is a decision about what the app IS, not about
+ * which services it happens to be pointed at, so it belongs in code where it is
+ * read alongside the app's other structural choices.
  */
 
 export type TargetStep = 'WalletConnected' | 'SignedIn';
-export type ExecutionMode = 'wallet' | 'signer';
 
-export type ConnectionMode = {
+/**
+ * How far this app's connection goes.
+ *
+ * `'WalletConnected'`: stop at a connected wallet. No signature, no signer, no
+ * prompt the user did not ask for. Correct for an app that only ever sends from
+ * the user's own account, which is what this template is.
+ *
+ * `'SignedIn'`: the user signs a message once, which derives a local signer the
+ * app could send from without prompting, and hosted mechanisms (email, social)
+ * become offerable when `PUBLIC_WALLET_HOST` is set.
+ *
+ * FLIPPING THIS IS NOT THE WHOLE JOB. This branch has no code that SENDS from
+ * the derived signer: `createExecutor` sends from the authenticated account and
+ * nothing else. So `'SignedIn'` here buys the sign-in mechanisms and a signer
+ * nobody spends from, and an account authenticated by email has no wallet and
+ * therefore cannot send at all. The executor, balances and funding UI that make
+ * a signer useful live on the signer variant; take them from there rather than
+ * rebuilding them.
+ */
+export const TARGET_STEP: TargetStep = 'WalletConnected';
+
+export type ConnectionConfig = {
 	targetStep: TargetStep;
-	/** Hosted sign-in service URL (only defined when targetStep is 'SignedIn'). */
+	/**
+	 * Hosted sign-in service URL. Undefined means no hosted mechanisms, which is
+	 * a supported configuration rather than an error: see `walletOnly`.
+	 */
 	walletHost?: string;
-	executionMode: ExecutionMode;
+	/**
+	 * Whether only built-in (injected / EIP-6963) wallets may authenticate.
+	 *
+	 * True whenever there is no `walletHost`, because email and social sign-in
+	 * are popup flows served BY that host and cannot work without one.
+	 */
+	walletOnly: boolean;
 };
 
-export type ConnectionModeResolution =
-	{ok: true; mode: ConnectionMode} | {ok: false; error: string};
-
 /**
- * Interpret the raw `PUBLIC_EXECUTION_MODE` value.
+ * Resolve the connection configuration.
  *
- * Empty/absent defaults to 'wallet'. Unrecognised values return undefined so
- * the caller can fail fast (a typo like 'singer' silently becoming 'wallet'
- * would be a confusing misconfiguration).
+ * Total: there is no illegal combination left to reject. This used to guard one
+ * (signer execution without a signer), which disappeared along with the
+ * execution-mode axis: there is now a single executor, it sends from the
+ * authenticated account, and no configuration can ask it to do otherwise.
  */
-export function parseExecutionMode(
-	raw: string | undefined,
-): ExecutionMode | undefined {
-	const value = (raw ?? '').trim().toLowerCase();
-	if (value === '' || value === 'wallet') return 'wallet';
-	if (value === 'signer') return 'signer';
-	return undefined;
-}
-
-/**
- * Resolve the connection + execution mode from env values.
- *
- * @param walletHost   `PUBLIC_WALLET_HOST` (presence => SignedIn).
- * @param executionRaw `PUBLIC_EXECUTION_MODE` (raw string).
- */
-export function resolveConnectionMode(
+export function resolveConnectionConfig(
+	targetStep: TargetStep,
 	walletHost: string | undefined,
-	executionRaw: string | undefined,
-): ConnectionModeResolution {
+): ConnectionConfig {
 	const host = walletHost?.trim() || undefined;
-	const targetStep: TargetStep = host ? 'SignedIn' : 'WalletConnected';
-	const executionMode = parseExecutionMode(executionRaw);
-
-	if (executionMode === undefined) {
-		return {
-			ok: false,
-			error:
-				`Unrecognised PUBLIC_EXECUTION_MODE value: '${executionRaw}'. ` +
-				"Use 'wallet' (send from the connected wallet account) or " +
-				"'signer' (send from the local signer), or leave it empty for " +
-				"the default ('wallet').",
-		};
-	}
-
-	if (executionMode === 'signer' && targetStep !== 'SignedIn') {
-		return {
-			ok: false,
-			error:
-				"PUBLIC_EXECUTION_MODE='signer' requires hosted sign-in: set " +
-				'PUBLIC_WALLET_HOST so a local signer is available (otherwise ' +
-				"there is no signer to send transactions from). Use 'wallet' " +
-				'execution mode for wallet-only setups.',
-		};
-	}
-
-	return {
-		ok: true,
-		mode: {targetStep, walletHost: host, executionMode},
-	};
+	return {targetStep, walletHost: host, walletOnly: !host};
 }

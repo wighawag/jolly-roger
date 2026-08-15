@@ -27,21 +27,8 @@
 		communityURL?: string;
 	} = $props();
 
-	const {
-		connection,
-		accountData,
-		balance,
-		ownerBalance,
-		executionMode,
-		gasFee,
-		clock,
-		deployments,
-	} = getAppContext();
-
-	// In signer mode the spending balance (top bar / `balance`) is the local
-	// signer's, distinct from the authenticated account's (`ownerBalance`); show
-	// both. In wallet mode they are the same account, so show a single balance.
-	const showSignerBalances = executionMode === 'signer';
+	const {connection, accountData, accountBalance, gasFee, clock, deployments} =
+		getAppContext();
 
 	let showMenu = $state(false);
 	let accountsOpen = $state(false);
@@ -56,23 +43,14 @@
 
 	// Derive formatted balance
 	let formattedBalance = $derived.by(() => {
-		if ($balance.step === 'Loaded') {
-			return formatBalance($balance.value, 18, 6);
-		}
-		return null;
-	});
-
-	// In wallet mode `ownerBalance` is the same store instance as `balance`
-	// (see lib/context), so reading it unconditionally never double-polls.
-	let formattedOwnerBalance = $derived.by(() => {
-		if ($ownerBalance.step === 'Loaded') {
-			return formatBalance($ownerBalance.value, 18, 6);
+		if ($accountBalance.step === 'Loaded') {
+			return formatBalance($accountBalance.value, 18, 6);
 		}
 		return null;
 	});
 
 	// Balance status store
-	const balanceStatus = balance.status;
+	const balanceStatus = accountBalance.status;
 
 	// Format time ago for stale indicator (reactive to clock store)
 	function formatTimeAgo(timestamp: number): string {
@@ -324,9 +302,7 @@
 				<div class="mt-4 flex flex-col gap-2 border-t border-border px-4 pt-4">
 					<div class="flex flex-col gap-1 rounded-md bg-muted/50 px-3 py-2">
 						<div class="flex items-center justify-between">
-							<span class="text-sm text-muted-foreground"
-								>{showSignerBalances ? 'Signer balance' : 'Balance'}</span
-							>
+							<span class="text-sm text-muted-foreground">Balance</span>
 							{#if $balanceStatus.loading && formattedBalance === null}
 								<Spinner class="h-4 w-4" />
 							{:else if formattedBalance !== null}
@@ -340,22 +316,6 @@
 								<span class="text-sm text-muted-foreground">—</span>
 							{/if}
 						</div>
-
-						{#if showSignerBalances}
-							<div class="flex items-center justify-between">
-								<span class="text-sm text-muted-foreground"
-									>Account balance</span
-								>
-								{#if formattedOwnerBalance !== null}
-									<span class="font-medium"
-										>{formattedOwnerBalance}
-										{$deployments.chain.nativeCurrency.symbol}</span
-									>
-								{:else}
-									<Spinner class="h-4 w-4" />
-								{/if}
-							</div>
-						{/if}
 
 						{#if $balanceStatus.error}
 							<div class="flex items-center justify-between">
@@ -371,7 +331,7 @@
 								</span>
 								<button
 									class="flex items-center gap-1 text-xs text-primary hover:underline"
-									onclick={() => balance.update()}
+									onclick={() => accountBalance.update()}
 								>
 									<RefreshCwIcon class="h-3 w-3" />
 									Retry
@@ -379,7 +339,7 @@
 							</div>
 						{/if}
 
-						{#if hasFaucet && $balance.step === 'Loaded' && $balance.value === 0n}
+						{#if hasFaucet && $accountBalance.step === 'Loaded' && $accountBalance.value === 0n}
 							<FaucetButton />
 						{/if}
 					</div>

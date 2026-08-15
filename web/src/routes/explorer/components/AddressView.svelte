@@ -39,7 +39,7 @@
 
 	let {
 		publicClient,
-		executor,
+		accountExecutor,
 		accountCannotSend,
 		connection,
 		deployments,
@@ -252,7 +252,7 @@
 												contractAddress={address}
 												{connection}
 												{publicClient}
-												{executor}
+												{accountExecutor}
 												{accountCannotSend}
 												{balanceCheck}
 											/>
@@ -283,7 +283,7 @@
 												contractAddress={address}
 												{connection}
 												{publicClient}
-												{executor}
+												{accountExecutor}
 												{accountCannotSend}
 												{balanceCheck}
 											/>

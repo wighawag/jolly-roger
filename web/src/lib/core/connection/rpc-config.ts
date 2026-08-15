@@ -15,8 +15,27 @@ export function hasConfiguredRpc(
 	explicitNodeURL: string | undefined,
 	chainRpcUrls: readonly string[] | undefined,
 ): boolean {
-	if (explicitNodeURL?.trim()) {
-		return true;
+	return !!resolveAppRpcUrl(explicitNodeURL, chainRpcUrls);
+}
+
+/**
+ * WHICH RPC that is, when there is one.
+ *
+ * The same question as {@link hasConfiguredRpc}, answered with the url rather
+ * than a yes, for the callers that need to talk to it directly rather than
+ * merely know it exists (the nonce-cache check, which compares the wallet's
+ * idea of the nonce against a trusted node's).
+ *
+ * `PUBLIC_NODE_URL` wins over a chain rpcUrl: an explicit setting is a
+ * deliberate override of whatever the deployment happens to carry.
+ */
+export function resolveAppRpcUrl(
+	explicitNodeURL: string | undefined,
+	chainRpcUrls: readonly string[] | undefined,
+): string | undefined {
+	const explicit = explicitNodeURL?.trim();
+	if (explicit) {
+		return explicit;
 	}
-	return !!chainRpcUrls?.some((url) => url?.trim());
+	return chainRpcUrls?.map((url) => url?.trim()).find((url) => !!url);
 }

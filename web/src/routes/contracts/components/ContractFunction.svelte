@@ -32,7 +32,7 @@
 		contractAddress: string;
 		connection: AnyConnectionStore<UnderlyingEthereumProvider>;
 		publicClient: PublicClient;
-		executor: ExecutorStore;
+		accountExecutor: ExecutorStore;
 		accountCannotSend: AccountCannotSendStore;
 		balanceCheck: BalanceCheckStore;
 	}
@@ -43,7 +43,7 @@
 		contractAddress,
 		connection,
 		publicClient,
-		executor,
+		accountExecutor,
 		accountCannotSend,
 		balanceCheck,
 	}: Props = $props();
@@ -96,7 +96,7 @@
 		try {
 			const outcome = await executeContractWrite({
 				connection,
-				executor,
+				accountExecutor,
 				balanceCheck,
 				abiItem,
 				contractAddress,

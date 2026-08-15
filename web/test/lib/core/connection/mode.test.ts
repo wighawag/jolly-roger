@@ -1,85 +1,68 @@
 import {describe, it, expect} from 'vitest';
 import {
-	parseExecutionMode,
-	resolveConnectionMode,
+	resolveConnectionConfig,
+	TARGET_STEP,
 } from '../../../../src/lib/core/connection/mode';
 
-describe('parseExecutionMode', () => {
-	it("defaults to 'wallet' when empty or absent", () => {
-		expect(parseExecutionMode(undefined)).toBe('wallet');
-		expect(parseExecutionMode('')).toBe('wallet');
-		expect(parseExecutionMode('  ')).toBe('wallet');
-	});
-
-	it('accepts wallet and signer (case-insensitive)', () => {
-		expect(parseExecutionMode('wallet')).toBe('wallet');
-		expect(parseExecutionMode('signer')).toBe('signer');
-		expect(parseExecutionMode('SIGNER')).toBe('signer');
-		expect(parseExecutionMode('Wallet')).toBe('wallet');
-	});
-
-	it('rejects unrecognised values (returns undefined for fail-fast)', () => {
-		expect(parseExecutionMode('singer')).toBeUndefined();
-		expect(parseExecutionMode('local')).toBeUndefined();
-		expect(parseExecutionMode('true')).toBeUndefined();
+describe('TARGET_STEP', () => {
+	/**
+	 * Not a tautology. This template is the wallet-connected one: the account
+	 * sends its own transactions, and nothing here spends from a derived signer.
+	 * Flipping the constant is a deliberate act that also needs the executor and
+	 * funding UI from the signer variant, so it should not happen by accident in
+	 * a merge.
+	 */
+	it('is WalletConnected on this branch', () => {
+		expect(TARGET_STEP).toBe('WalletConnected');
 	});
 });
 
-describe('resolveConnectionMode', () => {
-	it('WalletConnected + wallet: the default (no walletHost, no mode)', () => {
-		const r = resolveConnectionMode(undefined, undefined);
-		expect(r).toEqual({
-			ok: true,
-			mode: {
-				targetStep: 'WalletConnected',
-				walletHost: undefined,
-				executionMode: 'wallet',
-			},
+describe('resolveConnectionConfig', () => {
+	it('offers no hosted mechanisms without a host', () => {
+		expect(resolveConnectionConfig('WalletConnected', undefined)).toEqual({
+			targetStep: 'WalletConnected',
+			walletHost: undefined,
+			walletOnly: true,
 		});
 	});
 
-	it('SignedIn + wallet: walletHost set, wallet execution', () => {
-		const r = resolveConnectionMode('https://example.com', 'wallet');
-		expect(r).toEqual({
-			ok: true,
-			mode: {
-				targetStep: 'SignedIn',
-				walletHost: 'https://example.com',
-				executionMode: 'wallet',
-			},
+	it('offers hosted mechanisms when a host is configured', () => {
+		expect(
+			resolveConnectionConfig('SignedIn', 'https://wallet.example'),
+		).toEqual({
+			targetStep: 'SignedIn',
+			walletHost: 'https://wallet.example',
+			walletOnly: false,
 		});
 	});
 
-	it('SignedIn + signer: walletHost set, signer execution', () => {
-		const r = resolveConnectionMode('https://example.com', 'signer');
-		expect(r).toEqual({
-			ok: true,
-			mode: {
-				targetStep: 'SignedIn',
-				walletHost: 'https://example.com',
-				executionMode: 'signer',
-			},
+	/**
+	 * The host decides which MECHANISMS exist, never how far the connection
+	 * goes. Reading the two apart is the whole point of the split, and testing
+	 * both crossings is what stops them being quietly recombined.
+	 */
+	it('keeps the target step independent of the host', () => {
+		expect(
+			resolveConnectionConfig('WalletConnected', 'https://wallet.example'),
+		).toMatchObject({targetStep: 'WalletConnected', walletOnly: false});
+
+		expect(resolveConnectionConfig('SignedIn', undefined)).toMatchObject({
+			targetStep: 'SignedIn',
+			walletOnly: true,
 		});
 	});
 
-	it('rejects the illegal combination: signer execution without SignedIn', () => {
-		const r = resolveConnectionMode(undefined, 'signer');
-		expect(r.ok).toBe(false);
-		if (!r.ok) expect(r.error).toMatch(/PUBLIC_WALLET_HOST/);
+	it('treats a blank host as no host', () => {
+		expect(resolveConnectionConfig('WalletConnected', '   ')).toEqual({
+			targetStep: 'WalletConnected',
+			walletHost: undefined,
+			walletOnly: true,
+		});
 	});
 
-	it('rejects unrecognised execution mode values', () => {
-		const r = resolveConnectionMode('https://example.com', 'singer');
-		expect(r.ok).toBe(false);
-		if (!r.ok) expect(r.error).toMatch(/Unrecognised/);
-	});
-
-	it('treats a whitespace-only walletHost as absent', () => {
-		const r = resolveConnectionMode('   ', undefined);
-		expect(r.ok).toBe(true);
-		if (r.ok) {
-			expect(r.mode.targetStep).toBe('WalletConnected');
-			expect(r.mode.walletHost).toBeUndefined();
-		}
+	it('trims a configured host', () => {
+		expect(
+			resolveConnectionConfig('WalletConnected', '  https://x.example  '),
+		).toMatchObject({walletHost: 'https://x.example'});
 	});
 });

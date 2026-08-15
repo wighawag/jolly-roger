@@ -17,7 +17,7 @@ export type SetGreetingResult =
 
 export type SetGreetingDeps = Pick<
 	Context,
-	'connection' | 'executor' | 'deployments' | 'balanceCheck'
+	'connection' | 'accountExecutor' | 'deployments' | 'balanceCheck'
 >;
 
 /**
@@ -36,7 +36,7 @@ export async function setGreeting(
 	deps: SetGreetingDeps,
 	message: string,
 ): Promise<SetGreetingResult> {
-	const {connection, executor, deployments, balanceCheck} = deps;
+	const {connection, accountExecutor, deployments, balanceCheck} = deps;
 
 	const trimmed = message.trim();
 	if (!trimmed) return {status: 'cancelled'};
@@ -45,9 +45,10 @@ export async function setGreeting(
 		await connection.ensureConnected();
 		const $deployments = get(deployments);
 
-		const $executor = get(executor);
-		if ($executor.status === 'cannot-send') return {status: 'cannot-send'};
-		if ($executor.status !== 'ready') return {status: 'cancelled'};
+		const $accountExecutor = get(accountExecutor);
+		if ($accountExecutor.status === 'cannot-send')
+			return {status: 'cannot-send'};
+		if ($accountExecutor.status !== 'ready') return {status: 'cancelled'};
 
 		const contractRequest = await balanceCheck.ensureCanAfford({
 			contract: {
@@ -55,11 +56,11 @@ export async function setGreeting(
 				abi: $deployments.contracts.GreetingsRegistry.abi,
 				functionName: 'setMessage',
 				args: [trimmed],
-				account: $executor.account,
+				account: $accountExecutor.account,
 			},
 		});
 
-		await $executor.client.writeContract(contractRequest);
+		await $accountExecutor.client.writeContract(contractRequest);
 		return {status: 'submitted'};
 	} catch (error) {
 		if (

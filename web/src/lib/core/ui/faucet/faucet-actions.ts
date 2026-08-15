@@ -57,7 +57,11 @@ export async function claimViaApi(params: {
 
 export type FaucetClaimDeps = Pick<
 	Context,
-	'executor' | 'balance' | 'deployments' | 'publicClient' | 'balanceCheck'
+	| 'accountExecutor'
+	| 'accountBalance'
+	| 'deployments'
+	| 'publicClient'
+	| 'balanceCheck'
 >;
 
 /**
@@ -65,17 +69,24 @@ export type FaucetClaimDeps = Pick<
  * flow), then refresh balance and notify the balance-check store so it can poll
  * for the balance change. Throws on failure.
  *
- * Funds the address that actually pays for transactions (the executor address):
+ * Funds the address that actually pays for transactions (the accountExecutor address):
  * the wallet/owner in wallet mode, the local signer in signer mode.
  */
 export async function claimFaucet(
 	deps: FaucetClaimDeps,
 	config: {faucetApi?: string; faucetLink: string},
 ): Promise<void> {
-	const {executor, balance, deployments, publicClient, balanceCheck} = deps;
+	const {
+		accountExecutor,
+		accountBalance,
+		deployments,
+		publicClient,
+		balanceCheck,
+	} = deps;
 
-	const $executor = get(executor);
-	const address = $executor.status === 'ready' ? $executor.address : undefined;
+	const $accountExecutor = get(accountExecutor);
+	const address =
+		$accountExecutor.status === 'ready' ? $accountExecutor.address : undefined;
 	if (!address) {
 		throw new Error(`no account for faucet`);
 	}
@@ -97,11 +108,11 @@ export async function claimFaucet(
 	}
 
 	// Record pre-faucet balance before triggering update.
-	const currentBalance = get(balance);
+	const currentBalance = get(accountBalance);
 	const preFaucetBalance =
 		currentBalance.step === 'Loaded' ? currentBalance.value : 0n;
 	// Trigger immediate balance refresh.
-	balance.update();
+	accountBalance.update();
 	// Notify the balance check store to poll for balance change.
 	balanceCheck.markFaucetClaimed(preFaucetBalance);
 }

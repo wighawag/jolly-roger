@@ -1,5 +1,4 @@
 import {describe, it, expect} from 'vitest';
-import {writable} from 'svelte/store';
 import {createTrackedWalletConnector} from '../../../src/lib/account/connectors';
 
 /**
@@ -41,107 +40,64 @@ function makeFakeAccountData() {
 	};
 }
 
-function setup(executorInitial: unknown) {
+function setup() {
 	const walletClient = makeFakeClient();
-	const executor = writable(executorInitial);
 	const {added, accountData} = makeFakeAccountData();
 	const connector = createTrackedWalletConnector({
 		walletClient: walletClient as never,
-		executor: executor as never,
 		accountData,
 	});
-	return {walletClient, executor, connector, added};
+	return {walletClient, connector, added};
 }
 
 const tx = (hash: string) => ({hash, metadata: {}});
 
 describe('createTrackedWalletConnector', () => {
 	it('attaches the wallet client and records its broadcasts', () => {
-		const {walletClient, connector, added} = setup({status: 'not-connected'});
+		const {walletClient, connector, added} = setup();
 		connector.connect();
+
 		expect(walletClient.listenerCount('transaction:broadcasted')).toBe(1);
 		walletClient.emit('transaction:broadcasted', tx('0x01'));
 		expect(added).toHaveLength(1);
+
 		connector.disconnect();
 		expect(walletClient.listenerCount('transaction:broadcasted')).toBe(0);
 	});
 
-	it('does not double-attach when the executor exposes the wallet client (wallet mode)', () => {
-		const walletClient = makeFakeClient();
-		const executor = writable({
-			status: 'ready',
-			address: '0x1',
-			account: '0x1',
-			client: walletClient,
-		});
-		const {added, accountData} = makeFakeAccountData();
-		const connector = createTrackedWalletConnector({
-			walletClient: walletClient as never,
-			executor: executor as never,
-			accountData,
-		});
+	it('records fetched transactions as well as broadcasts', () => {
+		const {walletClient, connector} = setup();
 		connector.connect();
-		expect(walletClient.listenerCount('transaction:broadcasted')).toBe(1);
-		walletClient.emit('transaction:broadcasted', tx('0x01'));
-		expect(added).toHaveLength(1); // recorded once, not twice
+
+		expect(walletClient.listenerCount('transaction:fetched')).toBe(1);
+
 		connector.disconnect();
+		expect(walletClient.listenerCount('transaction:fetched')).toBe(0);
 	});
 
-	it('detaches the previous signer client when a new one replaces it', () => {
-		const signerA = makeFakeClient();
-		const signerB = makeFakeClient();
-		const {walletClient, executor, connector, added} = setup({
-			status: 'ready',
-			address: '0xa',
-			account: '0xa',
-			client: signerA,
-		});
+	/**
+	 * One client, attached once. This app sends everything through the connected
+	 * wallet, so there is no second client to swap in and no identity change that
+	 * could leave a stale one writing into another account's data - the failure
+	 * an app with a derived signer has to handle, and does not have here.
+	 */
+	it('attaches exactly once, and leaves nothing behind', () => {
+		const {walletClient, connector} = setup();
+
 		connector.connect();
-		expect(signerA.listenerCount('transaction:broadcasted')).toBe(1);
+		expect(walletClient.listenerCount('transaction:broadcasted')).toBe(1);
 
-		// Re-sign-in as a different identity: executor exposes a NEW client.
-		executor.set({
-			status: 'ready',
-			address: '0xb',
-			account: '0xb',
-			client: signerB,
-		});
-		expect(signerA.listenerCount('transaction:broadcasted')).toBe(0);
-		expect(signerB.listenerCount('transaction:broadcasted')).toBe(1);
+		connector.disconnect();
+		expect(walletClient.listenerCount('transaction:broadcasted')).toBe(0);
+		expect(walletClient.listenerCount('transaction:fetched')).toBe(0);
+	});
 
-		// A late event from the stale client must NOT reach account data.
-		signerA.emit('transaction:broadcasted', tx('0xdead'));
+	it('drops events once disconnected', () => {
+		const {walletClient, connector, added} = setup();
+		connector.connect();
+		connector.disconnect();
+
+		walletClient.emit('transaction:broadcasted', tx('0xdead'));
 		expect(added).toHaveLength(0);
-		signerB.emit('transaction:broadcasted', tx('0x02'));
-		expect(added).toHaveLength(1);
-
-		connector.disconnect();
-		expect(signerB.listenerCount('transaction:broadcasted')).toBe(0);
-		expect(walletClient.listenerCount('transaction:broadcasted')).toBe(0);
-	});
-
-	it('keeps the signer attachment across transient not-ready states', () => {
-		const signerA = makeFakeClient();
-		const {executor, connector} = setup({
-			status: 'ready',
-			address: '0xa',
-			account: '0xa',
-			client: signerA,
-		});
-		connector.connect();
-		expect(signerA.listenerCount('transaction:broadcasted')).toBe(1);
-
-		// Mid-reconnect blip: same identity will come back.
-		executor.set({status: 'not-connected'});
-		expect(signerA.listenerCount('transaction:broadcasted')).toBe(1);
-		executor.set({
-			status: 'ready',
-			address: '0xa',
-			account: '0xa',
-			client: signerA,
-		});
-		expect(signerA.listenerCount('transaction:broadcasted')).toBe(1); // still exactly one
-
-		connector.disconnect();
 	});
 });

@@ -27,16 +27,19 @@
 		</p>
 		<p>Please reconnect with a web3 wallet to continue.</p>
 		{#if dev}
-			<!-- Developer-facing hint, shown only in dev builds: the real fix for
-			     supporting email/social users is a configuration change. -->
+			<!-- Developer-facing hint, shown only in dev builds. There is no setting
+			     that fixes this here: an account with no wallet has nothing to sign
+			     with, and this template only ever sends from the account itself. -->
 			<p
 				class="flex items-start gap-2 rounded-md border border-input bg-muted/50 p-3 text-xs"
 			>
 				<WrenchIcon class="mt-0.5 h-4 w-4 shrink-0" />
 				<span>
-					Dev note: to let email/social accounts transact, set
-					<code class="font-mono">PUBLIC_EXECUTION_MODE=signer</code> so transactions
-					are sent from the local signer instead of a wallet.
+					Dev note: this template sends every transaction from the connected
+					account, so an account without a wallet cannot transact at all. To
+					support email and social sign-ins, send from the local signer derived
+					at sign-in instead - see the signer variant of this template, which
+					adds the executor, balance and funding flow that needs.
 				</span>
 			</p>
 		{/if}
