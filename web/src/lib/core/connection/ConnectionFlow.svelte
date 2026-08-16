@@ -61,14 +61,17 @@
 	// the user swapped their active account while on the confirm screen.
 	let signInAddress = $derived(resolveSignInAddress($connection));
 
-	// Whether clicking away (or escape) should tear the flow down. It must not
-	// while a wallet is being waited on: the wallet takes the focus, and the
-	// first click back on the page lands outside the dialog. Cancel is offered in
-	// every one of those steps and still works. See canDismissConnection.
+	// Whether clicking away (or escape) should tear the flow down. See
+	// canDismissConnection for why it must not while the wallet holds a request.
+	//
+	// Passed as `undefined` rather than as a guarded handler when dismissal is
+	// refused, because Modal.Root derives its affordances from whether it got one
+	// (see core/ui/modal/modal.svelte: showCloseButton, interactOutsideBehavior,
+	// escapeKeydownBehavior). A handler that decides internally would leave the
+	// close X on screen doing nothing and swallow escape silently, which is worse
+	// than refusing: it offers an exit that is not there.
 	let dismissable = $derived(canDismissConnection($connection));
-	const dismiss = () => {
-		if (dismissable) connection.cancel();
-	};
+	const dismiss = () => connection.cancel();
 	let swappedAccount = $derived(hasSwappedAccount($connection));
 
 	// What a failed attempt should say. Under @etherplay/connect 0.6.0 the wallet
@@ -111,10 +114,7 @@
 	}
 </script>
 
-<Modal.Root
-	openWhen={$connection.step == 'WaitingForWalletConnection'}
-	onCancel={() => dismissable && connection.back('Idle')}
->
+<Modal.Root openWhen={$connection.step == 'WaitingForWalletConnection'}>
 	<Modal.Title>Waiting for Wallet Connection...</Modal.Title>
 	Please Accept Connection Request...
 </Modal.Root>
@@ -150,7 +150,7 @@
 <Modal.Root
 	openWhen={$connection.step == 'WalletToChoose' ||
 		$connection.step == 'MechanismToChoose'}
-	onCancel={dismiss}
+	onCancel={dismissable ? dismiss : undefined}
 	elementToFocus={emailInput}
 >
 	{#if connection.targetStep == 'SignedIn' && !connection.walletOnly}
@@ -368,7 +368,7 @@
 	openWhen={connection.targetStep !== 'WalletConnected' &&
 		$connection.step === 'WalletConnected' &&
 		!signingInFromChooser}
-	onCancel={dismiss}
+	onCancel={dismissable ? dismiss : undefined}
 >
 	<Modal.Title>Confirm sign in</Modal.Title>
 	<Modal.Description>
@@ -412,7 +412,7 @@
        action (no signature follows). -->
 <Modal.Root
 	openWhen={$connection.step === 'ChooseWalletAccount'}
-	onCancel={dismiss}
+	onCancel={dismissable ? dismiss : undefined}
 >
 	{#if $connection.step == 'ChooseWalletAccount'}
 		<!-- ASSERT ChooseWalletAccount -->
@@ -503,7 +503,7 @@
 <BasicModal
 	openWhen={$connection.step === 'WaitingForSignature'}
 	title="Please sign"
-	onCancel={dismiss}
+	onCancel={dismissable ? dismiss : undefined}
 >
 	<p>Please accept the signature request...</p>
 </BasicModal>
@@ -553,7 +553,7 @@
 		$connection.mechanism.type === 'wallet' &&
 		$connection.wallet?.invalidChainId) ||
 		false}
-	onCancel={dismiss}
+	onCancel={dismissable ? dismiss : undefined}
 >
 	<Modal.Title>Switch Network Required</Modal.Title>
 	<Modal.Description>
