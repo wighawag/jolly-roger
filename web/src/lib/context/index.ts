@@ -189,7 +189,7 @@ export function createContext(): {
 	// connected wallet (see TARGET_STEP in core/connection/mode) and so has no
 	// local signer to offer a second one. An app that flips that switch adds a
 	// `sendFrom: 'signer'` executor beside this one, supplying the client factory
-	// the union then requires; nothing about this one changes.
+	// that mode requires; nothing about this one changes.
 	const accountExecutor = createExecutor({
 		connection,
 		walletClient,
