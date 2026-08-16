@@ -350,7 +350,7 @@ describe('canDismissConnection: not losing a flow to a stray click', () => {
 			'WaitingForSignature',
 			'PopupLaunched',
 		] as const) {
-			expect(canDismissConnection({step} as never), step).toBe(false);
+			expect(canDismissConnection({step}), step).toBe(false);
 		}
 	});
 
@@ -360,8 +360,21 @@ describe('canDismissConnection: not losing a flow to a stray click', () => {
 				step: 'WalletConnected',
 				mechanism: {type: 'wallet', name: 'MetaMask'},
 				wallet: {pendingRequests: [{}]},
-			} as never),
+			}),
 		).toBe(false);
+	});
+
+	it('allows one while a burner wallet is still being selected', () => {
+		// hasPendingWalletRequest suppresses itself during the burner selection
+		// phase, so a pending request there does not freeze the flow. Nothing is
+		// waiting on a human in another window, so there is nothing to protect.
+		expect(
+			canDismissConnection({
+				step: 'WalletToChoose',
+				mechanism: {type: 'wallet', name: 'Burner Wallet'},
+				wallet: {pendingRequests: [{}]},
+			}),
+		).toBe(true);
 	});
 
 	it('allows one on the steps that are simply waiting for the user', () => {
@@ -373,7 +386,7 @@ describe('canDismissConnection: not losing a flow to a stray click', () => {
 			'ChooseWalletAccount',
 			'WalletConnected',
 		] as const) {
-			expect(canDismissConnection({step} as never), step).toBe(true);
+			expect(canDismissConnection({step}), step).toBe(true);
 		}
 	});
 });
