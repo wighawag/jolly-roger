@@ -407,14 +407,24 @@ echo -e "${GREEN}✓ Web app built${NC}"
 # contract on THIS run's chain, and is it the address the build shipped?
 echo -e "\n${GREEN}🔎 Verifying the build points at this run's contracts...${NC}"
 
-# The exported module is `export default {...} as const;`, i.e. JSON with a
-# wrapper - parsed rather than grepped, so this reads the contracts' own
-# addresses and not the first hex string that happens to look like one.
+# The exported module is JSON with a TypeScript wrapper - parsed rather than
+# grepped, so this reads the contracts' own addresses and not the first hex
+# string that happens to look like one.
+#
+# Two wrappers exist, so the object is located rather than assumed. Up to
+# @rocketh/export 0.19.12 the file was `export default {...} as const;`. From
+# 0.19.19 it is a prelude of type aliases, then `const _deployments = {...} as
+# const;`, then a default export that casts it (the aliases widen chain.rpcUrls
+# and chain.properties, which `as const` had pinned to types nothing could be
+# assigned to). Stripping a leading `export default` therefore left the prelude
+# in place and JSON.parse died on `type JSONValue`, one step before the check
+# this exists to perform.
 DEPLOYED_ADDRESSES="$(node -e '
   const fs = require("fs");
   const src = fs.readFileSync(process.argv[1], "utf-8");
-  const json = src.replace(/^\s*export default\s*/, "").replace(/\s*as const;?\s*$/, "");
-  const addresses = Object.values(JSON.parse(json).contracts || {}).map((c) => c.address);
+  const match = src.match(/(?:const _deployments\s*=|export default)\s*(\{[\s\S]*\})\s*as const;/);
+  if (!match) throw new Error(`no deployments object found in ${process.argv[1]}`);
+  const addresses = Object.values(JSON.parse(match[1]).contracts || {}).map((c) => c.address);
   if (addresses.length === 0) throw new Error(`no contracts in ${process.argv[1]}`);
   console.log(addresses.join(" "));
 ' "$WEB_DIR/src/lib/deployments.ts")"
