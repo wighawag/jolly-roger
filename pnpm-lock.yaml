@@ -152,7 +152,7 @@ importers:
         version: 0.0.9(viem@2.55.11(typescript@6.0.3)(zod@4.4.3))
       '@etherplay/connect':
         specifier: ^0.7.0
-        version: 0.7.0(svelte@5.56.8)
+        version: 0.7.1(svelte@5.56.8)
       '@internationalized/date':
         specifier: ^3.12.3
         version: 3.12.3
@@ -487,11 +487,11 @@ packages:
     peerDependencies:
       viem: ^2.46.3
 
-  '@etherplay/connect-core@0.6.0':
-    resolution: {integrity: sha512-kANLkNrxezyxE9NHUASflyAUTZ7W78QY7R1KCsqDHHvxJGTQ3I1JnPoi3GZ67hpPhZz/L8yq2RnpZ2dIMe/TIQ==}
+  '@etherplay/connect-core@0.7.0':
+    resolution: {integrity: sha512-Z3dDK3wVMEORovLz7509ekfd7NlGAOb6HiZkfE922vPVxKp4KKyjTWumtBQZin3V95JkLcwHj/Cgf0iS+/YNcA==}
 
-  '@etherplay/connect@0.7.0':
-    resolution: {integrity: sha512-/TF47hjj85e49nDhISeOWxSLidXKjJqXmIzVZGNdmQCOwS+DluGgHniceBBgeyIF9k17IxD5DNdX+j0CUNCZuw==}
+  '@etherplay/connect@0.7.1':
+    resolution: {integrity: sha512-YLfMFLTJQjfYWqLWg1GpTGxQ6acW52NhmNJzDmYipQagVSpRnxhW9xJKXEHO5wu6FhJMuzboaIqcA4fIi6gP+A==}
     peerDependencies:
       svelte: ^5.0.0
 
@@ -3142,7 +3142,7 @@ snapshots:
       radiate: 0.3.2
       viem: 2.55.11(typescript@6.0.3)(zod@4.4.3)
 
-  '@etherplay/connect-core@0.6.0':
+  '@etherplay/connect-core@0.7.0':
     dependencies:
       '@etherplay/delegation': 0.1.0
       '@etherplay/wallet-connector': 0.0.5
@@ -3152,9 +3152,9 @@ snapshots:
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
 
-  '@etherplay/connect@0.7.0(svelte@5.56.8)':
+  '@etherplay/connect@0.7.1(svelte@5.56.8)':
     dependencies:
-      '@etherplay/connect-core': 0.6.0
+      '@etherplay/connect-core': 0.7.0
       '@etherplay/wallet-connector': 0.0.5
       '@etherplay/wallet-connector-ethereum': 0.0.12
       svelte: 5.56.8
@@ -4386,7 +4386,7 @@ snapshots:
   eip-1193-accounts-wrapper@0.2.0(typescript@6.0.3)(zod@4.4.3):
     dependencies:
       named-logs: 0.4.1
-      viem: 2.55.11(typescript@6.0.3)(zod@4.4.3)
+      viem: 2.55.16(typescript@6.0.3)(zod@4.4.3)
     transitivePeerDependencies:
       - bufferutil
       - typescript
@@ -5578,6 +5578,23 @@ snapshots:
       abitype: 1.2.3(typescript@6.0.3)(zod@3.25.76)
       isows: 1.0.7(ws@8.21.0)
       ox: 0.14.33(typescript@6.0.3)(zod@3.25.76)
+      ws: 8.21.0
+    optionalDependencies:
+      typescript: 6.0.3
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+      - zod
+
+  viem@2.55.16(typescript@6.0.3)(zod@4.4.3):
+    dependencies:
+      '@noble/curves': 1.9.1
+      '@noble/hashes': 1.8.0
+      '@scure/bip32': 1.7.0
+      '@scure/bip39': 1.6.0
+      abitype: 1.2.3(typescript@6.0.3)(zod@4.4.3)
+      isows: 1.0.7(ws@8.21.0)
+      ox: 0.14.33(typescript@6.0.3)(zod@4.4.3)
       ws: 8.21.0
     optionalDependencies:
       typescript: 6.0.3
