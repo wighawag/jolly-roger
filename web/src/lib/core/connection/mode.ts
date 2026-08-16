@@ -29,9 +29,20 @@ export type TargetStep = 'WalletConnected' | 'SignedIn';
  * prompt the user did not ask for. Correct for an app that only ever sends from
  * the user's own account.
  *
- * THE ONE LINE a descendant changes to gain or drop the signer. Everything else
- * keys on `targetStep`, never on `PUBLIC_WALLET_HOST`, so this is the whole
- * switch.
+ * `'SignedIn'`: the user signs a message once, which derives a local signer the
+ * app can send from without prompting. Everything that wants to act on the
+ * user's behalf (game moves, anything frequent) needs this.
+ *
+ * THE ONE LINE a descendant changes to gain or drop the signer, and the only
+ * line: everything in core/connection keys on `targetStep`, never on
+ * `PUBLIC_WALLET_HOST`, and never on which variant it is running in.
+ *
+ * It is not the only line in the APP, and the difference matters. Flipping this
+ * changes what the connection does and what `createExecutor` can be asked for;
+ * it does not decide which call sites should spend a signer, nor build the
+ * client that signer sends through, both of which are the app's own wiring (see
+ * lib/context). What a descendant no longer has to do is edit this module, the
+ * executor, or the connection to get there.
  */
 export const TARGET_STEP: TargetStep = 'SignedIn';
 
@@ -60,7 +71,7 @@ export type ConnectionConfig = {
  * Total: there is no illegal combination left to reject. `SignedIn` without a
  * host means wallet-only sign-in; `WalletConnected` with a host simply never
  * uses it. The one invalid combination this used to guard (signer execution
- * without a signer) disappeared with `PUBLIC_EXECUTION_MODE`: call sites now
+ * without a signer) disappeared with the execution-mode axis: call sites now
  * name the executor they want, and one that has no signer behind it is never
  * `ready` rather than being a misconfiguration.
  */

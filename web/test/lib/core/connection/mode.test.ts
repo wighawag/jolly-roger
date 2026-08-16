@@ -70,7 +70,6 @@ describe('resolveConnectionConfig', () => {
 		}
 	});
 });
-
 describe('TARGET_STEP', () => {
 	it('is a configured constant, not read from env', () => {
 		// This branch signs in, because its whole point is having a local signer.
