@@ -26,12 +26,86 @@ const RPC_PORT = (globalThis as any).process.env.E2E_RPC_PORT || '8545';
 const HARDHAT_RPC_URL =
 	(globalThis as any).process.env.E2E_RPC_URL || `http://127.0.0.1:${RPC_PORT}`;
 
+/**
+ * How many times one call to the node is worth sending: the original, plus a
+ * single repeat for a connection that died in transit. Anything higher stops
+ * being a transport allowance and starts being a way not to hear about a node
+ * that is genuinely unwell.
+ */
+const RPC_ATTEMPTS = 2;
+/** Long enough for a dropped socket to be replaced, short enough to not be a wait. */
+const RPC_RETRY_DELAY_MS = 250;
+/** How far a failure message follows `cause` before it stops. Cycles are legal. */
+const MAX_CAUSE_DEPTH = 5;
+
 // The app's base URL comes from playwright.config.ts (`use.baseURL`), so tests
 // navigate with relative paths and nothing here needs to duplicate it.
 
 /**
+ * An error and everything it was caused by, one line each.
+ *
+ * Node's `fetch` throws a bare `TypeError: fetch failed` and puts the reason
+ * that actually explains it - ECONNRESET, ECONNREFUSED, a socket timeout - on
+ * `cause`. A message that prints only the top-level error therefore names the
+ * symptom and hides the diagnosis, which is how a transport blip against the
+ * node reads as an inscrutable four-word failure.
+ */
+function causeChain(error: unknown): string {
+	const lines: string[] = [];
+	let current: any = error;
+	// Bounded: `cause` is a user-supplied field and nothing forbids a cycle.
+	while (current && lines.length < MAX_CAUSE_DEPTH) {
+		const parts = [
+			`${current.name ?? typeof current}: ${current.message ?? String(current)}`,
+		];
+		for (const key of ['code', 'errno', 'syscall'] as const) {
+			if (current[key] !== undefined) parts.push(`${key}=${current[key]}`);
+		}
+		lines.push(parts.join(' '));
+		current = current.cause;
+	}
+	return lines.join('\n    caused by ');
+}
+
+/**
+ * The node answered, and the answer was no.
+ *
+ * ITS OWN CLASS RATHER THAN A FLAG ON THE ERROR, because the alternative is to
+ * smuggle the flag through `cause` - and `cause` already means something here:
+ * `causeChain` walks it. A `{retryable: false}` sentinel parked there gets
+ * walked into and printed as `object: [object Object]`, appending a line of
+ * junk to the refusal message, which is the case with the most diagnostic
+ * value in the whole function. So the marker goes somewhere the chain cannot
+ * see it, and `cause` stays free for a real underlying error.
+ */
+class NodeRefusedCall extends Error {
+	name = 'NodeRefusedCall';
+}
+
+/**
  * Fund an address using Hardhat's hardhat_setBalance RPC method.
  * This is useful for tests where we need to ensure the wallet has ETH.
+ *
+ * ONE RETRY, AND ONLY FOR THE TRANSPORT. Under parallel load several workers
+ * fund at once and a connection to the node occasionally dies mid-request,
+ * which surfaced as `TypeError: fetch failed` in a test that had already
+ * connected its wallet successfully - a socket problem wearing the costume of
+ * an app problem. This is not a test retry (those hide signal): it is one call
+ * to a node that dropped one connection, and it is safe only because
+ * `hardhat_setBalance` sets an ABSOLUTE balance, so sending it twice lands on
+ * the same state as sending it once. Do not copy this loop onto anything that
+ * accumulates, like a transfer.
+ *
+ * WHAT COUNTS AS AN ANSWER, and so is never repeated:
+ *
+ * - a JSON-RPC error in the body: the node considered the call and refused it
+ * - any 4xx: the request itself is wrong, and it will be just as wrong twice
+ * - a body that is not JSON: something that is not the node replied (a proxy,
+ *   or the wrong port), and it will reply the same way again
+ *
+ * A 5xx is NOT an answer in that sense - the node can be transiently unable to
+ * serve while it is being hammered by eight workers - so it is retried along
+ * with the transport failures.
  */
 export async function fundAddressViaHardhat(
 	address: string,
@@ -41,19 +115,59 @@ export async function fundAddressViaHardhat(
 	const weiAmount = BigInt(parseFloat(amountInEth) * 1e18);
 	const hexAmount = '0x' + weiAmount.toString(16);
 
-	const response = await fetch(HARDHAT_RPC_URL, {
-		method: 'POST',
-		headers: {'Content-Type': 'application/json'},
-		body: JSON.stringify({
-			jsonrpc: '2.0',
-			method: 'hardhat_setBalance',
-			params: [address, hexAmount],
-			id: 1,
-		}),
-	});
+	for (let attempt = 1; attempt <= RPC_ATTEMPTS; attempt++) {
+		try {
+			const response = await fetch(HARDHAT_RPC_URL, {
+				method: 'POST',
+				headers: {'Content-Type': 'application/json'},
+				body: JSON.stringify({
+					jsonrpc: '2.0',
+					method: 'hardhat_setBalance',
+					params: [address, hexAmount],
+					id: 1,
+				}),
+			});
 
-	if (!response.ok) {
-		throw new Error(`Failed to set balance: ${response.statusText}`);
+			if (!response.ok) {
+				const description = `hardhat_setBalance returned HTTP ${response.status} ${response.statusText}`;
+				if (response.status < 500) throw new NodeRefusedCall(description);
+				throw new Error(description);
+			}
+
+			// The node answers a rejected call with HTTP 200 and an `error` member,
+			// so a body nobody reads is a funding failure nobody notices - until a
+			// later assertion fails for want of gas and takes the blame.
+			//
+			// Read as TEXT first: `response.json()` gives no way to show what it
+			// choked on, and swallowing the parse failure would re-open exactly the
+			// hole this paragraph exists to close, since an unreadable body would
+			// then pass for success.
+			const raw = await response.text();
+			let body: {error?: {message?: string; code?: number}};
+			try {
+				body = JSON.parse(raw);
+			} catch {
+				throw new NodeRefusedCall(
+					`hardhat_setBalance got a reply that is not JSON: ${raw.slice(0, 200)}`,
+				);
+			}
+			if (body?.error) {
+				throw new NodeRefusedCall(
+					`hardhat_setBalance refused for ${address}: ` +
+						`${body.error.message ?? 'no message'} (code ${body.error.code ?? 'none'})`,
+				);
+			}
+			return;
+		} catch (error) {
+			if (error instanceof NodeRefusedCall || attempt === RPC_ATTEMPTS) {
+				throw new Error(
+					`could not fund ${address} via ${HARDHAT_RPC_URL} ` +
+						`(attempt ${attempt} of ${RPC_ATTEMPTS}):\n    ${causeChain(error)}`,
+					{cause: error},
+				);
+			}
+			await new Promise((resolve) => setTimeout(resolve, RPC_RETRY_DELAY_MS));
+		}
 	}
 }
 
