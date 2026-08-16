@@ -212,7 +212,7 @@ class NodeRefusedCall extends Error {
  * serve while it is being hammered by eight workers - so it is retried along
  * with the transport failures.
  */
-async function fundAddressViaHardhat(
+export async function fundAddressViaHardhat(
 	address: string,
 	amountInEth = '100',
 ): Promise<void> {
