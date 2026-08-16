@@ -93,7 +93,10 @@ export function createContext(): {
 	// How the app authenticates. `targetStep` is config (see core/connection/mode);
 	// only the hosted-mechanism host comes from env. Total, so nothing here can
 	// fail: there is no illegal combination left to reject.
-	const {walletHost} = resolveConnectionConfig(TARGET_STEP, PUBLIC_WALLET_HOST);
+	const {targetStep, walletHost, walletOnly} = resolveConnectionConfig(
+		TARGET_STEP,
+		PUBLIC_WALLET_HOST,
+	);
 
 	// ----------------------------------------------------------------------------
 	// CONNECTION
@@ -108,7 +111,9 @@ export function createContext(): {
 		forceRpcFailure,
 	} = establishRemoteConnection({
 		nodeURL: PUBLIC_NODE_URL,
+		targetStep,
 		walletHost,
+		walletOnly,
 		// The RPC url handed to the WALLET, which is not necessarily the one the
 		// app uses. Without it the exported chain info carries an empty rpc list
 		// (rocketh does not bake a public endpoint into chain info), and a wallet
