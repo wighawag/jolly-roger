@@ -27,7 +27,10 @@ function makeConnection(initial: unknown) {
 const walletClient = {tag: 'wallet-client'} as never;
 const trackedSignerClient = {tag: 'signer-client'} as never;
 
-function makeExecutor(initialState: unknown, sendFrom: 'account' | 'signer') {
+function makeExecutor(
+	initialState: unknown,
+	sendFrom: 'account' | 'signer' = 'account',
+) {
 	const {store, connection} = makeConnection(initialState);
 	let buildCount = 0;
 	const executor = createExecutor({
@@ -284,5 +287,24 @@ describe('memoiseSignerClient', () => {
 		}
 		expect(a.client).toBe(b.client);
 		expect(a.account).toBe(b.account);
+	});
+});
+
+describe('createExecutor guards its construction', () => {
+	// The failure this prevents is quiet: an executor with no way to build its
+	// signer client would sit at `not-connected` looking like "not signed in
+	// yet", and only die when the user finally tried to send.
+	it('refuses sendFrom "signer" without a client factory', () => {
+		const {connection} = makeConnection({step: 'Idle', wallets: []});
+		expect(() =>
+			createExecutor({connection, walletClient, sendFrom: 'signer'}),
+		).toThrow(/buildSignerClient/);
+	});
+
+	it('does not require one to send from the account', () => {
+		const {connection} = makeConnection({step: 'Idle', wallets: []});
+		expect(() =>
+			createExecutor({connection, walletClient, sendFrom: 'account'}),
+		).not.toThrow();
 	});
 });
