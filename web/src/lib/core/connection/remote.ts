@@ -206,17 +206,31 @@ export type PaymentRail = {
 };
 
 /**
- * The payment rail, built up front.
+ * The payment rail, built up front BY THE APP THAT WANTS ONE.
  *
- * It was briefly built on first use instead, to avoid a second connection
- * during startup: before @etherplay/connect 0.2.0 that corrupted the first
- * connection's wallet list (both dispatched the page-wide `eip6963` request and
- * announcements were appended without deduplication). 0.2.0 deduplicates, so
- * that reason is gone, and deferring turned out to cost something worse than it
- * saved: the flow UI is bound to a connection, and a connection that does not
- * exist yet cannot have one. Paying then hung with no dialog and no explanation
- * whenever the payment connection needed the user to choose between two
- * installed wallets.
+ * Deliberately not built by `establishRemoteConnection`, and this is the one
+ * place the connection layer is composed rather than configured. Selling credits
+ * is not a setting on how far the connection authenticates: it is a second thing
+ * an app may or may not do, and an app that does not do it must not pay for a
+ * second connection it never uses. There is no `targetStep` that implies this,
+ * so there is no flag for it - an app that takes payments calls this, and an app
+ * that does not never names it and never constructs it.
+ *
+ * Hand it the same `chainInfo` the app connection was built from (returned by
+ * `establishRemoteConnection`), so the payer's wallet is told about the chain
+ * the same way the player's was. Its clients deliberately do NOT go through the
+ * app's fault-injection wrapper: forcing an RPC outage is a debug tool for the
+ * app's own reads, not a way to break payments.
+ *
+ * Built up front rather than on first use. It was briefly deferred, to avoid a
+ * second connection during startup: before @etherplay/connect 0.2.0 that
+ * corrupted the first connection's wallet list (both dispatched the page-wide
+ * `eip6963` request and announcements were appended without deduplication).
+ * 0.2.0 deduplicates, so that reason is gone, and deferring cost something worse
+ * than it saved: the flow UI is bound to a connection, and a connection that
+ * does not exist yet cannot have one. Paying then hung with no dialog and no
+ * explanation whenever the payment connection needed the user to choose between
+ * two installed wallets.
  *
  * Still dormant: `autoConnect: false` means constructing it talks to nobody and
  * raises no wallet prompt. It only acts when something calls `ensureConnected`.
@@ -304,12 +318,6 @@ export function establishRemoteConnection(options: {
 		transport: custom(faultyProvider),
 	}) as TypedPublicClient;
 
-	// Payment rail. Shares the app's chainInfo (including the wallet-facing RPC
-	// url) but gets its own provider, so its clients bypass the fault-injection
-	// wrapper above: forcing an RPC outage is a debug tool for the app's own
-	// reads, not a way to break payments.
-	const payment = createPaymentRail(chainInfo, {nodeURL: options.nodeURL});
-
 	const account = derived<typeof connection, Account>(
 		connection,
 		($connection) => {
@@ -332,11 +340,11 @@ export function establishRemoteConnection(options: {
 
 	return {
 		connection,
+		chainInfo,
 		walletClient,
 		publicClient,
 		account,
 		signer,
-		payment,
 		deployments, // Use the imported HMR-aware store
 		forceRpcFailure,
 	};

@@ -81,18 +81,25 @@ import type {ChainConnection} from './remote';
  * 'WalletConnected', plus its clients. Its own type (rather than
  * `ChainConnection`) so call sites cannot accidentally ask it for a signer or a
  * sign-in it does not have.
+ *
+ * Not part of {@link EstablishedConnection}: an app builds one only if it takes
+ * payments (see createPaymentRail in ./remote).
  */
 export type {PaymentRail} from './remote';
-import type {PaymentRail} from './remote';
 
 export type EstablishedConnection = {
 	connection: ChainConnection;
+	/**
+	 * The chain the connection was built from, after any wallet-facing RPC
+	 * override. Returned rather than kept private because an app building a
+	 * second connection (a payment rail) must describe the chain to that wallet
+	 * exactly as this one does.
+	 */
+	chainInfo: ChainInfo;
 	walletClient: TypedWalletClient;
 	publicClient: TypedPublicClient;
 	account: AccountStore;
 	signer: OptionalSignerStore;
-	/** Second connection used only to pay, built on first use (see ./remote). */
-	payment: PaymentRail;
 	deployments: DeploymentsStore;
 	/** Debug-only runtime flag: when set, all RPC requests fail (see rpc-fault). */
 	forceRpcFailure: import('svelte/store').Writable<boolean>;
