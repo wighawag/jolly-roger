@@ -14,20 +14,15 @@ export type TypedDeployments = typeof initialDeployments;
 /**
  * Chain type derived from deployments.
  *
- * `rpcUrls.default.http` is widened from the exported literal to
- * `readonly string[]`. The generated deployments may contain an empty rpc list
- * (rocketh no longer bakes in a default public RPC), which would otherwise pin
- * the type to `readonly []` and reject any code that injects an RPC url at
- * runtime (see establishRemoteConnection's chainInfoNodeURL override). An empty
- * list is a valid state: the connection then relies on PUBLIC_NODE_URL or the
- * user's wallet provider.
+ * A plain alias now. This used to re-widen `rpcUrls.default.http` by hand,
+ * because the generated file is emitted `as const` and its rpc list is usually
+ * empty, which pinned the type to `readonly []` - a type nothing is assignable
+ * to, so no code could inject an RPC url at runtime (see
+ * establishRemoteConnection's chainInfoNodeURL override). @rocketh/export now
+ * widens `rpcUrls` and `properties` at the source, leaving the literal types on
+ * addresses and ABIs untouched, so the cast has nothing left to correct.
  */
-export type ChainInfo = Omit<TypedDeployments['chain'], 'rpcUrls'> & {
-	rpcUrls: {
-		[key: string]: {http: readonly string[]; webSocket?: readonly string[]};
-		default: {http: readonly string[]; webSocket?: readonly string[]};
-	};
-};
+export type ChainInfo = TypedDeployments['chain'];
 
 /**
  * JSON-compatible value types for chain properties
@@ -61,7 +56,14 @@ export type BlockExplorers = {
 };
 
 /**
- * Augments a chain type with optional known properties.
+ * Augments a chain type with the properties this app knows how to read.
+ *
+ * Still needed after the exporter's own widening, which stops at
+ * `Record<string, JSONValue>`: that makes `properties` readable but says
+ * nothing about what any given key MEANS. Intersecting KnownChainProperties is
+ * what makes `finality` a number rather than a JSONValue at the two call sites
+ * that resolve app config. `blockExplorers` is added for the same reason: it is
+ * optional chain metadata the exporter does not model.
  */
 export type AugmentedChain<T> = T & {
 	properties?: Record<string, JSONValue> & KnownChainProperties;
