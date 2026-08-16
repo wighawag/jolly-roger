@@ -33,7 +33,7 @@ const HARDHAT_RPC_URL =
  * Fund an address using Hardhat's hardhat_setBalance RPC method.
  * This is useful for tests where we need to ensure the wallet has ETH.
  */
-async function fundAddressViaHardhat(
+export async function fundAddressViaHardhat(
 	address: string,
 	amountInEth = '100',
 ): Promise<void> {
