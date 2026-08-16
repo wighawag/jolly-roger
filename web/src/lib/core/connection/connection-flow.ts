@@ -261,6 +261,46 @@ export function isBurnerWalletInSelectionPhase(
 }
 
 /**
+ * Whether a dismissal (clicking away, or escape) should be honoured.
+ *
+ * NOT WHILE THE WALLET IS THINKING. A wallet opens in its own window and takes
+ * the focus; the first click back on the page lands outside whatever dialog is
+ * up, which a dialog reads as "close me". Cancelling a connection at that
+ * moment throws away a request the user has already started answering, and the
+ * only symptom is that the flow silently stops.
+ *
+ * AND NOT WHEN A REQUEST IS OUTSTANDING, which is the clause that carries the
+ * real risk. The app cannot withdraw a request the wallet already has. Tearing
+ * the flow down here only makes the APP forget; the request is still sitting in
+ * the wallet, and the user may approve it minutes later. For a signature or an
+ * account request that is merely untidy, but the same predicate guards steps
+ * that can have a transaction outstanding, and there it is dangerous: the
+ * transaction lands, the app never recorded it, and anything waiting to be
+ * resolved against it (a commit expecting its reveal) can no longer be.
+ *
+ * So these steps deliberately offer NO app-side cancel, and that is a real
+ * trade rather than an oversight: a wallet that never answers leaves the user
+ * on a modal whose only exit is reloading the page.
+ *
+ * TODO: offer an escape on the waiting steps that tells the truth, i.e. that the
+ * request is still with the wallet and the app cannot recall it, so approving it
+ * later still acts. Deliberately not a Cancel button, which would imply the app
+ * can undo what the wallet already has.
+ *
+ * The steps that ARE dismissable are the ones merely waiting on the user inside
+ * the app (choosing a wallet or an account, confirming a sign-in), where
+ * clicking away means what it says.
+ */
+export function canDismissConnection(state: ConnectionStateSnapshot): boolean {
+	return (
+		state.step !== 'WaitingForWalletConnection' &&
+		state.step !== 'WaitingForSignature' &&
+		state.step !== 'PopupLaunched' &&
+		!hasPendingWalletRequest(state)
+	);
+}
+
+/**
  * Whether to show the "confirm the request in your wallet" prompt: there is a
  * pending wallet request and we're not in the burner-wallet selection phase.
  */

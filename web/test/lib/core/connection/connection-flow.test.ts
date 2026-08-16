@@ -9,6 +9,7 @@ import {
 	signInToAccount,
 	combinesAccountChoiceWithSignIn,
 	effectiveAccountSelection,
+	canDismissConnection,
 } from '../../../../src/lib/core/connection/connection-flow';
 
 const wallet = (name: string) => ({info: {name, icon: ''}});
@@ -335,5 +336,57 @@ describe('signInAdoptingSwap', () => {
 		await expect(signInAdoptingSwap(connection as never)).rejects.toThrow(
 			/cancelled/,
 		);
+	});
+});
+
+describe('canDismissConnection: not losing a flow to a stray click', () => {
+	// A wallet opens in its own window and takes the focus, so the first click
+	// back on the page lands outside whatever dialog is up - which a dialog reads
+	// as "close me". Cancelling there throws away a request the user has already
+	// started answering, and the only symptom is that the flow silently stops.
+	it('refuses a dismissal while the wallet is being waited on', () => {
+		for (const step of [
+			'WaitingForWalletConnection',
+			'WaitingForSignature',
+			'PopupLaunched',
+		] as const) {
+			expect(canDismissConnection({step}), step).toBe(false);
+		}
+	});
+
+	it('refuses one while a wallet request is pending', () => {
+		expect(
+			canDismissConnection({
+				step: 'WalletConnected',
+				mechanism: {type: 'wallet', name: 'MetaMask'},
+				wallet: {pendingRequests: [{}]},
+			}),
+		).toBe(false);
+	});
+
+	it('allows one while a burner wallet is still being selected', () => {
+		// hasPendingWalletRequest suppresses itself during the burner selection
+		// phase, so a pending request there does not freeze the flow. Nothing is
+		// waiting on a human in another window, so there is nothing to protect.
+		expect(
+			canDismissConnection({
+				step: 'WalletToChoose',
+				mechanism: {type: 'wallet', name: 'Burner Wallet'},
+				wallet: {pendingRequests: [{}]},
+			}),
+		).toBe(true);
+	});
+
+	it('allows one on the steps that are simply waiting for the user', () => {
+		// Choosing a wallet, choosing an account, confirming a sign-in: nothing is
+		// in flight, so clicking away means what it says.
+		for (const step of [
+			'WalletToChoose',
+			'MechanismToChoose',
+			'ChooseWalletAccount',
+			'WalletConnected',
+		] as const) {
+			expect(canDismissConnection({step}), step).toBe(true);
+		}
 	});
 });
