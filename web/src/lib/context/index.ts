@@ -184,7 +184,17 @@ export function createContext(): {
 	// Named for WHOSE KEY SIGNS. Call sites use this instead of the wallet client
 	// plus account address, so the `from` address, the account argument and the
 	// client can never disagree about who is paying.
-	const accountExecutor = createExecutor({connection, walletClient});
+	//
+	// One executor here, because this app authenticates only as far as a
+	// connected wallet (see TARGET_STEP in core/connection/mode) and so has no
+	// local signer to offer a second one. An app that flips that switch adds a
+	// `sendFrom: 'signer'` executor beside this one, supplying the client factory
+	// the union then requires; nothing about this one changes.
+	const accountExecutor = createExecutor({
+		connection,
+		walletClient,
+		sendFrom: 'account',
+	});
 
 	const accountCannotSend = createAccountCannotSendStore();
 	const errorDetails = createErrorDetailsStore();
