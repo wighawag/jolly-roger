@@ -6,7 +6,7 @@
  * - `TARGET_STEP` is CONFIG, set in code below. It decides how far the
  *   connection goes and so whether a local signer exists at all.
  * - `PUBLIC_WALLET_HOST` decides only whether HOSTED mechanisms (email, social)
- *   are on offer. It no longer decides the target step.
+ *   are on offer. It does not decide the target step.
  *
  * Splitting them is deliberate. Signing in derives a local signer from a
  * signature, which costs the user a wallet prompt; an app that will never use a
@@ -20,10 +20,6 @@ export type TargetStep = 'WalletConnected' | 'SignedIn';
 
 /**
  * How far this app's connection goes.
- *
- * `'SignedIn'`: the user signs a message once, which derives a local signer the
- * app can send from without prompting. Everything that wants to act on the
- * user's behalf (game moves, anything frequent) needs this.
  *
  * `'WalletConnected'`: stop at a connected wallet. No signature, no signer, no
  * prompt the user did not ask for. Correct for an app that only ever sends from
