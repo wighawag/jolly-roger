@@ -66,21 +66,24 @@ describe('balanceCheck.ensureCanAfford', () => {
 			estimateContractGas: vi.fn(async () => 21_000n),
 		} as unknown as PublicClient;
 
+		const balance = fakeBalance(10n ** 18n);
 		const store = createBalanceCheckStore({
 			publicClient,
-			balance: fakeBalance(10n ** 18n), // plenty
 			gasFee: fakeGasFee(estimate),
 		});
 
-		const request = await store.ensureCanAfford({
-			contract: {
-				address: ADDR,
-				abi: [],
-				functionName: 'setMessage',
-				args: ['hi'],
-				account: ADDR,
+		const request = await store.ensureCanAfford(
+			{
+				contract: {
+					address: ADDR,
+					abi: [],
+					functionName: 'setMessage',
+					args: ['hi'],
+					account: ADDR,
+				},
 			},
-		});
+			{balance, sender: ADDR},
+		);
 
 		// The fix: both fee fields present, from the chosen (default: fast) tier.
 		expect(request.maxFeePerGas).toBe(estimate.fast.maxFeePerGas);
@@ -97,9 +100,9 @@ describe('balanceCheck.ensureCanAfford', () => {
 			estimateContractGas: vi.fn(async () => 21_000n),
 		} as unknown as PublicClient;
 
+		const balance = fakeBalance(10n ** 18n);
 		const store = createBalanceCheckStore({
 			publicClient,
-			balance: fakeBalance(10n ** 18n),
 			gasFee: fakeGasFee(estimate),
 		});
 
@@ -113,7 +116,7 @@ describe('balanceCheck.ensureCanAfford', () => {
 					account: ADDR,
 				},
 			},
-			{gasSpeed: 'slow'},
+			{balance, sender: ADDR, gasSpeed: 'slow'},
 		);
 
 		expect(request.maxFeePerGas).toBe(estimate.slow.maxFeePerGas);
@@ -133,21 +136,24 @@ describe('balanceCheck.ensureCanAfford', () => {
 		} as unknown as PublicClient;
 		const gas = lazyGasFee(estimate, {loads: true});
 
+		const balance = fakeBalance(10n ** 18n);
 		const store = createBalanceCheckStore({
 			publicClient,
-			balance: fakeBalance(10n ** 18n),
 			gasFee: gas.store,
 		});
 
-		const request = await store.ensureCanAfford({
-			contract: {
-				address: ADDR,
-				abi: [],
-				functionName: 'setMessage',
-				args: ['hi'],
-				account: ADDR,
+		const request = await store.ensureCanAfford(
+			{
+				contract: {
+					address: ADDR,
+					abi: [],
+					functionName: 'setMessage',
+					args: ['hi'],
+					account: ADDR,
+				},
 			},
-		});
+			{balance, sender: ADDR},
+		);
 
 		expect(gas.update).toHaveBeenCalled();
 		expect(request.maxFeePerGas).toBe(estimate.fast.maxFeePerGas);
@@ -165,22 +171,25 @@ describe('balanceCheck.ensureCanAfford', () => {
 		} as unknown as PublicClient;
 		const gas = lazyGasFee(estimate, {loads: false});
 
+		const balance = fakeBalance(10n ** 18n);
 		const store = createBalanceCheckStore({
 			publicClient,
-			balance: fakeBalance(10n ** 18n),
 			gasFee: gas.store,
 		});
 
 		await expect(
-			store.ensureCanAfford({
-				contract: {
-					address: ADDR,
-					abi: [],
-					functionName: 'setMessage',
-					args: ['hi'],
-					account: ADDR,
+			store.ensureCanAfford(
+				{
+					contract: {
+						address: ADDR,
+						abi: [],
+						functionName: 'setMessage',
+						args: ['hi'],
+						account: ADDR,
+					},
 				},
-			}),
+				{balance, sender: ADDR},
+			),
 		).rejects.toThrow(/gas price/i);
 
 		expect(gas.update).toHaveBeenCalled();

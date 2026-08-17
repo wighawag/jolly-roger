@@ -327,9 +327,12 @@ export function createContext(): {
 		config,
 	});
 
+	// No balance here: which account pays is now decided per call, not once at
+	// construction. This app has exactly one payer, so every call site passes the
+	// same pair, but passing it is what keeps the check and the sender from ever
+	// disagreeing about whose funds were measured.
 	const balanceCheck = createBalanceCheckStore({
 		publicClient,
-		balance: accountBalance,
 		gasFee,
 	});
 

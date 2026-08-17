@@ -114,5 +114,5 @@ export async function claimFaucet(
 	// Trigger immediate balance refresh.
 	accountBalance.update();
 	// Notify the balance check store to poll for balance change.
-	balanceCheck.markFaucetClaimed(preFaucetBalance);
+	balanceCheck.markFundingRequested(preFaucetBalance);
 }

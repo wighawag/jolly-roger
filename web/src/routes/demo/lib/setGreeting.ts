@@ -18,7 +18,11 @@ export type SetGreetingResult =
 
 export type SetGreetingDeps = Pick<
 	Context,
-	'connection' | 'accountExecutor' | 'deployments' | 'balanceCheck'
+	| 'connection'
+	| 'accountExecutor'
+	| 'deployments'
+	| 'balanceCheck'
+	| 'accountBalance'
 >;
 
 /**
@@ -37,7 +41,13 @@ export async function setGreeting(
 	deps: SetGreetingDeps,
 	message: string,
 ): Promise<SetGreetingResult> {
-	const {connection, accountExecutor, deployments, balanceCheck} = deps;
+	const {
+		connection,
+		accountExecutor,
+		deployments,
+		balanceCheck,
+		accountBalance,
+	} = deps;
 
 	const trimmed = message.trim();
 	if (!trimmed) return {status: 'cancelled'};
@@ -51,15 +61,21 @@ export async function setGreeting(
 			return {status: 'cannot-send'};
 		if ($accountExecutor.status !== 'ready') return {status: 'cancelled'};
 
-		const contractRequest = await balanceCheck.ensureCanAfford({
-			contract: {
-				address: $deployments.contracts.GreetingsRegistry.address,
-				abi: $deployments.contracts.GreetingsRegistry.abi,
-				functionName: 'setMessage',
-				args: [trimmed],
-				account: $accountExecutor.account,
+		const contractRequest = await balanceCheck.ensureCanAfford(
+			{
+				contract: {
+					address: $deployments.contracts.GreetingsRegistry.address,
+					abi: $deployments.contracts.GreetingsRegistry.abi,
+					functionName: 'setMessage',
+					args: [trimmed],
+					account: $accountExecutor.account,
+				},
 			},
-		});
+			// Measured against the account that will send it. One account sends
+			// everything here, so this is always the same one, but naming it is what
+			// stops the check and the sender from ever disagreeing.
+			{balance: accountBalance, sender: $accountExecutor.address},
+		);
 
 		await $accountExecutor.client.writeContract(contractRequest);
 		return {status: 'submitted'};

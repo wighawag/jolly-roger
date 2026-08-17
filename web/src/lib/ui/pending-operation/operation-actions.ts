@@ -130,7 +130,7 @@ function requireSameAccountExecutor(
 
 type ResubmitDeps = Pick<
 	Context,
-	'accountExecutor' | 'deployments' | 'balanceCheck'
+	'accountExecutor' | 'deployments' | 'balanceCheck' | 'accountBalance'
 >;
 
 /**
@@ -145,7 +145,7 @@ export async function resubmitOperation(
 		gasPrice: GasPrice;
 	},
 ): Promise<ReplacementResult> {
-	const {accountExecutor, deployments, balanceCheck} = deps;
+	const {accountExecutor, deployments, balanceCheck, accountBalance} = deps;
 	const {operation, operationKey, gasPrice} = params;
 	const $deployments = get(deployments);
 	const originalTx = operation.metadata.tx;
@@ -155,14 +155,20 @@ export async function resubmitOperation(
 	const $accountExecutor = guarded.accountExecutor;
 
 	try {
-		const txRequest = await balanceCheck.ensureCanAfford({
-			transaction: {
-				account: $accountExecutor.account,
-				to: originalTx.to as `0x${string}`,
-				data: originalTx.data,
-				value: originalTx.value,
+		const txRequest = await balanceCheck.ensureCanAfford(
+			{
+				transaction: {
+					account: $accountExecutor.account,
+					to: originalTx.to as `0x${string}`,
+					data: originalTx.data,
+					value: originalTx.value,
+				},
 			},
-		});
+			// Measured against the account that is actually replacing the transaction,
+			// which requireSameAccountExecutor has just established is the one that
+			// sent the original.
+			{balance: accountBalance, sender: $accountExecutor.address},
+		);
 
 		// operationId links this resubmit to the existing operation.
 		const resubmitMetadata: ExtendedTransactionMetadata = {
@@ -201,7 +207,11 @@ export async function resubmitOperation(
 
 type CancelDeps = Pick<
 	Context,
-	'accountExecutor' | 'deployments' | 'balanceCheck' | 'gasFee'
+	| 'accountExecutor'
+	| 'deployments'
+	| 'balanceCheck'
+	| 'gasFee'
+	| 'accountBalance'
 >;
 
 /**
@@ -212,7 +222,8 @@ export async function cancelOperation(
 	deps: CancelDeps,
 	params: {operation: OnchainOperation},
 ): Promise<ReplacementResult> {
-	const {accountExecutor, deployments, balanceCheck, gasFee} = deps;
+	const {accountExecutor, deployments, balanceCheck, gasFee, accountBalance} =
+		deps;
 	const {operation} = params;
 	const $deployments = get(deployments);
 	const originalTx = operation.metadata.tx;
@@ -230,13 +241,16 @@ export async function cancelOperation(
 			fastPrice,
 		);
 
-		const txRequest = await balanceCheck.ensureCanAfford({
-			transaction: {
-				account: $accountExecutor.account,
-				to: originalTx.from,
-				value: 0n,
+		const txRequest = await balanceCheck.ensureCanAfford(
+			{
+				transaction: {
+					account: $accountExecutor.account,
+					to: originalTx.from,
+					value: 0n,
+				},
 			},
-		});
+			{balance: accountBalance, sender: $accountExecutor.address},
+		);
 
 		if (originalTx.chainId && originalTx.chainId !== $deployments.chain.id) {
 			throw new Error(

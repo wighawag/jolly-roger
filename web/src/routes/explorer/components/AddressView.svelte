@@ -40,6 +40,7 @@
 	let {
 		publicClient,
 		accountExecutor,
+		accountBalance,
 		accountCannotSend,
 		connection,
 		deployments,
@@ -253,6 +254,7 @@
 												{connection}
 												{publicClient}
 												{accountExecutor}
+												{accountBalance}
 												{accountCannotSend}
 												{balanceCheck}
 											/>
@@ -284,6 +286,7 @@
 												{connection}
 												{publicClient}
 												{accountExecutor}
+												{accountBalance}
 												{accountCannotSend}
 												{balanceCheck}
 											/>

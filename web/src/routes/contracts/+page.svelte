@@ -168,6 +168,7 @@
 													{connection}
 													{publicClient}
 													{accountExecutor}
+													{accountBalance}
 													{accountCannotSend}
 													{balanceCheck}
 												/>
@@ -199,6 +200,7 @@
 													{connection}
 													{publicClient}
 													{accountExecutor}
+													{accountBalance}
 													{accountCannotSend}
 													{balanceCheck}
 												/>

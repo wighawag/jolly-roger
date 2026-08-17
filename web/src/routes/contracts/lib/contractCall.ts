@@ -9,6 +9,7 @@ import type {ExecutorStore} from '$lib/core/connection/executor';
 import {InsufficientFundsError} from '$lib/core/transaction';
 import {isUserRejectionError} from '$lib/core/transaction/user-rejection';
 import {connectionRefusal} from '$lib/core/connection/refusal';
+import type {BalanceStore} from '$lib/core/connection/balance';
 import {convertInputValues} from './utils';
 
 /**
@@ -56,6 +57,8 @@ export type ExecuteContractWriteResult =
 export async function executeContractWrite(params: {
 	connection: AnyConnectionStore<UnderlyingEthereumProvider>;
 	accountExecutor: ExecutorStore;
+	/** Balance of the account that executor sends from, which is what pays. */
+	accountBalance: BalanceStore;
 	balanceCheck: BalanceCheckStore;
 	abiItem: AbiFunction;
 	contractAddress: string;
@@ -64,6 +67,7 @@ export async function executeContractWrite(params: {
 	const {
 		connection,
 		accountExecutor,
+		accountBalance,
 		balanceCheck,
 		abiItem,
 		contractAddress,
@@ -95,15 +99,18 @@ export async function executeContractWrite(params: {
 	if ($accountExecutor.status !== 'ready') return {status: 'cancelled'};
 
 	try {
-		const contractRequest = await balanceCheck.ensureCanAfford({
-			contract: {
-				address: contractAddress as `0x${string}`,
-				abi: [abiItem],
-				functionName: abiItem.name,
-				args: args as any,
-				account: $accountExecutor.account,
+		const contractRequest = await balanceCheck.ensureCanAfford(
+			{
+				contract: {
+					address: contractAddress as `0x${string}`,
+					abi: [abiItem],
+					functionName: abiItem.name,
+					args: args as any,
+					account: $accountExecutor.account,
+				},
 			},
-		});
+			{balance: accountBalance, sender: $accountExecutor.address},
+		);
 
 		const hash = await $accountExecutor.client.writeContract(contractRequest);
 		return {status: 'submitted', transactionHash: hash};
