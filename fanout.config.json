@@ -1,8 +1,8 @@
 {
   "branches": {
     "main": {},
-    "with/local-signer": {"stem": "main"},
-    "with/hosted-account": {"stem": "with/local-signer"},
+    "with/local-signer": {"stem": "main", "feature": true},
+    "with/hosted-account": {"stem": "with/local-signer", "feature": true},
     "website": {"stem": "main"}
   },
   "verify": "pnpm install && pnpm --filter ./web check"
