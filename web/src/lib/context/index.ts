@@ -93,7 +93,10 @@ export function createContext(): {
 	// How the app authenticates. `targetStep` is config (see core/connection/mode);
 	// only the hosted-mechanism host comes from env. Total, so nothing here can
 	// fail: there is no illegal combination left to reject.
-	const {walletHost} = resolveConnectionConfig(TARGET_STEP, PUBLIC_WALLET_HOST);
+	const {targetStep, walletHost, walletOnly} = resolveConnectionConfig(
+		TARGET_STEP,
+		PUBLIC_WALLET_HOST,
+	);
 
 	// ----------------------------------------------------------------------------
 	// CONNECTION
@@ -108,7 +111,9 @@ export function createContext(): {
 		forceRpcFailure,
 	} = establishRemoteConnection({
 		nodeURL: PUBLIC_NODE_URL,
+		targetStep,
 		walletHost,
+		walletOnly,
 		// The RPC url handed to the WALLET, which is not necessarily the one the
 		// app uses. Without it the exported chain info carries an empty rpc list
 		// (rocketh does not bake a public endpoint into chain info), and a wallet
@@ -184,7 +189,17 @@ export function createContext(): {
 	// Named for WHOSE KEY SIGNS. Call sites use this instead of the wallet client
 	// plus account address, so the `from` address, the account argument and the
 	// client can never disagree about who is paying.
-	const accountExecutor = createExecutor({connection, walletClient});
+	//
+	// One executor here, because this app authenticates only as far as a
+	// connected wallet (see TARGET_STEP in core/connection/mode) and so has no
+	// local signer to offer a second one. An app that flips that switch adds a
+	// `sendFrom: 'signer'` executor beside this one, supplying the client factory
+	// that mode requires; nothing about this one changes.
+	const accountExecutor = createExecutor({
+		connection,
+		walletClient,
+		sendFrom: 'account',
+	});
 
 	const accountCannotSend = createAccountCannotSendStore();
 	const errorDetails = createErrorDetailsStore();
@@ -312,9 +327,12 @@ export function createContext(): {
 		config,
 	});
 
+	// No balance here: which account pays is now decided per call, not once at
+	// construction. This app has exactly one payer, so every call site passes the
+	// same pair, but passing it is what keeps the check and the sender from ever
+	// disagreeing about whose funds were measured.
 	const balanceCheck = createBalanceCheckStore({
 		publicClient,
-		balance: accountBalance,
 		gasFee,
 	});
 

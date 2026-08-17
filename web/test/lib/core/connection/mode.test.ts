@@ -4,65 +4,80 @@ import {
 	TARGET_STEP,
 } from '../../../../src/lib/core/connection/mode';
 
-describe('TARGET_STEP', () => {
-	/**
-	 * Not a tautology. This template is the wallet-connected one: the account
-	 * sends its own transactions, and nothing here spends from a derived signer.
-	 * Flipping the constant is a deliberate act that also needs the executor and
-	 * funding UI from the signer variant, so it should not happen by accident in
-	 * a merge.
-	 */
-	it('is WalletConnected on this branch', () => {
-		expect(TARGET_STEP).toBe('WalletConnected');
-	});
-});
-
 describe('resolveConnectionConfig', () => {
-	it('offers no hosted mechanisms without a host', () => {
-		expect(resolveConnectionConfig('WalletConnected', undefined)).toEqual({
-			targetStep: 'WalletConnected',
-			walletHost: undefined,
-			walletOnly: true,
-		});
-	});
-
 	it('offers hosted mechanisms when a host is configured', () => {
-		expect(
-			resolveConnectionConfig('SignedIn', 'https://wallet.example'),
-		).toEqual({
+		const c = resolveConnectionConfig('SignedIn', 'https://wallet.example');
+		expect(c).toEqual({
 			targetStep: 'SignedIn',
 			walletHost: 'https://wallet.example',
 			walletOnly: false,
 		});
 	});
 
-	/**
-	 * The host decides which MECHANISMS exist, never how far the connection
-	 * goes. Reading the two apart is the whole point of the split, and testing
-	 * both crossings is what stops them being quietly recombined.
-	 */
-	it('keeps the target step independent of the host', () => {
-		expect(
-			resolveConnectionConfig('WalletConnected', 'https://wallet.example'),
-		).toMatchObject({targetStep: 'WalletConnected', walletOnly: false});
-
-		expect(resolveConnectionConfig('SignedIn', undefined)).toMatchObject({
+	it('signs in with built-in wallets only when there is no host', () => {
+		// The point of the split: a signer needs no backend. Sign-in still happens
+		// (so there is still a local signer), it just cannot offer email or social,
+		// which are popup flows served BY the host.
+		const c = resolveConnectionConfig('SignedIn', undefined);
+		expect(c).toEqual({
 			targetStep: 'SignedIn',
-			walletOnly: true,
-		});
-	});
-
-	it('treats a blank host as no host', () => {
-		expect(resolveConnectionConfig('WalletConnected', '   ')).toEqual({
-			targetStep: 'WalletConnected',
 			walletHost: undefined,
 			walletOnly: true,
 		});
 	});
 
+	it('leaves the target step alone: the host never decides it', () => {
+		// The regression this guards: inferring "can this app have a signer" from
+		// PUBLIC_WALLET_HOST. A hostless app can still sign in, and an app that
+		// stops at WalletConnected has no signer even with a host configured.
+		expect(
+			resolveConnectionConfig('WalletConnected', undefined).targetStep,
+		).toBe('WalletConnected');
+		expect(
+			resolveConnectionConfig('WalletConnected', 'https://wallet.example')
+				.targetStep,
+		).toBe('WalletConnected');
+		expect(resolveConnectionConfig('SignedIn', undefined).targetStep).toBe(
+			'SignedIn',
+		);
+	});
+
+	it.each([undefined, '', '   '])(
+		'treats a blank host (%p) as no host',
+		(raw) => {
+			const c = resolveConnectionConfig('SignedIn', raw);
+			expect(c.walletHost).toBe(undefined);
+			expect(c.walletOnly).toBe(true);
+		},
+	);
+
 	it('trims a configured host', () => {
 		expect(
-			resolveConnectionConfig('WalletConnected', '  https://x.example  '),
-		).toMatchObject({walletHost: 'https://x.example'});
+			resolveConnectionConfig('SignedIn', '  https://wallet.example  ')
+				.walletHost,
+		).toBe('https://wallet.example');
+	});
+
+	it('is total: every combination resolves', () => {
+		// There is no illegal combination left to reject. The one that used to
+		// exist (signer execution with no signer) went away with the execution
+		// mode: call sites now name the executor they want, and one with no signer
+		// behind it is simply never ready.
+		for (const step of ['SignedIn', 'WalletConnected'] as const) {
+			for (const host of [undefined, 'https://wallet.example']) {
+				expect(resolveConnectionConfig(step, host).targetStep).toBe(step);
+			}
+		}
+	});
+});
+describe('TARGET_STEP', () => {
+	it('is a configured constant, not read from env', () => {
+		// Not a tautology, and not a style rule: this is the merge guard. The
+		// constant IS this template's identity - the wallet-connected one, where
+		// the account sends its own transactions - and a variant that signs in
+		// differs from it by this single line. That is exactly the kind of line a
+		// merge can flip without anyone noticing, and flipping it silently would
+		// start asking users for a signature the app then never spends.
+		expect(TARGET_STEP).toBe('WalletConnected');
 	});
 });

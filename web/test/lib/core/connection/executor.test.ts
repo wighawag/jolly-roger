@@ -16,9 +16,15 @@ function makeConnection(initial: unknown) {
 
 const walletClient = {tag: 'wallet-client'} as never;
 
-function makeExecutor(initialState: unknown) {
+function makeExecutor(
+	initialState: unknown,
+	sendFrom: 'account' | 'signer' = 'account',
+) {
 	const {store, connection} = makeConnection(initialState);
-	return {executor: createExecutor({connection, walletClient}), store};
+	return {
+		executor: createExecutor({connection, walletClient, sendFrom}),
+		store,
+	};
 }
 
 describe('createExecutor state derivation', () => {
@@ -100,5 +106,24 @@ describe('createExecutor state derivation', () => {
 
 		store.set({step: 'Idle', wallets: []});
 		expect(get(executor).status).toBe('not-connected');
+	});
+});
+
+describe('createExecutor guards its construction', () => {
+	// The failure this prevents is quiet: an executor with no way to build its
+	// signer client would sit at `not-connected` looking like "not signed in
+	// yet", and only die when the user finally tried to send.
+	it('refuses sendFrom "signer" without a client factory', () => {
+		const {connection} = makeConnection({step: 'Idle', wallets: []});
+		expect(() =>
+			createExecutor({connection, walletClient, sendFrom: 'signer'}),
+		).toThrow(/buildSignerClient/);
+	});
+
+	it('does not require one to send from the account', () => {
+		const {connection} = makeConnection({step: 'Idle', wallets: []});
+		expect(() =>
+			createExecutor({connection, walletClient, sendFrom: 'account'}),
+		).not.toThrow();
 	});
 });

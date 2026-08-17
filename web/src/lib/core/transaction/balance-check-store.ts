@@ -18,6 +18,8 @@ export type BalanceCheckState =
 	| {
 			step: 'insufficient';
 			balanceStore: BalanceStore;
+			/** The account that is short, so the UI can name it and target remedies. */
+			sender: `0x${string}` | undefined;
 			estimatedCost: bigint;
 			onContinue: () => void;
 			onDismiss: () => void;
@@ -32,15 +34,34 @@ export type GasSpeed = 'slow' | 'average' | 'fast';
 export interface EnsureCanAffordOptions {
 	gasSpeed?: GasSpeed;
 	forceUpdate?: boolean;
+	/**
+	 * Balance of the account that will actually pay.
+	 *
+	 * Required, and per call rather than fixed at construction, because there is
+	 * no longer one account that sends everything: a transaction from the local
+	 * signer must be measured against the signer's gas, one from the user's
+	 * account against theirs. Checking a single global balance was the bug this
+	 * replaces - it would clear a transaction the sender could not afford, and
+	 * pop the insufficient-funds modal about an account that was not paying.
+	 */
+	balance: BalanceStore;
+	/**
+	 * Address of that account.
+	 *
+	 * Carried alongside the balance so the modal can name WHO is short, and
+	 * decide which remedies apply. The faucet funds one specific account, so
+	 * offering it for a shortfall on a different one is worse than offering
+	 * nothing: it appears to work, changes a balance nobody was waiting on, and
+	 * the transaction fails anyway.
+	 */
+	sender: `0x${string}` | undefined;
 }
 
 export function createBalanceCheckStore({
 	publicClient,
-	balance,
 	gasFee,
 }: {
 	publicClient: PublicClient;
-	balance: BalanceStore;
 	gasFee: GasFeeStore;
 }) {
 	const {subscribe, set, update} = writable<BalanceCheckState>({step: 'idle'});
@@ -97,6 +118,7 @@ export function createBalanceCheckStore({
 
 	const showInsufficientFunds = (data: {
 		balanceStore: BalanceStore;
+		sender: `0x${string}` | undefined;
 		estimatedCost: bigint;
 		onContinue: () => void;
 		onDismiss: () => void;
@@ -104,6 +126,7 @@ export function createBalanceCheckStore({
 		set({
 			step: 'insufficient',
 			balanceStore: data.balanceStore,
+			sender: data.sender,
 			estimatedCost: data.estimatedCost,
 			onContinue: data.onContinue,
 			onDismiss: data.onDismiss,
@@ -115,7 +138,20 @@ export function createBalanceCheckStore({
 		set({step: 'idle'});
 	};
 
-	const markFaucetClaimed = (preFaucetBalance: bigint) => {
+	/**
+	 * Something has been done that should raise the blocked account's balance:
+	 * start watching for it to move, and offer to continue once it does.
+	 *
+	 * Named for the effect rather than for the faucet, because there are now two
+	 * remedies that produce it. A faucet claim funds the authenticated account; a
+	 * top-up funds the local signer through the payment rail. The modal treats
+	 * them identically from here on, and calling this `markFaucetClaimed` from the
+	 * top-up path would describe the wrong one of the two.
+	 *
+	 * A no-op unless a transaction is actually blocked, so callers do not have to
+	 * check first.
+	 */
+	const markFundingRequested = (preFaucetBalance: bigint) => {
 		update((state) => {
 			if (state.step === 'insufficient') {
 				startPolling(state.balanceStore, preFaucetBalance);
@@ -157,6 +193,8 @@ export function createBalanceCheckStore({
 	}
 
 	async function checkBalanceAndShowModal(
+		balance: BalanceStore,
+		sender: `0x${string}` | undefined,
 		estimatedCost: bigint,
 	): Promise<void> {
 		const balanceValue = get(balance);
@@ -177,6 +215,7 @@ export function createBalanceCheckStore({
 		return new Promise((resolve, reject) => {
 			showInsufficientFunds({
 				balanceStore: balance,
+				sender,
 				estimatedCost,
 				onContinue: () => {
 					close();
@@ -217,7 +256,7 @@ export function createBalanceCheckStore({
 				'chain'
 			> & {chain?: TChainOverride | null};
 		},
-		config?: EnsureCanAffordOptions,
+		config: EnsureCanAffordOptions,
 	): Promise<
 		Omit<
 			WriteContractParameters<
@@ -243,7 +282,7 @@ export function createBalanceCheckStore({
 				'chain'
 			> & {chain?: TChainOverride | null};
 		},
-		config?: EnsureCanAffordOptions,
+		config: EnsureCanAffordOptions,
 	): Promise<
 		Omit<
 			SendTransactionParameters<TChain, TAccount, TChainOverride>,
@@ -253,9 +292,9 @@ export function createBalanceCheckStore({
 
 	async function ensureCanAfford(
 		options: any,
-		config: EnsureCanAffordOptions = {},
+		config: EnsureCanAffordOptions,
 	): Promise<any> {
-		const {gasSpeed = 'fast', forceUpdate = false} = config;
+		const {gasSpeed = 'fast', forceUpdate = false, balance, sender} = config;
 
 		startEstimating();
 
@@ -295,7 +334,7 @@ export function createBalanceCheckStore({
 			const gasCost = gasEstimate * maxFeePerGas;
 			const estimatedCost = gasCost + value;
 
-			await checkBalanceAndShowModal(estimatedCost);
+			await checkBalanceAndShowModal(balance, sender, estimatedCost);
 
 			// Set BOTH fee fields: on chains (and fresh local nodes) that enforce a
 			// minimum priority fee, sending only maxFeePerGas lets the node/viem
@@ -327,7 +366,7 @@ export function createBalanceCheckStore({
 		startEstimating,
 		showInsufficientFunds,
 		close,
-		markFaucetClaimed,
+		markFundingRequested,
 		ensureCanAfford,
 	};
 }
