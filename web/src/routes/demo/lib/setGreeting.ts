@@ -8,6 +8,7 @@ import {
 	txErrorSummary,
 } from '$lib/core/transaction/tx-error-summary';
 import type {Context} from '$lib/context/types';
+import {connectionRefusal} from '$lib/core/connection/refusal';
 
 export type SetGreetingResult =
 	| {status: 'submitted'}
@@ -70,6 +71,15 @@ export async function setGreeting(
 			// User dismissed the funds modal or rejected in their wallet.
 			return {status: 'cancelled'};
 		}
+
+		// Nor is any other way the connection came back empty an error to report
+		// here. Every one of them already rests on the connection, where
+		// core/connection/ConnectionFlow renders it in the app's own words, and that
+		// component is mounted for the life of the app so it cannot be missed.
+		// Falling through said all of them the same way, as "Transaction failed:
+		// Connection cancelled", about a transaction that was never built, on top of
+		// the modal that had just explained it properly.
+		if (connectionRefusal(error)) return {status: 'cancelled'};
 		console.error('Failed to set greeting:', error);
 		return {
 			status: 'error',

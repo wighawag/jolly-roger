@@ -20,6 +20,7 @@
 		combinesAccountChoiceWithSignIn,
 		effectiveAccountSelection,
 	} from './connection-flow';
+	import {connectionFailureView} from './refusal';
 	import {dev} from '$lib';
 
 	interface Props {
@@ -71,6 +72,13 @@
 	const dismiss = () => connection.cancel();
 	let swappedAccount = $derived(hasSwappedAccount($connection));
 
+	// What a failed attempt should say. Under @etherplay/connect 0.6.0 the wallet
+	// host's own refusals reach the app instead of being flattened into a
+	// cancellation, and their messages are written for a developer reading a
+	// console, so the wording is decided in core/connection/refusal rather than
+	// printed raw. Undefined when nothing is resting on the connection.
+	let failure = $derived(connectionFailureView($connection.error));
+
 	// Combined choose+sign-in modal (multi-account wallet under a sign-in
 	// target): which row the user explicitly picked (undefined = follow the
 	// wallet's active account), and whether an adopt-then-sign action is in
@@ -113,16 +121,28 @@
      back to a resting state (Idle / MechanismToChoose / WalletToChoose) with an
      error. Without this the error is set on the store but never rendered, so a
      fast rejection (e.g. werust's 4100) just flashes the waiting modal and
-     silently returns to idle. -->
+     silently returns to idle.
+
+     ALSO WHERE A REFUSAL LANDS, since 0.6.0: a declined required permission or
+     a blocked cross-origin request now rests here with its reason attached,
+     where before it was indistinguishable from a closed popup and showed
+     nothing at all. Dismiss is the only action, deliberately: neither refusal
+     is answered by pressing the same button again. -->
 <BasicModal
-	title="Connection Failed"
-	openWhen={!!$connection.error &&
+	title={failure?.title ?? 'Connection Failed'}
+	openWhen={!!failure &&
 		($connection.step === 'Idle' ||
 			$connection.step === 'MechanismToChoose' ||
 			$connection.step === 'WalletToChoose')}
 	cancel={{label: 'Dismiss', onclick: () => connection.clearError()}}
 >
-	<p class="text-sm text-muted-foreground">{$connection.error?.message}</p>
+	<p class="text-sm text-muted-foreground">{failure?.message}</p>
+	{#if failure?.detail}
+		<!-- Addressed to whoever configured the app rather than to the person
+		     reading it, so it is quieter and separate rather than folded into the
+		     sentence above. -->
+		<p class="mt-2 text-xs text-muted-foreground">{failure.detail}</p>
+	{/if}
 </BasicModal>
 
 <Modal.Root
