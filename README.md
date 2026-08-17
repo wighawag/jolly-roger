@@ -5,11 +5,7 @@ branch so it is never inherited by anything built from the template.
 
 ## Why an orphan branch
 
-Every file on `main` travels. `create-jolly-roger` copies it into each new
-project, and every downstream that tracks the template merges it in via
-`offshoot`. A check about the relationship between `main`,
-`with/local-signer` and `with/hosted-account` is meaningless in a
-scaffolded app: those branches do not exist there.
+Every file on `main` travels. `create-jolly-roger` copies it into each new project, and every downstream that tracks the template merges it in via `offshoot`. A check about how the feature branches `with/local-signer` and `with/hosted-account` relate to `main` is meaningless in a scaffolded app: those branches do not exist there.
 
 An orphan branch shares no history with `main`, so it can never arrive through a
 merge. Nothing here is inherited by anyone, ever.
@@ -33,16 +29,11 @@ Run it **after every cascade merge**. It compares COMMITTED refs, not working
 trees, so commit the merge first and `--amend` if it fails. That is the moment
 the failure it guards actually happens.
 
-Configurable by environment: `BASE`, `VARIANTS`, `WATCH`, `ALLOWED`.
+Configurable by environment: `BASE`, `FEATURES`, `WATCH`, `ALLOWED`.
 
 ### What it is guarding
 
-The variants are meant to differ from `main` by configuration, and by files
-`main` does not have. Not by holding a second version of the same logic. That is
-now true by construction: `executor.ts`, `remote.ts`, `types.ts` and
-`connection-flow.ts` are byte-identical across all three branches, and `mode.ts`
-differs by exactly one line, `TARGET_STEP`, which is the switch the whole
-parameterisation exists to provide.
+The feature branches are meant to differ from `main` by configuration, and by files `main` does not have. Not by holding a second version of the same logic. That is what keeps them composable: `with/hosted-account` builds on `with/local-signer`, more features are planned, and a project adopts the combination it wants, so a shared file that holds a second version of itself on one branch becomes everyone's problem the moment two features are combined. That is now true by construction: `executor.ts`, `remote.ts`, `types.ts` and `connection-flow.ts` are byte-identical across all three branches, and `mode.ts` differs by exactly one line, `TARGET_STEP`, which is the switch the whole parameterisation exists to provide.
 
 Keeping it that way is the one thing extracting `@etherkit/connection` would
 have guaranteed structurally. This script buys the same guarantee without a
@@ -56,11 +47,8 @@ CLEANLY in the descendant's favour.
 
 This happened twice while the layer was being parameterised:
 
-- `mode.ts`: two prose hunks auto-merged in the variant's favour and survived a
-  clean conflict resolution.
-- `remote.ts`: the entire payment-rail construction survived as a clean
-  auto-merge, because `main`'s version had been derived from the variant's file,
-  so the deletion did not read as a change.
+- `mode.ts`: two prose hunks auto-merged in the feature branch's favour and survived a clean conflict resolution.
+- `remote.ts`: the entire payment-rail construction survived as a clean auto-merge, because `main`'s version had been derived from the feature branch's file, so the deletion did not read as a change.
 
 Both times `git merge` reported success and the file was still wrong. Conflicts
 get attention; clean auto-merges do not.

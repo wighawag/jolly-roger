@@ -3,12 +3,15 @@
 #
 # WHY THIS EXISTS, and why it is not in the template.
 #
-# jolly-roger's variants (with/local-signer, with/hosted-account) are
+# jolly-roger's feature branches (with/local-signer, with/hosted-account) are
 # meant to differ from main by CONFIGURATION and by files main does not have,
-# never by holding a second version of the same logic. That was true by
-# accident until the connection layer was parameterised, and it is true by
-# construction now: every shared .ts under the watched paths is byte-identical
-# across the branches.
+# never by holding a second version of the same logic. They are composable
+# rather than alternatives: with/hosted-account builds on with/local-signer,
+# more features are planned, and a project adopts the combination it wants, so
+# a second version of the same logic on one of them is a problem for everyone
+# who combines it with another. That was true by accident until the connection
+# layer was parameterised, and it is true by construction now: every shared .ts
+# under the watched paths is byte-identical across the branches.
 #
 # Keeping it that way is the whole benefit an extracted package would have
 # bought, and this script buys it for less. The failure it guards is one we
@@ -26,7 +29,7 @@
 set -euo pipefail
 
 BASE="${BASE:-main}"
-VARIANTS="${VARIANTS:-with/local-signer with/hosted-account}"
+FEATURES="${FEATURES:-with/local-signer with/hosted-account}"
 
 # Paths whose shared files must not drift.
 WATCH="${WATCH:-web/src/lib/core/connection web/src/lib/core/transaction}"
@@ -35,8 +38,8 @@ WATCH="${WATCH:-web/src/lib/core/connection web/src/lib/core/transaction}"
 # here must be identical or absent.
 #
 # mode.ts holds TARGET_STEP, the one line that IS the difference between a
-# variant and its parent. It is the switch the parameterisation exists to
-# provide, so it is expected to differ and only it.
+# feature branch and the stem it builds on. It is the switch the
+# parameterisation exists to provide, so it is expected to differ and only it.
 ALLOWED="${ALLOWED:-web/src/lib/core/connection/mode.ts}"
 
 # .svelte is deliberately NOT watched. Apps are expected to restyle their own
@@ -50,26 +53,26 @@ dim()   { printf '\033[2m%s\033[0m\n' "$*"; }
 fail=0
 checked=0
 
-for variant in $VARIANTS; do
-    if ! git rev-parse --verify --quiet "$variant" >/dev/null; then
-        dim "skip $variant (no such branch here)"
+for feature in $FEATURES; do
+    if ! git rev-parse --verify --quiet "$feature" >/dev/null; then
+        dim "skip $feature (no such branch here)"
         continue
     fi
 
     echo
-    echo "=== $BASE vs $variant ==="
+    echo "=== $BASE vs $feature ==="
 
     # Files present in BOTH branches under the watched paths. A file only one
     # branch has is additive, which is the shape divergence is allowed to take.
     shared="$(comm -12 \
         <(git ls-tree -r --name-only "$BASE" -- $WATCH | grep '\.ts$' | sort) \
-        <(git ls-tree -r --name-only "$variant" -- $WATCH | grep '\.ts$' | sort))"
+        <(git ls-tree -r --name-only "$feature" -- $WATCH | grep '\.ts$' | sort))"
 
     while IFS= read -r f; do
         [ -n "$f" ] || continue
         checked=$((checked + 1))
 
-        if git diff --quiet "$BASE" "$variant" -- "$f"; then
+        if git diff --quiet "$BASE" "$feature" -- "$f"; then
             continue
         fi
 
@@ -78,14 +81,14 @@ for variant in $VARIANTS; do
             [ "$f" = "$a" ] && allowed=1
         done
 
-        stat="$(git diff --shortstat "$BASE" "$variant" -- "$f" | sed 's/^ *//')"
+        stat="$(git diff --shortstat "$BASE" "$feature" -- "$f" | sed 's/^ *//')"
         if [ "$allowed" = 1 ]; then
             dim "  allowed: $f ($stat)"
         else
             red "  DRIFTED: $f ($stat)"
             # Summary by default: a drifted file can be hundreds of lines, and
             # four of them buries the one line that says what to do about it.
-            [ -n "${VERBOSE:-}" ] && git diff "$BASE" "$variant" -- "$f" | sed 's/^/      /'
+            [ -n "${VERBOSE:-}" ] && git diff "$BASE" "$feature" -- "$f" | sed 's/^/      /'
             fail=1
         fi
     done <<< "$shared"
@@ -102,7 +105,7 @@ else
     echo "change belongs to:"
     echo
     echo "  - behaviour BOTH want            -> land it on $BASE, cascade down"
-    echo "  - behaviour only the variant wants -> it needs a parameter, not a fork"
+    echo "  - behaviour only the feature wants -> it needs a parameter, not a fork"
     echo "  - a merge that quietly kept the old side -> re-resolve against $BASE"
     echo
     echo "The last is the common one, and it does not announce itself: the merge"
