@@ -8,7 +8,7 @@
     "expand-vars": "^0.1.0",
     "ldenv": "^0.6.0",
     "set-defaults": "^0.0.5",
-    "syncpack": "^15.3.2",
+    "syncpack": "^15.3.3",
     "zellij-launcher": "^0.0.1"
   },
   "pnpm": {
