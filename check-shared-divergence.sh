@@ -3,7 +3,7 @@
 #
 # WHY THIS EXISTS, and why it is not in the template.
 #
-# jolly-roger's variants (extended/local-signer, extended/hosted-account) are
+# jolly-roger's variants (with/local-signer, with/hosted-account) are
 # meant to differ from main by CONFIGURATION and by files main does not have,
 # never by holding a second version of the same logic. That was true by
 # accident until the connection layer was parameterised, and it is true by
@@ -26,7 +26,7 @@
 set -euo pipefail
 
 BASE="${BASE:-main}"
-VARIANTS="${VARIANTS:-extended/local-signer extended/hosted-account}"
+VARIANTS="${VARIANTS:-with/local-signer with/hosted-account}"
 
 # Paths whose shared files must not drift.
 WATCH="${WATCH:-web/src/lib/core/connection web/src/lib/core/transaction}"

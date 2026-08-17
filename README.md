@@ -8,7 +8,7 @@ branch so it is never inherited by anything built from the template.
 Every file on `main` travels. `create-jolly-roger` copies it into each new
 project, and every downstream that tracks the template merges it in via
 `offshoot`. A check about the relationship between `main`,
-`extended/local-signer` and `extended/hosted-account` is meaningless in a
+`with/local-signer` and `with/hosted-account` is meaningless in a
 scaffolded app: those branches do not exist there.
 
 An orphan branch shares no history with `main`, so it can never arrive through a
