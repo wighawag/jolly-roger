@@ -88,11 +88,12 @@ export async function executeContractWrite(params: {
 		// @etherplay/connect 0.1.0 this call never settled at all, so there was
 		// nothing to catch and the flow just hung here.
 		if (isUserRejectionError(e)) return {status: 'cancelled'};
-		// Nor is any other way the connection came back empty. Since 0.6.0 that
-		// includes the wallet host's refusals, each of which rests on the
-		// connection with its own reason and is rendered there by ConnectionFlow.
-		// Rethrowing put the raw text ("Connection cancelled") in this page's red
-		// alert as though the contract had refused the call.
+		// Nor is any other way the connection came back empty. Since
+		// @etherplay/connect 0.6.0 that includes the wallet host's own refusals,
+		// each of which rests on the connection with its own reason and is rendered
+		// there by ConnectionFlow. Rethrowing put the raw text ("Connection
+		// cancelled") in this page's red alert as though the contract had refused
+		// the call.
 		if (connectionRefusal(e)) return {status: 'cancelled'};
 		throw e;
 	}
