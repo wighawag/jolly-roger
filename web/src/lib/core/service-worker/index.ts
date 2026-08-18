@@ -267,6 +267,56 @@ export function createServiceWorker(notifications?: NotificationsService) {
 		}
 	}
 
+	/**
+	 * Remove a leftover registration of OUR OWN worker, and report it.
+	 *
+	 * For dev, where we deliberately do not register (see `+layout.ts`). Not
+	 * registering does not UNregister: a worker installed by a production build
+	 * previously served on this origin (a `pnpm preview`, an E2E run, a
+	 * `build` served locally, all of which typically reuse the dev port) stays
+	 * installed and keeps serving the page from its cache. The symptom is
+	 * assets that will not update no matter what you edit, which reads as a
+	 * build or HMR problem rather than a service worker one.
+	 *
+	 * ONLY ever unregisters a worker whose script URL is exactly ours. A foreign
+	 * worker is left strictly alone: on an IPFS service worker gateway the
+	 * foreign worker IS the thing serving the site, and unregistering it would
+	 * break the page. Same reasoning as the guard in `register()`, applied to
+	 * the opposite operation.
+	 */
+	async function unregisterStale(): Promise<boolean> {
+		if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
+			return false;
+		}
+		const swURL = new URL(resolve<any>(`/service-worker.js`), location.href)
+			.href;
+		let removed = false;
+		try {
+			const registrations = await navigator.serviceWorker.getRegistrations();
+			for (const registration of registrations) {
+				const scriptURL = (
+					registration.active ??
+					registration.waiting ??
+					registration.installing
+				)?.scriptURL;
+				if (scriptURL !== swURL) {
+					// not ours: never touch it
+					continue;
+				}
+				await registration.unregister();
+				removed = true;
+				// console, not the logger: this silently changes what the page is
+				// served from, so it has to show regardless of log level
+				console.warn(
+					`unregistered a stale service worker (${scriptURL}) left over on this origin by a production build. Reload to be sure nothing is still served from its cache.`,
+				);
+			}
+		} catch (e) {
+			console.warn(`could not check for a stale service worker`, e);
+		}
+		return removed;
+	}
+
 	function register() {
 		if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
 			// Clean up any existing listeners before registering new ones
@@ -462,6 +512,7 @@ export function createServiceWorker(notifications?: NotificationsService) {
 			}
 		},
 		register,
+		unregisterStale,
 		pingServideWorker,
 		sendMessage,
 		skipWaiting,
