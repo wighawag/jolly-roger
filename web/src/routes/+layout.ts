@@ -20,6 +20,14 @@ console.log(`VERSION: ${version}`);
 // default so HMR/reloads are not intercepted by the SW cache; set
 // PUBLIC_ENABLE_SW_IN_DEV=true to opt in when developing the SW itself
 // (push notifications, update flow, offline).
+//
+// `onDocumentLoaded` calls back SYNCHRONOUSLY when the document is already
+// parsed, and that matters here: `register()` attaches a `message` listener on
+// `navigator.serviceWorker`, and messages a controlling worker sent while the
+// page was loading are queued and flushed right after `DOMContentLoaded`.
+// Attaching in that same task keeps us ahead of the flush. Deferring it (an
+// `await`, a `setTimeout`, or waiting on window's `load`) would drop those
+// messages, which for this app are push notifications.
 const enableSwInDev = PUBLIC_ENABLE_SW_IN_DEV === 'true';
 if (!dev || enableSwInDev) {
 	if (dev) {
