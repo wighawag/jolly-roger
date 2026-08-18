@@ -93,6 +93,25 @@ export type ServiceWorkerState =
 			registering: false;
 	  };
 
+/**
+ * What `unregisterStale()` found on this origin: the registrations of OUR OWN
+ * worker it removed, and the ones belonging to someone else that it left
+ * strictly alone. Each entry is a human-readable `scriptURL (scope ...)`.
+ */
+export type StaleWorkerReport = {
+	removed: string[];
+	foreign: string[];
+	/**
+	 * Registrations whose script URL could not be read, because `installing`,
+	 * `waiting` and `active` were all still null. Transient, but real: a
+	 * registration exists before its worker object is attached. They are left
+	 * alone rather than guessed at, since guessing either way is harmful: called
+	 * ours, we would unregister a worker that might not be ours; called foreign,
+	 * we would skip a genuinely stale one AND cry wolf about it.
+	 */
+	unresolved: string[];
+};
+
 type JSONNotification = {
 	title: string;
 	options?: NotificationOptions;
@@ -284,13 +303,17 @@ export function createServiceWorker(notifications?: NotificationsService) {
 	 * break the page. Same reasoning as the guard in `register()`, applied to
 	 * the opposite operation.
 	 */
-	async function unregisterStale(): Promise<boolean> {
+	async function unregisterStale(): Promise<StaleWorkerReport> {
+		const report: StaleWorkerReport = {
+			removed: [],
+			foreign: [],
+			unresolved: [],
+		};
 		if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
-			return false;
+			return report;
 		}
 		const swURL = new URL(resolve<any>(`/service-worker.js`), location.href)
 			.href;
-		let removed = false;
 		try {
 			const registrations = await navigator.serviceWorker.getRegistrations();
 			for (const registration of registrations) {
@@ -299,22 +322,55 @@ export function createServiceWorker(notifications?: NotificationsService) {
 					registration.waiting ??
 					registration.installing
 				)?.scriptURL;
+				// Unlike a `ServiceWorker`, a REGISTRATION does expose its scope, so
+				// the report can be precise where the registration-time guard cannot.
+				const describe = `${scriptURL ?? '(script not readable yet)'} (scope ${registration.scope})`;
+				if (!scriptURL) {
+					// cannot tell whose it is: say so, touch nothing
+					report.unresolved.push(describe);
+					continue;
+				}
 				if (scriptURL !== swURL) {
 					// not ours: never touch it
+					report.foreign.push(describe);
 					continue;
 				}
 				await registration.unregister();
-				removed = true;
-				// console, not the logger: this silently changes what the page is
-				// served from, so it has to show regardless of log level
+				report.removed.push(describe);
+			}
+
+			// console, not the logger: these change (or explain) what the page is
+			// actually served from, so they have to show regardless of log level.
+			if (report.removed.length > 0) {
 				console.warn(
-					`unregistered a stale service worker (${scriptURL}) left over on this origin by a production build. Reload to be sure nothing is still served from its cache.`,
+					`unregistered a stale service worker left over on this origin by a production build: ${report.removed.join(', ')}. Reload to be sure nothing is still served from its cache.`,
 				);
+			}
+			if (report.foreign.length > 0) {
+				// Deliberately NOT removed: it is not ours to remove. Most likely
+				// another project that used this same port (an origin is scheme +
+				// host + PORT, so dev servers sharing a port share a worker), and it
+				// may well be serving this page from its cache.
+				console.warn(
+					`a service worker that is not ours is registered on this origin and was left alone: ${report.foreign.join(', ')}. If this origin was previously used by another project, that worker may be serving stale content here. Remove it yourself with: navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => r.unregister()))`,
+				);
+			}
+			if (report.unresolved.length > 0) {
+				console.warn(
+					`a service worker registration is present but its script cannot be read yet, so it was left alone: ${report.unresolved.join(', ')}. Reload to classify it.`,
+				);
+			}
+			if (
+				report.removed.length === 0 &&
+				report.foreign.length === 0 &&
+				report.unresolved.length === 0
+			) {
+				logger.debug(`no service worker registered on this origin`);
 			}
 		} catch (e) {
 			console.warn(`could not check for a stale service worker`, e);
 		}
-		return removed;
+		return report;
 	}
 
 	function register() {
