@@ -40,6 +40,12 @@ if (!dev || enableSwInDev) {
 	console.warn(
 		`skipping service-worker registration in dev mode, see src/routes/+layout.ts (set PUBLIC_ENABLE_SW_IN_DEV=true to enable)`,
 	);
+	// Skipping registration does not UNregister. A worker installed by a
+	// production build previously served on this origin (preview, an E2E run, a
+	// locally served build: all typically on this same port) is still installed
+	// and still serving from its cache, which looks like a build or HMR fault
+	// rather than a service worker one. Only ever removes OUR OWN worker.
+	serviceWorker.unregisterStale();
 }
 
 // Dev/debug: attach svelte's store `get()` and the service worker store for
