@@ -40,7 +40,8 @@ const config = {
 			fallback: '404.html', // SPA fallback - serves as 404 page on IPFS/static hosts
 		}),
 		serviceWorker: {
-			// we handle it ourselves here : src/service-worker-handler.ts
+			// we handle it ourselves: the worker is src/service-worker/index.ts and
+			// registration is driven by src/lib/core/service-worker/index.ts
 			register: false,
 		},
 		paths: {
