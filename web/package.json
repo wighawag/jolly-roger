@@ -4,11 +4,12 @@
 	"version": "0.0.1",
 	"type": "module",
 	"devDependencies": {
+		"@playwright/test": "^1.62.1",
 		"@sveltejs/adapter-static": "^3.0.10",
 		"@sveltejs/kit": "^2.70.2",
 		"@sveltejs/vite-plugin-svelte": "^7.3.0",
 		"@types/node": "^26.2.0",
-		"ipfs-gateway-emulator": "^5.0.0",
+		"ipfs-gateway-emulator": "^5.1.0",
 		"named-logs": "^0.4.1",
 		"prettier": "^3.9.6",
 		"prettier-plugin-svelte": "^4.1.1",
@@ -16,9 +17,9 @@
 		"svelte": "^5.56.9",
 		"svelte-check": "^4.7.6",
 		"typescript": "~6.0.3",
-		"vitest": "^4.1.2",
 		"vite": "^8.2.1",
-		"vite-plugin-devtools-json": "^1.1.0"
+		"vite-plugin-devtools-json": "^1.1.0",
+		"vitest": "^4.1.2"
 	},
 	"scripts": {
 		"prepare": "pnpm generate-pwa-icons-and-tags && svelte-kit sync || echo ''",
@@ -31,6 +32,8 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
-		"serve": "ipfs-emulator --only -d build -p 8080"
+		"serve": "ipfs-emulator --only -d build -p 8080",
+		"test:e2e": "pnpm build && playwright test",
+		"test:e2e:headed": "playwright test --headed"
 	}
 }

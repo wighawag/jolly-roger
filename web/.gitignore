@@ -9,3 +9,9 @@ static/pwa
 
 # Env
 *.local
+
+# Playwright (E2E) output
+/test-results
+/playwright-report
+/blob-report
+/.playwright
