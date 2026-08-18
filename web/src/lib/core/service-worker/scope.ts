@@ -11,41 +11,43 @@
  */
 
 /**
- * The scope a registration of `scriptURL` claims by default: the script's
- * directory, as an absolute URL ending in `/`.
- *
- * This is an approximation of the real thing. A registration can opt into a
- * WIDER scope than its directory via the `Service-Worker-Allowed` header, and
- * an active `ServiceWorker` object does not expose its scope, so a foreign
- * worker that did so will be understated here. See the KNOWN GAPS note in
- * `./index.ts`.
- */
-export function defaultScopeOf(scriptURL: string): string {
-	return new URL(`./`, scriptURL).href;
-}
-
-/**
  * Would registering `swURL` disturb the worker currently controlling the page?
  *
  * `controllerScriptURL` is `navigator.serviceWorker.controller?.scriptURL`, so
  * null/undefined means the page is not currently controlled.
  *
- * True in exactly the two destructive cases:
- *   - the controller's scope EQUALS ours, so our registration replaces theirs
- *     (registrations are keyed by scope)
- *   - the controller's scope is an ANCESTOR of ours, so nothing is replaced but
- *     our narrower registration takes control of the page away from theirs,
- *     because a client is controlled by the LONGEST matching scope
+ * True whenever a worker that is not ours controls this page. False when the
+ * page is uncontrolled (nothing to disturb) or the controller IS our own worker
+ * (register again, to keep the update flow alive).
  *
- * False when:
- *   - the page is not controlled at all, so there is nothing to disturb
- *   - the controller IS our own worker, in which case we register again to keep
- *     the update flow alive
- *   - the controller is scoped DEEPER than us, so it keeps this page by
- *     longest-match and we cannot displace it
+ * WHY THIS DOES NOT COMPARE SCOPES, which is the obvious "improvement" to make
+ * here and is wrong. A controlling worker's scope cannot be determined
+ * synchronously: `ServiceWorker` does not expose its scope, and deriving it
+ * from the script's directory is a guess that a registration can invalidate by
+ * opting into a WIDER scope via `Service-Worker-Allowed` or an explicit
+ * `{scope}` argument.
  *
- * Both scopes always end in `/`, which is what makes the prefix test safe
- * against sibling directories: `/app/` does not prefix-match `/app2/`.
+ * That guess is not merely theoretically weak, it is wrong against a real
+ * service worker gateway. Verified against `ipfs-gateway-emulator --gateway sw`
+ * (see the E2E suite): its worker is at `/ipfs-sw-emulator/sw.js` but registers
+ * with `{scope: '/'}`, so the script directory says `/ipfs-sw-emulator/` while
+ * the true scope is `/`. A directory-based test concludes there is no overlap,
+ * skips the guard, and registers straight over a gateway that is serving the
+ * page.
+ *
+ * The real scope is only reachable through the async
+ * `navigator.serviceWorker.getRegistrations()`, and awaiting that before
+ * registering would put a round-trip on EVERY first visit (an uncontrolled page
+ * is exactly the first-visit signature) to buy precision in a rare case. So
+ * this stays synchronous and conservative instead.
+ *
+ * The asymmetry is what justifies being conservative: over-firing costs offline
+ * support and push on an origin where registering would have been fine, and the
+ * site still works, while under-firing silently breaks a trustless gateway and
+ * the site with it. A foreign worker scoped DEEPER than us would in principle
+ * keep this page by longest-match and be safe to register alongside, but we
+ * cannot tell that case apart from the destructive ones without the scope, so
+ * it is treated as destructive too.
  */
 export function wouldDisturbForeignWorker(
 	swURL: string,
@@ -54,8 +56,5 @@ export function wouldDisturbForeignWorker(
 	if (!controllerScriptURL) {
 		return false;
 	}
-	if (controllerScriptURL === swURL) {
-		return false;
-	}
-	return defaultScopeOf(swURL).startsWith(defaultScopeOf(controllerScriptURL));
+	return controllerScriptURL !== swURL;
 }

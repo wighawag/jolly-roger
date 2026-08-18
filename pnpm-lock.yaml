@@ -173,6 +173,9 @@ importers:
       '@sveltejs/vite-plugin-svelte':
         specifier: ^7.3.0
         version: 7.3.0(svelte@5.56.9)(vite@8.2.1(@types/node@26.2.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.12))
+      '@tailwindcss/forms':
+        specifier: ^0.5.11
+        version: 0.5.11(tailwindcss@4.3.3)
       '@tailwindcss/typography':
         specifier: ^0.5.20
         version: 0.5.20(tailwindcss@4.3.3)
@@ -198,8 +201,8 @@ importers:
         specifier: ^0.0.2
         version: 0.0.2
       ipfs-gateway-emulator:
-        specifier: ^5.0.0
-        version: 5.0.0
+        specifier: ^5.1.0
+        version: 5.1.0
       json-stable-stringify:
         specifier: ^1.3.0
         version: 1.3.0
@@ -1323,6 +1326,11 @@ packages:
   '@swc/helpers@0.5.23':
     resolution: {integrity: sha512-5lSsMOTXURePglDfvuAQUqkGek9Hg2kksOYay2m0+XR++b2NWYL/4sWyuvVBIs8oKnJaxkdi9whaL/sqN13afw==}
 
+  '@tailwindcss/forms@0.5.11':
+    resolution: {integrity: sha512-h9wegbZDPurxG22xZSoWtdzc41/OlNEUQERNqI/0fOwa2aVlWGu7C35E/x6LDyD3lgtztFSSjKZyuVM0hxhbgA==}
+    peerDependencies:
+      tailwindcss: '>=3.0.0 || >= 3.0.0-alpha.1 || >= 4.0.0-alpha.20 || >= 4.0.0-beta.1'
+
   '@tailwindcss/node@4.3.3':
     resolution: {integrity: sha512-/T8IKEsf9VTU6tLjgC7+sv2mOPtQxzE2jMw7u4Tt40Tx+QSZxpzh95/H6cMKoja9XuW7iMdLJYBB0o9G1CaAgg==}
 
@@ -2012,10 +2020,6 @@ packages:
     resolution: {integrity: sha512-T2UbfbBEF32wiepXIsMlTW9+dDYC6wMh/t/vYA4tuOMKqWz/n3vr1NFSxQiyP+zk2mXsoMA/i/7qV6LKut1t1A==}
     engines: {node: '>= 0.4'}
 
-  hono@4.12.32:
-    resolution: {integrity: sha512-XcuyW9qE2kJn07PkecMOBd5Vq/hMy7mmGw+idz1yblbg9N17ijJODrvPkn7/dwL3Kulj8LcRJ69DLOWf91dRUg==}
-    engines: {node: '>=16.9.0'}
-
   hono@4.12.34:
     resolution: {integrity: sha512-GqXJqY/xJkJmuloTrnV1ZEXG3fqte+VjkUqoRNZXcrUidiUOP4fMSIHHY4tsqZBK++kVyWmt/AAfSUuy57/eSA==}
     engines: {node: '>=16.9.0'}
@@ -2038,8 +2042,8 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
-  ipfs-gateway-emulator@5.0.0:
-    resolution: {integrity: sha512-A2N/DdVOQsTHyoOVpv6hBaSUTCIumyegglnXdSzGrphucmRPqxz16ooB5wzMgcXVwI4u/7l74qnuoah7tcpVhA==}
+  ipfs-gateway-emulator@5.1.0:
+    resolution: {integrity: sha512-aTEs8eWIGEGhiX3dXF+Alk9rtN8bD+l0b4SmiO1dd2f6B/FBsJ4JcD8S2GjgqXph2bVw1Yh/ik1v8rVLprynbA==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -2360,6 +2364,10 @@ packages:
   mime-types@2.1.35:
     resolution: {integrity: sha512-ZDY+bPm5zTTF+YpCrAU9nK0UgICYPT0QtT1NZWFv4s++TNkcgVaT0g6+4R2uI4MjQjzysHB1zxuWL50hzaeXiw==}
     engines: {node: '>= 0.6'}
+
+  mini-svg-data-uri@1.4.4:
+    resolution: {integrity: sha512-r9deDe9p5FJUPZAk3A59wGH7Ii9YrjjWw0jmw/liSbHl2CHiyXj6FcDXDu2K3TjVAXqiJdaw3xxwlZZr9E6nHg==}
+    hasBin: true
 
   minimist@1.2.8:
     resolution: {integrity: sha512-2yyAR8qBkN3YuheJanUpWC5U3bb5osDywNB8RzDVlDwDHbocAJveqqj1u8+SVD7jkWT4yvsHCpWqqWqAxb0zCA==}
@@ -4225,6 +4233,11 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
+  '@tailwindcss/forms@0.5.11(tailwindcss@4.3.3)':
+    dependencies:
+      mini-svg-data-uri: 1.4.4
+      tailwindcss: 4.3.3
+
   '@tailwindcss/node@4.3.3':
     dependencies:
       '@jridgewell/remapping': 2.3.5
@@ -4807,7 +4820,7 @@ snapshots:
 
   faucet-server-app@0.1.0(typescript@6.0.3)(zod@3.25.76):
     dependencies:
-      hono: 4.12.32
+      hono: 4.12.34
       named-logs: 0.4.1
       remote-sql: 0.0.7
       viem: 2.55.11(typescript@6.0.3)(zod@3.25.76)
@@ -4979,8 +4992,6 @@ snapshots:
     dependencies:
       function-bind: 1.1.2
 
-  hono@4.12.32: {}
-
   hono@4.12.34: {}
 
   https-proxy-agent@5.0.1:
@@ -5013,7 +5024,7 @@ snapshots:
       sade: 1.8.1
       varint: 6.0.0
 
-  ipfs-gateway-emulator@5.0.0:
+  ipfs-gateway-emulator@5.1.0:
     dependencies:
       '@hono/node-server': 2.0.12(hono@4.12.34)
       hono: 4.12.34
@@ -5328,6 +5339,8 @@ snapshots:
     dependencies:
       mime-db: 1.52.0
 
+  mini-svg-data-uri@1.4.4: {}
+
   minimist@1.2.8: {}
 
   mode-watcher@1.1.0(svelte@5.56.9):
@@ -5529,7 +5542,7 @@ snapshots:
 
   purgatory-core@0.0.7(typescript@6.0.3)(zod@3.25.76):
     dependencies:
-      hono: 4.12.32
+      hono: 4.12.34
       named-logs: 0.4.1
       remote-sql: 0.0.7
       viem: 2.55.11(typescript@6.0.3)(zod@3.25.76)
