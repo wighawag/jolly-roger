@@ -3,7 +3,7 @@ import {get, writable} from 'svelte/store';
 import type {Logger} from 'named-logs';
 import {logs} from 'named-logs';
 import {handleAutomaticUpdate, listenForWaitingServiceWorker} from './utils';
-import {defaultScopeOf, wouldDisturbForeignWorker} from './scope';
+import {wouldDisturbForeignWorker} from './scope';
 
 import {resolve} from '$app/paths';
 import type {NotificationsService, NotificationToAdd} from '../notifications';
@@ -274,7 +274,6 @@ export function createServiceWorker(notifications?: NotificationsService) {
 
 			const swLocation = resolve<any>(`/service-worker.js`);
 			const swURL = new URL(swLocation, location.href).href;
-			const swScope = defaultScopeOf(swURL);
 
 			// ------------------------------------------------------------------------------------------------
 			// DO NOT REGISTER WHEN A FOREIGN WORKER ALREADY COVERS OUR SCOPE
@@ -306,36 +305,31 @@ export function createServiceWorker(notifications?: NotificationsService) {
 			// protect the gateway: do NOT "fix" this by making registration succeed.
 			//
 			// WHAT IS TESTED lives in `./scope.ts` (unit tests in
-			// `test/lib/core/service-worker/scope.test.ts`): whether the
-			// controlling worker's scope COVERS the
-			// scope we would claim, which is exactly the two destructive cases above.
-			// The comparison is on absolute URLs, so base-path and path-gateway
-			// deployments still recognise OUR OWN worker on repeat visits (in which
-			// case we do register, to keep the update flow working).
+			// `test/lib/core/service-worker/scope.test.ts`, end to end against a
+			// real emulated gateway in `e2e/tests/service-worker-gateway.e2e.ts`):
+			// simply whether a worker that is not ours controls this page. It
+			// deliberately does NOT compare scopes, because a controlling worker's
+			// scope cannot be read synchronously and guessing it from the script's
+			// directory is demonstrably wrong against a real gateway; `./scope.ts`
+			// documents that in full. The comparison is on absolute URLs, so
+			// base-path and path-gateway deployments still recognise OUR OWN worker
+			// on repeat visits (in which case we do register, to keep the update
+			// flow working).
 			//
-			// It is deliberately CONSERVATIVE, and the asymmetry is why: over-firing
-			// costs offline support and push on an origin where registering would have
-			// been fine (a co-tenant app worker at `/`, say), while under-firing
-			// silently breaks a trustless gateway and the site with it. Scope topology
-			// cannot distinguish a co-tenant worker from a host verification worker,
-			// only intent can, so we fail towards the recoverable outcome.
-			//
-			// KNOWN GAPS, both closable only with the async `navigator.serviceWorker
-			// .getRegistration()`, and both left open on purpose because that await
-			// would fall on every first visit to defend a rare case: (1) this only sees
-			// a worker that CONTROLS the page, so after a hard reload (ctrl+shift+r) the
-			// page is uncontrolled and we try to register anyway, though on a gateway
-			// that attempt fails on MIME as described and lands in `error` rather than
-			// `skipped`; (2) a foreign worker that widened its scope via
-			// `Service-Worker-Allowed` is not detected, since its script directory then
-			// understates its real scope.
+			// KNOWN GAP: this only sees a worker that CONTROLS the page, so after a
+			// hard reload (ctrl+shift+r) the page is uncontrolled and we try to
+			// register anyway. On a gateway that attempt fails on MIME as described
+			// above and lands in `error` rather than `skipped`. Closing it needs the
+			// async `navigator.serviceWorker.getRegistrations()`, whose await would
+			// fall on every first visit (an uncontrolled page is exactly the
+			// first-visit signature) to defend a rare case, so it is left open.
 			const controller = navigator.serviceWorker.controller;
 			if (
 				controller &&
 				wouldDisturbForeignWorker(swURL, controller.scriptURL)
 			) {
 				logger.log(
-					`scope ${swScope} is covered by a foreign service worker (${controller.scriptURL} at ${defaultScopeOf(controller.scriptURL)}), skipping registration of ${swURL}`,
+					`page is controlled by a foreign service worker (${controller.scriptURL}), skipping registration of ${swURL}`,
 				);
 				store.set({
 					notSupported: false,
