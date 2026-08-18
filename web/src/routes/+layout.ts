@@ -42,5 +42,8 @@ if (!dev || enableSwInDev) {
 	);
 }
 
-// Dev/debug: attaching svelte store get() for console access
+// Dev/debug: attach svelte's store `get()` and the service worker store for
+// console access. The E2E suite reads the registration decision through these
+// same handles, rather than the app growing a test-only hook.
 (globalThis as any).get = get;
+(globalThis as any).serviceWorker = serviceWorker;

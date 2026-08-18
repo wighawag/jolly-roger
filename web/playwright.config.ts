@@ -1,4 +1,5 @@
 import {defineConfig, devices} from '@playwright/test';
+import {PLAIN_PORT, SW_GATEWAY_PORT} from './e2e/ports';
 
 const env = (globalThis as any).process.env;
 
@@ -92,15 +93,33 @@ export default defineConfig({
 	// Web server configuration
 	// NOTE: reuseExistingServer is false to ensure Playwright always starts a fresh
 	// preview server with the newly built app from globalSetup.
-	webServer: {
-		// No `--` before the flag: pnpm passes a bare `--` through verbatim, and
-		// `vite preview -- --port N` silently ignores everything after it and serves
-		// the default 4173 instead, so Playwright waits on the wrong port until it
-		// times out.
-		command: `pnpm run preview --port ${PORT}`,
-		port: PORT,
-		reuseExistingServer: false,
-		// Wait for the server to be ready
-		timeout: 120000,
-	},
+	// An ARRAY: this repo's own preview server, plus the two
+	// `ipfs-gateway-emulator` servers the inherited service worker gateway
+	// suite (e2e/tests/service-worker-gateway.e2e.ts) navigates to. Ports come
+	// from e2e/ports.ts so they cannot collide with PORT above.
+	webServer: [
+	{
+			// No `--` before the flag: pnpm passes a bare `--` through verbatim, and
+			// `vite preview -- --port N` silently ignores everything after it and serves
+			// the default 4173 instead, so Playwright waits on the wrong port until it
+			// times out.
+			command: `pnpm run preview --port ${PORT}`,
+			port: PORT,
+			reuseExistingServer: false,
+			// Wait for the server to be ready
+			timeout: 120000,
+		},
+		{
+			command: `pnpm exec ipfs-emulator --only root -d build -p ${PLAIN_PORT}`,
+			port: PLAIN_PORT,
+			reuseExistingServer: false,
+			stdout: 'ignore',
+		},
+		{
+			command: `pnpm exec ipfs-emulator --gateway sw -d build -p ${SW_GATEWAY_PORT}`,
+			port: SW_GATEWAY_PORT,
+			reuseExistingServer: false,
+			stdout: 'ignore',
+		},
+	],
 });
