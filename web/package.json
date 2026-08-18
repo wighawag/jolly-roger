@@ -21,6 +21,7 @@
 		"svelte-check": "^4.7.6",
 		"tailwindcss": "^4.3.3",
 		"typescript": "~6.0.3",
+		"vitest": "^4.1.2",
 		"vite": "^8.2.1",
 		"vite-plugin-devtools-json": "^1.1.0"
 	},
@@ -31,6 +32,7 @@
 		"build": "vite build",
 		"preview": "vite preview",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"test": "vitest run",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
