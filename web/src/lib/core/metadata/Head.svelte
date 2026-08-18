@@ -32,33 +32,6 @@
 	let pageURL = $derived(`${host}${page.url.pathname}`);
 	let isHome = $derived(page.url.pathname === '/');
 
-	// ------------------------------------------------------------------------------------------------
-	// PWA ASSET LINKS MUST BE RECOMPUTED ON NAVIGATION
-	// ------------------------------------------------------------------------------------------------
-	// `paths.relative` is set (it is what makes a build portable to IPFS, where
-	// the site can live under any path), so `url()` returns a path relative to
-	// the CURRENT page: `./pwa/x` at the root, `../pwa/x` one level down.
-	//
-	// Written inline as `href={url('/pwa/x')}` the expression has no reactive
-	// dependency, so Svelte treats it as static and never recomputes it. A
-	// client-side navigation then leaves the PREVIOUS page's relative path on the
-	// element: arriving at a nested route still carrying `./pwa/x` resolves to
-	// `<route>/pwa/x`, which 404s. A hard load is always correct, which is what
-	// makes this easy to miss.
-	//
-	// Reading `page.url.pathname` here is the dependency that makes it re-run. It
-	// is deliberate, not a redundant read: delete it and the links silently rot
-	// again on every nested route.
-	let pwa = $derived.by(() => {
-		page.url.pathname;
-		return {
-			faviconSvg: url('/pwa/favicon.svg'),
-			faviconExt: url(`/pwa/favicon.${iconExtension}`),
-			faviconIco: url('/pwa/favicon.ico'),
-			appleTouchIcon: url('/pwa/apple-touch-icon.png'),
-			manifest: url('/pwa/manifest.webmanifest'),
-		};
-	});
 </script>
 
 <svelte:head>
@@ -95,13 +68,20 @@
 
 	<!-- minimal -->
 	{#if iconExtension === 'svg'}
-		<link rel="icon" href={pwa.faviconSvg} type="image/svg+xml" />
+		<link rel="icon" href={url('/pwa/favicon.svg')} type="image/svg+xml" />
 	{:else}
-		<link rel="icon" href={pwa.faviconExt} type={`image/${iconExtension}`} />
+		<link
+			rel="icon"
+			href={url(`/pwa/favicon.${iconExtension}`)}
+			type={`image/${iconExtension}`}
+		/>
 	{/if}
-	<link rel="icon" href={pwa.faviconIco} sizes="any" /><!-- 32×32 -->
-	<link rel="apple-touch-icon" href={pwa.appleTouchIcon} /><!-- 180×180 -->
-	<link rel="manifest" href={pwa.manifest} />
+	<link rel="icon" href={url('/pwa/favicon.ico')} sizes="any" /><!-- 32×32 -->
+	<link
+		rel="apple-touch-icon"
+		href={url('/pwa/apple-touch-icon.png')}
+	/><!-- 180×180 -->
+	<link rel="manifest" href={url('/pwa/manifest.webmanifest')} />
 
 	<!-- extra info -->
 	{#if themeColor}
