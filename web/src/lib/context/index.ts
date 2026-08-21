@@ -47,7 +47,7 @@ import {
 	ephemeralStorage,
 } from '$lib/core/transaction/in-flight-store.js';
 import {guardDispatch} from '$lib/core/transaction/dispatch-guard.js';
-import {startInFlightTracking} from '$lib/core/transaction/in-flight-view.js';
+import {startInFlightTracking} from '$lib/core/transaction/in-flight-tracking.js';
 import {createRecordedNonceReader} from '$lib/account/recorded-nonces.js';
 import {createAccountCannotSendStore} from '$lib/core/transaction/account-cannot-send-store.js';
 import {createErrorDetailsStore} from '$lib/core/transaction/error-details-store.js';

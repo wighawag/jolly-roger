@@ -4,7 +4,7 @@
 	import Address from '$lib/core/ui/ethereum/Address.svelte';
 	import HelpCircleIcon from '@lucide/svelte/icons/help-circle';
 	import {getAppContext} from '$lib';
-	import {createInFlightReport, reportHeading} from './in-flight-view';
+	import {createInFlightReport, reportHeading} from './in-flight-report';
 
 	// A SYSTEM overlay: its visibility is derived from domain state (the ledger),
 	// not owned by it, so it survives navigation and is not registered with the
