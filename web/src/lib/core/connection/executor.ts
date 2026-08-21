@@ -2,6 +2,7 @@ import {derived, type Readable} from 'svelte/store';
 import type {Account, Transport} from 'viem';
 import type {TrackedWalletClientAutoPopulate} from '@etherkit/viem-tx-tracker';
 import type {TransactionMetadata} from '$lib/account/AccountData';
+import {isDispatchGuarded} from '$lib/core/transaction/dispatch-guard';
 import type {ChainConnection, ChainInfo} from './types';
 
 /**
@@ -166,6 +167,30 @@ export function createExecutor(params: ExecutorParams): ExecutorStore {
 	if (sendFrom === 'signer' && !buildSignerClient) {
 		throw new Error(
 			'createExecutor: sendFrom "signer" requires buildSignerClient',
+		);
+	}
+
+	// FAIL LOUDLY IF THE CLIENT DOES NOT RECORD BEFORE DISPATCH.
+	//
+	// `guardDispatch` is applied once, where the tracked client is built (see
+	// lib/context), so everything in THIS app inherits it. A variant that builds a
+	// SECOND tracked client for a local signer has to guard that one too, and
+	// nothing can do it on its behalf. Unguarded, every transaction from that
+	// signer is dispatched with no in-flight record, which is precisely the hole
+	// this slice closed for the account executor, and it would be invisible: the
+	// transactions still go through, they just stop being recoverable.
+	//
+	// A warning rather than a throw, because an app may legitimately compose an
+	// executor before wiring the guard, and taking the app down for it would be a
+	// worse trade than saying so. DEV only.
+	if (import.meta.env.DEV && !isDispatchGuarded(walletClient)) {
+		console.warn(
+			`[executor] the client for sendFrom "${sendFrom}" does not record ` +
+				`transactions before dispatching them, so a reload between sending and ` +
+				`receiving the hash loses the transaction. Wrap it with ` +
+				`guardDispatch(client, inFlight) where it is built, INSIDE any ` +
+				`memoisation, so one key still yields one client object. See ` +
+				`core/transaction/dispatch-guard.`,
 		);
 	}
 

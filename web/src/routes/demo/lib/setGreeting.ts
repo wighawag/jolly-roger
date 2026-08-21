@@ -1,6 +1,7 @@
 import {get} from 'svelte/store';
 import {
 	InsufficientFundsError,
+	isStoppedWaitingError,
 	isUserRejectionError,
 } from '$lib/core/transaction';
 import {
@@ -87,6 +88,16 @@ export async function setGreeting(
 			// User dismissed the funds modal or rejected in their wallet.
 			return {status: 'cancelled'};
 		}
+
+		// The user stopped waiting for a wallet that had not answered. NOT a
+		// failure: the request is still with the wallet and may yet be sent, and
+		// the in-flight ledger is following it. All this has to do is let the form
+		// go, and say nothing, because an error toast here would be about a
+		// transaction that has not failed. See StoppedWaitingError. The typed
+		// message is deliberately left in the input: the user has not been told
+		// anything happened, so taking their text away would be the app deciding
+		// for them that it did.
+		if (isStoppedWaitingError(error)) return {status: 'cancelled'};
 
 		// Nor is any other way the connection came back empty an error to report
 		// here. Every one of them already rests on the connection, where

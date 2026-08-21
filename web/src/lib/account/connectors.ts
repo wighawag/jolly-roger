@@ -20,28 +20,82 @@ type TrackedClient = TrackedWalletClientType<TransactionMetadata, true>;
 type TrackedTxSource = Pick<TrackedClient, 'on'>;
 
 /**
+ * Told when a transaction was broadcast and could NOT be filed as an operation.
+ *
+ * A callback rather than a direct dependency on the in-flight ledger, so this
+ * module keeps knowing only about account data, and so the failure can be
+ * tested without one.
+ */
+export type UnrecordedBroadcast = (params: {
+	from: `0x${string}`;
+	nonce: number | undefined;
+	hash: `0x${string}`;
+	reason: unknown;
+}) => void;
+
+/**
  * Attach the broadcast/fetched listeners that feed tracked transactions into
  * Account Data. Returns a teardown.
  */
 function attachTrackedClient(
 	walletClient: TrackedTxSource,
 	accountData: MultiAccountDataStore,
+	onUnrecordedBroadcast?: UnrecordedBroadcast,
 ): () => void {
 	return combineTeardowns([
 		walletClient.on('transaction:broadcasted', (tx) => {
-			// Check if this is a resubmit (has operationId in metadata)
-			const metadata = tx.metadata as ExtendedTransactionMetadata;
-			if (metadata.operationId) {
-				// Add transaction to existing operation
-				accountData.addTransactionToOperation(metadata.operationId, tx);
-			} else {
-				// Create new operation
-				accountData.addOperationFromTrackedTransaction(tx);
+			// NOTHING MAY THROW OUT OF HERE.
+			//
+			// This runs inside the tracker's `emit`, which is fail-fast (no error
+			// handler is registered), and `emit` is called by `writeContract` AFTER
+			// the transaction has been broadcast but BEFORE it returns the hash. So a
+			// throw here does not just skip the bookkeeping: it rejects the send, and
+			// every caller reports a failure for a transaction that is already on
+			// chain. Observed as a "Transaction error: accountData not ready" toast
+			// over a greeting that had been posted successfully.
+			//
+			// Account data belongs to one account at a time, so it is genuinely
+			// unavailable when the account went away between dispatch and answer (a
+			// disconnect, an account switch). That is a real state, not a bug to
+			// assert against, and the honest response is to hand the transaction to
+			// something that CAN keep it: the in-flight ledger, which already holds a
+			// record for this exact request and can now attach the hash to it.
+			try {
+				// Check if this is a resubmit (has operationId in metadata)
+				const metadata = tx.metadata as ExtendedTransactionMetadata;
+				if (metadata.operationId) {
+					// Add transaction to existing operation
+					accountData.addTransactionToOperation(metadata.operationId, tx);
+				} else {
+					// Create new operation
+					accountData.addOperationFromTrackedTransaction(tx);
+				}
+			} catch (reason) {
+				onUnrecordedBroadcast?.({
+					from: tx.from,
+					nonce: tx.nonce,
+					hash: tx.hash,
+					reason,
+				});
 			}
 		}),
 		// if needed we can also update on getting the full tx data
 		walletClient.on('transaction:fetched', (tx) => {
-			accountData.updateOperationFromFetchedTransaction(tx);
+			// Same reasoning, milder consequence: the tracker already wraps this emit
+			// in a try/catch, so a throw here is swallowed and logged as "could not
+			// fetch tx", which is a misleading thing to print about a fetch that
+			// worked. There is nothing to salvage on this path (it only enriches an
+			// operation that a successful broadcast already filed), so it is enough
+			// not to lie about what failed.
+			try {
+				accountData.updateOperationFromFetchedTransaction(tx);
+			} catch (reason) {
+				console.warn(
+					`[account] could not update operation for ${tx.hash} from fetched ` +
+						`transaction data. The operation keeps its broadcast-time values.`,
+					reason,
+				);
+			}
 		}),
 	]);
 }
@@ -60,10 +114,19 @@ function attachTrackedClient(
 export function createTrackedWalletConnector(params: {
 	walletClient: TrackedTxSource;
 	accountData: MultiAccountDataStore;
+	/**
+	 * Where a broadcast goes when account data cannot take it. Optional so this
+	 * connector stays usable on its own, but an app that sends transactions
+	 * should supply it: without one, a transaction broadcast while no account is
+	 * connected is simply gone.
+	 */
+	onUnrecordedBroadcast?: UnrecordedBroadcast;
 }) {
-	const {accountData, walletClient} = params;
+	const {accountData, walletClient, onUnrecordedBroadcast} = params;
 
-	return createConnector(() => attachTrackedClient(walletClient, accountData));
+	return createConnector(() =>
+		attachTrackedClient(walletClient, accountData, onUnrecordedBroadcast),
+	);
 }
 
 /// Listen for Account Data transaction being added/removed

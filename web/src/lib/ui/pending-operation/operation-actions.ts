@@ -4,7 +4,10 @@ import type {
 	ExtendedTransactionMetadata,
 	OnchainOperation,
 } from '$lib/account/AccountData';
-import {InsufficientFundsError} from '$lib/core/transaction';
+import {
+	InsufficientFundsError,
+	isStoppedWaitingError,
+} from '$lib/core/transaction';
 import type {Context} from '$lib/context/types';
 import type {ExecutorState} from '$lib/core/connection/executor';
 
@@ -53,7 +56,7 @@ export function deriveCancelGasPrice(
 
 /**
  * Map a resubmit/cancel failure to a user-facing message. Returns null when the
- * error is an insufficient-funds dismissal (which should be silently ignored).
+ * error is one the user already knows about and no message should be shown.
  */
 export function toReplacementErrorMessage(
 	err: unknown,
@@ -61,6 +64,12 @@ export function toReplacementErrorMessage(
 ): string | null {
 	if (err instanceof InsufficientFundsError) {
 		// User dismissed the funds modal - silently cancel.
+		return null;
+	}
+	if (isStoppedWaitingError(err)) {
+		// The user stopped waiting for a wallet that had not answered. The
+		// replacement may still be sent, so calling it a failure would be wrong,
+		// and the in-flight ledger is what reports on it. See StoppedWaitingError.
 		return null;
 	}
 	const error = err as {code?: number; message?: string};

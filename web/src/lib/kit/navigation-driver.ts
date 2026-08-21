@@ -85,6 +85,35 @@ export function createKitNavigationDriver(): KitNavigationDriver {
 			};
 		},
 
+		guardUnload(shouldBlock) {
+			// `beforeunload`, NOT SvelteKit's `beforeNavigate`, and the difference is
+			// the requirement rather than a preference. The guard must fire for a
+			// reload, a tab close and leaving the origin, and for nothing else;
+			// `beforeNavigate` also fires for in-app navigations (where it would have
+			// to be filtered by `willUnload`), it is a component-lifecycle API that
+			// cannot be called from a plain module, and SvelteKit implements its own
+			// `willUnload` case on this same event. Using it directly is the smaller
+			// surface AND the exact semantics.
+			//
+			// The browser decides whether to show anything: a tab the user has not
+			// interacted with is allowed to close without a prompt, and no browser
+			// shows our text any more. This is why ADR-0004 calls it a courtesy.
+			const onBeforeUnload = (event: BeforeUnloadEvent) => {
+				if (!shouldBlock()) return;
+				event.preventDefault();
+				// `true`, NOT `''`. The spec asks the user to confirm when the event's
+				// canceled flag is set OR `returnValue` is not the empty string, so
+				// assigning the empty string is the one legacy value that means DO NOT
+				// PROMPT. Browsers that predate honouring `preventDefault()` here
+				// (Chrome and Edge before 119) look only at `returnValue`, so this was
+				// silently a no-op on them while working in a current Chromium, which
+				// is exactly the sort of difference a headless test does not show you.
+				event.returnValue = true;
+			};
+			window.addEventListener('beforeunload', onBeforeUnload);
+			return () => window.removeEventListener('beforeunload', onBeforeUnload);
+		},
+
 		notify() {
 			notifyChanged?.();
 		},

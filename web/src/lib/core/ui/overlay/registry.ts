@@ -223,7 +223,14 @@ export function createOverlayRegistry(
 					]),
 				),
 		};
-		(globalThis as any).overlays = debugHandle;
+		// Guarded, like the other console handles: this runs during construction,
+		// and a global that refuses assignment would otherwise take the app down
+		// for the sake of a debugging convenience.
+		try {
+			(globalThis as any).overlays = debugHandle;
+		} catch {
+			debugHandle = undefined;
+		}
 	}
 
 	return {
@@ -408,7 +415,10 @@ export function createOverlayRegistry(
 			pathname = undefined;
 			// Identity-checked, so tearing down an old registry never deletes the
 			// handle a newer one has already installed.
-			if ((globalThis as any).overlays === debugHandle) {
+			if (
+				debugHandle !== undefined &&
+				(globalThis as any).overlays === debugHandle
+			) {
 				delete (globalThis as any).overlays;
 			}
 		},

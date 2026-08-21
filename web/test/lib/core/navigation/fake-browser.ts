@@ -24,6 +24,8 @@ export function createFakeBrowser(url = 'https://app.test/transactions/') {
 	 * tests, so this records the attempt instead of hiding it.
 	 */
 	let leftTheApp = false;
+	/** The predicate the service installed, when it installed one. */
+	let unloadGuard: (() => boolean) | undefined;
 
 	const driver: NavigationDriver = {
 		read: () => ({
@@ -50,6 +52,12 @@ export function createFakeBrowser(url = 'https://app.test/transactions/') {
 				notify = () => {};
 			};
 		},
+		guardUnload(shouldBlock) {
+			unloadGuard = shouldBlock;
+			return () => {
+				unloadGuard = undefined;
+			};
+		},
 	};
 
 	return {
@@ -61,6 +69,11 @@ export function createFakeBrowser(url = 'https://app.test/transactions/') {
 		depth: () => entries.length,
 		/** True once a traversal tried to go back past the first entry. */
 		leftTheApp: () => leftTheApp,
+		/**
+		 * What a reload / tab close would meet: `undefined` when nothing is
+		 * listening at all, otherwise whether the user would be prompted.
+		 */
+		wouldPromptOnUnload: () => unloadGuard?.(),
 		/** A real page navigation: a new entry that is nobody's overlay. */
 		navigateTo(next: string) {
 			entries.length = index + 1;

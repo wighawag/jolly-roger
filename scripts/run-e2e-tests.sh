@@ -396,7 +396,14 @@ cd "$WEB_DIR"
 
 # Run playwright without global-setup (we've done everything already)
 # The webServer in playwright.config.ts will start the preview server
-pnpm exec playwright test
+#
+# Arguments are passed through, so a developer can narrow a run to one file or
+# one test (`pnpm test:e2e e2e/tests/escape-hatch.e2e.ts`, or `-g "some name"`)
+# instead of paying the full suite's minutes to see one assertion. Everything
+# before this point still happens either way: the chain, the deploy and the
+# build are what make a narrowed run mean anything, and skipping them is how a
+# "quick" run ends up testing the previous build.
+pnpm exec playwright test "$@"
 TEST_EXIT_CODE=$?
 
 echo -e "\n${GREEN}✅ E2E tests complete!${NC}"

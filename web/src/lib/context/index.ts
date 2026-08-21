@@ -1,5 +1,5 @@
 import type {Context, TxObserverDebugState} from './types.js';
-import {writable, derived} from 'svelte/store';
+import {writable, derived, get} from 'svelte/store';
 import {createAccountData} from '$lib/account/AccountData.js';
 import {establishRemoteConnection} from '$lib/core/connection';
 import {createBalanceStore} from '$lib/core/connection/balance';
@@ -41,6 +41,18 @@ import {
 	inactiveNonceCacheStore,
 } from '$lib/core/connection/nonce-cache-store.js';
 import {createExecutor} from '$lib/core/connection/executor.js';
+import {nodeNonceReader} from '$lib/core/connection/nonce-cache.js';
+import {
+	createInFlightLedger,
+	ephemeralStorage,
+} from '$lib/core/transaction/in-flight-store.js';
+import {guardDispatch} from '$lib/core/transaction/dispatch-guard.js';
+import {
+	hasUnansweredRequest,
+	reconcileWhenAccountArrives,
+	watchUnresolvedRequests,
+} from '$lib/core/transaction/in-flight-view.js';
+import {createRecordedNonceReader} from '$lib/account/recorded-nonces.js';
 import {createAccountCannotSendStore} from '$lib/core/transaction/account-cannot-send-store.js';
 import {createErrorDetailsStore} from '$lib/core/transaction/error-details-store.js';
 import type {AugmentedChainInfo} from '$lib/core/connection/types.js';
@@ -197,6 +209,65 @@ export function createContext(): {
 	// Reactive clock store that updates every second for smooth "time ago" displays
 	const clock = createClockStore();
 
+	// Built here rather than further down, because the in-flight ledger below
+	// reconciles against the operations it holds, and the wallet client is guarded
+	// by that ledger. Ordering the three by what they need keeps every reference
+	// forward-free.
+	const accountData = createAccountData({
+		accountStore: account,
+		deployments: deployments.get(),
+		clock,
+		scopeAddress: operationScopeAddress(deployments.get()),
+	});
+
+	// ----------------------------------------------------------------------------
+	// IN-FLIGHT TRANSACTION REQUESTS
+	// ----------------------------------------------------------------------------
+
+	// Durable records of transactions handed to the wallet whose fate the app has
+	// not seen. See core/transaction/in-flight: an operation is otherwise recorded
+	// only on `transaction:broadcasted`, so a reload between dispatching
+	// eth_sendTransaction and receiving the hash leaves the app believing nothing
+	// happened while it may already be in the mempool. ADR-0004 (`work` branch).
+	const inFlight = createInFlightLedger({
+		// No storage off-browser, and nothing to record there either: the context is
+		// constructed during SSR / prerender too (ADR-0002). A ledger over a
+		// throwaway Map is inert rather than absent, so nothing has to null-check it.
+		storage:
+			typeof localStorage !== 'undefined' ? localStorage : ephemeralStorage(),
+		chainId: chain.id,
+		// A chain id is not identity: a restarted dev node returns as the same id
+		// with a different history, and these records are reconciled BY NONCE.
+		// AccountData's own key has always been scoped this way.
+		genesisHash: chain.genesisHash,
+		now: () => clock.now(),
+		// The app's own RPC when it has one, and the wallet's provider otherwise.
+		// The order is deliberate: `nonce-cache.ts` documents at length that a
+		// wallet's own nonce is exactly what cannot be trusted here.
+		readNodeNonce: appRpcUrl
+			? (address) => nodeNonceReader(appRpcUrl, address)()
+			: async (address) => {
+					try {
+						return await publicClient.getTransactionCount({
+							address,
+							blockTag: 'pending',
+						});
+					} catch {
+						return undefined;
+					}
+				},
+		recordedNonces: createRecordedNonceReader({
+			accountData,
+			account,
+			// So a record can be reconciled against the account IT names, rather
+			// than only the one that happens to be connected. On a reload with a
+			// locked wallet there is no connected account at all, which is exactly
+			// when this has to work.
+			deployments: deployments.get(),
+			scopeAddress: operationScopeAddress(deployments.get()),
+		}),
+	});
+
 	// ----------------------------------------------------------------------------
 	// TRACKED WALLET CLIENT
 	// ----------------------------------------------------------------------------
@@ -208,7 +279,15 @@ export function createContext(): {
 		populateMetadata: true,
 		clock: () => clock.now(),
 	});
-	const walletClient = trackerBuilder.using(rawWalletClient, publicClient);
+	// GUARDED HERE, ONCE, so every send in the app records itself before dispatch:
+	// the account executor below is handed this client, and so is anything using
+	// `context.walletClient` directly. An app that builds a SECOND tracked client
+	// (a local signer, see executor.ts's buildSignerClient) has to guard that one
+	// too; nothing can do it on its behalf.
+	const walletClient = guardDispatch(
+		trackerBuilder.using(rawWalletClient, publicClient),
+		inFlight,
+	);
 
 	// ----------------------------------------------------------------------------
 	// TRANSACTION EXECUTOR
@@ -249,13 +328,6 @@ export function createContext(): {
 		fetchGate: chainFetchGate,
 	});
 
-	const accountData = createAccountData({
-		accountStore: account,
-		deployments: deployments.get(),
-		clock,
-		scopeAddress: operationScopeAddress(deployments.get()),
-	});
-
 	const txObserver = createTransactionObserver({
 		finality,
 		provider: connection.provider,
@@ -272,6 +344,13 @@ export function createContext(): {
 	const trackedWalletConnector = createTrackedWalletConnector({
 		walletClient,
 		accountData,
+		// A transaction that was broadcast but could not be filed as an operation
+		// (the account went away between dispatch and answer) goes to the ledger,
+		// which already holds a record for it and can now attach the hash. Without
+		// this the app has a transaction on chain and no note of it anywhere, which
+		// is the outcome the whole in-flight machinery exists to prevent.
+		onUnrecordedBroadcast: ({from, nonce, hash}) =>
+			inFlight.noteUnrecordedBroadcast({account: from, nonce, hash}),
 	});
 
 	const txObserverConnector = createTransactionObserverConnector({
@@ -408,6 +487,7 @@ export function createContext(): {
 		txObserver,
 		txObserverDebug: {subscribe: txObserverDebug.subscribe},
 		balanceCheck,
+		inFlight,
 		navigation,
 		overlays,
 	};
@@ -416,7 +496,15 @@ export function createContext(): {
 	// (e.g. `context.balance`). Self-maintaining: new context members appear
 	// automatically. Delete this line if you don't want it.
 	if (typeof window !== 'undefined') {
-		(globalThis as any).context = context;
+		// Guarded: this runs during context construction, so a global that refuses
+		// assignment (an accessor with no setter, which is how two wallet
+		// extensions fail over `window.ethereum`) would throw here and take the
+		// whole app down for the sake of a console convenience.
+		try {
+			(globalThis as any).context = context;
+		} catch {
+			// Nothing to do: the app runs fine without the console handle.
+		}
 	}
 
 	return {
@@ -455,6 +543,59 @@ export function createContext(): {
 			toastConnector.connect();
 			onchainStateRefreshConnector.connect();
 
+			// ON STARTUP, because the records this reads were written by a session
+			// that did not get to finish: a reload, a closed tab, a crash. Whatever it
+			// concludes is shown by InFlightRequestsModal. Not awaited, and allowed to
+			// fail: it waits for account data to be restored, and nothing else here
+			// should wait for it.
+			void inFlight.reconcile();
+
+			// AND AGAIN WHEN AN ACCOUNT ARRIVES, because the startup pass runs before
+			// the wallet has reconnected and so cannot ask the one question with a
+			// quiet answer. See reconcileWhenAccountArrives.
+			const stopWatchingAccount = reconcileWhenAccountArrives({
+				account,
+				ledger: inFlight,
+			});
+
+			// AND KEEP ASKING while a question could still be answered. The notice
+			// tells the user that approving later still sends the transaction, so
+			// the app has to be watching when they do. It stops on its own once no
+			// outcome can change. See watchUnresolvedRequests.
+			const stopWatchingRequests = watchUnresolvedRequests({ledger: inFlight});
+
+			// REGISTERED FROM DOMAIN STATE, not from a modal. The dangerous condition
+			// is a request the wallet has and we have not heard back about, which can
+			// be true with no dialog on screen at all (the user took the escape hatch,
+			// or never opened the flow). A courtesy only: see the doc on guardUnload,
+			// and ADR-0004. The record and the reconciliation are the actual fix.
+			const stopGuardingUnload = navigation.guardUnload(() =>
+				hasUnansweredRequest(get(inFlight)),
+			);
+
+			// SAY SO IF NOBODY EVER ATTACHED A DRIVER.
+			//
+			// The navigation service is inert without one and every call is a no-op,
+			// which is right on the server and a silent catastrophe in a browser: no
+			// URL updates, no history entries, no back-closes-the-overlay, no unload
+			// guard. Nothing looks broken, because prompt overlays keep working. This
+			// warning is checked from the SERVICE rather than the adapter component,
+			// so it also covers the case where that component never mounted at all,
+			// which is the one its own fallback cannot catch.
+			const attachCheck =
+				import.meta.env.DEV && typeof window !== 'undefined'
+					? setTimeout(() => {
+							if (navigation.current()) return;
+							console.warn(
+								'[navigation] no driver is attached, so the app does not know ' +
+									'where it is: overlay URLs, the back gesture and the unload ' +
+									'guard are all inert. Is <KitNavigation /> mounted? See ' +
+									'src/lib/kit/README.md, and appNavigation.attached() in the ' +
+									'console.',
+							);
+						}, 5_000)
+					: undefined;
+
 			return () => {
 				cleanupBurnerWallet?.();
 				trackedWalletConnector.disconnect();
@@ -462,7 +603,12 @@ export function createContext(): {
 				toastConnector.disconnect();
 				onchainStateRefreshConnector.disconnect();
 				stopTxObserverLoop();
+				stopWatchingAccount();
+				stopWatchingRequests();
+				if (attachCheck !== undefined) clearTimeout(attachCheck);
+				stopGuardingUnload();
 				overlays.stop();
+				navigation.stop();
 				tabLeader.stop();
 				unsubscribeFromBalance();
 				unsubscribeFromGasFee();

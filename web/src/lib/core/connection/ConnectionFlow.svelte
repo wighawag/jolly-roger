@@ -10,7 +10,6 @@
 	import BasicModal from '../ui/modal/basic-modal.svelte';
 	import NoWalletFlow from './NoWalletFlow.svelte';
 	import {
-		hasPendingWalletRequest,
 		walletEntryMode,
 		canDismissConnection,
 		resolveSignInAddress,
@@ -19,15 +18,48 @@
 		signInToAccount,
 		combinesAccountChoiceWithSignIn,
 		effectiveAccountSelection,
+		offersEscapeHatch,
+		escapeHatchCopy,
+		stopWaitingForWallet,
+		shouldPromptForWalletAction,
 	} from './connection-flow';
+	import {createStoppedWaiting} from './stopped-waiting';
+	import {stopWaitingPrompt} from './overlays';
 	import {connectionFailureView} from './refusal';
-	import {dev} from '$lib';
+	import {dev, getAppContext} from '$lib';
 
 	interface Props {
 		connection: AnyConnectionStore<UnderlyingEthereumProvider>;
 	}
 
 	let {connection}: Props = $props();
+
+	// The escape hatch (ADR-0004, `work` branch). A PROMPT overlay opened from
+	// inside a SYSTEM overlay: the waiting modal stays, because the wallet really
+	// is still holding the request, and this asks on top of it.
+	const {overlays, inFlight} = getAppContext();
+	const stopWaiting = overlays.use(stopWaitingPrompt);
+	$effect(() => stopWaiting.registerRenderer());
+
+	// Whether the APP is still waiting on a dispatch. Trusted alongside the
+	// connection library's own `pendingRequests`, which a wallet state rebuild
+	// (unlocking a locked wallet, for one) resets while the request is still out.
+	let dispatchInFlight = $derived($inFlight.dispatching > 0);
+
+	// Whether the current step traps the user, and the words to offer them. Both
+	// decided in connection-flow.ts: what this app promises about a request the
+	// wallet already holds is not a rendering detail.
+	let escapable = $derived(offersEscapeHatch($connection, {dispatchInFlight}));
+	let escapeCopy = $derived(escapeHatchCopy($connection, {dispatchInFlight}));
+
+	// The question dies with its subject. If the wallet answers while the user is
+	// reading this (they approved it in the other window, or rejected it), the
+	// waiting modal underneath closes and "stop waiting for your wallet?" is a
+	// question about nothing, left floating over the page. Through close(), like
+	// every other dismissal, so the history entry it pushed comes back.
+	$effect(() => {
+		if (!escapable && $stopWaiting.open) stopWaiting.close();
+	});
 
 	let email: string = $state('');
 	let emailInput: HTMLInputElement | undefined = $state(undefined);
@@ -36,8 +68,17 @@
 	// is UI-only state: the connection store stays in `WalletToChoose` throughout.
 	let walletPickerOpen: boolean = $state(false);
 
+	// Which requests the user has given up on. Whether the wallet HOLDS a request
+	// and whether we should still block the user with a modal about it are two
+	// different questions; see shouldPromptForWalletAction.
+	const stoppedWaiting = createStoppedWaiting();
+
 	// Flow interpretation (burner-wallet phase + pending request) lives in the helper.
-	let pendingRequest = $derived(hasPendingWalletRequest($connection));
+	let pendingRequest = $derived(
+		shouldPromptForWalletAction($connection, $stoppedWaiting, {
+			dispatchInFlight,
+		}),
+	);
 
 	// Whether the connect modal offers sign-in options besides wallets (the
 	// email input under hosted sign-in). Controls the modal's layout, including
@@ -112,9 +153,25 @@
 	}
 </script>
 
+<!-- The escape hatch's trigger, on every step that refuses dismissal. A snippet
+     rather than four copies, because four copies is how one of them ends up
+     missing and that step becomes the trap this exists to remove. -->
+{#snippet escapeHatch()}
+	{#if escapable}
+		<Button
+			variant="ghost"
+			class="mt-3 w-full text-xs text-muted-foreground"
+			onclick={() => stopWaiting.open()}
+		>
+			{escapeCopy.trigger}
+		</Button>
+	{/if}
+{/snippet}
+
 <Modal.Root openWhen={$connection.step == 'WaitingForWalletConnection'}>
 	<Modal.Title>Waiting for Wallet Connection...</Modal.Title>
 	Please Accept Connection Request...
+	{@render escapeHatch()}
 </Modal.Root>
 
 <!-- Error display: shows when a connection attempt failed and the flow fell
@@ -474,6 +531,7 @@
 	onCancel={dismissable ? dismiss : undefined}
 >
 	<p>Please accept the signature request...</p>
+	{@render escapeHatch()}
 </BasicModal>
 
 <BasicModal
@@ -489,6 +547,7 @@
 			>
 		{:else}
 			<p>please follow instruction...</p>
+			{@render escapeHatch()}
 		{/if}
 	{/if}
 </BasicModal>
@@ -513,6 +572,33 @@
 			Please confirm the request in your wallet
 		</p>
 	</div>
+	{@render escapeHatch()}
+</BasicModal>
+
+<!-- The escape hatch itself. Deliberately NOT a Cancel button: the app cannot
+     take back a request the wallet already has, and a control that implies it
+     can is worse than no control at all. Every word comes from
+     connection-flow.ts's escapeHatchCopy. -->
+<BasicModal
+	openWhen={$stopWaiting.open}
+	title={escapeCopy.title}
+	onCancel={() => stopWaiting.close()}
+	cancel={{label: escapeCopy.dismiss, onclick: () => stopWaiting.close()}}
+	confirm={{
+		label: escapeCopy.confirm,
+		onclick: () => {
+			stopWaiting.close();
+			void stopWaitingForWallet(
+				$connection,
+				connection,
+				inFlight,
+				stoppedWaiting.stopWaitingFor,
+				{dispatchInFlight},
+			);
+		},
+	}}
+>
+	<p class="text-sm text-muted-foreground">{escapeCopy.body}</p>
 </BasicModal>
 
 <!-- Network Switch Modal -->

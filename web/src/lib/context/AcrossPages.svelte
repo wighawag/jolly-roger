@@ -8,6 +8,7 @@
 	import InsufficientFundsModal from '$lib/core/transaction/InsufficientFundsModal.svelte';
 	import AccountCannotSendModal from '$lib/core/transaction/AccountCannotSendModal.svelte';
 	import ErrorDetailsModal from '$lib/core/transaction/ErrorDetailsModal.svelte';
+	import InFlightRequestsModal from '$lib/core/transaction/InFlightRequestsModal.svelte';
 
 	const {connection} = getAppContext();
 </script>
@@ -25,6 +26,11 @@
 <InsufficientFundsModal />
 <AccountCannotSendModal />
 <ErrorDetailsModal />
+<!-- Below the connection flow, deliberately (see the note under this block on
+     why the order here IS the stacking order). It reports on requests that are
+     OVER, so if the flow ever raises something at the same moment, the live
+     question belongs on top of the post-mortem. -->
+<InFlightRequestsModal />
 
 <!-- ORDER MATTERS when two of these are open at once.
 

@@ -45,6 +45,20 @@ export type NavigationDriver = {
 	go(delta: number): void;
 	/** Begin reporting location/state changes. Returns a teardown. */
 	start(notify: () => void): () => void;
+	/**
+	 * Ask `shouldBlock()` before the document unloads, and prompt when it says
+	 * yes. Returns a teardown.
+	 *
+	 * WILL-UNLOAD ONLY: a reload, a tab close, or leaving the origin. Never an
+	 * in-app navigation, which loses nothing in a single-page app because the
+	 * page's own state survives it.
+	 *
+	 * Optional. A driver that cannot offer this simply does not have it, and
+	 * {@link NavigationService.guardUnload} becomes a no-op, which is the honest
+	 * degradation: the prompt was never the safety mechanism (see ADR-0004), so
+	 * losing it costs a round trip and not a transaction.
+	 */
+	guardUnload?(shouldBlock: () => boolean): () => void;
 };
 
 /** What `dropEphemeral` actually did, so callers can tell (and tests can assert). */
@@ -115,4 +129,34 @@ export type NavigationService = {
 
 	/** The current URL with `name` set to `value`, or removed when null. */
 	urlWithParam(name: string, value: string | null): URL | undefined;
+
+	/**
+	 * Warn before leaving the page while `shouldBlock()` is true. Returns a
+	 * teardown that unregisters it.
+	 *
+	 * REGISTERED FROM DOMAIN STATE, NEVER FROM AN OVERLAY. The dangerous
+	 * condition is a wallet request the app has not heard back about, not a modal
+	 * being open, and ADR-0004 rejects tying it to the modal precisely because
+	 * that loses the guard in every case where the request exists without that UI
+	 * (including after the escape hatch is taken).
+	 *
+	 * A COURTESY, NEVER THE SAFETY MECHANISM. No dialog survives a tab crash, an
+	 * OS kill or a force-quit, and the browser may refuse to show one at all
+	 * without a prior user gesture. What makes losing the page survivable is the
+	 * durable in-flight record and the reconciliation that follows it; this only
+	 * saves the user that round trip. Anything that treats it as protection is
+	 * relying on something the platform does not promise.
+	 *
+	 * Predicates registered before a driver attaches are kept and take effect
+	 * when it does, since the context is built before hydration (ADR-0002).
+	 */
+	guardUnload(shouldBlock: () => boolean): () => void;
+
+	/**
+	 * Release anything held for the life of the app (currently the dev-only
+	 * console handle). Detaching a driver is `attach`'s teardown; this is for the
+	 * service itself, and is called from the context teardown next to
+	 * `overlays.stop()`.
+	 */
+	stop(): void;
 };
