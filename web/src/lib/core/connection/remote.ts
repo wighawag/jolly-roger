@@ -260,7 +260,7 @@ export function createPaymentRail(
  * `{step: 'Idle', loading: true}` state and resolves into itself in the
  * background, so there is nothing to await here. Connecting is user-interactive
  * and can fail, which makes it precisely the wrong thing to block construction
- * on. Readiness is read from the store instead. See ADR-0002.
+ * on. Readiness is read from the store instead. See ADR-0002 (`work` branch).
  */
 export function establishRemoteConnection(options: {
 	nodeURL?: string;

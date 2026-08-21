@@ -2,7 +2,12 @@
 
 Optional, independently-constructable enhancements provided at the app root and
 consumed by descendant components. For _why_ this is a separate system from the
-app context, see `docs/adr/0001-capabilities-vs-app-context.md`.
+app context, see ADR-0001 (`work` branch).
+
+The ADRs live on the `work` orphan branch rather than here, so
+`git show work:docs/adr/0001-capabilities-vs-app-context.md` is how to read one.
+That is the only place this repository explains the arrangement; everywhere else
+just cites the ADR by number.
 
 ## Use one
 
