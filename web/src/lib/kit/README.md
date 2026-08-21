@@ -1,11 +1,16 @@
 # The framework adapter layer
 
-**This directory is the only place that should import `$app/*`.**
+**This directory is the only place in `src/lib` that imports `$app/*`.**
 
-NOT YET ENFORCED. The lint rule that turns this from a convention into a
-guarantee is slice 3 of the overlay-navigation PRD; until it lands, this is a
-rule people can break without anything failing. Treat existing `$app/*` imports
-elsewhere as debt to move here, and do not add new ones.
+ENFORCED by `test/framework-boundary.test.ts`, which fails on any `$app/*`
+import under `src/lib` outside this directory. `src/routes/**` is exempt by
+definition: routes are the framework's own surface, and another framework would
+replace them wholesale.
+
+The test carries a `KNOWN_LEAKS` list, currently empty. If something genuinely
+cannot move yet, add it there with the reason rather than deleting the check;
+the test also fails when an entry becomes stale, so the list cannot quietly
+outlive the debt.
 
 Everything else in the app talks to framework-free interfaces (`NavigationService`
 in `$lib/core/navigation`, capabilities in `$lib/core/capabilities`), so the parts
@@ -23,9 +28,21 @@ elsewhere is free to be whatever reads best. See ADR-0004 (`work` branch,
 - `navigation-driver.ts` / `KitNavigation.svelte`: SvelteKit's implementation of
   the navigation seam (shallow routing via `pushState`/`replaceState`, the
   location stream via `page` plus `popstate`/`hashchange`).
+- `paths.ts`: where the app is deployed. `resolve()` from `$app/paths` bound as
+  a `PathResolver`, plus the pre-bound `url()` and `createRouteHandler()` the
+  app uses. Everything else takes the resolver as a parameter.
+- `notification-navigation.ts`: following a URL from a push notification.
+
+## How the rest of the app gets these
+
+Three ways, in order of preference: a **capability** when core components need
+it ambiently (`useRoute`, `useDocumentLocation`), a **parameter** when one
+caller can supply it (`PathResolver`, `ServiceWorkerEnvironment`), or a **prop**
+when a component is rendered by the layout and the answer is the framework's
+(`Navbar`'s `currentPath`, `NavigationProgress`'s `isNavigating`).
 
 ## What does not
 
-Existing `$app/*` imports elsewhere in the tree pre-date this rule and are being
-moved in over time (see the overlay-navigation PRD, slice 3). New ones are not
-acceptable outside this directory.
+Anything that is really app behaviour. If a module here starts making decisions
+rather than translating them, the decision belongs on the other side of the
+seam, where it can be tested without a framework.

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import {route} from '$lib';
-	import {url} from '$lib/core/utils/web/path';
+	import {url} from '$lib/kit/paths';
 	import Button from '$lib/shadcn/ui/button/button.svelte';
 	import DefaultHead from '../lib/metadata/DefaultHead.svelte';
 	import {name} from '../web-config.json';

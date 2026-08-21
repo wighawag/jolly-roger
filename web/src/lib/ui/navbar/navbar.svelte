@@ -16,16 +16,24 @@
 	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
 	import AlertCircleIcon from '@lucide/svelte/icons/circle-alert';
 	import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw';
-	import {page} from '$app/state';
 	import GitIcon from '$lib/icons/GitIcon.svelte';
 	import {navbarMenuPrompt} from './overlays';
 
 	let {
 		repoURL,
 		communityURL,
+		currentPath,
 	}: {
 		repoURL?: string;
 		communityURL?: string;
+		/**
+		 * The path being shown, as a GETTER so reading it here tracks the caller's
+		 * reactive source. Passed in rather than read from the router, so the navbar
+		 * does not name the framework (src/lib/kit/README.md), and so it still
+		 * highlights the right link during SSR, when the navigation service is
+		 * deliberately inert.
+		 */
+		currentPath: () => string;
 	} = $props();
 
 	const {
@@ -92,11 +100,11 @@
 	}
 
 	function isActive(path: string): boolean {
-		const currentPath = String(page.url.pathname);
+		const here = currentPath();
 		if (path === '/') {
-			return currentPath === '/';
+			return here === '/';
 		}
-		return currentPath.startsWith(path);
+		return here.startsWith(path);
 	}
 </script>
 

@@ -1,5 +1,14 @@
-import {resolve} from '$app/paths';
 import {getParamsFromURL, queryStringifyNoArray} from './url.js';
+
+/**
+ * Rewrites an app-absolute path (`/blog/`) for wherever the app is deployed:
+ * under a base path, or relative for IPFS.
+ *
+ * Injected rather than imported, because the answer belongs to the framework
+ * (SvelteKit's `resolve()` from `$app/paths`) and this module must not name
+ * one. `$lib/kit/paths.ts` supplies the real thing; see src/lib/kit/README.md.
+ */
+export type PathResolver = (path: string) => string;
 
 /**
  * Dynamic route pattern definition
@@ -15,6 +24,8 @@ export type DynamicRoutePattern = {
  * Options for createRouteHandler
  */
 export type RouteHandlerOptions<T extends readonly string[]> = {
+	/** How to rewrite an app-absolute path for this deployment. */
+	resolvePath: PathResolver;
 	/** Global query parameters to preserve across routes */
 	globalQueryParams: T;
 	/** Dynamic route patterns for IPFS compatibility */
@@ -67,7 +78,7 @@ export function createRouteHandler<T extends readonly string[]>(
 	params: Record<string, string>,
 	options: RouteHandlerOptions<T>,
 ) {
-	const {globalQueryParams, dynamicRoutes = []} = options;
+	const {resolvePath, globalQueryParams, dynamicRoutes = []} = options;
 
 	/**
 	 * Convert a path to hash-based URL if it matches a dynamic route pattern
@@ -132,7 +143,7 @@ export function createRouteHandler<T extends readonly string[]>(
 		// Query must come BEFORE the fragment, otherwise it is swallowed by it.
 		const out = `${path}${queryString}${inlineHash || explicitHash}`;
 
-		return isAppAbsolute(bare) ? resolve<any>(out) : out;
+		return isAppAbsolute(bare) ? resolvePath(out) : out;
 	}
 
 	function getQueryStringToKeep(p: string): string {
@@ -172,11 +183,14 @@ export function createRouteHandler<T extends readonly string[]>(
  * Generate a URL for static resources (images, etc.)
  * Use `route()` for navigation paths instead.
  *
+ * Takes its resolver, for the reason {@link PathResolver} gives. Callers in the
+ * app import the pre-bound version from `$lib/kit/paths`.
+ *
  * @param p - The path to resolve
  * @param hash - Optional hash to append
  */
-export function url(p: string, hash?: string) {
-	return resolve<any>(
+export function urlWith(resolvePath: PathResolver, p: string, hash?: string) {
+	return resolvePath(
 		hash ? `${p}${hash.startsWith('#') ? hash : `#${hash}`}` : p,
 	);
 }

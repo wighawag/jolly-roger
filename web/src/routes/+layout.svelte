@@ -1,8 +1,13 @@
 <script lang="ts">
 	import '../app.css';
 
+	import {version} from '$app/environment';
 	import {serviceWorker, notifications, params, route} from '$lib';
-	import {provideRoute, provideENS} from '$lib/core/capabilities';
+	import {
+		provideRoute,
+		provideENS,
+		provideDocumentLocation,
+	} from '$lib/core/capabilities';
 	import NotificationOverlay from '$lib/core/notifications/NotificationOverlay.svelte';
 	import Notifications from '$lib/core/notifications/Notifications.svelte';
 	import VersionAndInstallNotfications from '$lib/core/service-worker/VersionAndInstallNotfications.svelte';
@@ -20,7 +25,7 @@
 	import {Toaster} from '$lib/shadcn/ui/sonner';
 	import AcrossPages from '$lib/context/AcrossPages.svelte';
 	import KitNavigation from '$lib/kit/KitNavigation.svelte';
-	import {page} from '$app/state';
+	import {navigating, page} from '$app/state';
 
 	let {children} = $props();
 
@@ -37,6 +42,13 @@
 
 	// Provide ambient capabilities to core UI components.
 	provideRoute(route);
+	// Where the document is, for the parts that must know during SSR (page
+	// metadata). Getters, so components reading them track `page` as if they had
+	// read it themselves, without importing the framework.
+	provideDocumentLocation({
+		pathname: () => page.url.pathname,
+		version: () => version,
+	});
 	// ENS is optional: provide it only when an ENS RPC is configured. An empty
 	// PUBLIC_ENS_NODE_URL disables ENS entirely (useENS() then returns undefined
 	// and all ENS-aware components stay inert).
@@ -56,7 +68,10 @@
 		     provides it as a capability. First, so anything below can rely on the
 		     app knowing where it is. Renders nothing. -->
 		<KitNavigation />
-		<Navbar />
+		<!-- The framework's answers, handed to components that must not ask for
+		     themselves. Getters, so reading them inside those components tracks
+		     `page`/`navigating` as if they had. See src/lib/kit/README.md. -->
+		<Navbar currentPath={() => page.url.pathname} />
 		<OfflineBanner />
 		<NonceCacheBanner />
 		{#if showRpcBanner}
@@ -105,5 +120,5 @@
 <div data-layer="modal" id="--layer-modals"></div>
 
 <div data-layer="progress">
-	<NavigationProgress />
+	<NavigationProgress isNavigating={() => !!navigating.to} />
 </div>
