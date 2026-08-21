@@ -30,6 +30,14 @@ Every step from `WalletToChoose` onwards satisfies it, so for the burner the ans
 
 This likely explains "I spotted it once": the one sighting would have been the non-burner wallet.
 
+### Consequence for slice 4's escape hatch (2026-08-21)
+
+The escape hatch inherits this suppression, because it had to. `offersEscapeHatch()` is defined as `!canDismissConnection()`, deliberately, so that a step which refuses dismissal always gains an exit and the two lists cannot drift. `canDismissConnection` ends in `!hasPendingWalletRequest(state)`, so the burner suppression flows straight through: with the burner wallet there is no "Wallet Action Required" modal AND no "Stop waiting" button on it.
+
+That is arguably right on its own terms (a burner answers instantly, so there is nothing to stop waiting for), but it had a cost that turned out to be expensive: **the escape hatch could not be covered end to end by the e2e suite**, because the burner was the only wallet a headless run had. A bug that disconnected the wallet and lost a real transaction shipped straight through that hole; see `work/notes/findings/escape-hatch-cancel-disconnected-and-lost-a-transaction.md`.
+
+**Resolved for testing purposes (2026-08-21), though not at its root.** `e2e/fixtures/stalling-wallet.ts` injects a real EIP-6963 wallet that is not the burner, so it is not suppressed, and that parks `eth_sendTransaction` until the test approves it. `e2e/tests/escape-hatch.e2e.ts` now drives the whole window. The predicate itself is unchanged and still misnamed, and replacing it with a provider-level `requiresNoUserConfirmation` remains worth doing on its own merits.
+
 ## Not reproduced: the Rabby case
 
 With an injected EIP-6963 wallet that behaves like an extension (answers reads, never answers `eth_sendTransaction`), the modal appears correctly in all three paths, including the exact reported one:
@@ -42,7 +50,22 @@ Emitting `accountsChanged` and `chainChanged` while the request was pending (a p
 
 So the app-side plumbing (tracked provider -> `wallet.pendingRequests` -> `hasPendingWalletRequest` -> modal) is sound for a normal wallet, and something Rabby-specific remains unexplained. Next step is data from a real Rabby session rather than more guessing: with the dev build, `globalThis.context` and `globalThis.get` are exposed, so a one-liner in the console can log `step`, `mechanism.name`, `wallet.pendingRequests` and the open dialog titles once a second while reproducing.
 
-Two hypotheses to test against that data:
+### CONFIRMED (2026-08-21): the library loses the request, the app no longer depends on it
+
+A second report from real use: **with a locked Rabby, no modal appeared for a transaction being sent**. A console log from that session settles it. While a transaction was genuinely outstanding:
+
+```
+step                wallet.status   pendingRequests   inFlight.dispatching
+WalletConnected     connected       0                 1
+```
+
+The library reports **zero** pending requests while the app knows it is waiting on one. That is hypothesis 2 below, confirmed with data rather than argued: the request does reach the provider, and `wallet.pendingRequests` does not survive whatever the unlock does to the wallet state. So this was never a rendering problem.
+
+Rather than wait to confirm it, the app stopped depending on that field alone. The wallet-action modal, the escape hatch and the unload guard now also consult `$inFlight.dispatching`, the app's own count of dispatches sent and not yet answered, which is written immediately before dispatch and cleared only by an answer or by the user giving up. Verified by emptying `wallet.pendingRequests` mid-request: all three used to go silent, and now all three stay up.
+
+What remains open is the library-side detail: WHICH transition empties the list, and whether that is worth reporting upstream. The app is no longer affected either way, so this is now a tidiness question rather than a user-facing one.
+
+The two hypotheses this was tested against:
 
 1. `mechanism.name` is not what we think during that session (if anything ever reports `Burner Wallet` while Rabby is connected, the suppression above fires and everything follows).
 2. The request never reaches the tracked provider, so `pendingRequests` stays empty (state problem), as opposed to the modal failing to render (view problem). The log distinguishes these two immediately.

@@ -20,6 +20,18 @@ Attribution: not the overlay work, and now tested rather than argued. With a bui
 
 Tally across this session: failed 5 of 11 full-suite runs, always this test, always `ERR_ABORTED`, always on the SECOND `goto` (the one a foreign service worker intercepts), and always fast (700-950ms).
 
+## A second wording of the same failure (2026-08-21)
+
+Seen once more during the slice 4 work, on a full run of 43 tests, with a different message for what looks like the same thing:
+
+```
+Error: page.goto: Navigation to "http://127.0.0.1:4274/" is interrupted by another navigation to "http://127.0.0.1:4274/"
+```
+
+Same test, same line, same port, same second `goto`, and the same behaviour on retry: run alone it passed 2 of 2 (with no orphaned processes on 4173/4273/4274 beforehand, checked). "Interrupted by another navigation to the same URL" is a strong hint for hypothesis 2 above rather than 1: something is navigating that page a second time, which is what a service worker claiming the client and triggering a reload looks like from Playwright's side. `ERR_ABORTED` would then be the same event observed a moment earlier or later. Whoever picks this up should start there, and should treat the two messages as one symptom rather than two.
+
+Also worth knowing: `scripts/run-e2e-tests.sh` now passes its arguments through to playwright, so `pnpm test:e2e e2e/tests/service-worker-gateway.e2e.ts` runs just this file (still with a real chain, deploy and build). The loop-until-it-reproduces probe this note asks for is now cheap to write.
+
 `ERR_ABORTED` on a `goto` usually means the navigation was superseded or the connection was closed under it. Two candidates worth checking, in order:
 
 1. The emulator server is accepting connections (Playwright's `port` wait is satisfied) but is not yet serving that route, so the first request dies. A readiness check on the actual gateway path, rather than on the port, would settle it.
