@@ -133,11 +133,13 @@
 	/* --nav-accent / --nav-bar-height come from the inline :root block in
 	   app.html, so the pre-JS bar and this component always match. Fallbacks
 	   keep this component standalone if that block ever goes away. */
+	/* No z-index on either fixed element: this is rendered inside an overlay
+	   layer (`data-layer="progress"` in +layout.svelte, scale in app.css), which
+	   is a stacking context, so the layer decides what this covers. */
 	.bar {
 		position: fixed;
 		inset: 0 0 auto 0;
 		height: var(--nav-bar-height, 2px);
-		z-index: 9999;
 		pointer-events: none;
 		background: rgb(var(--nav-accent, 148 163 184) / 0.12);
 	}
@@ -170,7 +172,6 @@
 		position: fixed;
 		top: 14px;
 		right: 16px;
-		z-index: 9999;
 		width: 22px;
 		height: 22px;
 		pointer-events: none;

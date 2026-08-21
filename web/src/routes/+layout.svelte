@@ -19,6 +19,7 @@
 	import {PUBLIC_ENS_NODE_URL} from '$env/static/public';
 	import {Toaster} from '$lib/shadcn/ui/sonner';
 	import AcrossPages from '$lib/context/AcrossPages.svelte';
+	import KitNavigation from '$lib/kit/KitNavigation.svelte';
 	import {page} from '$app/state';
 
 	let {children} = $props();
@@ -26,7 +27,7 @@
 	// Built once, synchronously, on the server as well as in the browser: every
 	// service idles when browser APIs are absent, so the page (and its metadata)
 	// prerenders instead of waiting behind a splash. Readiness arrives through
-	// the stores. See ADR-0002.
+	// the stores. See ADR-0002 (`work` branch).
 	const context = createContext();
 
 	// Set when the app cannot run at all. Env-derived reasons are known at
@@ -47,12 +48,14 @@
 	let showRpcBanner = $derived(page.route.id !== '/');
 </script>
 
-<NavigationProgress />
-
 {#if $fatal}
 	<InitError message={$fatal} />
 {:else}
 	<Context {context}>
+		<!-- Wires SvelteKit to the navigation service the context holds, and
+		     provides it as a capability. First, so anything below can rely on the
+		     app knowing where it is. Renders nothing. -->
+		<KitNavigation />
 		<Navbar />
 		<OfflineBanner />
 		<NonceCacheBanner />
@@ -66,18 +69,41 @@
 	</Context>
 {/if}
 
-<Toaster position="bottom-right" richColors closeButton />
+<!--
+	OVERLAY LAYERS.
 
-<VersionAndInstallNotfications
-	{serviceWorker}
-	classes={{
-		root: 'bg-background bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,var(--color-muted)_10px,var(--color-muted)_20px)]',
-	}}
-/>
+	Every floating surface goes in one of these, and the ORDER IS DECIDED BY THE
+	NUMBERS IN app.css (`--z-layer-*`), not by the order written here: each layer
+	is a stacking context, so a surface's own z-index (shadcn's `z-50`, sonner's
+	`999999999`) only ranks it against its layer-mates. They are still written in
+	that same order, so reading this block tells you the truth.
 
-<NotificationOverlay>
-	<Notifications {notifications} />
-</NotificationOverlay>
+	Two of them are empty: they are PORTAL TARGETS, addressed by id from
+	`core/ui/modal/modal.svelte` and the navbar drawer. A component that forgets to
+	name its target does not land here, and then its paint order is an accident of
+	where it sits in the tree, which is exactly how the drawer once covered every
+	modal.
+-->
+<div data-layer="drawer" id="--layer-drawer"></div>
 
-<div id="--layer-drawer"></div>
-<div id="--layer-modals"></div>
+<div data-layer="notice">
+	<VersionAndInstallNotfications
+		{serviceWorker}
+		classes={{
+			root: 'bg-background bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,var(--color-muted)_10px,var(--color-muted)_20px)]',
+		}}
+	/>
+</div>
+
+<div data-layer="toast">
+	<Toaster position="bottom-right" richColors closeButton />
+	<NotificationOverlay>
+		<Notifications {notifications} />
+	</NotificationOverlay>
+</div>
+
+<div data-layer="modal" id="--layer-modals"></div>
+
+<div data-layer="progress">
+	<NavigationProgress />
+</div>

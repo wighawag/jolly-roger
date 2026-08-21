@@ -18,6 +18,7 @@
 	import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw';
 	import {page} from '$app/state';
 	import GitIcon from '$lib/icons/GitIcon.svelte';
+	import {navbarMenuPrompt} from './overlays';
 
 	let {
 		repoURL,
@@ -27,10 +28,22 @@
 		communityURL?: string;
 	} = $props();
 
-	const {connection, accountData, accountBalance, gasFee, clock, deployments} =
-		getAppContext();
+	const {
+		connection,
+		accountData,
+		accountBalance,
+		gasFee,
+		clock,
+		deployments,
+		overlays,
+	} = getAppContext();
 
-	let showMenu = $state(false);
+	// The drawer closes itself on any navigation, and the back gesture closes it,
+	// because it is a registered view overlay. Nav links below therefore carry no
+	// close handler of their own.
+	const menu = overlays.use(navbarMenuPrompt);
+	$effect(() => menu.registerRenderer());
+
 	let accountsOpen = $state(false);
 
 	let hasMultipleAccounts = $derived(
@@ -74,7 +87,8 @@
 	});
 
 	function toggleMenu() {
-		showMenu = !showMenu;
+		if ($menu.open) menu.close();
+		else menu.open();
 	}
 
 	function isActive(path: string): boolean {
@@ -209,9 +223,21 @@
 			{/if}
 		</button>
 	</div>
-	<Drawer.Root bind:open={showMenu} direction="right">
-		<Drawer.Portal to="#--layer-drawer" />
-		<Drawer.Content class="select-text **:select-text">
+	<Drawer.Root
+		open={$menu.open}
+		onOpenChange={(open) => {
+			if (!open) menu.close();
+		}}
+		direction="right"
+	>
+		<!-- The portal target belongs on Content, which supplies its own portal; a
+		     bare `<Drawer.Portal to="..." />` sibling has no children and silently
+		     does nothing, which is what once put this drawer on top of every modal.
+		     See the layer block in app.css. -->
+		<Drawer.Content
+			class="select-text **:select-text"
+			portalProps={{to: '#--layer-drawer'}}
+		>
 			{#if connection.isTargetStepReached($connection)}
 				<!-- Account Section -->
 				<div class="flex flex-col gap-2 px-4 pt-4">
@@ -283,7 +309,7 @@
 						variant="destructive"
 						onclick={() => {
 							connection.disconnect();
-							showMenu = false;
+							menu.close();
 						}}
 					>
 						Disconnect
@@ -339,7 +365,6 @@
 					<a
 						href={route('/transactions/')}
 						class="{buttonVariants({variant: 'outline'})} justify-between"
-						onclick={() => (showMenu = false)}
 					>
 						<span>Your Transactions</span>
 						{#if transactionCount > 0}
@@ -387,14 +412,12 @@
 				<a
 					href={route('/contracts/')}
 					class={buttonVariants({variant: 'outline'})}
-					onclick={() => (showMenu = false)}
 				>
 					Contracts
 				</a>
 				<a
 					href={route('/explorer/')}
 					class={buttonVariants({variant: 'outline'})}
-					onclick={() => (showMenu = false)}
 				>
 					Explorer
 				</a>

@@ -24,6 +24,7 @@ import {
 	PUBLIC_CHAIN_INFO_NODE_URL,
 	PUBLIC_USE_BURNER_WALLET,
 	PUBLIC_WALLET_HOST,
+	PUBLIC_IMPERSONATE_ADDRESSES,
 } from '$env/static/public';
 import {burnerOverride} from '$lib';
 import {resolveBurnerWallet} from './burner.js';
@@ -44,9 +45,11 @@ import {createAccountCannotSendStore} from '$lib/core/transaction/account-cannot
 import {createErrorDetailsStore} from '$lib/core/transaction/error-details-store.js';
 import type {AugmentedChainInfo} from '$lib/core/connection/types.js';
 import {createBalanceCheckStore} from '$lib/core/transaction/balance-check-store.js';
+import {createNavigationService} from '$lib/core/navigation/index.js';
+import {createOverlayRegistry} from '$lib/core/ui/overlay/index.js';
 import {resolveAppConfig, operationScopeAddress} from './config.js';
 import {startTxObserverLoop} from '$lib/core/tx-observer';
-import {IMPERSONATE_ADDRESSES} from '$lib/dev-accounts.js';
+import {parseImpersonateAddresses} from '$lib/dev-accounts.js';
 
 /**
  * Build the app context.
@@ -55,7 +58,7 @@ import {IMPERSONATE_ADDRESSES} from '$lib/dev-accounts.js';
  * when browser APIs are absent, so this also runs during SSR and prerendering.
  * Nothing here starts IO; that belongs to `start()`, which the provider calls
  * from `onMount`. Readiness is expressed as store state, never as an
- * unresolved promise. See ADR-0002.
+ * unresolved promise. See ADR-0002 (`work` branch).
  */
 export function createContext(): {
 	context: Context;
@@ -83,9 +86,33 @@ export function createContext(): {
 	// context is also constructed during SSR / prerender, where there is no
 	// wallet to announce to. See ADR-0002.
 	if (burner.use && typeof window !== 'undefined') {
+		const impersonateAddresses = parseImpersonateAddresses(
+			PUBLIC_IMPERSONATE_ADDRESSES,
+			{
+				onDropped: (entry) => {
+					if (!import.meta.env.DEV) return;
+					console.warn(
+						`[burner] ignoring "${entry}" in PUBLIC_IMPERSONATE_ADDRESSES: ` +
+							`it is not an address. The account picker will be one short.`,
+					);
+				},
+			},
+		);
+		if (import.meta.env.DEV && impersonateAddresses.length === 0) {
+			// Not fatal: the burner still announces itself and can hold its own
+			// generated account. But asking for a burner wallet and giving it nobody
+			// to impersonate is almost always a missing env var rather than intent,
+			// and the symptom (an account picker with nothing familiar in it) does
+			// not point at the cause.
+			console.warn(
+				'[burner] PUBLIC_USE_BURNER_WALLET is set but ' +
+					'PUBLIC_IMPERSONATE_ADDRESSES is empty, so there is nobody to ' +
+					'impersonate. See web/.env.localhost.',
+			);
+		}
 		const {cleanup} = initBurnerWallet({
 			nodeURL: burner.nodeURL,
-			impersonateAddresses: [...IMPERSONATE_ADDRESSES],
+			impersonateAddresses: [...impersonateAddresses],
 		});
 		cleanupBurnerWallet = cleanup;
 	}
@@ -252,8 +279,20 @@ export function createContext(): {
 		txObserver,
 	});
 
+	// ----------------------------------------------------------------------------
+	// NAVIGATION AND OVERLAYS
+	// ----------------------------------------------------------------------------
+
+	// Inert until `$lib/kit` attaches a driver in the browser, so both are
+	// constructible on the server (ADR-0002). The registry follows the service, so
+	// closing view overlays on a route change is decided in one place rather than
+	// by each feature. See ADR-0004 (`work` branch).
+	const navigation = createNavigationService();
+	const overlays = createOverlayRegistry(navigation);
+
 	const toastConnector = createToastConnector({
 		accountData,
+		overlays,
 	});
 
 	const onchainStateRefreshConnector = createOnchainStateRefreshConnector({
@@ -369,6 +408,8 @@ export function createContext(): {
 		txObserver,
 		txObserverDebug: {subscribe: txObserverDebug.subscribe},
 		balanceCheck,
+		navigation,
+		overlays,
 	};
 
 	// Dev/debug: expose the whole context on globalThis for console access
@@ -421,6 +462,7 @@ export function createContext(): {
 				toastConnector.disconnect();
 				onchainStateRefreshConnector.disconnect();
 				stopTxObserverLoop();
+				overlays.stop();
 				tabLeader.stop();
 				unsubscribeFromBalance();
 				unsubscribeFromGasFee();

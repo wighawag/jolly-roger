@@ -271,8 +271,22 @@ export function createAccountData(params: {
 		}
 	}
 
+	/**
+	 * Whether this account's data has been restored and can be read.
+	 *
+	 * Storage is asynchronous and per-account, so "the item is not there" and
+	 * "we do not know yet" are different answers, and a caller that cannot tell
+	 * them apart will report a missing thing that is merely late. Exposed here so
+	 * callers ask the store rather than walking `get()?.get()?.status` into its
+	 * internals.
+	 */
+	function isReady(): boolean {
+		return store.get()?.get()?.status === 'ready';
+	}
+
 	return {
 		...store,
+		isReady,
 		addOperationFromTrackedTransaction,
 		addTransactionToOperation,
 		updateOperationFromFetchedTransaction,

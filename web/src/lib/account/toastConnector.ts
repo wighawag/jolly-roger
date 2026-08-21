@@ -6,7 +6,8 @@ import type {
 import {toast} from 'svelte-sonner';
 import type {TransactionIntent} from '@etherkit/tx-observer';
 import {subscribeToAccountDataMap} from '$lib/core/utils/data/account-data-subscription';
-import {pendingOperationModal} from '$lib/ui/pending-operation';
+import {pendingOperationOverlay} from '$lib/ui/pending-operation';
+import type {OverlayRegistry} from '$lib/core/ui/overlay';
 import {createConnector} from './connector';
 
 /**
@@ -93,8 +94,11 @@ interface OperationToastState {
 
 export function createToastConnector(params: {
 	accountData: MultiAccountDataStore;
+	overlays: OverlayRegistry;
 }) {
-	const {accountData} = params;
+	const {accountData, overlays} = params;
+
+	const inspector = overlays.use(pendingOperationOverlay);
 
 	const operationToastStates = new Map<string, OperationToastState>();
 
@@ -114,15 +118,11 @@ export function createToastConnector(params: {
 	}
 
 	// Helper to open modal while keeping toast visible
-	function openModalAndKeepToast(
-		key: string,
-		operation: OnchainOperation,
-		event: MouseEvent,
-	) {
+	function openModalAndKeepToast(key: string, event: MouseEvent) {
 		// Prevent default to stop sonner from dismissing the toast
 		event.preventDefault();
-		// Open the modal
-		pendingOperationModal.open(key, operation);
+		// The key, not a copy of the operation: the inspector follows it live.
+		inspector.open(key);
 	}
 
 	function renderErrorToast(
@@ -153,7 +153,7 @@ export function createToastConnector(params: {
 				duration: Infinity,
 				action: {
 					label: 'Inspect',
-					onClick: (event) => openModalAndKeepToast(key, operation, event),
+					onClick: (event) => openModalAndKeepToast(key, event),
 				},
 			});
 		}

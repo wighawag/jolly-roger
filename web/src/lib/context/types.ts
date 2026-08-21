@@ -25,6 +25,8 @@ import type {TransactionObserver} from '@etherkit/tx-observer';
 import type {BalanceCheckStore} from '$lib/core/transaction/balance-check-store';
 import type {AccountCannotSendStore} from '$lib/core/transaction/account-cannot-send-store';
 import type {ErrorDetailsStore} from '$lib/core/transaction/error-details-store';
+import type {NavigationService} from '$lib/core/navigation';
+import type {OverlayRegistry} from '$lib/core/ui/overlay';
 
 /**
  * TrackedWalletClient with chain info from deployments.
@@ -55,7 +57,7 @@ export type Context = {
 	 * A store rather than a throw: construction has to succeed on the server
 	 * too, and the param-derived case is only knowable in the browser. The
 	 * layout renders the init-error screen whenever this holds a message.
-	 * See ADR-0002.
+	 * See ADR-0002 (`work` branch).
 	 */
 	fatal: Readable<string | undefined>;
 	gasFee: GasFeeStore;
@@ -123,4 +125,18 @@ export type Context = {
 	txObserver: TransactionObserver;
 	txObserverDebug: TxObserverDebugStore;
 	balanceCheck: BalanceCheckStore;
+	/**
+	 * Where the app is, and the history entries it owns. Inert until the
+	 * framework adapter (`$lib/kit`) attaches a driver in the browser, so this is
+	 * constructible on the server like everything else here (ADR-0002).
+	 */
+	navigation: NavigationService;
+	/**
+	 * View overlays: the ones whose visibility IS their state. Closing them on a
+	 * route change and giving back their history entries happens here, once, so
+	 * no feature has to remember to. System overlays (visibility derived from
+	 * domain state) are not registered and are deliberately untouched.
+	 * See ADR-0004 (`work` branch).
+	 */
+	overlays: OverlayRegistry;
 };

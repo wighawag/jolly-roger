@@ -28,12 +28,13 @@
 
 <!-- ORDER MATTERS when two of these are open at once.
 
-     They share one container (#--layer-modals, see core/ui/modal/modal.svelte)
-     and one z-index, so the one appended LAST paints on top. A dialog is
-     appended when it opens, but dialogs that open in the SAME synchronous block
-     are appended in the order their components appear here - and that is the
-     normal case, because an action typically sets its own state and calls
-     ensureConnected() before it ever awaits.
+     They share one LAYER (#--layer-modals, see core/ui/modal/modal.svelte and
+     the layer scale in app.css), so the layer decides nothing between them:
+     within it they share one z-index, so THE ORDER THESE COMPONENTS ARE WRITTEN
+     IN IS THE STACKING ORDER, and moving a line changes what covers what. Not
+     the order they open in, which buys nothing; see the layer block in app.css
+     for why, and test/lib/core/ui/modal/modal-stacking.svelte.test.ts for the
+     proof.
 
      So the connection flow comes last: it is always a sub-step of something
      else, and it has to be able to sit on top of whatever asked for it. Declared
