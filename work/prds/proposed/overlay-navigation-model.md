@@ -80,11 +80,27 @@ The drawer is a prompt overlay (`src/lib/ui/navbar/overlays.ts`) and the four ma
 
 One pre-existing defect surfaced next to it. It was first left alone as cosmetic, then reported as a real bug the same day and fixed: the drawer's `<Drawer.Portal to="#--layer-drawer" />` has no children and does nothing, so the drawer was portalled to `document.body`, appended after the app, and painted over every modal. Connecting from inside the drawer opened the wallet picker behind the drawer's dimming overlay, where it was visible but not clickable. `Drawer.Content` now takes `portalProps={{to: '#--layer-drawer'}}`, mirroring `modal.svelte`, and `e2e/tests/overlays.e2e.ts` guards it with a trial click (which asserts hittability, not just visibility). See `work/notes/observations/drawer-portal-to-layer-drawer-is-dead.md` and the audit it prompted, `work/notes/findings/overlay-layer-paint-order-audit.md`: toasts (z 999999999) and the notification overlay (z 999) still paint above modals, contrary to the intent stated in `modal.svelte`, and that one is a judgement call rather than an obvious defect.
 
-### Slice 3: one location stream, and the remaining globals
+### Slice 3 (done): one location stream, one framework boundary
 
-- Fold `routes/explorer/lib/location-param.ts`'s hand-rolled `hashchange`/`popstate` listeners into the capability.
-- Add the `no $app/* outside the adapter layer` rule (lint rule or a unit test that greps), starting from the current 22 sites across 17 files and driving the `lib/core` leaks to zero: `service-worker/index.ts`, `capabilities/route.ts`, `utils/web/path.ts`, `metadata/Head.svelte`, `transaction/AccountCannotSendModal.svelte`.
-- Remove the remaining module-level globals: `lib/deployments-store.ts:105-115` (module `writable` plus a never-unsubscribed mirror) and `lib/index.ts:52-53` (`notifications`, `serviceWorker`).
+**The rule is enforced** by `test/framework-boundary.test.ts`: no `$app/*` under `src/lib` outside `src/lib/kit`, with a `KNOWN_LEAKS` list that is currently EMPTY and that also fails when an entry becomes stale, so it cannot outlive the debt it describes. `src/routes/**` is exempt by definition. `kit/README.md` no longer has to say "not yet enforced".
+
+**Every leak is closed**, each by the lightest seam that fitted:
+
+- `transaction/AccountCannotSendModal.svelte`: `import.meta.env.DEV` instead of SvelteKit's `dev`. Same answer, from the bundler.
+- `components/NavigationProgress.svelte` and `ui/navbar/navbar.svelte`: props, as getters (`isNavigating`, `currentPath`), since the layout renders both and reading a getter inside them still tracks `page`/`navigating`.
+- `core/metadata/Head.svelte`: a new `document-location` capability. Deliberately NOT the navigation service, and the distinction is the point: navigation is history and stays inert until hydration, while page metadata must be right during SSR, or the canonical URL is one no crawler sees. Asset paths arrive as an `assetUrl` prop from `DefaultHead` (the route capability would have appended global query params to a favicon).
+- `core/utils/web/path.ts`: takes a `PathResolver`. `$lib/kit/paths.ts` binds SvelteKit's `resolve()` and re-exports the pre-bound `url()` and `createRouteHandler()`.
+- `core/service-worker/index.ts`: a `ServiceWorkerEnvironment` parameter (`resolvePath`, `navigateTo`), with `$lib/kit/notification-navigation.ts` supplying the shallow-routing move for a push notification's action.
+- The route capability's fallback no longer resolves base paths, because it cannot: it passes the path through, which is the honest answer when nobody has said where the app is deployed. Every app here provides the real resolver at the root.
+
+**The explorer now reads one location stream.** `createHexLocationParamStore` derives from the navigation service instead of attaching its own `hashchange`/`popstate` listeners, which matters because the value it reads arrives in the FRAGMENT on path-based IPFS gateways and is not a route change. Two tests cover it, including the inert-service case.
+
+**The two remaining "globals" were re-examined and deliberately kept**, with the reasoning written where they live. The evidence changed the plan:
+
+- `lib/deployments-store.ts` holds a BUILD CONSTANT, written only by the dev-only Vite HMR hook in the same file, and read from module scope by nine modules. Threading it through the context would be a large refactor to make a compile-time value look like runtime state. The real defect it did have is fixed: the never-unsubscribed mirror subscription is gone, replaced by an on-demand `get()`.
+- `lib/index.ts`'s `serviceWorker`/`notifications` are process-scoped by necessity: `routes/+layout.ts` registers the worker from module scope, before any context exists, because a controlling worker's queued messages are flushed right after `DOMContentLoaded`.
+
+Both now carry a comment stating the test for when module scope is acceptable (genuinely process-scoped, versus belonging to a session, an account or a page), so the next reader does not take them as licence.
 
 ### Slice 4: in-flight transaction safety (separate work, fresh context)
 
