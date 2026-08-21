@@ -1,4 +1,4 @@
-import {derived, type Readable} from 'svelte/store';
+import {derived, get, type Readable} from 'svelte/store';
 import {
 	describeOutcome,
 	isWorthReporting,
@@ -7,13 +7,25 @@ import {
 import type {InFlightLedger, InFlightState} from './in-flight-store';
 
 /**
- * What the in-flight notice shows (ADR-0004, `work` branch).
+ * What the in-flight notice shows, AND what keeps the ledger honest over a
+ * session (ADR-0004, `work` branch).
  *
- * Separate from the ledger because the rule for WHAT TO SAY is the delicate
- * part and belongs where it can be tested: a record with no outcome is still in
+ * TWO JOBS, and the name only says the first. Reporting is the original one:
+ * separate from the ledger because the rule for WHAT TO SAY is the delicate part
+ * and belongs where it can be tested. A record with no outcome is still in
  * flight and must stay silent, since the connection flow's own modal is already
  * on screen asking the user to confirm in their wallet, and a second dialog on
  * top of it would be the app contradicting itself.
+ *
+ * The second job arrived with {@link startInFlightTracking}: a startup side
+ * effect, a timer, an account subscription and an unload guard, moved out of
+ * `createContext` because that is the file every adopter of this template reads
+ * and it should not be where these are assembled. They belong beside the
+ * reporting rules (both answer "when might we learn something new about a
+ * request"), but the module name has not caught up, so it is said here rather
+ * than left for the next reader to discover. Splitting this into
+ * `in-flight-report.ts` and `in-flight-tracking.ts` is the tidy end state, and
+ * is deliberately not bundled into a change that fixes defects.
  */
 
 export type ReportedRequest = {
@@ -250,4 +262,50 @@ export function reconcileWhenAccountArrives(params: {
 		reconciledFor = $account;
 		void ledger.reconcile();
 	});
+}
+
+/**
+ * Everything that keeps the ledger honest over a session, started as one thing.
+ * Returns a single teardown.
+ *
+ * These four belong together and were four separate blocks in `createContext`,
+ * which is the file every adopter of this template has to read to understand
+ * their app. Each is a different answer to "when might we learn something new
+ * about a request we have not heard back about":
+ *
+ * - at startup, for records a previous session left behind;
+ * - when an account arrives, because only then can the app tell whether it
+ *   ALREADY holds an operation at that nonce, which is the one quiet answer;
+ * - on a timer while an outcome could still change, because the notice promises
+ *   that approving later still sends it, so something has to be watching;
+ * - before the page is lost, as a courtesy, which is the only one that is not
+ *   about learning something.
+ *
+ * The unload guard is registered here rather than in the context because it is
+ * registered FROM DOMAIN STATE (see ADR-0004), and this is where that state
+ * lives. Passing the capability in keeps this module free of any opinion about
+ * how the app navigates.
+ */
+export function startInFlightTracking(params: {
+	ledger: InFlightLedger;
+	account: Readable<`0x${string}` | undefined>;
+	navigation: {guardUnload: (shouldBlock: () => boolean) => () => void};
+}): () => void {
+	const {ledger, account, navigation} = params;
+
+	// Not awaited, and allowed to fail: it waits for account data to be restored,
+	// and nothing else in startup should wait for it.
+	void ledger.reconcile();
+
+	const stopWatchingAccount = reconcileWhenAccountArrives({account, ledger});
+	const stopWatchingRequests = watchUnresolvedRequests({ledger});
+	const stopGuardingUnload = navigation.guardUnload(() =>
+		hasUnansweredRequest(get(ledger)),
+	);
+
+	return () => {
+		stopWatchingAccount();
+		stopWatchingRequests();
+		stopGuardingUnload();
+	};
 }

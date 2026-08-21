@@ -1,5 +1,5 @@
 import type {Context, TxObserverDebugState} from './types.js';
-import {writable, derived, get} from 'svelte/store';
+import {writable, derived} from 'svelte/store';
 import {createAccountData} from '$lib/account/AccountData.js';
 import {establishRemoteConnection} from '$lib/core/connection';
 import {createBalanceStore} from '$lib/core/connection/balance';
@@ -47,11 +47,7 @@ import {
 	ephemeralStorage,
 } from '$lib/core/transaction/in-flight-store.js';
 import {guardDispatch} from '$lib/core/transaction/dispatch-guard.js';
-import {
-	hasUnansweredRequest,
-	reconcileWhenAccountArrives,
-	watchUnresolvedRequests,
-} from '$lib/core/transaction/in-flight-view.js';
+import {startInFlightTracking} from '$lib/core/transaction/in-flight-view.js';
 import {createRecordedNonceReader} from '$lib/account/recorded-nonces.js';
 import {createAccountCannotSendStore} from '$lib/core/transaction/account-cannot-send-store.js';
 import {createErrorDetailsStore} from '$lib/core/transaction/error-details-store.js';
@@ -543,35 +539,14 @@ export function createContext(): {
 			toastConnector.connect();
 			onchainStateRefreshConnector.connect();
 
-			// ON STARTUP, because the records this reads were written by a session
-			// that did not get to finish: a reload, a closed tab, a crash. Whatever it
-			// concludes is shown by InFlightRequestsModal. Not awaited, and allowed to
-			// fail: it waits for account data to be restored, and nothing else here
-			// should wait for it.
-			void inFlight.reconcile();
-
-			// AND AGAIN WHEN AN ACCOUNT ARRIVES, because the startup pass runs before
-			// the wallet has reconnected and so cannot ask the one question with a
-			// quiet answer. See reconcileWhenAccountArrives.
-			const stopWatchingAccount = reconcileWhenAccountArrives({
-				account,
+			// Records, reconciliation, the watcher and the unload guard, started as
+			// one thing. See startInFlightTracking for why those four belong
+			// together and why the guard is registered from domain state.
+			const stopInFlightTracking = startInFlightTracking({
 				ledger: inFlight,
+				account,
+				navigation,
 			});
-
-			// AND KEEP ASKING while a question could still be answered. The notice
-			// tells the user that approving later still sends the transaction, so
-			// the app has to be watching when they do. It stops on its own once no
-			// outcome can change. See watchUnresolvedRequests.
-			const stopWatchingRequests = watchUnresolvedRequests({ledger: inFlight});
-
-			// REGISTERED FROM DOMAIN STATE, not from a modal. The dangerous condition
-			// is a request the wallet has and we have not heard back about, which can
-			// be true with no dialog on screen at all (the user took the escape hatch,
-			// or never opened the flow). A courtesy only: see the doc on guardUnload,
-			// and ADR-0004. The record and the reconciliation are the actual fix.
-			const stopGuardingUnload = navigation.guardUnload(() =>
-				hasUnansweredRequest(get(inFlight)),
-			);
 
 			// SAY SO IF NOBODY EVER ATTACHED A DRIVER.
 			//
@@ -603,10 +578,8 @@ export function createContext(): {
 				toastConnector.disconnect();
 				onchainStateRefreshConnector.disconnect();
 				stopTxObserverLoop();
-				stopWatchingAccount();
-				stopWatchingRequests();
+				stopInFlightTracking();
 				if (attachCheck !== undefined) clearTimeout(attachCheck);
-				stopGuardingUnload();
 				overlays.stop();
 				navigation.stop();
 				tabLeader.stop();

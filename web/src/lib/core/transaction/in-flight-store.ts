@@ -206,8 +206,9 @@ export type InFlightLedger = Readable<InFlightState> & {
 	 * wallet and will settle their own records if it ever answers; what this ends
 	 * is the app's waiting, not the transactions.
 	 *
-	 * ALL OF THEM, and yes, `core/connection/stopped-waiting.ts` argues at length
-	 * that the neighbouring suppression must be per request id rather than a flag.
+	 * ALL OF THEM, and yes, `createStoppedWaiting` in `core/connection/wallet-activity.ts`
+	 * argues at length that the neighbouring suppression must be per request id
+	 * rather than a flag.
 	 * These answer different questions. That one decides whether to show a prompt
 	 * about a request LATER, where treating a new request as already-dismissed
 	 * would silence a send the user never gave up on. This one answers "the user

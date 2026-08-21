@@ -5,9 +5,10 @@ import {
 	reconcileWhenAccountArrives,
 	reportHeading,
 	reportedRequests,
+	startInFlightTracking,
 	watchUnresolvedRequests,
 } from '../../../../src/lib/core/transaction/in-flight-view';
-import {shouldPromptForWalletAction} from '../../../../src/lib/core/connection/connection-flow';
+import {shouldPromptForWalletAction} from '../../../../src/lib/core/connection/wallet-activity';
 import type {InFlightState} from '../../../../src/lib/core/transaction/in-flight-store';
 import type {InFlightRequest} from '../../../../src/lib/core/transaction/in-flight';
 
@@ -423,6 +424,63 @@ describe('watchUnresolvedRequests', () => {
 			stop();
 			await vi.advanceTimersByTimeAsync(20_000);
 			expect(passes()).toBe(0);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+});
+
+describe('startInFlightTracking', () => {
+	// The four things that keep the ledger honest, started as one, so the file
+	// every adopter reads is not where they are assembled.
+	it('reconciles at startup, watches, and guards, then stops all of it', async () => {
+		vi.useFakeTimers();
+		try {
+			let passes = 0;
+			const state = writable<InFlightState>({
+				requests: [request('a', 'setMessage')],
+				outcomes: {a: {status: 'unknown', reason: 'nonce-free'}},
+				dispatching: 1,
+			});
+			const ledger = {
+				subscribe: state.subscribe,
+				reconcile: async () => {
+					passes++;
+				},
+			} as never;
+
+			let guard: (() => boolean) | undefined;
+			const account = writable<`0x${string}` | undefined>(undefined);
+			const stop = startInFlightTracking({
+				ledger,
+				account,
+				navigation: {
+					guardUnload: (shouldBlock) => {
+						guard = shouldBlock;
+						return () => {
+							guard = undefined;
+						};
+					},
+				},
+			});
+
+			// Startup pass.
+			expect(passes).toBe(1);
+			// The guard is live and reads the ledger.
+			expect(guard?.()).toBe(true);
+			// An account arriving is new information.
+			account.set(ACCOUNT);
+			expect(passes).toBe(2);
+			// And it keeps asking while the answer could still change.
+			await vi.advanceTimersByTimeAsync(30_000);
+			expect(passes).toBeGreaterThan(2);
+
+			stop();
+			const after = passes;
+			account.set('0x70997970C51812dc3A010C7d01b50e0d17dc79C8');
+			await vi.advanceTimersByTimeAsync(60_000);
+			expect(passes).toBe(after);
+			expect(guard).toBeUndefined();
 		} finally {
 			vi.useRealTimers();
 		}
