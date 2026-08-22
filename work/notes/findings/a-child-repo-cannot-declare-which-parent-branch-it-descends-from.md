@@ -57,3 +57,21 @@ This has not happened, because the repo has never been cascaded from `main`. It 
 ## For the audit's numbers
 
 This does not change any measurement in the other notes, because none of them counted `template-commit-reveal`. It does change the shape of the tree map: the edge from jolly-roger to `template-commit-reveal` starts at `with/local-signer`, so the diagram in `the-tree-is-thirteen-nodes-not-seven.md` should show it hanging off the variant rather than off the repo.
+
+## Landed, and what it revealed underneath
+
+`offshoot-fanout@0.4.0` is released and installed, and the edge now resolves correctly: `template-commit-reveal@main` is fed from `jolly-roger@with/local-signer`, renders under the variant, and reports **4 conflicts instead of 14**. The tool half of this is done.
+
+The merge itself was attempted and **deliberately abandoned**, because the conflict count was measuring the wrong thing. Three of the four resolved mechanically (`AGENTS.md` appends both sections, `setGreeting.ts` and `delegation.e2e.ts` stay deleted since `d34ad44` replaced the demo with the commit-reveal game at `play/`). The fourth is not a conflict, it is a hidden port.
+
+**`template-commit-reveal` has split `context/index.ts` into `core.ts` (739 lines, upstream's part) and `game.ts` (505 lines, its own), leaving `index.ts` as a 27-line composition.** That refactor is invisible to git, which sees the incoming 832-line monolith against a 27-line file and reports one conflict. Resolving `index.ts` is easy and useless: the upstream changes belong in `core.ts`, which git will never mention.
+
+And `core.ts` is much further behind than the conflict count suggests. It contains **none** of `createInFlightLedger`, `startInFlightTracking`, `guardDispatch`, `createNavigationService`, `createOverlayRegistry`, `nodeNonceReader`, `resolveAppRpcUrl` or `createRecordedNonceReader`. A 3-way merge of the upstream diff into it produces 5 hunks and 1032 lines, and three of those hunks interleave the new subsystems with the game's own construction order and `start()` lifecycle.
+
+So the real job is porting four subsystems into a repo that has never had them, and deciding whether the GAME participates in each: does its dispatch go through `guardDispatch`, do its overlays register with the registry, does `startInFlightTracking` run before or after `gameContext.start()`. Those are answerable, but not from the diff, and not by anyone who has not read the game.
+
+**Why it was abandoned rather than attempted.** The failure mode here is the one this tree has already written down twice: a wrong resolution in the composition root is a silent runtime bug rather than a type error, because every member looks optional to the compiler once it is in the literal. `check` and the 744 unit tests would pass either way. The tests that would actually catch a wrong ordering are `in-flight-transactions.e2e.ts`, `escape-hatch.e2e.ts`, `pending-operation.e2e.ts` and `overlays.e2e.ts`, and those cannot run here. Landing a merge that cannot be verified to the standard it needs is how the tree acquires a bug nobody can date.
+
+The repo is back at `fd6cca8`, clean, 744 tests green. Its `offshoot` config branch stays, because it is correct and is what makes the next attempt start from the right parent.
+
+**What the count means now.** "4 conflicts" is the honest text measurement and it is still a large improvement on 14. It is not an estimate of the work, and the gap between them is the finding: a descendant that restructures a file upstream still owns turns the conflict count into a floor rather than a measure.
