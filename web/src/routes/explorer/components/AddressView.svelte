@@ -253,8 +253,8 @@
 												contractAddress={address}
 												{connection}
 												{publicClient}
-												{accountExecutor}
-												{accountBalance}
+												executor={accountExecutor}
+												balance={accountBalance}
 												{accountCannotSend}
 												{balanceCheck}
 											/>
@@ -285,8 +285,8 @@
 												contractAddress={address}
 												{connection}
 												{publicClient}
-												{accountExecutor}
-												{accountBalance}
+												executor={accountExecutor}
+												balance={accountBalance}
 												{accountCannotSend}
 												{balanceCheck}
 											/>

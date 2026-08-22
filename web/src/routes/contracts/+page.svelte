@@ -22,10 +22,10 @@
 	let {
 		publicClient,
 		accountExecutor,
+		accountBalance,
 		accountCannotSend,
 		connection,
 		deployments,
-		accountBalance,
 		gasFee,
 		balanceCheck,
 	} = getAppContext();
@@ -167,8 +167,8 @@
 													contractAddress={selectedContract.address}
 													{connection}
 													{publicClient}
-													{accountExecutor}
-													{accountBalance}
+													executor={accountExecutor}
+													balance={accountBalance}
 													{accountCannotSend}
 													{balanceCheck}
 												/>
@@ -199,8 +199,8 @@
 													contractAddress={selectedContract.address}
 													{connection}
 													{publicClient}
-													{accountExecutor}
-													{accountBalance}
+													executor={accountExecutor}
+													balance={accountBalance}
 													{accountCannotSend}
 													{balanceCheck}
 												/>
