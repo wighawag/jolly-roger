@@ -157,6 +157,39 @@ export type ExecutorParams = {
 	buildSignerClient?: SignerClientFactory;
 };
 
+/**
+ * Clients already complained about, so a warning is not repeated for the life of
+ * the session.
+ *
+ * The signer check below sits inside a `derived` callback, which re-runs on
+ * every connection change: undeduped it would print on every reconnect, every
+ * account switch and every step of the sign-in flow, and a warning that appears
+ * dozens of times is one the reader learns to scroll past. A WeakSet, so
+ * remembering a client cannot keep it alive.
+ */
+const warnedClients = new WeakSet<object>();
+
+function warnIfUnguarded(
+	client: unknown,
+	sendFrom: ExecutorParams['sendFrom'],
+): void {
+	if (!import.meta.env.DEV) return;
+	if (isDispatchGuarded(client)) return;
+	if (typeof client === 'object' && client !== null) {
+		if (warnedClients.has(client)) return;
+		warnedClients.add(client);
+	}
+
+	console.warn(
+		`[executor] the client for sendFrom "${sendFrom}" does not record ` +
+			`transactions before dispatching them, so a reload between sending and ` +
+			`receiving the hash loses the transaction. Wrap it with ` +
+			`guardDispatch(client, inFlight) where it is built, INSIDE any ` +
+			`memoisation, so one key still yields one client object. See ` +
+			`core/transaction/dispatch-guard.`,
+	);
+}
+
 export function createExecutor(params: ExecutorParams): ExecutorStore {
 	const {connection, walletClient, sendFrom, buildSignerClient} = params;
 
@@ -170,7 +203,7 @@ export function createExecutor(params: ExecutorParams): ExecutorStore {
 		);
 	}
 
-	// FAIL LOUDLY IF THE CLIENT DOES NOT RECORD BEFORE DISPATCH.
+	// FAIL LOUDLY IF A CLIENT DOES NOT RECORD BEFORE DISPATCH.
 	//
 	// `guardDispatch` is applied once, where the tracked client is built (see
 	// lib/context), so everything in THIS app inherits it. A variant that builds a
@@ -183,16 +216,7 @@ export function createExecutor(params: ExecutorParams): ExecutorStore {
 	// A warning rather than a throw, because an app may legitimately compose an
 	// executor before wiring the guard, and taking the app down for it would be a
 	// worse trade than saying so. DEV only.
-	if (import.meta.env.DEV && !isDispatchGuarded(walletClient)) {
-		console.warn(
-			`[executor] the client for sendFrom "${sendFrom}" does not record ` +
-				`transactions before dispatching them, so a reload between sending and ` +
-				`receiving the hash loses the transaction. Wrap it with ` +
-				`guardDispatch(client, inFlight) where it is built, INSIDE any ` +
-				`memoisation, so one key still yields one client object. See ` +
-				`core/transaction/dispatch-guard.`,
-		);
-	}
+	warnIfUnguarded(walletClient, sendFrom);
 
 	return derived<ChainConnection, ExecutorState>(
 		connection,
@@ -206,6 +230,15 @@ export function createExecutor(params: ExecutorParams): ExecutorStore {
 					const {client, account} = buildSignerClient(
 						$connection.account.signer.privateKey,
 					);
+					// CHECKED HERE TOO, and this is the check that matters. The warning
+					// above inspects the client this executor was HANDED; the signer's is
+					// built by the factory, lazily, and never passes through it. So the
+					// one client the warning exists to talk about was the one client it
+					// could not see, which was confirmed by probe rather than argued:
+					// unguarded factory, executor `ready`, no warning. See
+					// work/notes/findings/executor-dev-warning-does-not-see-the-signer-client.md
+					// on the `work` branch.
+					warnIfUnguarded(client, sendFrom);
 					return {
 						status: 'ready',
 						address: $connection.account.signer.address,
