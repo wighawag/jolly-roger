@@ -1,5 +1,5 @@
 <script lang="ts">
-	import {Button} from '$lib/shadcn/ui/button';
+	import {Button} from '$lib/core/ui/button';
 	import CopyIcon from '@lucide/svelte/icons/copy';
 	import CheckIcon from '@lucide/svelte/icons/check';
 	import {toast} from 'svelte-sonner';

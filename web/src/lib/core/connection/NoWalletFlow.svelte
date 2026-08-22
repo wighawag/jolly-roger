@@ -1,6 +1,6 @@
 <script lang="ts">
 	import {onMount} from 'svelte';
-	import {Button} from '$lib/shadcn/ui/button';
+	import {Button} from '$lib/core/ui/button';
 	import * as Modal from '$lib/core/ui/modal/index.js';
 	import BasicModal from '$lib/core/ui/modal/basic-modal.svelte';
 	import DownloadIcon from '@lucide/svelte/icons/download';

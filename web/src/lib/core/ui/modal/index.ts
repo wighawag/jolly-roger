@@ -5,6 +5,6 @@ export {
 	Header,
 	Overlay,
 	Description,
-} from '$lib/shadcn/ui/dialog/index';
+} from '$ui/dialog/index';
 import Root from './modal.svelte';
 export {Root};

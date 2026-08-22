@@ -1,6 +1,6 @@
 <script lang="ts">
 	import * as Modal from '$lib/core/ui/modal/index.js';
-	import {Button} from '$lib/shadcn/ui/button/index.js';
+	import {Button} from '$lib/core/ui/button';
 	import Address from '$lib/core/ui/ethereum/Address.svelte';
 	import HelpCircleIcon from '@lucide/svelte/icons/help-circle';
 	import {getAppContext} from '$lib';

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import * as Dialog from '$lib/shadcn/ui/dialog/index.js';
+	import * as Dialog from '$ui/dialog/index.js';
 	import {type Snippet} from 'svelte';
 
 	interface Props {
