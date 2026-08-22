@@ -8,7 +8,7 @@
 	let {children} = $props();
 </script>
 
-<NavigationProgress navigatingTo={() => !!navigating.to} />
+<NavigationProgress isNavigating={() => !!navigating.to} />
 
 {@render children()}
 
