@@ -1,9 +1,8 @@
 <script lang="ts">
 	import Head from '$lib/Head.svelte';
-	import {page} from '$app/state';
 </script>
 
-<Head home={true} title={'Template'} pathname={() => page.url.pathname} />
+<Head home={true} title={'Template'} />
 
 <h1>Welcome to SvelteKit</h1>
 <p>
