@@ -12,16 +12,36 @@ cannot move yet, add it there with the reason rather than deleting the check;
 the test also fails when an entry becomes stale, so the list cannot quietly
 outlive the debt.
 
-Everything else in the app talks to framework-free interfaces (`NavigationService`
-in `$lib/core/navigation`, capabilities in `$lib/core/capabilities`), so the parts
-that carry the app's actual behaviour do not name SvelteKit at all. Swapping the
-framework then means writing another adapter here, rather than auditing the tree
-for hidden coupling.
+Everything else in the app reaches navigation and routing through framework-free
+interfaces (`NavigationService` in `$lib/core/navigation`, capabilities in
+`$lib/core/capabilities`), so the parts that carry the app's actual behaviour
+name no SvelteKit module for any of it. Swapping the framework then means
+writing another adapter here, rather than auditing the tree for hidden coupling.
 
 That rule is the enforceable version of "framework-agnostic": portability is
 decided by what a module imports, not by where it sits, so the directory layout
 elsewhere is free to be whatever reads best. See ADR-0004 (`work` branch,
 `docs/adr/`).
+
+## What this rule does NOT cover
+
+Be precise about the scope, because the sentence above used to claim the whole
+framework and only ever covered `$app/*`.
+
+- **`$env/static/public`** is a SvelteKit virtual module too, and nine files
+  under `src` import it directly. That is real coupling and it is deliberately
+  outside this rule for now. ADR-0006 (`work` branch) proposes routing it
+  through a single constructed configuration module; until that lands, treat a
+  new `$env` import as debt rather than as sanctioned.
+- **`%sveltekit.env.PUBLIC_*%` in `src/app.html`** is an HTML build-time
+  substitution with no module to route through (`PUBLIC_ERUDA_PLUGINS` uses it).
+  It stays framework-specific whatever else happens, and saying so here is
+  cheaper than someone rediscovering it.
+- **`import.meta.env`** is Vite's, not SvelteKit's, and survives a move to any
+  other Vite-based tool. Ten files use it and none of them is coupling worth
+  removing.
+- **`src/routes/**` and `svelte.config.js`** are the framework's own surface and
+  the deployment decision itself. Neither is debt.
 
 ## What lives here
 
