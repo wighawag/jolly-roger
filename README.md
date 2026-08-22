@@ -27,6 +27,19 @@ This template extends the [template-ethereum-contracts](https://github.com/wigha
 - **Live Reload**: Changes to contracts automatically trigger recompilation, redeployment, and frontend updates.
 - **Type Safety**: Full TypeScript support across contracts and frontend.
 
+## Design Decisions (ADRs)
+
+The non-obvious decisions in this template are written down, with the options that were rejected and why. The code cites them by number, in the form "ADR-0004 (`work` branch)".
+
+They live on the **`work` orphan branch** rather than in the working tree, so that they never cascade into a fork and never conflict during a template merge. Nothing checks them out; read one with `git show`:
+
+```bash
+git show work:docs/adr/                                    # list them
+git show work:docs/adr/0004-view-and-system-overlays.md    # read one
+```
+
+Start with `0001-capabilities-vs-app-context` (how things are passed down the component tree), `0002-synchronous-ssr-inert-app-context` (why the app context is synchronous and renders on the server) and `0004-view-and-system-overlays` (the two kinds of overlay, and the navigation seam). The same branch holds `work/notes/` : findings, observations and open questions accumulated while building this.
+
 ## Project Structure
 
 ```
@@ -48,11 +61,22 @@ This template extends the [template-ethereum-contracts](https://github.com/wigha
 │       └── utils/                # Test utilities
 ├── web/                          # SvelteKit frontend
 │   ├── src/
-│   │   ├── lib/                  # Shared components and utilities
-│   │   │   ├── core/             # Core utilities (notifications, service worker)
+│   │   ├── lib/
+│   │   │   ├── core/             # Reusable building blocks, independent of this
+│   │   │   │                     #   app's routes: connection, transaction safety,
+│   │   │   │                     #   capabilities, navigation, overlays, notifications,
+│   │   │   │                     #   service worker, UI primitives, utils
+│   │   │   ├── kit/              # The ONLY place that imports $app/* (see its README)
+│   │   │   ├── context/          # The app context: what createContext() composes
+│   │   │   ├── account/          # Per-account data, operations, connectors
+│   │   │   ├── ui/               # This app's UI: navbar, banners, pending operations
+│   │   │   ├── view/             # View models derived from onchain + account state
+│   │   │   ├── onchain/          # Contract reads
+│   │   │   ├── shadcn/           # Vendored shadcn-svelte components
 │   │   │   └── deployments.ts    # Auto-generated contract deployments
 │   │   ├── routes/               # SvelteKit routes
-│   │   └── service-worker/       # PWA service worker
+│   │   ├── service-worker/       # PWA service worker
+│   │   └── web-config.json       # Branding: name, description, icon, links
 │   ├── static/                   # Static assets
 │   └── svelte.config.js          # SvelteKit configuration
 ├── dev/                          # Zellij layout configurations
@@ -262,12 +286,16 @@ Configure the web app in [`web/src/web-config.json`](web/src/web-config.json). T
   "title": "Jolly Roger",
   "description": "Build and Deploy for Eternity",
   "canonicalURL": "http://localhost:8080",
+  "repoURL": "",
+  "communityURL": "",
   "themeColor": "#000000",
   "icon": "static/icon.svg"
 }
 ```
 
 Replace `icon` (`web/static/icon.svg`) with your own logo; the landing page and every PWA icon derive from it.
+
+`repoURL` and `communityURL` add the source and community links to the navbar. Both default to empty, which hides the link: a fork should point at its own repository, not at this template's. Set them here rather than in `web/src/routes/+layout.svelte`, which is the most-edited file in the template and therefore the most expensive place to park a constant.
 
 ### Reference Features
 
@@ -331,6 +359,8 @@ const abi = deployments.contracts.GreetingsRegistry.abi;
 
 ## Environment Variables
 
+### Contracts (`contracts/`)
+
 | Variable                 | Description                                   |
 | ------------------------ | --------------------------------------------- |
 | `ETH_NODE_URI_<network>` | RPC endpoint for the network                  |
@@ -343,6 +373,26 @@ Set `SECRET` as the value to use Hardhat's secret store:
 ```bash
 ETH_NODE_URI_mainnet=SECRET  # Uses configVariable('SECRET_ETH_NODE_URI_mainnet')
 ```
+
+### Frontend (`web/.env`, `web/.env.localhost`)
+
+Every one is inlined at build time, so a change needs a rebuild, and every one is PUBLIC: it ships to the browser. Never put a secret or a key-bearing URL in `PUBLIC_CHAIN_INFO_NODE_URL`, which is handed to the user's wallet.
+
+| Variable                              | Description                                                                                                                            |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `PUBLIC_NODE_URL`                     | The app's own RPC. Empty means the app reads the chain only through the connected wallet, and the UI says so instead of reporting a fault. |
+| `PUBLIC_CHAIN_INFO_NODE_URL`          | The RPC handed to the WALLET, so it can add/switch to an unknown chain. Deliberately separate from the above, which may be private.        |
+| `PUBLIC_WALLET_HOST`                  | Hosted sign-in service. Empty means wallet-only sign-in, which is a supported configuration and not an error.                              |
+| `PUBLIC_USE_BURNER_WALLET`            | Node URL to run a dev burner wallet against (`$PUBLIC_NODE_URL` locally). Empty disables it.                                               |
+| `PUBLIC_IMPERSONATE_ADDRESSES`        | Comma-separated addresses the burner offers to impersonate. Dev only.                                                                      |
+| `PUBLIC_USE_INTERNAL_EXPLORER`        | `true` to link addresses and transactions to the built-in `/explorer` instead of an external block explorer.                               |
+| `PUBLIC_EXPLORER_BLOCK_INDEX_ENABLED` | `true` to enable the explorer's block-index listing.                                                                                       |
+| `PUBLIC_ENS_NODE_URL`                 | Mainnet RPC used for ENS name and avatar lookups. Empty disables ENS resolution, which is a pure enhancement.                              |
+| `PUBLIC_FAUCET_LINK`                  | Faucet URL opened in a popup for the user to claim from.                                                                                   |
+| `PUBLIC_FAUCET_API`                   | Faucet HTTP API, claimed from directly when set. Takes precedence over the link.                                                           |
+| `PUBLIC_OPERATION_RETENTION_DAYS`     | How long finalized operations stay in local account data.                                                                                  |
+| `PUBLIC_ENABLE_SW_IN_DEV`             | `true` to register the service worker during development, which is off by default because it caches aggressively.                          |
+| `PUBLIC_ERUDA_PLUGINS`                | Mobile console. Substituted into `src/app.html` at build time rather than read as a module. Empty disables it (fail-closed).               |
 
 ## Publishing Contracts as Package
 

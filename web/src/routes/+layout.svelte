@@ -27,6 +27,11 @@
 	import {LAYERS} from '$lib/core/ui/layers';
 	import KitNavigation from '$lib/kit/KitNavigation.svelte';
 	import {navigating, page} from '$app/state';
+	// Identity, from the one file that holds it. Deliberately NOT written as
+	// literals here: this layout is the most-edited file in the template, so a
+	// constant parked in it costs a merge conflict to every fork that changes it
+	// (the `website` branch paid four for this one line). Empty means no link.
+	import {repoURL, communityURL} from '../web-config.json';
 
 	let {children} = $props();
 
@@ -72,7 +77,7 @@
 		<!-- The framework's answers, handed to components that must not ask for
 		     themselves. Getters, so reading them inside those components tracks
 		     `page`/`navigating` as if they had. See src/lib/kit/README.md. -->
-		<Navbar currentPath={() => page.url.pathname} />
+		<Navbar {repoURL} {communityURL} currentPath={() => page.url.pathname} />
 		<OfflineBanner />
 		<NonceCacheBanner />
 		{#if showRpcBanner}
