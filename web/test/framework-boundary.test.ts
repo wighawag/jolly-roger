@@ -23,7 +23,18 @@ import {execFileSync} from 'node:child_process';
  * exists rather than being deleted because a leak with a stated reason and an
  * expiry is worth more than one that fails a build and gets worked around.
  */
-const KNOWN_LEAKS: Record<string, string> = {};
+const KNOWN_LEAKS: Record<string, string> = {
+	'src/lib/Head.svelte':
+		"reads `page.url.pathname` for the canonical and og:url. Parameterising it " +
+		"was tried and reverted: the prop has to be optional or every one of a " +
+		'site\'s <Head> call sites becomes a compile error, and an optional one ' +
+		'silently defaults the URL of every page to "/". Two descendants have ten ' +
+		'such call sites between them, none of which would have failed a test. ' +
+		'The fix is a documentLocation CAPABILITY, which the component reads from ' +
+		'context so call sites pass nothing and SSR still works; jolly-roger ' +
+		'already does exactly this in core/metadata/Head.svelte. Until that ' +
+		'exists here, a stated leak beats a silent metadata regression.',
+};
 
 const root = new URL('..', import.meta.url).pathname;
 
