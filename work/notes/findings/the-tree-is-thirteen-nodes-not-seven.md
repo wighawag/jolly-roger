@@ -16,9 +16,9 @@ template-svelte                        (root)
 └─ template-svelte-tailwind
    ├─ template-svelte-shadcn
    │  └─ jolly-roger                   4 nodes: main, with/local-signer, with/hosted-account, website
-   │     ├─ bleeps                     430 own commits
-   │     ├─ mandalas                   181 own commits
-   │     └─ template-commit-reveal     100 own commits
+   │     ├─ bleeps                     430 own commits   (grows from main)
+   │     ├─ mandalas                   181 own commits   (grows from main)
+   │     └─ template-commit-reveal     100 own commits   (grows from with/local-signer)
    └─ template-svelte-tailwind-blog
       ├─ conquest-website-2
       └─ ronan-eth
@@ -49,6 +49,8 @@ All three are wired, active (last commits 2026-08-19) and **eight commits behind
 | bleeps | 4 files | 6 files |
 | mandalas | 9 files | 11 files |
 | template-commit-reveal | 13 files | 13 files |
+
+That last row is measured from `main` and is misleading, because `template-commit-reveal` does not descend from `main`. From its true parent, `with/local-signer`, it conflicts in **three** files rather than thirteen, and the tool cannot be told to use that parent. See `work/notes/findings/a-child-repo-cannot-declare-which-parent-branch-it-descends-from.md`, which is the reason it needs a permanent ignore rather than the temporary skip its two siblings need.
 
 The audit's seven commits add two files each to bleeps and mandalas (`README.md` and `web/src/web-config.json`) and nothing to template-commit-reveal. Both additions are one-time: `web-config.json` conflicts because the `repoURL` and `communityURL` keys land beside content those repos have rebranded, and once resolved it stays resolved.
 
