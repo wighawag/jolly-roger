@@ -10,6 +10,11 @@ import {execFileSync} from 'node:child_process';
  * framework. That is what makes swapping it a matter of writing another
  * adapter rather than auditing the tree, and a rule nothing checks is a wish.
  *
+ * This rule is INHERITED from `template-svelte`, where it is also enforced, so
+ * `core/` arrives here already framework-free rather than being cleaned up
+ * after the fact. Keep the two copies in step: a violation introduced upstream
+ * would otherwise be discovered here, at merge time.
+ *
  * `src/routes/**` is exempt by definition: routes ARE the framework's surface,
  * and a different framework would replace them wholesale.
  *
@@ -20,18 +25,18 @@ import {execFileSync} from 'node:child_process';
  */
 const KNOWN_LEAKS: Record<string, string> = {};
 
+const root = new URL('..', import.meta.url).pathname;
+
 function sourceFiles(): string[] {
 	// Tracked files only, so a stray scratch file cannot fail the suite.
 	return execFileSync(
 		'git',
 		['ls-files', 'src/lib', 'src/service-worker', 'src/app.d.ts'],
-		{cwd: new URL('..', import.meta.url).pathname, encoding: 'utf8'},
+		{cwd: root, encoding: 'utf8'},
 	)
 		.split('\n')
 		.filter((path) => /\.(ts|svelte)$/.test(path));
 }
-
-const root = new URL('..', import.meta.url).pathname;
 
 describe('framework boundary', () => {
 	const offenders = sourceFiles().filter((path) => {
@@ -42,7 +47,17 @@ describe('framework boundary', () => {
 	it('finds the files it is meant to police', () => {
 		// Guards the guard: a moved directory or a changed import style would
 		// otherwise make every assertion below vacuously true.
-		expect(sourceFiles().length).toBeGreaterThan(50);
+		//
+		// Deliberately NOT a file count. This rule is shared with the template
+		// tree, which ranges from eighteen files at the root to several hundred
+		// here, so any threshold is meaningless at one end or wrong at the other.
+		// Instead, assert
+		// that the list reaches BOTH sides of the boundary it polices: the adapter
+		// it exempts, and the building blocks it protects. If either is missing,
+		// the rule is not looking at the thing it claims to.
+		const files = sourceFiles();
+		expect(files.some((p) => p.startsWith('src/lib/kit/'))).toBe(true);
+		expect(files.some((p) => p.startsWith('src/lib/core/'))).toBe(true);
 	});
 
 	it('keeps $app/* inside $lib/kit, except for known debt', () => {

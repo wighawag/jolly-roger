@@ -1,3 +1,15 @@
+/**
+ * Where this app is composed.
+ *
+ * Everything under `core/` is written to not know which app it is running in,
+ * so somebody has to hand the pieces to each other and supply the framework's
+ * answers. That is this file, and keeping it OUT of `core/` is what lets the
+ * rule in `test/framework-boundary.test.ts` be true: a composition root may
+ * import `./kit/*` and the environment, and a reusable building block may not.
+ *
+ * At the root template this file lived at `core/config.ts` until it was moved
+ * here; this repo made the same move in 91ef28b, five hundred commits earlier.
+ */
 import {createRouteHandler} from './kit/paths';
 import {
 	getHashParamsFromLocation,
