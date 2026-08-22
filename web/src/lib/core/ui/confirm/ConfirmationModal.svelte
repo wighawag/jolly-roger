@@ -9,6 +9,11 @@
 	// or what it is about. Every word comes from the request; see
 	// ./confirmation.ts for who supplies what.
 	const {confirmation} = getAppContext();
+
+	// The question is a prompt overlay, and an overlay nobody renders is a silent
+	// no-op: here that would be an `ask()` that never settles, with no dialog to
+	// say why. Declaring this is what makes the registry warn instead.
+	$effect(() => confirmation.registerRenderer());
 </script>
 
 <Modal.Root

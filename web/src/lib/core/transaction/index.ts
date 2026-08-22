@@ -2,6 +2,10 @@ export {InsufficientFundsError} from './InsufficientFundsError';
 export {isInsufficientFundsFailure} from './insufficient-funds-failure';
 export {isUserRejectionError} from './user-rejection';
 export {
+	StoppedWaitingError,
+	isStoppedWaitingError,
+} from './StoppedWaitingError';
+export {
 	txErrorSummary,
 	txErrorDetails,
 	INSUFFICIENT_FUNDS_SUMMARY,

@@ -5,7 +5,14 @@ declare global {
 		// interface Error {}
 		// interface Locals {}
 		// interface PageData {}
-		// interface PageState {}
+		/**
+		 * Shallow-routing state. `overlayToken` marks a history entry as belonging
+		 * to an open view overlay, so the app only ever pops entries it created
+		 * (see `$lib/core/navigation`, and ADR-0004 on the `work` branch).
+		 */
+		interface PageState {
+			overlayToken?: string;
+		}
 		// interface Platform {}
 	}
 }

@@ -24,7 +24,8 @@ export function createOfflineStore(): OfflineStore {
 		// Probe `onLine` itself, not `navigator`: Node 21+ defines a global
 		// `navigator` with no `onLine`, so testing the object alone would read
 		// `!undefined` and declare the server offline. Off-browser we are never
-		// offline, which is also the browser's first render. See ADR-0002.
+		// offline, which is also the browser's first render. See ADR-0002
+		// (`work` branch, docs/adr/).
 		{
 			offline:
 				typeof navigator !== 'undefined' &&

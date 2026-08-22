@@ -1,4 +1,4 @@
-import {writable} from 'svelte/store';
+import {get, writable} from 'svelte/store';
 import type {Readable} from 'svelte/store';
 import initialDeployments from '$lib/deployments';
 
@@ -102,16 +102,22 @@ export type DeploymentsStore = Readable<TypedDeployments> & {
 // Store Implementation
 // ============================================================================
 
-// Track current deployments for synchronous access
-let currentDeployments: TypedDeployments = initialDeployments;
-
-// The writable store holding current deployments
+/**
+ * MODULE SCOPE, deliberately, unlike the app's runtime state.
+ *
+ * What this holds is a BUILD CONSTANT: the addresses and chain that
+ * `$lib/deployments` was generated with. It is not per-account, per-page or
+ * per-context state, nothing user-driven writes to it, and the only thing that
+ * ever changes it is the Vite HMR hook at the bottom of this file, which is
+ * dev-only and inherently module-scoped.
+ *
+ * That is the test for whether module scope is acceptable, and most things fail
+ * it. A store whose value belongs to a session, an account or a page must live
+ * in the app context, so that it dies with the thing it describes; a module
+ * global outlives every one of them (see ADR-0004 on the `work` branch, where a
+ * module-level overlay store outlived the page it belonged to).
+ */
 const deploymentsWritable = writable<TypedDeployments>(initialDeployments);
-
-// Update the current value whenever store changes
-deploymentsWritable.subscribe((value) => {
-	currentDeployments = value;
-});
 
 /**
  * The deployments store - reactive with synchronous access via .get()
@@ -125,7 +131,11 @@ deploymentsWritable.subscribe((value) => {
 export const deployments: DeploymentsStore = {
 	subscribe: deploymentsWritable.subscribe,
 	get() {
-		return currentDeployments;
+		// Read on demand rather than mirroring into a module variable kept fresh
+		// by a subscription that is never torn down. `get()` subscribes and
+		// unsubscribes around one read, which for a value that changes only on
+		// HMR is free.
+		return get(deploymentsWritable);
 	},
 };
 
@@ -168,7 +178,7 @@ if (import.meta.hot) {
 			const newDeployments = newModule.default as TypedDeployments;
 
 			// Check if we need a full page reload
-			if (requiresFullReload(currentDeployments, newDeployments)) {
+			if (requiresFullReload(get(deploymentsWritable), newDeployments)) {
 				// Use explicit browser reload for critical changes
 				// HMR bubble-up doesn't work reliably due to Svelte components
 				// accepting HMR updates automatically

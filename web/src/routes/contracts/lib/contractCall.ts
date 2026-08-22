@@ -7,7 +7,10 @@ import {get} from 'svelte/store';
 import type {BalanceCheckStore} from '$lib/core/transaction/balance-check-store';
 import type {ExecutorStore} from '$lib/core/connection/executor';
 import type {BalanceStore} from '$lib/core/connection/balance';
-import {InsufficientFundsError} from '$lib/core/transaction';
+import {
+	InsufficientFundsError,
+	isStoppedWaitingError,
+} from '$lib/core/transaction';
 import {isUserRejectionError} from '$lib/core/transaction/user-rejection';
 import {connectionRefusal} from '$lib/core/connection/refusal';
 import {convertInputValues} from './utils';
@@ -123,6 +126,10 @@ export async function executeContractWrite(params: {
 			// User dismissed the funds modal - silently cancel.
 			return {status: 'cancelled'};
 		}
+		// The user stopped waiting for a wallet that had not answered. The request
+		// is still with it and may still be sent, so this is not a failure to
+		// report: it just releases this call. See StoppedWaitingError.
+		if (isStoppedWaitingError(e)) return {status: 'cancelled'};
 		throw e;
 	}
 }

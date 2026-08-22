@@ -10,6 +10,7 @@
 		preview,
 	} from '../../web-config.json';
 	import Head from '$lib/core/metadata/Head.svelte';
+	import {url} from '$lib/kit/paths';
 
 	interface Props {
 		type?: 'website' | 'article';
@@ -42,6 +43,7 @@
 </script>
 
 <Head
+	assetUrl={url}
 	{host}
 	title={metadata.title}
 	description={metadata.description}

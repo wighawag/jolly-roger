@@ -18,6 +18,7 @@ import {
 	map,
 } from 'synqable';
 import {PUBLIC_OPERATION_RETENTION_DAYS} from '$env/static/public';
+import {getAddress} from 'viem';
 
 /**
  * Local operations belong to a specific deployment, so the storage key is
@@ -71,6 +72,114 @@ const schema = defineSchema({
 
 export type Schema = typeof schema;
 
+/**
+ * Where one account's operations are stored, for this deployment.
+ *
+ * Extracted so it is written ONCE. It is used both to build the live store and
+ * to read an account's operations WITHOUT one (see {@link readStoredOperations}),
+ * and two copies of a storage key formula is two chances to read from a slightly
+ * different place than you wrote to.
+ */
+function operationsStorageKey(params: {
+	chainId: number;
+	genesisHash: string;
+	scopeAddress: `0x${string}`;
+	account: string;
+}): string {
+	const {chainId, genesisHash, scopeAddress, account} = params;
+	return `__private__${chainId}_${genesisHash}_${scopeAddress}_${account}`;
+}
+
+/**
+ * Read an account's stored operations directly, with no connection to it.
+ *
+ * WHY THIS EXISTS. The live store holds ONE account at a time, the one that is
+ * currently connected, which is fine for showing a user their transactions and
+ * useless for the thing that has to work when nobody is connected: reconciling
+ * an in-flight record left behind by a session that is over. On a reload with a
+ * locked wallet there is no account, so the live store cannot answer "do we
+ * already have an operation at this nonce?", and the app fell back to guessing
+ * from the chain and told the user a transaction might have been sent while it
+ * was sitting in their list.
+ *
+ * Storage does not have that limitation: the key is derived from the chain, the
+ * deployment and the address, all of which a record carries. So this reads the
+ * account named on the record rather than the account that happens to be
+ * connected.
+ *
+ * `undefined` means NOT KNOWN, and is returned for every way this can fail to
+ * produce a real answer: no key, unparseable contents, or a payload that is not
+ * the shape expected. There is no loading state to confuse it with, since
+ * localStorage is synchronous.
+ *
+ * THE SHAPE IS SYNQABLE'S, AND IT IS NOT A PUBLIC CONTRACT. `{$version, data:
+ * {operations}}` is what `createSyncableStore` writes today, read back here
+ * without going through it. If that ever changes this must degrade to "I do not
+ * know" and never to "there are none", because the second is the app inventing
+ * evidence that it never saw a transaction, which is the failure this whole
+ * feature exists to prevent. Hence the explicit check below rather than a
+ * `?? {}`. `test/lib/account/stored-operations.svelte.test.ts` writes through the
+ * real store and reads back through here, so drift fails loudly, not quietly.
+ *
+ * Synqable also debounces its saves, so for an account that is NOT the connected
+ * one this can lag the live store by a moment. Harmless: a missing recent
+ * operation makes reconciliation fall through to the nonce comparison, which is
+ * what it would have done anyway.
+ */
+export function readStoredOperations(params: {
+	deployments: TypedDeployments;
+	scopeAddress: `0x${string}`;
+	account: `0x${string}`;
+}): Record<string, OnchainOperation> | undefined {
+	const {deployments, scopeAddress, account} = params;
+	if (typeof localStorage === 'undefined') return undefined;
+
+	// BOTH SPELLINGS, the way `nonce-cache.ts` queries both when asking a wallet
+	// for a nonce. The key embeds whatever the multi-account store was handed,
+	// which is normally the provider's lowercase form, while an in-flight record
+	// can carry a checksummed one. Same account, two strings, and looking under
+	// only one of them returns NOT KNOWN for data that is right there: the user is
+	// then told a transaction "may have been sent" while it sits in their list,
+	// which is the exact failure this reader exists to remove. Assuming one casing
+	// would be an assumption about every wallet, forever.
+	const spellings = new Set<string>([account, account.toLowerCase()]);
+	try {
+		// The checksummed form too, so the lookup works whichever spelling WROTE
+		// the key, not merely whichever one is asking. Derived rather than assumed:
+		// lowercasing the query only covers one of the two directions.
+		spellings.add(getAddress(account));
+	} catch {
+		// Not a checksummable address; the other spellings still apply.
+	}
+
+	const keys = [...spellings].map((spelling) =>
+		operationsStorageKey({
+			chainId: deployments.chain.id,
+			genesisHash: deployments.chain.genesisHash,
+			scopeAddress,
+			account: spelling,
+		}),
+	);
+
+	try {
+		const raw = keys.reduce<string | null>(
+			(found, key) => found ?? localStorage.getItem(key),
+			null,
+		);
+		if (!raw) return undefined;
+		const stored = serializer.deserialize(raw) as
+			{data?: {operations?: Record<string, OnchainOperation>}} | undefined;
+		const operations = stored?.data?.operations;
+		// Deliberately not `?? {}`: an envelope we cannot read is unknown, not empty.
+		if (!operations || typeof operations !== 'object') return undefined;
+		return operations;
+	} catch {
+		// Unreadable is not empty: saying "no operations" here would be inventing
+		// evidence that the app never saw a transaction.
+		return undefined;
+	}
+}
+
 export function createAccountData(params: {
 	accountStore: AccountStore;
 	deployments: TypedDeployments;
@@ -104,7 +213,12 @@ export function createAccountData(params: {
 				storage: {
 					adapterFactory: (_privateKey) =>
 						createLocalStorageAdapter(serializer),
-					key: `__private__${deployments.chain.id}_${deployments.chain.genesisHash}_${scopeAddress}_${account}`,
+					key: operationsStorageKey({
+						chainId: deployments.chain.id,
+						genesisHash: deployments.chain.genesisHash,
+						scopeAddress,
+						account,
+					}),
 				},
 			}),
 	});
@@ -271,8 +385,22 @@ export function createAccountData(params: {
 		}
 	}
 
+	/**
+	 * Whether this account's data has been restored and can be read.
+	 *
+	 * Storage is asynchronous and per-account, so "the item is not there" and
+	 * "we do not know yet" are different answers, and a caller that cannot tell
+	 * them apart will report a missing thing that is merely late. Exposed here so
+	 * callers ask the store rather than walking `get()?.get()?.status` into its
+	 * internals.
+	 */
+	function isReady(): boolean {
+		return store.get()?.get()?.status === 'ready';
+	}
+
 	return {
 		...store,
+		isReady,
 		addOperationFromTrackedTransaction,
 		addTransactionToOperation,
 		updateOperationFromFetchedTransaction,

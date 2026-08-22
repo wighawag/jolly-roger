@@ -1,5 +1,5 @@
 <script lang="ts">
-	import {route} from '$lib';
+	import {getAppContext, route} from '$lib';
 	import * as Card from '$lib/shadcn/ui/card';
 	import {Badge} from '$lib/shadcn/ui/badge';
 	import {Button} from '$lib/shadcn/ui/button';
@@ -12,7 +12,7 @@
 	import SearchIcon from '@lucide/svelte/icons/search';
 	import type {OnchainOperation} from '$lib/account/AccountData';
 	import type {Readable} from 'svelte/store';
-	import {pendingOperationModal} from '$lib/ui/pending-operation';
+	import {pendingOperationOverlay} from '$lib/ui/pending-operation';
 	import TransactionHash from '$lib/core/ui/ethereum/TransactionHash.svelte';
 	import {
 		getOperationName,
@@ -27,6 +27,10 @@
 	}
 
 	let {id, operationStore}: Props = $props();
+
+	// Opening puts the operation id in the URL, so the inspector is addressable
+	// and the back gesture closes it (ADR-0004, `work` branch).
+	const inspector = getAppContext().overlays.use(pendingOperationOverlay);
 
 	// Map the semantic status kind to an icon component (presentation only).
 	const statusIcons: Record<OperationStatusKind, typeof CircleCheckIcon> = {
@@ -150,11 +154,7 @@
 		</Card.Content>
 
 		<Card.Footer class="flex justify-end gap-2">
-			<Button
-				variant="outline"
-				size="sm"
-				onclick={() => pendingOperationModal.open(id, $operationStore)}
-			>
+			<Button variant="outline" size="sm" onclick={() => inspector.open(id)}>
 				<SearchIcon class="mr-1 h-4 w-4" />
 				Inspect
 			</Button>

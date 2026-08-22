@@ -19,9 +19,12 @@ import {test, expect, describe, connectPaymentWallet} from '../fixtures/test';
  * onto the direct route and the empty set of payment methods.
  */
 
-// Its own wallet account, so these writes cannot race the demo suite's (which
-// uses index 0). See the note on `walletAccountIndex` in the fixtures.
-test.use({walletAccountIndex: 2});
+// Its own wallet account, so these writes cannot race another suite's (the demo
+// one uses the default 0). Index 3 rather than 2 because this branch has one
+// more transaction-sending suite than the template it derives from, and the
+// inspector suite that arrived with the overlay model already claims 2. See the
+// note on `walletAccountIndex` in the fixtures, and test/e2e-account-claims.
+test.use({walletAccountIndex: 3});
 
 /** The account the app is signed in as, read from its own stores. */
 async function readStore(page: import('@playwright/test').Page, name: string) {

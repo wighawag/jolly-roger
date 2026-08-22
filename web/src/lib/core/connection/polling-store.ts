@@ -159,7 +159,8 @@ export function createPollingStore<T, S = unknown>(
 		// Off-browser (SSR / prerender) the store stays at its idle value: no
 		// fetch, no timer. Polling belongs to a browser session, and a server
 		// render must neither perform IO nor leave a timer behind. Subscribing
-		// there is therefore inert rather than an error. See ADR-0002.
+		// there is therefore inert rather than an error. See ADR-0002
+		// (`work` branch, docs/adr/).
 		if (typeof window === 'undefined') return;
 
 		running = true;
