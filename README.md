@@ -61,11 +61,22 @@ Start with `0001-capabilities-vs-app-context` (how things are passed down the co
 │       └── utils/                # Test utilities
 ├── web/                          # SvelteKit frontend
 │   ├── src/
-│   │   ├── lib/                  # Shared components and utilities
-│   │   │   ├── core/             # Core utilities (notifications, service worker)
+│   │   ├── lib/
+│   │   │   ├── core/             # Reusable building blocks, independent of this
+│   │   │   │                     #   app's routes: connection, transaction safety,
+│   │   │   │                     #   capabilities, navigation, overlays, notifications,
+│   │   │   │                     #   service worker, UI primitives, utils
+│   │   │   ├── kit/              # The ONLY place that imports $app/* (see its README)
+│   │   │   ├── context/          # The app context: what createContext() composes
+│   │   │   ├── account/          # Per-account data, operations, connectors
+│   │   │   ├── ui/               # This app's UI: navbar, banners, pending operations
+│   │   │   ├── view/             # View models derived from onchain + account state
+│   │   │   ├── onchain/          # Contract reads
+│   │   │   ├── shadcn/           # Vendored shadcn-svelte components
 │   │   │   └── deployments.ts    # Auto-generated contract deployments
 │   │   ├── routes/               # SvelteKit routes
-│   │   └── service-worker/       # PWA service worker
+│   │   ├── service-worker/       # PWA service worker
+│   │   └── web-config.json       # Branding: name, description, icon, links
 │   ├── static/                   # Static assets
 │   └── svelte.config.js          # SvelteKit configuration
 ├── dev/                          # Zellij layout configurations
@@ -348,6 +359,8 @@ const abi = deployments.contracts.GreetingsRegistry.abi;
 
 ## Environment Variables
 
+### Contracts (`contracts/`)
+
 | Variable                 | Description                                   |
 | ------------------------ | --------------------------------------------- |
 | `ETH_NODE_URI_<network>` | RPC endpoint for the network                  |
@@ -360,6 +373,26 @@ Set `SECRET` as the value to use Hardhat's secret store:
 ```bash
 ETH_NODE_URI_mainnet=SECRET  # Uses configVariable('SECRET_ETH_NODE_URI_mainnet')
 ```
+
+### Frontend (`web/.env`, `web/.env.localhost`)
+
+Every one is inlined at build time, so a change needs a rebuild, and every one is PUBLIC: it ships to the browser. Never put a secret or a key-bearing URL in `PUBLIC_CHAIN_INFO_NODE_URL`, which is handed to the user's wallet.
+
+| Variable                              | Description                                                                                                                            |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `PUBLIC_NODE_URL`                     | The app's own RPC. Empty means the app reads the chain only through the connected wallet, and the UI says so instead of reporting a fault. |
+| `PUBLIC_CHAIN_INFO_NODE_URL`          | The RPC handed to the WALLET, so it can add/switch to an unknown chain. Deliberately separate from the above, which may be private.        |
+| `PUBLIC_WALLET_HOST`                  | Hosted sign-in service. Empty means wallet-only sign-in, which is a supported configuration and not an error.                              |
+| `PUBLIC_USE_BURNER_WALLET`            | Node URL to run a dev burner wallet against (`$PUBLIC_NODE_URL` locally). Empty disables it.                                               |
+| `PUBLIC_IMPERSONATE_ADDRESSES`        | Comma-separated addresses the burner offers to impersonate. Dev only.                                                                      |
+| `PUBLIC_USE_INTERNAL_EXPLORER`        | `true` to link addresses and transactions to the built-in `/explorer` instead of an external block explorer.                               |
+| `PUBLIC_EXPLORER_BLOCK_INDEX_ENABLED` | `true` to enable the explorer's block-index listing.                                                                                       |
+| `PUBLIC_ENS_NODE_URL`                 | Mainnet RPC used for ENS name and avatar lookups. Empty disables ENS resolution, which is a pure enhancement.                              |
+| `PUBLIC_FAUCET_LINK`                  | Faucet URL opened in a popup for the user to claim from.                                                                                   |
+| `PUBLIC_FAUCET_API`                   | Faucet HTTP API, claimed from directly when set. Takes precedence over the link.                                                           |
+| `PUBLIC_OPERATION_RETENTION_DAYS`     | How long finalized operations stay in local account data.                                                                                  |
+| `PUBLIC_ENABLE_SW_IN_DEV`             | `true` to register the service worker during development, which is off by default because it caches aggressively.                          |
+| `PUBLIC_ERUDA_PLUGINS`                | Mobile console. Substituted into `src/app.html` at build time rather than read as a module. Empty disables it (fail-closed).               |
 
 ## Publishing Contracts as Package
 
