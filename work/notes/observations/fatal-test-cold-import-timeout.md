@@ -53,3 +53,11 @@ Reproduce with full output kept per run:
 cd web
 for i in $(seq 1 20); do pnpm vitest run --reporter=verbose > /tmp/jr-flake-$i.log 2>&1 || break; done
 ```
+
+## Seen again 2026-08-22, and this time the load was the cause rather than a guess
+
+It appeared once during a verification sweep that ran `check` plus the full unit suite across eleven nodes back to back, on `with/local-signer` (947 of 948). Three immediate re-runs on the same tree: 948, 948, 948.
+
+That is the first observation of it under a KNOWN load rather than an unexplained one, and it lines up with the measurement taken while reviewing ADR-0006: the case `is unset for a valid configuration` runs 13.3s to 17.3s against its bespoke 30s budget across ten measured runs, so it needs less than a 2x slowdown to fail. A sweep that keeps a full suite running continuously is exactly that slowdown.
+
+Two things follow. The frequency figure ("roughly one in eleven") is still unreplicated as a rate and should not be cited as one; what IS reproducible is the duration against the budget, and that is the number to argue from. And this is the shape the cascade will produce: `verify` runs `pnpm --filter ./web test:unit` on every merged node, so a tree-wide cascade IS a sustained-load run, and this test is the one that will fail in it. That is not a hypothetical any more, it is what just happened.
