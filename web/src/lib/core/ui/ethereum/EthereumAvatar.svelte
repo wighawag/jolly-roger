@@ -1,7 +1,7 @@
 <script lang="ts">
 	import {Blockie} from '$lib/core/utils/ethereum/blockie';
-	import * as Avatar from '$lib/shadcn/ui/avatar';
-	import * as Popover from '$lib/shadcn/ui/popover';
+	import * as Avatar from '$ui/avatar';
+	import * as Popover from '$ui/popover';
 	import Address from './Address.svelte';
 	import type {HTMLImgAttributes} from 'svelte/elements';
 	import {useENS} from '$lib/core/capabilities';
