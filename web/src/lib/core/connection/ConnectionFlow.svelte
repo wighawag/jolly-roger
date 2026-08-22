@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Address from '$lib/core/ui/ethereum/Address.svelte';
 	import EthereumAvatar from '$lib/core/ui/ethereum/EthereumAvatar.svelte';
-	import {Button} from '$lib/shadcn/ui/button';
+	import {Button} from '$lib/core/ui/button';
 	import type {
 		AnyConnectionStore,
 		UnderlyingEthereumProvider,

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import {Button} from '$lib/shadcn/ui/button/index.js';
+	import {Button} from '$lib/core/ui/button';
 	import ExternalLinkIcon from '@lucide/svelte/icons/external-link';
 	import LoaderIcon from '@lucide/svelte/icons/loader';
 	import CircleCheckIcon from '@lucide/svelte/icons/circle-check';

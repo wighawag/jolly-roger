@@ -1,7 +1,7 @@
 <script lang="ts">
 	import * as Modal from '$lib/core/ui/modal/index.js';
-	import {Button} from '$lib/shadcn/ui/button/index.js';
-	import {Spinner} from '$lib/shadcn/ui/spinner/index.js';
+	import {Button} from '$lib/core/ui/button';
+	import {Spinner} from '$ui/spinner/index.js';
 	import {formatBalance} from '$lib/core/utils/format/balance';
 	import AlertTriangleIcon from '@lucide/svelte/icons/alert-triangle';
 	import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
