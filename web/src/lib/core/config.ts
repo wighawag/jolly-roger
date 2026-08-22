@@ -5,7 +5,8 @@ import {
 	getHashParamsFromLocation,
 	getParamsFromLocation,
 } from './utils/web/url';
-import {createRouteHandler} from './utils/web/path';
+import {createRouteHandler, resolvePath} from '$lib/kit/paths';
+import {openFromNotification} from '$lib/kit/notification-navigation';
 
 /**
  * The notifications service is generic: a notification is just a title/body/
@@ -13,7 +14,10 @@ import {createRouteHandler} from './utils/web/path';
  * navigating on click) is adapted into that shape by the service worker.
  */
 export const notifications = createNotificationsService();
-export const serviceWorker = createServiceWorker(notifications);
+export const serviceWorker = createServiceWorker(
+	{resolvePath, navigateTo: openFromNotification},
+	notifications,
+);
 
 export const hashParams = getHashParamsFromLocation();
 const {params: paramsFromLocation} = getParamsFromLocation();

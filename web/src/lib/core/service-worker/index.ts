@@ -1,14 +1,39 @@
-import {dev} from '$app/environment';
 import {get, writable} from 'svelte/store';
 import type {Logger} from 'named-logs';
 import {logs} from 'named-logs';
 import {handleAutomaticUpdate, listenForWaitingServiceWorker} from './utils';
 import {wouldDisturbForeignWorker} from './scope';
 
-import {resolve} from '$app/paths';
 import type {NotificationsService, NotificationToAdd} from '../notifications';
-import {pushState} from '$app/navigation';
-import {page} from '$app/state';
+import type {PathResolver} from '../utils/web/path';
+
+/**
+ * The two things registration needs from whoever is hosting it.
+ *
+ * Both are framework answers (where a build is deployed, and how to follow a
+ * URL), so they arrive as functions instead of imports and this module stays
+ * free of `$app/*`. `$lib/kit` supplies them; see src/lib/kit/README.md.
+ */
+export type ServiceWorkerEnvironment = {
+	/** Rewrites `/service-worker.js` for this deployment (base path, IPFS). */
+	resolvePath: PathResolver;
+	/**
+	 * Follow the URL a push notification carried, without a full page load.
+	 *
+	 * Only ever called from a notification the user acted on, which is why it is
+	 * allowed to move the page at all.
+	 */
+	navigateTo: (url: string) => void;
+};
+
+/**
+ * Dev mode, from the BUNDLER rather than the framework.
+ *
+ * Same answer as SvelteKit's `dev`, one less import that names it. It decides
+ * whether the worker is registered as a module and how stale registrations are
+ * treated, neither of which is worth an injection point.
+ */
+const dev = import.meta.env.DEV;
 
 const logger = logs('service-worker') as Logger & {
 	level: number;
@@ -127,6 +152,7 @@ function isSkipped(state: ServiceWorkerState): state is SkippedState {
 
 function fromPushNotification(
 	pushNotification: JSONNotification,
+	navigateTo: (url: string) => void,
 ): NotificationToAdd {
 	const navigate = pushNotification.options?.data?.navigate;
 	return {
@@ -137,14 +163,18 @@ function fromPushNotification(
 			? {
 					label: 'ok',
 					command: () => {
-						pushState(navigate, page.state);
+						navigateTo(navigate);
 					},
 				}
 			: undefined,
 	};
 }
 
-export function createServiceWorker(notifications?: NotificationsService) {
+export function createServiceWorker(
+	environment: ServiceWorkerEnvironment,
+	notifications?: NotificationsService,
+) {
+	const {resolvePath, navigateTo} = environment;
 	const store = writable<ServiceWorkerState>(undefined);
 
 	// Track registered listeners for cleanup
@@ -312,7 +342,7 @@ export function createServiceWorker(notifications?: NotificationsService) {
 		if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
 			return report;
 		}
-		const swURL = new URL(resolve<any>(`/service-worker.js`), location.href)
+		const swURL = new URL(resolvePath(`/service-worker.js`), location.href)
 			.href;
 		try {
 			const registrations = await navigator.serviceWorker.getRegistrations();
@@ -378,7 +408,7 @@ export function createServiceWorker(notifications?: NotificationsService) {
 			// Clean up any existing listeners before registering new ones
 			cleanup();
 
-			const swLocation = resolve<any>(`/service-worker.js`);
+			const swLocation = resolvePath(`/service-worker.js`);
 			const swURL = new URL(swLocation, location.href).href;
 
 			// ------------------------------------------------------------------------------------------------
@@ -487,7 +517,7 @@ export function createServiceWorker(notifications?: NotificationsService) {
 				// Listen to messages
 				messageHandler = (event: MessageEvent) => {
 					if (event.data && event.data.type === 'notification') {
-						notifications.add(fromPushNotification(event.data));
+						notifications.add(fromPushNotification(event.data, navigateTo));
 					}
 				};
 				navigator.serviceWorker.addEventListener('message', messageHandler);
