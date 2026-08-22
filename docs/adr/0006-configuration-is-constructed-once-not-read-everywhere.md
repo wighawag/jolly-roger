@@ -21,6 +21,10 @@ Three separate symptoms with one cause.
 
 The template already believes in this decision for half its configuration. `web/src/web-config.json` holds name, title, description, canonical URL, theme colour and icon, is read by `DefaultHead.svelte` and `+page.svelte`, and the README calls it "the single place to rebrand". Environment variables are the other half of the same story and never got the same treatment.
 
+## This one has no home upstream, and that was checked
+
+The stem chain (`template-svelte` -> `-tailwind` -> `-shadcn`) is ours to change too, so the home question was asked rather than assumed. Every parent imports `$env/static/public` in exactly **one** file, `routes/+layout.ts`, for exactly one variable (`PUBLIC_ENABLE_SW_IN_DEV`). That is a route, which is the framework's own surface and outside every rule here. The nine importers, the thirteen variables and the transitive test mocks are all jolly-roger's, grown here. So this decision belongs here, unlike the `core/` framework seam, whose home is the root (see ADR-0005's sequencing note).
+
 ## Considered options
 
 - **Leave it alone; `$env/static/public` is fine.** The serious option, and it nearly wins. It is build-time inlined, tree-shakeable, type-checked by SvelteKit's generated declarations, and three mocks across 62 test files is not a crisis. Rejected on the accumulation: it is the last framework import inside `core/`, it makes a written ADR consequence false, it is the reason there is no answer to "what configures this app", and the same absence is what put a URL literal in `+layout.svelte`. Any one of those is ignorable. Together they are a seam.
