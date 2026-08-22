@@ -23,14 +23,15 @@ Forty-four merge commits reachable from `with/local-signer` and not from `main`,
 | 2 | `test/.../mode.test.ts`, `test/.../connectors.test.ts`, `routes/explorer/components/AddressView.svelte`, `routes/contracts/+page.svelte`, `routes/contracts/components/ContractFunction.svelte`, `ui/pending-operation/operation-actions.ts`, `ui/navbar/navbar.svelte`, `core/ui/faucet/faucet-actions.ts`, `core/connection/mode.ts`, `core/connection/executor.ts`, `context/AcrossPages.svelte`, `account/connectors.ts`, `web/.env`, `e2e/fixtures/test.ts`, `pnpm-lock.yaml` |
 | 1 | eighteen more, including `core/ui/modal/modal.svelte`, `core/transaction/AccountCannotSendModal.svelte`, `core/connection/ConnectionFlow.svelte`, `core/connection/remote.ts`, `core/connection/connection-flow.ts`, `core/connection/types.ts`, `core/connection/signer-rpc.ts`, `routes/+layout.svelte`, `context/types.ts` |
 
-Aggregated by area, in conflict events rather than files:
+Aggregated by area, in conflict events rather than files. Modify/delete conflicts are counted the same as content conflicts throughout, so the areas sum to the 65 total:
 
 - `src/lib/context/**`: **9** across 3 files
 - `src/routes/**`: **15** across 6 files, of which 8 are two demo/tool modules
 - `src/lib/core/**`: **13** across 10 files
-- `web/test/**`: **10**
-- `src/lib/ui/**`: 4
-- infrastructure (`.env`, lockfile, `package.json`, contracts, e2e fixtures): 12
+- `web/test/**`: **11** across 7 files
+- `src/lib/ui/**`: 4 across 2 files
+- `src/lib/account/**` and `src/lib/dev-accounts.ts`: 3
+- infrastructure (`.env`, lockfile, `package.json`, contracts, e2e fixtures): 10
 
 So `core/` is 13 events spread thinly over 10 files, an average of 1.3 each and a maximum of 2. One single file, `context/index.ts`, carries 6 on its own. **The most-conflicted file in the tree is not in `core/` and never has been.** That should set the agenda, and until now it has not.
 

@@ -14,6 +14,8 @@ source: `git diff --name-status main with/local-signer -- web/src/lib/core`, cro
 
 `src/lib/core` holds **109 files** (87 `.ts`, 20 `.svelte`, 2 markdown). `with/local-signer` **modifies six** of them and **adds eight**. `with/hosted-account` modifies exactly the same six (it inherits them and adds nothing to `core/`). `website` modifies none.
 
+Measured against `main` at `a64e478`, the tip before this audit's commits. Re-deriving it after they land gives seven and one instead, because `cda104a` edits `core/transaction/README.md` on `main` and the descendants have not yet cascaded it. That extra file is un-cascaded drift from this audit, not a variant edit, and it should drop back out once the tree is in sync.
+
 Seven core files reach the app's composed runtime, by importing `getAppContext` from the `$lib` barrel or the `Context` type from `$lib/context/types`:
 
 ```

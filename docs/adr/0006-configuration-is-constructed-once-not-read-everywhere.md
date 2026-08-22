@@ -49,7 +49,7 @@ The stem chain (`template-svelte` -> `-tailwind` -> `-shadcn`) is ours to change
 
 - **Validation happens once, at construction**, so a bad value produces one message naming the variable instead of an `undefined` threading into a caller. This composes with ADR-0002's fatal-store pattern: env-derived failures resolve at construction and therefore also appear in prerendered HTML, which is exactly what that ADR says it wants.
 
-- **`repoURL` moves into configuration**, and `website`'s only recurring conflict disappears. This is the smallest piece of the change and the one with the best return.
+- **`repoURL` moves into configuration**, and `website`'s only recurring SOURCE conflict disappears. Its lockfile conflicts more often (6 against `+layout.svelte`'s 4) and is not hand-merged, so it is not the same kind of cost. Note also that the divergence relocates rather than vanishing: `website` will hold a permanent one-line difference in `web-config.json`, which is a file `main` has touched 9 times against `+layout.svelte`'s 40. New keys should be appended at the end of that object rather than beside `repoURL`, or the conflict simply moves with it. This is the smallest piece of the change and the one with the best return.
 
 - **The seam cannot be total, and pretending otherwise would be the failure mode.** `PUBLIC_ERUDA_PLUGINS` is consumed by `src/app.html` through SvelteKit's `%sveltekit.env.PUBLIC_*%` placeholder, which is an HTML substitution resolved at build time and has no module to route through. It stays where it is, and the rule's allow-list has to say so out loud rather than quietly not covering it. One documented exception is fine; an exception nobody wrote down is how a rule stops meaning anything.
 
