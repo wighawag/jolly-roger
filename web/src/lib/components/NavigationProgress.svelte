@@ -13,7 +13,7 @@
 		isNavigating: () => boolean;
 	}
 
-	let {isNavigating: navigationInFlight}: Props = $props();
+	const {isNavigating: navigationInFlight}: Props = $props();
 
 	// Owns every navigation indicator in the app:
 	//   - in-app (SPA) navigation .... bar + spinner, while still on the old URL
@@ -38,10 +38,11 @@
 	let finishTimer: ReturnType<typeof setTimeout> | undefined;
 	let safetyTimer: ReturnType<typeof setTimeout> | undefined;
 
-	// What "in flight" means is the caller's business. The app root answers with
-	// SvelteKit's `navigating.to`, which is set only for navigations that will
-	// complete in this document: leaving the app has `to === null`, and the
-	// browser shows its own indicator for that.
+	// The caller decides what counts as in-flight. With SvelteKit's `navigating`
+	// that is `!!navigating.to`: it is never literally null (when idle it is an
+	// object whose `to`/`from`/`type` are all null), so an in-flight navigation is
+	// signalled by `to` being set. Leaving the app has `to === null`, which
+	// correctly excludes it (the browser shows its own indicator).
 	const isNavigating = $derived(navigationInFlight());
 
 	// Only depends on `isNavigating`. The cleanup reads `phase`, but cleanup
