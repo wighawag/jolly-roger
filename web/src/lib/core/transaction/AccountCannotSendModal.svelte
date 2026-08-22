@@ -1,6 +1,6 @@
 <script lang="ts">
 	import * as Modal from '$lib/core/ui/modal/index.js';
-	import {Button} from '$lib/shadcn/ui/button/index.js';
+	import {Button} from '$lib/core/ui/button';
 	import AlertTriangleIcon from '@lucide/svelte/icons/alert-triangle';
 	import WrenchIcon from '@lucide/svelte/icons/wrench';
 	// `import.meta.env.DEV` rather than SvelteKit's `dev`: it says the same thing,

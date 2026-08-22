@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	import {cn} from '$lib/shadcn/utils.js';
+	import {cn} from '$lib/core/utils/tailwind';
 	import type {HTMLInputAttributes} from 'svelte/elements';
 	import {type VariantProps, tv} from 'tailwind-variants';
 
