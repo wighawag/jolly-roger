@@ -3,6 +3,13 @@
 	import {type Snippet} from 'svelte';
 
 	interface Props {
+		/**
+		 * Whether this overlay is OPEN. Prefer not to fold "is my data ready" into
+		 * it: a modal that only mounts once its data arrives shows nothing at all
+		 * in the meantime, where it should show itself with a loading body.
+		 *
+		 * It does not affect stacking (that is declaration order; see app.css).
+		 */
 		openWhen: boolean;
 		onCancel?: () => void;
 		children?: Snippet;
@@ -65,20 +72,19 @@
 	{...restProps}
 >
 	<!--
-		Every modal in the app goes into #--layer-modals, the container +layout.svelte
-		puts LAST in the document.
+		Every modal in the app goes into #--layer-modals, the modal LAYER (see the
+		layer block in +layout.svelte and the scale in app.css). The layer is a
+		stacking context, so this is what puts modals above the drawer, the toasts and
+		the notification overlay; the z-50 shadcn puts on the content below only ranks
+		modals against each other.
 
-		This has to be passed to Content, because Content supplies its own portal (see
-		shadcn's dialog-content.svelte, which wraps itself in DialogPortal). A bare
+		The target has to be passed to Content, because Content supplies its own portal
+		(see shadcn's dialog-content.svelte, which wraps itself in DialogPortal). A bare
 		`<Dialog.Portal to="..." />` sibling, which is what stood here, has no children
 		and so does nothing at all: the layer div sat empty and every modal was
-		portalled to document.body instead.
-
-		That matters because these dialogs all carry the same z-50, so what lands on
-		top is decided by DOM order. Sharing one container, placed after everything
-		else, makes that order predictable and keeps modals above the drawer, the
-		toasts and the notification overlay, rather than depending on where in the
-		page each modal's component happens to live.
+		portalled to document.body instead. The drawer had the identical bug, and there
+		it was visible: it covered every modal, so connecting from inside the drawer
+		opened the wallet picker underneath it.
 	-->
 	<Dialog.Content
 		portalProps={{to: '#--layer-modals'}}

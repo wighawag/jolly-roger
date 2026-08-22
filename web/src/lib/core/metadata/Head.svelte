@@ -1,7 +1,11 @@
 <script lang="ts">
-	import {version} from '$app/environment';
-	import {page} from '$app/state';
-	import {url} from '$lib/core/utils/web/path';
+	import {useDocumentLocation} from '$lib/core/capabilities';
+
+	// Where we are and which build this is, from the app root rather than the
+	// router: this renders on the SERVER, where the navigation service is inert
+	// by design, and metadata that only appears after hydration is metadata no
+	// crawler reads. See src/lib/kit/README.md.
+	const documentLocation = useDocumentLocation();
 
 	interface Props {
 		type?: 'website' | 'article';
@@ -14,6 +18,15 @@
 		themeColor?: string | null;
 		appleStatusBarStyle?: string | null;
 		iconExtension?: string;
+		/**
+		 * Resolves a static asset path (`/pwa/favicon.svg`) for this deployment.
+		 *
+		 * Passed in because where the app is deployed is the framework's business:
+		 * the app supplies `$lib/kit/paths`'s `url`, and the default suits a site
+		 * served from the root. NOT the route capability, which also preserves
+		 * global query params: right for links, wrong for a favicon.
+		 */
+		assetUrl?: (path: string) => string;
 	}
 
 	let {
@@ -27,11 +40,11 @@
 		appleStatusBarStyle,
 		themeColor,
 		iconExtension,
+		assetUrl = (path: string) => path,
 	}: Props = $props();
 
-	let pageURL = $derived(`${host}${page.url.pathname}`);
-	let isHome = $derived(page.url.pathname === '/');
-
+	let pageURL = $derived(`${host}${documentLocation.pathname()}`);
+	let isHome = $derived(documentLocation.pathname() === '/');
 </script>
 
 <svelte:head>
@@ -68,20 +81,24 @@
 
 	<!-- minimal -->
 	{#if iconExtension === 'svg'}
-		<link rel="icon" href={url('/pwa/favicon.svg')} type="image/svg+xml" />
+		<link rel="icon" href={assetUrl('/pwa/favicon.svg')} type="image/svg+xml" />
 	{:else}
 		<link
 			rel="icon"
-			href={url(`/pwa/favicon.${iconExtension}`)}
+			href={assetUrl(`/pwa/favicon.${iconExtension}`)}
 			type={`image/${iconExtension}`}
 		/>
 	{/if}
-	<link rel="icon" href={url('/pwa/favicon.ico')} sizes="any" /><!-- 32×32 -->
+	<link
+		rel="icon"
+		href={assetUrl('/pwa/favicon.ico')}
+		sizes="any"
+	/><!-- 32×32 -->
 	<link
 		rel="apple-touch-icon"
-		href={url('/pwa/apple-touch-icon.png')}
+		href={assetUrl('/pwa/apple-touch-icon.png')}
 	/><!-- 180×180 -->
-	<link rel="manifest" href={url('/pwa/manifest.webmanifest')} />
+	<link rel="manifest" href={assetUrl('/pwa/manifest.webmanifest')} />
 
 	<!-- extra info -->
 	{#if themeColor}
@@ -100,5 +117,5 @@
 	{/if}
 	<meta name="apple-mobile-web-app-title" content={name || title} />
 
-	<meta name="version" content={version} />
+	<meta name="version" content={documentLocation.version()} />
 </svelte:head>

@@ -180,3 +180,100 @@ html {
 [data-sonner-toast][data-type='error'] [data-button]:hover {
 	background-color: rgba(0, 0, 0, 0.3) !important;
 }
+
+/* ==========================================================================
+   OVERLAY LAYERS: the one place that decides what covers what.
+   ==========================================================================
+
+   Every floating surface the app SHIPS TO USERS (the navbar drawer, dialogs,
+   toasts, push notifications, the update banner, the navigation progress bar)
+   is rendered inside one of these layers in `+layout.svelte`, and the ORDER OF
+   THE NUMBERS BELOW IS THE ANSWER. To change what covers what, change a number
+   here.
+
+   Two DEBUG surfaces deliberately stay outside: `debug/TxObserverDebugOverlay`
+   (`z-9999`, so it can sit above anything it is being used to inspect) and
+   `ui/debug/DebugOperations` (`z-50`, so it stays under modals). Both are
+   dev-only and query-param gated, and a debug tool that a dialog can hide is
+   not much of a debug tool.
+
+   HOW IT WORKS. A layer element is `position: relative` with a `z-index`, which
+   makes it a STACKING CONTEXT. Everything painted inside it, including
+   `position: fixed` descendants with z-indexes of their own, is confined to that
+   context, so a component's internal z-index becomes LOCAL: shadcn's `z-50` and
+   sonner's `z-index: 999999999` no longer compete with each other, and neither
+   can climb above a layer that sits higher here. That is why those vendored
+   values are left alone rather than forked to chase a number.
+
+   The layer elements carry no size and no background, so they add no layout and
+   intercept no clicks; only their (fixed-position) contents are visible.
+
+   WHY THE NUMBERS START AT 100. Page chrome uses the ordinary Tailwind scale
+   (the navbar is `z-50`, the banners `z-40`) in the ROOT stacking context, so
+   any layer has to outrank all of it. The gaps of ten leave room to slot a new
+   layer in without renumbering.
+
+   THE ORDER, AND WHY. A modal is the task the user is doing right now, so it
+   covers the ambient reports of things that merely happened (toasts, push
+   notifications) and the chrome that raised it (the drawer). The progress bar
+   sits on top of everything because it is 2px tall and `pointer-events: none`,
+   so being above a modal costs nothing and being under one would hide it.
+
+   ---------------------------------------------------------------------------
+   TO REORDER LAYERS: swap the numbers below. That is the whole change.
+
+   TO ADD A LAYER: add a `--z-layer-<name>` here, add the matching
+   `[data-layer='<name>']` rule below, and wrap the surface in a
+   `<div data-layer="<name>">` in +layout.svelte. The gaps of ten mean you can
+   usually do this without touching any other number. An e2e test asserts that
+   every layer element has a real z-index and that no two share one, so a typo
+   in a custom property fails the suite instead of silently falling back to
+   `auto`.
+
+   WITHIN ONE LAYER, order is DECLARATION ORDER, and OPEN ORDER IS IRRELEVANT.
+   bits-ui's portal mounts a consumer into the layer when the component owning
+   the dialog mounts, and keeps that slot for its lifetime, rendering the dialog
+   into it as it opens and closes. So a dialog's position is fixed before it has
+   ever been opened, and reopening it cannot move it to the top. Verified in
+   test/lib/core/ui/modal/modal-stacking.svelte.test.ts, which also pins the
+   surprising case: a dialog declared FIRST but opened LAST still paints
+   underneath.
+
+   The consequence to remember: a dialog raised from another dialog is on top
+   only because it is DECLARED AFTER it. That holds inside one component (a
+   modal and the prompts it raises, declared below it) and across components,
+   which is why the order of components in `context/AcrossPages.svelte` is
+   load-bearing and documented there. If a prompt ever appears underneath the
+   thing that raised it, look at declaration order, not at timing.
+   --------------------------------------------------------------------------- */
+:root {
+	--z-layer-drawer: 100;
+	--z-layer-notice: 110;
+	--z-layer-toast: 120;
+	--z-layer-modal: 130;
+	--z-layer-progress: 140;
+}
+
+[data-layer] {
+	position: relative;
+}
+
+[data-layer='drawer'] {
+	z-index: var(--z-layer-drawer);
+}
+
+[data-layer='notice'] {
+	z-index: var(--z-layer-notice);
+}
+
+[data-layer='toast'] {
+	z-index: var(--z-layer-toast);
+}
+
+[data-layer='modal'] {
+	z-index: var(--z-layer-modal);
+}
+
+[data-layer='progress'] {
+	z-index: var(--z-layer-progress);
+}

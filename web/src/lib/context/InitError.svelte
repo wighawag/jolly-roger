@@ -1,9 +1,9 @@
 <script lang="ts">
 	// Shown instead of the app when it cannot run at all: an illegal env
 	// combination, or a `?burner=true` that cannot be honoured. Driven by the
-	// context's `fatal` store (see ADR-0002), so an env misconfiguration also
-	// lands in the prerendered HTML of every page, which is about as loud a
-	// signal as a failed build.
+	// context's `fatal` store (see ADR-0002, `work` branch), so an env
+	// misconfiguration also lands in the prerendered HTML of every page, which is
+	// about as loud a signal as a failed build.
 	interface Props {
 		message: string;
 	}

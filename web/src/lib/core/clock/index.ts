@@ -23,7 +23,7 @@ export function createClockStore(interval: number = 1000): ClockStore {
 		// Off-browser (SSR / prerender) the clock never ticks: a server render
 		// must not leave a timer behind, and a ticking value would differ
 		// between prerender and hydration. `now()` still reads the real time.
-		// See ADR-0002.
+		// See ADR-0002 (`work` branch).
 		if (typeof window === 'undefined') return;
 
 		// Set up periodic updates

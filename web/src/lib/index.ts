@@ -1,10 +1,12 @@
-import {createRouteHandler} from './core/utils/web/path';
+import {createRouteHandler} from './kit/paths';
 import {
 	getHashParamsFromLocation,
 	getParamsFromLocation,
 } from './core/utils/web/url';
 
 import {createServiceWorker} from '$lib/core/service-worker';
+import {resolvePath} from './kit/paths';
+import {openFromNotification} from './kit/notification-navigation';
 import {createNotificationsService} from './core/notifications';
 import {createContext} from 'svelte';
 import type {Context} from './context/types';
@@ -49,8 +51,29 @@ export {parseBurnerParam} from './context/burner';
 import {parseBurnerParam as _parseBurnerParam} from './context/burner';
 export const burnerOverride = _parseBurnerParam(params.burner);
 
+/**
+ * MODULE SCOPE, deliberately, and the reason is ordering rather than taste.
+ *
+ * There is exactly one service worker registration per page, and it has to be
+ * claimed EARLY: `routes/+layout.ts` registers it from module scope, because a
+ * controlling worker's queued messages are flushed right after
+ * `DOMContentLoaded` and a registration that waits for the app context to be
+ * built would miss them (see the comment there). A per-context instance could
+ * not exist yet at that moment.
+ *
+ * The same goes for notifications, which the worker feeds.
+ *
+ * This is NOT a licence for module-level state in general. The test is whether
+ * the thing is genuinely process-scoped, like a browser registration, or
+ * whether it belongs to a session, an account or a page, in which case it goes
+ * in the app context and dies with it. ADR-0004 (`work` branch) records what
+ * the second kind costs when it gets this wrong.
+ */
 export const notifications = createNotificationsService();
-export const serviceWorker = createServiceWorker(notifications);
+export const serviceWorker = createServiceWorker(
+	{resolvePath, navigateTo: openFromNotification},
+	notifications,
+);
 
 const [getAppContextFunction, setAppContext] = createContext<() => Context>();
 

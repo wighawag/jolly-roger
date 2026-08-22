@@ -44,6 +44,35 @@ export PUBLIC_CHAIN_INFO_NODE_URL="$RPC_URL"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
+# The accounts the burner wallet may impersonate, for BOTH the build and the
+# fixtures (e2e/fixtures/test.ts reads this same variable, so the accounts the
+# suite funds are the accounts the app offers).
+#
+# ONE PER TEST FILE THAT SENDS TRANSACTIONS. Files run in parallel workers, and
+# two of them sending from the same account race for the same nonce, which
+# surfaces as an unrelated test failing on a transaction that never appeared.
+# Files pick theirs with `test.use({walletAccountIndex: N})`:
+#   0 -> demo.e2e.ts, 1 -> contracts.e2e.ts, 2 -> pending-operation.e2e.ts
+#
+# The list lives in web/e2e/impersonate-addresses.json, which
+# playwright.config.ts also reads, so a run started any other way
+# (test:e2e:headed, :ui, :debug) uses the same accounts as this one. It is a
+# SEPARATE list from the two addresses .env.localhost gives ordinary local
+# development, and it wins for this run only because exported shell env outranks
+# every .env file in ldenv (the same precedence the RPC overrides above rely on).
+#
+# Resolved against REPO_DIR, not the working directory: `pnpm test:e2e` runs
+# this from web/, and a relative path silently produced an EMPTY list, which the
+# build then honoured (a burner wallet with nobody to be) while playwright's own
+# fallback still funded accounts the app did not offer. That mismatch surfaces
+# far away, as "insufficient funds" in unrelated tests, so it fails here instead.
+PUBLIC_IMPERSONATE_ADDRESSES="$(node -e 'const a=require(process.argv[1]);process.stdout.write(a.join(","))' "$REPO_DIR/web/e2e/impersonate-addresses.json")"
+if [ -z "$PUBLIC_IMPERSONATE_ADDRESSES" ]; then
+    echo -e "${RED}✗ Could not read web/e2e/impersonate-addresses.json${NC}"
+    exit 1
+fi
+export PUBLIC_IMPERSONATE_ADDRESSES
+
 # A run happens in a THROWAWAY GIT WORKTREE, never in the developer's checkout.
 #
 # The suite needs to compile, deploy to its own chain, export the deployment and
@@ -367,7 +396,14 @@ cd "$WEB_DIR"
 
 # Run playwright without global-setup (we've done everything already)
 # The webServer in playwright.config.ts will start the preview server
-pnpm exec playwright test
+#
+# Arguments are passed through, so a developer can narrow a run to one file or
+# one test (`pnpm test:e2e e2e/tests/escape-hatch.e2e.ts`, or `-g "some name"`)
+# instead of paying the full suite's minutes to see one assertion. Everything
+# before this point still happens either way: the chain, the deploy and the
+# build are what make a narrowed run mean anything, and skipping them is how a
+# "quick" run ends up testing the previous build.
+pnpm exec playwright test "$@"
 TEST_EXIT_CODE=$?
 
 echo -e "\n${GREEN}✅ E2E tests complete!${NC}"

@@ -10,9 +10,7 @@
 	import BasicModal from '../ui/modal/basic-modal.svelte';
 	import NoWalletFlow from './NoWalletFlow.svelte';
 	import {
-		hasPendingWalletRequest,
 		walletEntryMode,
-		canDismissConnection,
 		resolveSignInAddress,
 		hasSwappedAccount,
 		signInAdoptingSwap,
@@ -20,14 +18,102 @@
 		combinesAccountChoiceWithSignIn,
 		effectiveAccountSelection,
 	} from './connection-flow';
+	import {
+		createWalletActivity,
+		inertActivityLedger,
+		type ActivityLedger,
+	} from './wallet-activity';
+	import {stopWaitingPromptFor} from './overlays';
 	import {connectionFailureView} from './refusal';
-	import {dev} from '$lib';
+	import {untrack} from 'svelte';
+	import {dev, getAppContext} from '$lib';
 
 	interface Props {
 		connection: AnyConnectionStore<UnderlyingEthereumProvider>;
+		/**
+		 * Which connection this flow drives, for anything that must be per flow.
+		 *
+		 * An app can render more than one of these (a separate payment rail has its
+		 * own connection, and a step needing the user must appear for it too), and
+		 * an overlay's label IS its identity in the registry, so two flows sharing
+		 * one label share one escape-hatch overlay.
+		 */
+		name?: string;
+		/**
+		 * The in-flight ledger for the connection THIS flow drives, when the app
+		 * dispatches through it.
+		 *
+		 * INERT BY DEFAULT, and that default is the safe one rather than a
+		 * convenience. The ledger is app-wide while a flow is per connection, so a
+		 * flow handed the app's ledger reports the wallet as busy whenever ANY
+		 * connection's wallet is: a second flow then puts an identical "confirm the
+		 * request in your wallet" modal on screen for a request that is not its own,
+		 * and offers an escape hatch whose `stopWaiting()` releases the OTHER
+		 * connection's caller. Opting a flow in is one line at the call site; the
+		 * failure is two identical modals and cross-talk between connections.
+		 *
+		 * This app has one connection, so the default is never taken here. It is
+		 * still the default because a variant that adds a second one inherits the
+		 * safe behaviour rather than the bug, and that variant is exactly who found
+		 * it (work/notes/findings/one-ledger-two-connections-two-wallet-modals.md).
+		 */
+		inFlight?: ActivityLedger;
 	}
 
-	let {connection}: Props = $props();
+	let {connection, name = 'connection', inFlight}: Props = $props();
+
+	// The escape hatch (ADR-0004, `work` branch). A PROMPT overlay opened from
+	// inside a SYSTEM overlay: the waiting modal stays, because the wallet really
+	// is still holding the request, and this asks on top of it.
+	const {overlays} = getAppContext();
+
+	// `untrack` because both of these are STRUCTURAL: which connection this flow
+	// is, and whether the app dispatches through it. They are decided by the call
+	// site once and cannot meaningfully change under a mounted flow (a new overlay
+	// instance mid-life would abandon the one currently open). Svelte is right to
+	// warn about reading a prop into a plain const, so this says out loud that the
+	// initial value is what was meant, rather than leaving a warning that the next
+	// reader has to re-derive an opinion about. Contrast `connection` below, which
+	// is read through closures for exactly the opposite reason.
+	const stopWaiting = overlays.use(stopWaitingPromptFor(untrack(() => name)));
+	$effect(() => stopWaiting.registerRenderer());
+
+	const activityLedger = untrack(() => inFlight) ?? inertActivityLedger();
+
+	// ONE answer about the wallet, derived in wallet-activity.ts from all three
+	// sources that know something (the library's pending requests, the app's own
+	// dispatch count, and what the user has already given up on). Combining them
+	// here, per consumer, is what let them drift far enough apart to cancel a
+	// connection with a transaction in flight.
+	//
+	// Both the store and the cancel are read through closures rather than
+	// captured at init. The connection prop never changes identity in practice,
+	// but capturing a `$props()` value in a plain const says the opposite, and
+	// Svelte is right to warn about it: the day it does change, this would hold
+	// the old one. A getter costs nothing and cannot be wrong.
+	const walletActivity = createWalletActivity({
+		// `invalidate` is dropped because the connection store does not accept one:
+		// its `subscribe` takes the run callback alone. `derived` uses `invalidate`
+		// upstream for dirty-marking, so losing it can in principle show an
+		// intermediate value in a diamond dependency; there is no diamond here (this
+		// is the only consumer) and forwarding an argument the store will not take
+		// needs a cast, which would hide the day it starts taking one.
+		connection: {subscribe: (run) => connection.subscribe(run)},
+		inFlight: activityLedger,
+		cancelConnection: () => connection.cancel(),
+	});
+
+	let escapable = $derived($walletActivity.escapable);
+	let escapeCopy = $derived($walletActivity.escapeCopy);
+
+	// The question dies with its subject. If the wallet answers while the user is
+	// reading this (they approved it in the other window, or rejected it), the
+	// waiting modal underneath closes and "stop waiting for your wallet?" is a
+	// question about nothing, left floating over the page. Through close(), like
+	// every other dismissal, so the history entry it pushed comes back.
+	$effect(() => {
+		if (!escapable && $stopWaiting.open) stopWaiting.close();
+	});
 
 	let email: string = $state('');
 	let emailInput: HTMLInputElement | undefined = $state(undefined);
@@ -36,8 +122,8 @@
 	// is UI-only state: the connection store stays in `WalletToChoose` throughout.
 	let walletPickerOpen: boolean = $state(false);
 
-	// Flow interpretation (burner-wallet phase + pending request) lives in the helper.
-	let pendingRequest = $derived(hasPendingWalletRequest($connection));
+	// Whether to keep blocking the user with "confirm the request in your wallet".
+	let pendingRequest = $derived($walletActivity.promptUser);
 
 	// Whether the connect modal offers sign-in options besides wallets (the
 	// email input under hosted sign-in). Controls the modal's layout, including
@@ -59,8 +145,12 @@
 	// the user swapped their active account while on the confirm screen.
 	let signInAddress = $derived(resolveSignInAddress($connection));
 
-	// Whether clicking away (or escape) should tear the flow down. See
-	// canDismissConnection for why it must not while the wallet holds a request.
+	// Whether clicking away (or escape) should tear the flow down.
+	//
+	// From wallet-activity, like every other question about what the wallet is
+	// doing. It used to be the one consumer that still combined the sources by
+	// hand, and it wired the answer straight to `connection.cancel()`, so a stray
+	// click could disconnect with a transaction in flight.
 	//
 	// Passed as `undefined` rather than as a guarded handler when dismissal is
 	// refused, because Modal.Root derives its affordances from whether it got one
@@ -68,7 +158,7 @@
 	// escapeKeydownBehavior). A handler that decides internally would leave the
 	// close X on screen doing nothing and swallow escape silently, which is worse
 	// than refusing: it offers an exit that is not there.
-	let dismissable = $derived(canDismissConnection($connection));
+	let dismissable = $derived($walletActivity.dismissable);
 	const dismiss = () => connection.cancel();
 	let swappedAccount = $derived(hasSwappedAccount($connection));
 
@@ -112,9 +202,25 @@
 	}
 </script>
 
+<!-- The escape hatch's trigger, on every step that refuses dismissal. A snippet
+     rather than four copies, because four copies is how one of them ends up
+     missing and that step becomes the trap this exists to remove. -->
+{#snippet escapeHatch()}
+	{#if escapable}
+		<Button
+			variant="ghost"
+			class="mt-3 w-full text-xs text-muted-foreground"
+			onclick={() => stopWaiting.open()}
+		>
+			{escapeCopy.trigger}
+		</Button>
+	{/if}
+{/snippet}
+
 <Modal.Root openWhen={$connection.step == 'WaitingForWalletConnection'}>
 	<Modal.Title>Waiting for Wallet Connection...</Modal.Title>
 	Please Accept Connection Request...
+	{@render escapeHatch()}
 </Modal.Root>
 
 <!-- Error display: shows when a connection attempt failed and the flow fell
@@ -474,6 +580,7 @@
 	onCancel={dismissable ? dismiss : undefined}
 >
 	<p>Please accept the signature request...</p>
+	{@render escapeHatch()}
 </BasicModal>
 
 <BasicModal
@@ -489,6 +596,7 @@
 			>
 		{:else}
 			<p>please follow instruction...</p>
+			{@render escapeHatch()}
 		{/if}
 	{/if}
 </BasicModal>
@@ -513,6 +621,27 @@
 			Please confirm the request in your wallet
 		</p>
 	</div>
+	{@render escapeHatch()}
+</BasicModal>
+
+<!-- The escape hatch itself. Deliberately NOT a Cancel button: the app cannot
+     take back a request the wallet already has, and a control that implies it
+     can is worse than no control at all. Every word comes from
+     wallet-activity.ts's escapeHatchCopy. -->
+<BasicModal
+	openWhen={$stopWaiting.open}
+	title={escapeCopy.title}
+	onCancel={() => stopWaiting.close()}
+	cancel={{label: escapeCopy.dismiss, onclick: () => stopWaiting.close()}}
+	confirm={{
+		label: escapeCopy.confirm,
+		onclick: () => {
+			stopWaiting.close();
+			void walletActivity.stopWaiting();
+		},
+	}}
+>
+	<p class="text-sm text-muted-foreground">{escapeCopy.body}</p>
 </BasicModal>
 
 <!-- Network Switch Modal -->
