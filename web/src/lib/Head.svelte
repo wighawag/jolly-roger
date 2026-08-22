@@ -1,6 +1,5 @@
 <script lang="ts">
-	import {dev, version} from '$app/environment';
-	import {page} from '$app/state';
+	import {version} from '$lib/kit/environment';
 
 	import {
 		name,
@@ -10,7 +9,7 @@
 		appleStatusBarStyle,
 		ENSName,
 	} from '../web-config.json';
-	import {url} from '$lib/core/utils/web/path';
+	import {url} from '$lib/kit/paths';
 
 	const host = canonicalURL.endsWith('/')
 		? canonicalURL.slice(0, -1)
@@ -23,6 +22,15 @@
 		description?: string;
 		image?: string;
 		home?: boolean;
+		/**
+		 * The current path, for the canonical/og URL.
+		 *
+		 * A getter rather than SvelteKit's `page`, so this component does not name
+		 * the framework (src/lib/kit/README.md). Reading it inside `$derived` below
+		 * tracks the route exactly as importing `page` did. The app root passes
+		 * `() => page.url.pathname`.
+		 */
+		pathname?: () => string;
 	}
 
 	let overrides: Props = $props();
@@ -34,7 +42,7 @@
 		title: overrides.title || name,
 		description: overrides.description || description,
 		image: overrides.image || previewImage,
-		url: `${host}${page.url.pathname}`,
+		url: `${host}${overrides.pathname?.() ?? '/'}`,
 	});
 </script>
 
