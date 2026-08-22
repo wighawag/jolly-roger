@@ -2,9 +2,10 @@
 title: Owning the look without owning the behaviour, and why the seam already half exists
 slug: swapping-the-ui-kit-under-core
 type: idea
-status: incubating
+status: done
 created: 2026-08-22
 revised: 2026-08-22
+resolution: built 2026-08-22 (core/ui/button + the $ui alias, at template-svelte-shadcn)
 source: counted every `$lib/shadcn` import by entry point across core/, bleeps and mandalas; diffed both games' vendored shadcn against their fork point; read what core/ actually consumes of each component's API
 follows: what-a-variant-edits-in-core-is-predicted-by-the-app-context
 ---
@@ -74,6 +75,20 @@ Step 1 is under a day: one shim, ten import lines in `core/`, and the same again
 
 Worth stating plainly: **this is not the "split core/ by replaceability" option ADR-0005 rejected**, and it does not reopen it. That option moved every core component into a presentation layer, cost the most of anything on the list, and cut across the line that actually predicts modification. This adds one shim to the directory that already holds the modal shim, and changes an import specifier. It also does not compete with ADR-0005: what a variant edits in `core/` is predicted by the app context, not by the UI kit, and that is still the boundary worth enforcing first.
 
+## Built, and three things the building corrected
+
+Landed at `template-svelte-shadcn`, which is the home: shadcn is introduced there and two of the `core/` Button consumers live there. `core/` at both that repo and jolly-roger now reaches the UI kit through **zero** direct `$lib/shadcn` imports.
+
+**The `cn` number was wrong, and wrong in a way that mattered.** It is not 70 imports per repo, it is 3. The 70 are the VENDORED shadcn components importing their own helper, which the shadcn CLI owns and which nobody should touch. Ours were `core/ui/ethereum/{Address,AddressInput,TransactionHash}.svelte`, and they now take `cn` from `core/utils/tailwind`, which already existed with a byte-identical implementation and was already used by `NotificationCard`. Counting a vendored directory as coupling would have justified a much larger change than the evidence supports.
+
+**The narrow contract was too narrow, and the failure was the interesting kind.** `CopyCommand.svelte` passes `aria-label` to a `size="icon"` button and the wrapper rejected it. That is not styling leaking through: a button with no text and no label is an unlabelled control, so a replacement kit that silently drops it ships an accessibility defect rather than a restyling. The aria attributes are now part of the stated contract, listed explicitly rather than swept up by a rest spread so that forwarding a prop stays a decision.
+
+**An alias is not free at the type level.** `$ui` reaches TypeScript through `.svelte-kit/tsconfig.json`, which `svelte-kit sync` generates. jolly-roger's `check` script was bare `svelte-check` while every parent's was `svelte-kit sync && svelte-check`, so the alias arriving by merge produced one error per `$ui` import until something else synced. It reads exactly like the merge broke the build, and the command you would run to investigate is the one that lies. jolly-roger's `check` now syncs first, converging with the parents.
+
+## Verified by doing it
+
+The swap was not asserted, it was performed: `$ui` was pointed at a throwaway kit, its button confirmed present in the built output with `core/` repainted, then reverted and confirmed absent. Both states typecheck and build.
+
 ## Still open
 
-`cn` is imported 70 times in each game and 3 times in `core/`. It is `clsx` plus `tailwind-merge`, so it is a Tailwind dependency rather than a shadcn one, and a `game-ui` that still uses Tailwind wants the same function. Probably it should move to `core/utils/tailwind` (which exists) and stop being reached through the kit at all. Cheap, and it removes the largest single number from the table for the right reason rather than by hiding it.
+`Popover` owns behaviour (positioning, dismiss) and is not wrapped, because it has one call site and a shim with nothing to hold is machinery. If a second consumer appears, wrap it on behaviour grounds rather than on count, the way `modal` is wrapped.
