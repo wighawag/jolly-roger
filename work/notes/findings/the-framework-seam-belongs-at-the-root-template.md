@@ -9,7 +9,7 @@ follows: dead-surface-and-an-extension-point-nothing-upstream-tests
 
 # The whole tree, and the one change that should move up it
 
-The tree is four repos and seven live nodes, all owned by the same person:
+The tree is ten repos and thirteen live nodes, all owned by the same person. The diagram below shows only the spine that matters for this change; it omits five repos and was wrong when written (see `work/notes/findings/the-tree-is-thirteen-nodes-not-seven.md`, which corrects the count and notes that every conclusion here gets stronger, not weaker, because `core/` is co-owned by three more applications than this note knew about):
 
 ```
 template-svelte                 (root, 24 files in web/src)
@@ -71,7 +71,7 @@ Two files import `core/config` at the root (`routes/+layout.svelte`, `routes/+la
 
 ## Why this is worth doing rather than merely noting
 
-**It makes one sentence true for seven nodes instead of one.** After it, `core/` contains no framework import anywhere in the tree, and `test/framework-boundary.test.ts` (which exists only at jolly-roger, with an empty `KNOWN_LEAKS`) can be landed at the ROOT and be true immediately at every level. A boundary rule stated once at the root is inherited by every descendant and by every template added later, which is the entire argument for having a template tree.
+**It makes one sentence true for thirteen nodes instead of one.** After it, `core/` contains no framework import anywhere in the tree, and `test/framework-boundary.test.ts` (which exists only at jolly-roger, with an empty `KNOWN_LEAKS`) can be landed at the ROOT and be true immediately at every level. A boundary rule stated once at the root is inherited by every descendant and by every template added later, which is the entire argument for having a template tree.
 
 **It closes a real backport debt.** This is a change landed 540 commits below its home. Under the reconciliation rule it should have gone up when it was made, and every level between has been carrying the coupled version since. `template-svelte-tailwind-blog` in particular has never had the benefit.
 
@@ -90,15 +90,15 @@ The one piece that does NOT transplant as-is is `lib/kit/`. jolly-roger's adapte
 | move `core/config.ts` to `lib/index.ts`, fix 2 importers | `template-svelte` | 30 min |
 | take jolly-roger's `path.ts` and `service-worker/index.ts` | `template-svelte` | 1 h |
 | minimal `lib/kit/paths.ts` (2 bindings) | `template-svelte` | 30 min |
-| cascade + verify per node | 3 intermediate repos | half a day |
+| cascade + verify per node | 3 intermediate repos, 13 nodes | half a day, plus whatever the three stale downstream repos need first |
 | land `framework-boundary.test.ts` at the root, afterwards | `template-svelte` | 1 h |
 
 Call it a day and a half for a tree-wide invariant, against a day for ADR-0005's move which buys the same kind of clarity for one repo. **If both are done, this one should go first**, because it decides what `core/` means everywhere and ADR-0005 is then jolly-roger applying the same rule to its own app-coupled files.
 
 ## And it settles the push-notifications question
 
-`core/service-worker/push-notifications/` (329 lines) is **byte-identical at every level from the root down**, and unwired at every level: no importer outside its own directory in any of the four repos or any of jolly-roger's three branches, ever, since it arrived in the root's PWA work in 2025-11-29.
+`core/service-worker/push-notifications/` (329 lines) is **byte-identical at every level from the root down**, and unwired at every level: no importer outside its own directory in any of the TEN repos or any of jolly-roger's three extra branches, ever, since it arrived in the root's PWA work in 2025-11-29.
 
-Its home is `template-svelte`, which is the "PWA Ready" template, and that is precisely where an unwired push-notification subscription service is ON theme rather than off it. So the earlier conclusion stands and now has a place to be executed: **do not delete, document it at the root**, with the `core/transaction/README.md` treatment (what it does, that it is deliberately unwired, what wiring it needs, how to remove it). Written once at the root, it cascades to all seven nodes for free.
+Its home is `template-svelte`, which is the "PWA Ready" template, and that is precisely where an unwired push-notification subscription service is ON theme rather than off it. So the earlier conclusion stands and now has a place to be executed: **do not delete, document it at the root**, with the `core/transaction/README.md` treatment (what it does, that it is deliberately unwired, what wiring it needs, how to remove it). Written once at the root, it cascades to all thirteen nodes for free, across ten repos in which the directory has the identical tree SHA `e8cdadaa` and zero importers.
 
 Deleting is now also cheap, if the answer is that nobody wants it: because it is untouched everywhere, a deletion at the root would cascade clean with zero modify/delete conflicts. That is a product call for the root template, not a maintenance one, and the audit's recommendation is against it.
