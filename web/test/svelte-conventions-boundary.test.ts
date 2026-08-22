@@ -79,9 +79,17 @@ function usesRunes(source: string): boolean {
 describe('Svelte conventions', () => {
 	it('is looking at a real file list', () => {
 		// Guards the guard: with a wrong cwd `git ls-files` returns nothing and
-		// every assertion below passes vacuously. Both neighbouring boundary
-		// tests carry this, and the first version of one of them did not.
-		expect(trackedFiles().length).toBeGreaterThan(50);
+		// every assertion below passes vacuously.
+		//
+		// Deliberately NOT a file count. This rule is inherited by descendants of
+		// this template that range from a couple of dozen files to several
+		// hundred, so any threshold is meaningless at one end or wrong at the
+		// other. Assert instead that the scan reached the two things the rules are
+		// ABOUT: some `.svelte` components (which is where runes are allowed) and
+		// some `.ts` modules (which is where they are not).
+		const files = trackedFiles();
+		expect(files.some((p) => p.endsWith('.svelte'))).toBe(true);
+		expect(files.some((p) => p.endsWith('.ts'))).toBe(true);
 	});
 
 	it('strips comments and strings before looking for a rune', () => {
