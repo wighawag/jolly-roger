@@ -7,9 +7,10 @@ decides-with: ADR-0004 (docs/adr/0004-view-and-system-overlays.md)
 touches-idea: shared-confirm-dialog-shell (work/notes/ideas/)
 ---
 
-> **Status 2026-08-21: slices 1 to 4 are implemented on `main`.**
-> The change has NOT been cascaded to the descendant branches yet (see "Cascade"
-> at the end), which is the only outstanding work in this PRD.
+> **Status 2026-08-22: slices 1 to 4 are implemented on `main` and CASCADED.**
+> `with/local-signer`, `with/hosted-account` and `website` are all merged, green
+> and committed (see "Cascade" at the end). `variant/offline` is 121 commits
+> behind and was deliberately out of scope. Nothing is pushed.
 
 # PRD: Overlay navigation model
 
@@ -199,3 +200,31 @@ Four of the nine new confirmation tests were verified to FAIL against the pre-mi
 **The e2e suite needed real adaptation, and the reason is the branch's whole point.** This app posts through a LOCAL SIGNER, so the demo page's Send never reaches the user's wallet and a stalling wallet cannot stand in a window that is not there. `escape-hatch.e2e.ts` now drives `/contracts`, which calls the account executor directly, and completes the sign-in step this app requires (the flow parks at `WalletConnected` until the user confirms; skipping it leaves the connection there forever with nothing to stop waiting for). `pending-operation.e2e.ts` now completes the authorisation flow, because a first send from a fresh browser is answered with that flow rather than reaching the chain, so there is no operation to inspect. Two harness lessons worth keeping: an open dialog takes the rest of the page out of the ACCESSIBILITY TREE, so `getByRole` on the page behind it finds nothing while a modal is up; and `/execute/i` does not match "Executing...".
 
 `e2e/impersonate-addresses.json` gained a fourth address and the delegation suite moved to index 3, because this branch has one more transaction-sending suite than `main` and the inspector suite arrived holding the index delegation already used.
+
+### `with/hosted-account` (done 2026-08-22)
+
+A plain merge, and it stayed one: everything the model had to absorb was absorbed a level up, so the guarded signer client and the confirmation-as-prompt-overlay arrive already done. This branch adds a hosted sign-in host and the suite that drives it, not overlays.
+
+Git resolved it with no conflict at all, which is exactly the case the reconciliation skill warns about, and the run said what the merge could not: `escape-hatch.e2e.ts` timed out for 30 seconds on a button that is one click further in here. With hosted sign-in the wallet list shares the modal with email and social options, so `walletEntryMode` collapses it behind "Connect a Wallet" rather than letting it drown them. Fixed one level UP, on `with/local-signer`, so both branches keep one copy of that suite: a forked test file is how two branches stop testing the same thing.
+
+`pnpm check` clean, 941 unit tests, 49 of 50 e2e green (the delegation timeout, 5 of 5 in isolation).
+
+### `website` (done 2026-08-22)
+
+A plain merge with one conflict, in `+layout.svelte`, and it was a union rather than a choice: this branch passes `repoURL` to the navbar, `main` now passes `currentPath` as a getter (the navbar must not import `$app/state` itself) and mounts `<KitNavigation />` above it. The navbar takes both.
+
+`pnpm check` clean, 684 unit tests, 43 of 44 e2e green (the service-worker-gateway flake). Two files on this branch fail prettier and did so before the merge, checked against a stashed tree; they are the branch's own pages and were left alone.
+
+**One thing worth carrying forward, because the content was right and the history was wrong.** Running `git stash` to establish that prettier baseline destroyed `MERGE_HEAD`, so the commit that followed recorded the merged content with a SINGLE parent. Everything built, every test passed, and `git log` said "Merge main into website" at the top, but `rev-list --count website..main` was 8: git believed the merge had never happened, and the next cascade would have re-merged all eight commits and conflicted on every file. Rebuilt with `commit-tree` against the same tree and both parents. The check that catches it is one line, and it is now part of the routine below.
+
+### The cascade is verified as a TREE, not as four separate merges
+
+Per node, after everything landed:
+
+| node | stem | commits of stem not in it |
+|---|---|---|
+| `with/local-signer` | `main` | 0 |
+| `with/hosted-account` | `with/local-signer` | 0 |
+| `website` | `main` | 0 |
+
+Nothing is pushed. Every branch is ahead of its upstream (`main` +8, `with/local-signer` +10, `with/hosted-account` +11, `website` +9, `work` +5), deliberately, since publishing was not part of this job.
