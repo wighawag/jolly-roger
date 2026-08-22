@@ -27,6 +27,19 @@ This template extends the [template-ethereum-contracts](https://github.com/wigha
 - **Live Reload**: Changes to contracts automatically trigger recompilation, redeployment, and frontend updates.
 - **Type Safety**: Full TypeScript support across contracts and frontend.
 
+## Design Decisions (ADRs)
+
+The non-obvious decisions in this template are written down, with the options that were rejected and why. The code cites them by number, in the form "ADR-0004 (`work` branch)".
+
+They live on the **`work` orphan branch** rather than in the working tree, so that they never cascade into a fork and never conflict during a template merge. Nothing checks them out; read one with `git show`:
+
+```bash
+git show work:docs/adr/                                    # list them
+git show work:docs/adr/0004-view-and-system-overlays.md    # read one
+```
+
+Start with `0001-capabilities-vs-app-context` (how things are passed down the component tree), `0002-synchronous-ssr-inert-app-context` (why the app context is synchronous and renders on the server) and `0004-view-and-system-overlays` (the two kinds of overlay, and the navigation seam). The same branch holds `work/notes/` : findings, observations and open questions accumulated while building this.
+
 ## Project Structure
 
 ```
