@@ -2,7 +2,7 @@ import {get} from 'svelte/store';
 import {dev} from '$app/environment';
 import {PUBLIC_ENABLE_SW_IN_DEV} from '$env/static/public';
 import {onDocumentLoaded} from '$lib/core/utils/web/hooks.js';
-import {serviceWorker} from '$lib/core/config';
+import {serviceWorker} from '$lib';
 
 export const prerender = true;
 export const trailingSlash = 'always';
