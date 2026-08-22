@@ -17,7 +17,7 @@ It comes out in about twenty minutes, and the shape of that is the point. Delete
 - `core/connection/wallet-activity.ts` reads it, so that stopping waiting releases whatever started the send
 - `routes/demo/lib/setGreeting.ts`, `routes/contracts/lib/contractCall.ts` and `ui/pending-operation/operation-actions.ts` (twice) treat `isStoppedWaitingError` as "not a failure"
 
-Nothing here imports anything app-specific, so the dependency runs one way and deleting it cannot break something upstream. Removing it puts the app back where this template started: an operation is recorded when a hash comes back, and a reload in between loses it.
+The dependency runs one way, so deleting it cannot break something upstream. The only app-specific import in the whole subsystem is `InFlightRequestsModal.svelte` reaching for `getAppContext`, and that one goes when the modal does. Removing it puts the app back where this template started: an operation is recorded when a hash comes back, and a reload in between loses it.
 
 ## What is here
 
