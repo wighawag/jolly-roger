@@ -23,6 +23,17 @@ import {execFileSync} from 'node:child_process';
  * exists rather than being deleted because a leak with a stated reason and an
  * expiry is worth more than one that fails a build and gets worked around.
  */
+/**
+ * Empty here, and it stays that way.
+ *
+ * `template-svelte` carries one entry, `src/lib/Head.svelte`, for a component
+ * that reads `page.url.pathname` to build its canonical URL. This repo does not
+ * have that file: the same component lives at `core/metadata/Head.svelte` and
+ * takes its location from the `documentLocation` CAPABILITY instead, which is
+ * the fix that entry names. The stale-entry check below is what caught the
+ * inherited entry when the root's version merged down, which is the mechanism
+ * working: a debt list that travels between repos has to be re-earned in each.
+ */
 const KNOWN_LEAKS: Record<string, string> = {};
 
 const root = new URL('..', import.meta.url).pathname;
