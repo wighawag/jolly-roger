@@ -3,6 +3,13 @@
 	import {type Snippet} from 'svelte';
 
 	interface Props {
+		/**
+		 * Whether this overlay is OPEN. Prefer not to fold "is my data ready" into
+		 * it: a modal that only mounts once its data arrives shows nothing at all
+		 * in the meantime, where it should show itself with a loading body.
+		 *
+		 * It does not affect stacking (that is declaration order; see app.css).
+		 */
 		openWhen: boolean;
 		onCancel?: () => void;
 		children?: Snippet;
@@ -65,12 +72,20 @@
 	{...restProps}
 >
 	<!--
-		The modal layer is Dialog.Content's own default (see
-		shadcn/ui/dialog/dialog-content.svelte and lib/core/ui/layers.ts), so there
-		is nothing to pass here. Every modal in the app comes through this component,
-		and every one of them lands in #--layer-modals: above the account panel,
-		below popovers, and ordered among its peers by the order they are declared in
-		context/AcrossPages.svelte.
+		Every modal in the app comes through this component and lands in
+		#--layer-modals, the modal LAYER (see lib/core/ui/layers.ts for the list and
+		the scale in app.css for the order). The layer is a stacking context, so it is
+		what puts modals above the drawer, the toasts and the notification overlay; the
+		z-50 shadcn puts on the content below only ranks modals against each other, by
+		the order they are declared in context/AcrossPages.svelte.
+
+		NOTHING IS PASSED HERE, because the target is Dialog.Content's own default (see
+		shadcn/ui/dialog/dialog-content.svelte). It has to be set on Content, which
+		supplies its own portal: a bare `<Dialog.Portal to="..." />` sibling, which is
+		what once stood here, has no children and so does nothing at all, leaving the
+		layer div empty and every modal portalled to document.body. The drawer had the
+		identical bug, and there it was visible: it covered every modal, so connecting
+		from inside the drawer opened the wallet picker underneath it.
 	-->
 	<Dialog.Content
 		interactOutsideBehavior={onCancel ? 'close' : 'ignore'}

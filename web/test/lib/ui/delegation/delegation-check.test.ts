@@ -4,10 +4,8 @@ import {
 	createDelegationCheckStore,
 	NotRegisteredError,
 } from '$lib/ui/delegation/delegation-check';
-import {
-	createConfirmation,
-	type ConfirmationState,
-} from '$lib/core/ui/confirm/confirmation';
+import {type ConfirmationState} from '$lib/core/ui/confirm/confirmation';
+import {makeConfirmation} from '../../core/ui/confirm/make-confirmation';
 import type {TopUpFlow} from '$lib/ui/credits/top-up-flow';
 import type {DelegationStore} from '$lib/onchain/delegation';
 
@@ -56,7 +54,7 @@ const RESUME = {action: 'Send your greeting', detail: 'Hello from here'};
 function setup(allowed: boolean) {
 	const {flow, start, close} = fakeFlow();
 	const {delegation, register} = fakeDelegation(allowed);
-	const confirmation = createConfirmation();
+	const {confirmation} = makeConfirmation();
 	const check = createDelegationCheckStore({
 		delegation,
 		topUp: flow,
@@ -161,7 +159,7 @@ describe('ensureRegistered: when it is not', () => {
 		const fresh = createDelegationCheckStore({
 			delegation,
 			topUp: {subscribe: () => () => {}, start} as unknown as TopUpFlow,
-			confirmation: createConfirmation(),
+			confirmation: makeConfirmation().confirmation,
 		});
 
 		await fresh.ensureRegistered({signer: SIGNER, resume: RESUME});

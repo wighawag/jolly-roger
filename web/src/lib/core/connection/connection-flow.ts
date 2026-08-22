@@ -24,7 +24,7 @@ type ConnectionState = Connection<UnderlyingEthereumProvider>;
  * letting tests pass lightweight fixtures. The fields are `Partial` because
  * `mechanism`/`wallet` only exist on some steps of the union.
  */
-type ConnectionStateSnapshot = Partial<
+export type ConnectionStateSnapshot = Partial<
 	Pick<ConnectionState, 'step'> & {
 		mechanism: Partial<{type: string; name: string; address: string}>;
 		wallet: Partial<{
@@ -279,13 +279,10 @@ export function isBurnerWalletInSelectionPhase(
  * resolved against it (a commit expecting its reveal) can no longer be.
  *
  * So these steps deliberately offer NO app-side cancel, and that is a real
- * trade rather than an oversight: a wallet that never answers leaves the user
- * on a modal whose only exit is reloading the page.
- *
- * TODO: offer an escape on the waiting steps that tells the truth, i.e. that the
- * request is still with the wallet and the app cannot recall it, so approving it
- * later still acts. Deliberately not a Cancel button, which would imply the app
- * can undo what the wallet already has.
+ * trade rather than an oversight. What they DO offer is the escape hatch
+ * (`offersEscapeHatch` in ./wallet-activity), which is a different thing: it
+ * tells the user the request is still with their wallet and the app cannot
+ * recall it, instead of pretending to undo it.
  *
  * The steps that ARE dismissable are the ones merely waiting on the user inside
  * the app (choosing a wallet or an account, confirming a sign-in), where

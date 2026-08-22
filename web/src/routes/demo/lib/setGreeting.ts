@@ -2,6 +2,7 @@ import {get} from 'svelte/store';
 import {
 	InsufficientFundsError,
 	isInsufficientFundsFailure,
+	isStoppedWaitingError,
 	isUserRejectionError,
 } from '$lib/core/transaction';
 import {
@@ -162,16 +163,23 @@ export async function setGreeting(
 			return {status: 'cancelled'};
 		}
 
-		// A CONNECTION THAT DID NOT HAPPEN IS NOT A TRANSACTION THAT FAILED, and it
-		// is not this call site's to report either way. `ensureConnected` rejects
-		// with a `ConnectionFailure` whose reason (a closed popup, a declined
-		// required permission, a blocked origin) is already resting on the
-		// connection, where core/connection/ConnectionFlow renders it in the app's
-		// own words - and that component is mounted for the life of the app, so it
-		// cannot be missed. Falling through to the toast below said all of them the
-		// same way, as "Transaction failed: Connection cancelled", about a
-		// transaction that was never built, on top of the modal that had just
-		// explained it properly.
+		// The user stopped waiting for a wallet that had not answered. NOT a
+		// failure: the request is still with the wallet and may yet be sent, and
+		// the in-flight ledger is following it. All this has to do is let the form
+		// go, and say nothing, because an error toast here would be about a
+		// transaction that has not failed. See StoppedWaitingError. The typed
+		// message is deliberately left in the input: the user has not been told
+		// anything happened, so taking their text away would be the app deciding
+		// for them that it did.
+		if (isStoppedWaitingError(error)) return {status: 'cancelled'};
+
+		// Nor is any other way the connection came back empty an error to report
+		// here. Every one of them already rests on the connection, where
+		// core/connection/ConnectionFlow renders it in the app's own words, and that
+		// component is mounted for the life of the app so it cannot be missed.
+		// Falling through said all of them the same way, as "Transaction failed:
+		// Connection cancelled", about a transaction that was never built, on top of
+		// the modal that had just explained it properly.
 		if (connectionRefusal(error)) return {status: 'cancelled'};
 
 		// Strictly after the two checks above, which is the ordering the classifier

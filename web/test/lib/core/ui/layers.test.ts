@@ -25,22 +25,45 @@ const read = (path: string) => readFileSync(web(path), 'utf-8');
  */
 const code = (path: string) => read(path).replace(/<!--[\s\S]*?-->/g, '');
 
-/** The overlays that live outside the layer system, and must stay above it. */
-const NOTIFICATION_OVERLAY_Z = 999;
+/**
+ * The `--z-layer-*` scale, read in declaration order.
+ *
+ * Parsed rather than imported because it is CSS: this file and `app.css` are
+ * the two halves of one decision (which layers exist, and what covers what),
+ * and the whole point of the tests below is that neither half can move alone.
+ */
+function cssLayerScale(): {name: string; z: number}[] {
+	const css = read('src/app.css');
+	return [...css.matchAll(/--z-layer-([a-z]+):\s*(\d+);/g)].map((match) => ({
+		name: match[1],
+		z: Number(match[2]),
+	}));
+}
 
 describe('stacking layers', () => {
 	it('paints bottom to top in declaration order', () => {
-		const zs = LAYERS.map((l) => l.z);
+		const zs = cssLayerScale().map((l) => l.z);
 		expect(zs).toEqual([...zs].sort((a, b) => a - b));
 		expect(new Set(zs).size).toBe(zs.length);
 	});
 
-	it('stays below the app-level signals that must never be hidden', () => {
-		// The notification overlay and the navigation progress bar are how the app
-		// tells the user something happened. A modal is allowed to block the page;
-		// it is not allowed to swallow those.
+	it('declares the same layers as app.css, in the same order', () => {
+		// The failure this catches is silent in both directions. A layer here with
+		// no rule there gets `z-index: auto`, so it is not a stacking context at
+		// all and everything portalled into it competes in the root context, which
+		// is the bug the whole scheme exists to prevent. A rule there with no layer
+		// here is a number nobody can aim at.
+		expect(cssLayerScale().map((l) => l.name)).toEqual(
+			LAYERS.map((l) => l.name),
+		);
+	});
+
+	it('applies a rule to every layer it declares', () => {
+		const css = read('src/app.css');
 		for (const layer of LAYERS) {
-			expect(layer.z).toBeLessThan(NOTIFICATION_OVERLAY_Z);
+			expect(css, `app.css has no [data-layer='${layer.name}'] rule`).toContain(
+				`[data-layer='${layer.name}']`,
+			);
 		}
 	});
 
@@ -48,19 +71,22 @@ describe('stacking layers', () => {
 		for (const layer of LAYERS) {
 			expect(layer.id).toMatch(/^--layer-[a-z]+$/);
 			expect(layer.selector).toBe(`#${layer.id}`);
+			expect(layer.name).toMatch(/^[a-z]+$/);
 		}
 		expect(new Set(LAYERS.map((l) => l.id)).size).toBe(LAYERS.length);
+		expect(new Set(LAYERS.map((l) => l.name)).size).toBe(LAYERS.length);
 	});
 
 	it('renders one container per layer, from the list itself', () => {
 		const layout = read('src/routes/+layout.svelte');
 		expect(layout).toContain('{#each LAYERS as layer');
 		expect(layout).toContain('id={layer.id}');
-		// A hardcoded id here would mean the containers and the targets can drift:
-		// a layer could be aimed at with nowhere to land, which is the failure
-		// that portals to `body` instead.
-		const hardcoded = layout.match(/id="--layer-[a-z]+"/g);
-		expect(hardcoded).toBeNull();
+		expect(layout).toContain('data-layer={layer.name}');
+		// A hardcoded id or name here would mean the containers and the targets can
+		// drift: a layer could be aimed at with nowhere to land, which is the
+		// failure that portals to `body` instead.
+		expect(layout.match(/id="--layer-[a-z]+"/g)).toBeNull();
+		expect(layout.match(/data-layer="[a-z]+"/g)).toBeNull();
 	});
 });
 

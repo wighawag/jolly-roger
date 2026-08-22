@@ -2,9 +2,8 @@
  * Capabilities: optional, independently-constructable enhancements that an app
  * root *provides* and descendant components *use*.
  *
- * A capability is deliberately NOT the app context (see the ADR:
- * `docs/adr/0001-capabilities-vs-app-context.md`, and `./README.md`). Short
- * version:
+ * A capability is deliberately NOT the app context (see ADR-0001 (`work`
+ * branch) and `./README.md`). Short version:
  *
  * - Capability: one small, independently-constructable thing (a route resolver,
  *   an ENS service). Injected on its own key, usually optional or with a

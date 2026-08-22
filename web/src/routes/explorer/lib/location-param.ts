@@ -1,5 +1,5 @@
-import {readable, type Readable} from 'svelte/store';
-import {browser} from '$app/environment';
+import {derived, type Readable} from 'svelte/store';
+import type {NavigationService} from '$lib/core/navigation';
 
 /**
  * Extract a hex (0x...) parameter for an explorer page from a location,
@@ -29,30 +29,31 @@ export function extractHexParam(
 }
 
 /**
- * Readable store of a hex explorer param (address / tx hash) read from the URL,
- * re-reading on hashchange/popstate. Listener lifecycle is tied to the store's
- * subscription: the listeners are attached on first subscribe and removed on
- * last unsubscribe, so components just do `$paramStore`.
+ * Readable store of a hex explorer param (address / tx hash) read from the URL.
+ *
+ * Derived from the app's navigation service rather than from its own
+ * `hashchange`/`popstate` listeners. This page reads the URL for a reason the
+ * router cannot serve: on a path-based IPFS gateway the value arrives in the
+ * FRAGMENT (`/explorer/tx/#0x…`, see `core/utils/web/path.ts`), which is not a
+ * route change. The navigation service already merges that world with the
+ * router's, so there is one answer to "where are we" instead of two subscribing
+ * to the same events separately.
+ *
+ * `undefined` (the service before it attaches, during SSR and until hydration)
+ * reads as "no param yet", which is what the page shows anyway.
  *
  * @param pathSegment the explorer segment, e.g. 'address' or 'tx'.
  */
 export function createHexLocationParamStore(
+	navigation: NavigationService,
 	pathSegment: string,
 ): Readable<`0x${string}` | null> {
-	const initial = browser
-		? extractHexParam(pathSegment, window.location)
-		: null;
-
-	return readable<`0x${string}` | null>(initial, (set) => {
-		if (!browser) return;
-
-		const update = () => set(extractHexParam(pathSegment, window.location));
-		update();
-		window.addEventListener('hashchange', update);
-		window.addEventListener('popstate', update);
-		return () => {
-			window.removeEventListener('hashchange', update);
-			window.removeEventListener('popstate', update);
-		};
-	});
+	return derived(navigation, (location) =>
+		location
+			? extractHexParam(pathSegment, {
+					hash: location.url.hash,
+					pathname: location.url.pathname,
+				})
+			: null,
+	);
 }

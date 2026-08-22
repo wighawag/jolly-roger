@@ -12,7 +12,7 @@ import {
 export function createTabLeaderService(): TabLeaderService {
 	// Assigned in start(), not at construction: this service is built as part of
 	// the app context, which is also constructed during SSR / prerender, and
-	// nothing before start() needs an id. See ADR-0002.
+	// nothing before start() needs an id. See ADR-0002 (`work` branch).
 	let tabId = '';
 
 	let channel: BroadcastChannel | undefined;

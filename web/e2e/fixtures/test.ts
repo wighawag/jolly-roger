@@ -16,13 +16,37 @@ import {parseImpersonateAddresses} from '../../src/lib/dev-accounts';
  *    before any test code runs, ensuring complete isolation from auto-connect behavior
  */
 
-// The addresses the burner wallet can impersonate, parsed with the SAME
-// function the app uses (src/lib/dev-accounts.ts) from the same env var, so the
-// tests and the app can never disagree about the list. Empty on a branch that
-// signs in, since an impersonated account has no key and cannot sign in.
+/**
+ * The addresses the burner wallet can impersonate.
+ *
+ * Read from the SAME environment variable the app was built against, parsed by
+ * the same function (`src/lib/dev-accounts.ts`), so the accounts this suite
+ * funds and picks are exactly the accounts the app offers. Hardcoding a list
+ * here, or in the app, is how those two drift.
+ *
+ * `scripts/run-e2e-tests.sh` exports it for the whole run, which is why it is
+ * required rather than defaulted: a silent fallback would mean funding accounts
+ * the app does not offer, and failing several steps later on a picker that has
+ * no such entry.
+ *
+ * ON THIS BRANCH IT SIZES THE POOL RATHER THAN SUPPLYING IT. The app signs in,
+ * and an impersonated account holds no key, so it can never sign the sign-in
+ * message: `pickSignableAccount` skips every address in this list and
+ * `walletAccountIndex` counts the burner's OWN generated accounts instead. The
+ * list is still what BOUNDS the index, so one suite per index remains the rule
+ * and `test/e2e-account-claims.test.ts` keeps a list to check claims against.
+ */
 const IMPERSONATE_ADDRESSES = parseImpersonateAddresses(
 	(globalThis as any).process.env.PUBLIC_IMPERSONATE_ADDRESSES,
 );
+if (IMPERSONATE_ADDRESSES.length === 0) {
+	throw new Error(
+		'PUBLIC_IMPERSONATE_ADDRESSES is not set, so this suite does not know ' +
+			'which accounts the app offers. Run the suite with `pnpm test:e2e` ' +
+			'(scripts/run-e2e-tests.sh sets it), or export it yourself to match ' +
+			'the build under test.',
+	);
+}
 
 // Hardhat node URL. Use the IPv4 literal: the node binds to 127.0.0.1, and
 // Node's fetch can resolve `localhost` to ::1 first, failing intermittently.
@@ -318,10 +342,24 @@ async function appBalances(
 	});
 }
 
+/**
+ * Named, so a suite can take it as a parameter and pass it down to a helper.
+ * The first send from a fresh browser is answered with this flow rather than
+ * reaching the chain, so any helper that sends has to be able to complete it.
+ */
+export type AuthoriseBrowser = (
+	page: Page,
+	options?: AuthoriseOptions,
+) => Promise<AuthorisationOutcome>;
+
 export interface WalletOptions {
 	/**
-	 * Which burner account (index into IMPERSONATE_ADDRESSES) the connect flow
-	 * picks in the account-picker dialog.
+	 * Which burner account the connect flow picks in the account-picker dialog.
+	 *
+	 * Counted over the accounts that can SIGN, which on this branch means the
+	 * burner's own generated ones: see pickSignableAccount, and the note on
+	 * IMPERSONATE_ADDRESSES for why the impersonated ones are skipped. It is still
+	 * bounded by that list's length, so the pool has a size something can check.
 	 *
 	 * All e2e tests share ONE chain and the GreetingsRegistry keeps ONE message
 	 * per account, so two test files writing from the same account clobber each
@@ -368,10 +406,7 @@ export interface WalletFixtures {
 	 * name (and funds the signer in the same transaction), if the app is asking
 	 * for it. Returns whether it was asking.
 	 */
-	authoriseBrowser: (
-		page: Page,
-		options?: AuthoriseOptions,
-	) => Promise<AuthorisationOutcome>;
+	authoriseBrowser: AuthoriseBrowser;
 
 	/** The addresses the connected wallet holds, which the burner generates. */
 	walletAccounts: (page: Page) => Promise<string[]>;
@@ -1044,6 +1079,19 @@ export const test = base.extend<WalletFixtures & WalletOptions>({
 	 *   test('my test', async ({ connectedPage }) => { ... })
 	 */
 	connectedPage: async ({page, fundWallets, walletAccountIndex}, use) => {
+		// Out of range fails here, naming the cause, instead of several steps later
+		// on an account picker that has no such entry. The mapping of index to test
+		// file is in scripts/run-e2e-tests.sh, next to the list itself.
+		if (walletAccountIndex >= IMPERSONATE_ADDRESSES.length) {
+			throw new Error(
+				`walletAccountIndex ${walletAccountIndex} is out of range: ` +
+					`PUBLIC_IMPERSONATE_ADDRESSES has ${IMPERSONATE_ADDRESSES.length} ` +
+					`account(s). Add one to web/e2e/impersonate-addresses.json if this ` +
+					`file needs an account of its own (files that send transactions do, ` +
+					`or they race each other for a nonce).`,
+			);
+		}
+
 		// Fund the wallet addresses BEFORE navigating to the page
 		// This ensures the wallet has ETH when the app auto-connects
 		await fundWallets();

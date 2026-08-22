@@ -17,10 +17,8 @@ import {
 	type TopUpFlowDeps,
 } from '$lib/ui/credits/top-up-flow';
 import type {CreditsConfig} from '$lib/core/connection/credits';
-import {
-	createConfirmation,
-	type ConfirmationState,
-} from '$lib/core/ui/confirm/confirmation';
+import {type ConfirmationState} from '$lib/core/ui/confirm/confirmation';
+import {makeConfirmation} from '../../core/ui/confirm/make-confirmation';
 
 const SIGNER = '0x00000000000000000000000000000000000000aA' as const;
 const PAYER = '0x00000000000000000000000000000000000000bB' as const;
@@ -237,7 +235,7 @@ function deps(params: DepsParams) {
 	const wallets = new Array(params.walletsAvailable ?? 1).fill({
 		info: {name: 'Test Wallet'},
 	});
-	const confirmation = createConfirmation();
+	const {confirmation} = makeConfirmation();
 
 	// The payment connection is a STORE as well as an API: the flow watches it so
 	// it can follow a wallet that switches account under an open modal. Its
