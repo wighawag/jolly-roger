@@ -3,6 +3,8 @@
 	"title": "Jolly Roger",
 	"description": "Build and Deploy for Eternity",
 	"canonicalURL": "http://localhost:8080",
+	"repoURL": "",
+	"communityURL": "",
 	"ENSName": null,
 	"themeColor": "#000000",
 	"appleStatusBarStyle": "black-translucent",

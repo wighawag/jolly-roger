@@ -275,12 +275,16 @@ Configure the web app in [`web/src/web-config.json`](web/src/web-config.json). T
   "title": "Jolly Roger",
   "description": "Build and Deploy for Eternity",
   "canonicalURL": "http://localhost:8080",
+  "repoURL": "",
+  "communityURL": "",
   "themeColor": "#000000",
   "icon": "static/icon.svg"
 }
 ```
 
 Replace `icon` (`web/static/icon.svg`) with your own logo; the landing page and every PWA icon derive from it.
+
+`repoURL` and `communityURL` add the source and community links to the navbar. Both default to empty, which hides the link: a fork should point at its own repository, not at this template's. Set them here rather than in `web/src/routes/+layout.svelte`, which is the most-edited file in the template and therefore the most expensive place to park a constant.
 
 ### Reference Features
 
