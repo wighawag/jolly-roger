@@ -11,7 +11,7 @@
  * It lived at `core/config.ts` until it was moved here, where SvelteKit's own
  * `$lib` convention already expected it.
  */
-import {version} from '$app/environment';
+import {version} from './kit/environment';
 import {createServiceWorker} from './core/service-worker';
 import {createNotificationsService} from './core/notifications';
 import {

@@ -1,6 +1,19 @@
 <script lang="ts">
-	import {navigating} from '$app/state';
 	import {onMount} from 'svelte';
+
+	interface Props {
+		/**
+		 * Whether a navigation is in flight.
+		 *
+		 * A getter rather than SvelteKit's `navigating`, so this component knows
+		 * nothing about the framework that produced it (src/lib/kit/README.md).
+		 * Reading it inside `$derived` below tracks it exactly as the import did.
+		 * The app root passes `() => !!navigating.to`.
+		 */
+		navigatingTo: () => boolean;
+	}
+
+	const {navigatingTo}: Props = $props();
 
 	// Owns every navigation indicator in the app:
 	//   - in-app (SPA) navigation .... bar + spinner, while still on the old URL
@@ -25,11 +38,12 @@
 	let finishTimer: ReturnType<typeof setTimeout> | undefined;
 	let safetyTimer: ReturnType<typeof setTimeout> | undefined;
 
-	// `navigating` is never literally null in `$app/state`: when idle it is an
-	// object whose `to`/`from`/`type` are all null. So an in-flight navigation
-	// is signalled by `to` being set. Leaving the app has `to === null`, which
-	// correctly excludes it here (the browser shows its own indicator).
-	const isNavigating = $derived(!!navigating.to);
+	// The caller decides what counts as in-flight. With SvelteKit's `navigating`
+	// that is `!!navigating.to`: it is never literally null (when idle it is an
+	// object whose `to`/`from`/`type` are all null), so an in-flight navigation is
+	// signalled by `to` being set. Leaving the app has `to === null`, which
+	// correctly excludes it (the browser shows its own indicator).
+	const isNavigating = $derived(navigatingTo());
 
 	// Only depends on `isNavigating`. The cleanup reads `phase`, but cleanup
 	// functions are not tracked, so `phase` writes never re-run this.
