@@ -1,4 +1,4 @@
-import {derived, get, writable, type Readable} from 'svelte/store';
+import {derived, get, readable, writable, type Readable} from 'svelte/store';
 import {
 	canDismissConnection,
 	isBurnerWalletInSelectionPhase,
@@ -371,7 +371,31 @@ export type WalletActivityStore = Readable<WalletActivity> & {
 };
 
 /** The ledger surface this needs. See `core/transaction/in-flight-store`. */
-type ActivityLedger = Readable<{dispatching: number}> & ReconcilableLedger;
+export type ActivityLedger = Readable<{dispatching: number}> &
+	ReconcilableLedger;
+
+/**
+ * A ledger for a connection the app never dispatches through.
+ *
+ * AN APP CAN HAVE MORE THAN ONE CONNECTION, and the ledger belongs to the one
+ * that SENDS. A variant with a separate payment connection gives each its own
+ * flow UI, and handing both the app's single ledger made the second one claim
+ * "please confirm the request in your wallet" about a request that belonged to
+ * the first: two identical modals on screen, and an escape hatch on the idle
+ * connection whose `stopWaiting()` released the other connection's caller.
+ *
+ * So the flow for a connection that does not dispatch is given this, and says
+ * nothing. Inert rather than optional, because `undefined` would put a
+ * "do we have a ledger" branch into every reader of the derived value, which is
+ * precisely the per-consumer combining this module exists to remove.
+ */
+export function inertActivityLedger(): ActivityLedger {
+	return {
+		subscribe: readable({dispatching: 0}).subscribe,
+		reconcile: async () => {},
+		stopAwaiting: () => {},
+	};
+}
 
 export function createWalletActivity(params: {
 	connection: Readable<ConnectionStateSnapshot>;

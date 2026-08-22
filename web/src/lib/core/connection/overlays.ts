@@ -1,4 +1,7 @@
-import {definePromptOverlay} from '$lib/core/ui/overlay';
+import {
+	definePromptOverlay,
+	type PromptOverlayDefinition,
+} from '$lib/core/ui/overlay';
 
 /**
  * The escape hatch's confirmation (ADR-0004, `work` branch).
@@ -16,5 +19,29 @@ import {definePromptOverlay} from '$lib/core/ui/overlay';
  *
  * No `onClose`: closing this question means "keep waiting", which is what the
  * app was already doing. Only the confirm button acts.
+ *
+ * ONE PER FLOW, which is what the key is for. An overlay's LABEL is its identity
+ * in the registry, so two `ConnectionFlow` components sharing this definition
+ * share one overlay INSTANCE: opening the hatch on one renders the confirmation
+ * in both, and closing it in either closes the single instance. An app with a
+ * second connection (a separate payment rail, say) renders a second flow, so the
+ * definition has to be per flow rather than per module.
+ *
+ * Memoised, because the registry identifies an overlay by label and warns when
+ * two different definition OBJECTS claim the same one. Asking twice for the same
+ * key has to give back the same object.
  */
-export const stopWaitingPrompt = definePromptOverlay('connection-stop-waiting');
+const prompts = new Map<string, PromptOverlayDefinition<void>>();
+
+export function stopWaitingPromptFor(
+	key: string,
+): PromptOverlayDefinition<void> {
+	const existing = prompts.get(key);
+	if (existing) return existing;
+	const prompt = definePromptOverlay(`${key}-stop-waiting`);
+	prompts.set(key, prompt);
+	return prompt;
+}
+
+/** The escape hatch for the app's main connection. */
+export const stopWaitingPrompt = stopWaitingPromptFor('connection');

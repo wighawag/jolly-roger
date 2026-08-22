@@ -18,23 +18,67 @@
 		combinesAccountChoiceWithSignIn,
 		effectiveAccountSelection,
 	} from './connection-flow';
-	import {createWalletActivity} from './wallet-activity';
-	import {stopWaitingPrompt} from './overlays';
+	import {
+		createWalletActivity,
+		inertActivityLedger,
+		type ActivityLedger,
+	} from './wallet-activity';
+	import {stopWaitingPromptFor} from './overlays';
 	import {connectionFailureView} from './refusal';
+	import {untrack} from 'svelte';
 	import {dev, getAppContext} from '$lib';
 
 	interface Props {
 		connection: AnyConnectionStore<UnderlyingEthereumProvider>;
+		/**
+		 * Which connection this flow drives, for anything that must be per flow.
+		 *
+		 * An app can render more than one of these (a separate payment rail has its
+		 * own connection, and a step needing the user must appear for it too), and
+		 * an overlay's label IS its identity in the registry, so two flows sharing
+		 * one label share one escape-hatch overlay.
+		 */
+		name?: string;
+		/**
+		 * The in-flight ledger for the connection THIS flow drives, when the app
+		 * dispatches through it.
+		 *
+		 * INERT BY DEFAULT, and that default is the safe one rather than a
+		 * convenience. The ledger is app-wide while a flow is per connection, so a
+		 * flow handed the app's ledger reports the wallet as busy whenever ANY
+		 * connection's wallet is: a second flow then puts an identical "confirm the
+		 * request in your wallet" modal on screen for a request that is not its own,
+		 * and offers an escape hatch whose `stopWaiting()` releases the OTHER
+		 * connection's caller. Opting a flow in is one line at the call site; the
+		 * failure is two identical modals and cross-talk between connections.
+		 *
+		 * This app has one connection, so the default is never taken here. It is
+		 * still the default because a variant that adds a second one inherits the
+		 * safe behaviour rather than the bug, and that variant is exactly who found
+		 * it (work/notes/findings/one-ledger-two-connections-two-wallet-modals.md).
+		 */
+		inFlight?: ActivityLedger;
 	}
 
-	let {connection}: Props = $props();
+	let {connection, name = 'connection', inFlight}: Props = $props();
 
 	// The escape hatch (ADR-0004, `work` branch). A PROMPT overlay opened from
 	// inside a SYSTEM overlay: the waiting modal stays, because the wallet really
 	// is still holding the request, and this asks on top of it.
-	const {overlays, inFlight} = getAppContext();
-	const stopWaiting = overlays.use(stopWaitingPrompt);
+	const {overlays} = getAppContext();
+
+	// `untrack` because both of these are STRUCTURAL: which connection this flow
+	// is, and whether the app dispatches through it. They are decided by the call
+	// site once and cannot meaningfully change under a mounted flow (a new overlay
+	// instance mid-life would abandon the one currently open). Svelte is right to
+	// warn about reading a prop into a plain const, so this says out loud that the
+	// initial value is what was meant, rather than leaving a warning that the next
+	// reader has to re-derive an opinion about. Contrast `connection` below, which
+	// is read through closures for exactly the opposite reason.
+	const stopWaiting = overlays.use(stopWaitingPromptFor(untrack(() => name)));
 	$effect(() => stopWaiting.registerRenderer());
+
+	const activityLedger = untrack(() => inFlight) ?? inertActivityLedger();
 
 	// ONE answer about the wallet, derived in wallet-activity.ts from all three
 	// sources that know something (the library's pending requests, the app's own
@@ -55,7 +99,7 @@
 		// is the only consumer) and forwarding an argument the store will not take
 		// needs a cast, which would hide the day it starts taking one.
 		connection: {subscribe: (run) => connection.subscribe(run)},
-		inFlight,
+		inFlight: activityLedger,
 		cancelConnection: () => connection.cancel(),
 	});
 

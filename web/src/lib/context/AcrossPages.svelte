@@ -10,7 +10,7 @@
 	import ErrorDetailsModal from '$lib/core/transaction/ErrorDetailsModal.svelte';
 	import InFlightRequestsModal from '$lib/core/transaction/InFlightRequestsModal.svelte';
 
-	const {connection} = getAppContext();
+	const {connection, inFlight} = getAppContext();
 </script>
 
 {#if params.transactions}
@@ -46,4 +46,15 @@
      else, and it has to be able to sit on top of whatever asked for it. Declared
      before the modals, a wallet picker raised from inside one of them opens
      UNDERNEATH it, and the click simply appears to hang. -->
-<ConnectionFlow {connection} />
+<!-- BOTH PROPS PASSED EXPLICITLY, though this app has one connection and both
+     have defaults that would do.
+
+     The ledger is app-wide and a flow is per connection, so a flow given the
+     ledger claims the wallet is busy whenever ANY connection's is. Here that is
+     the same thing. In a variant with a second connection it is not, and handing
+     it to both put two identical "confirm the request in your wallet" modals on
+     screen and let an idle connection's escape hatch release the other one's
+     caller. Saying it out loud here is what makes the second flow a variant adds
+     an obvious decision rather than an inherited accident. Same for `name`, which
+     is the identity of this flow's escape-hatch overlay in the registry. -->
+<ConnectionFlow {connection} name="connection" {inFlight} />

@@ -33,6 +33,12 @@ const SANCTIONED = [
 	'createWalletActivity',
 	'WalletActivity',
 	'WalletActivityStore',
+	// A deliberate widening. It is the ledger for a connection the app never
+	// dispatches through, and it combines nothing: it answers "nothing is in
+	// flight here" and is the SAFE half of the question, so a consumer using it
+	// cannot drift towards claiming the wallet is busy when it is not.
+	'inertActivityLedger',
+	'ActivityLedger',
 ];
 
 /**
