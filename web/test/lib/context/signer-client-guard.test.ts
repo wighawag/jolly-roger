@@ -1,5 +1,6 @@
 import {describe, it, expect} from 'vitest';
-import {readFileSync} from 'node:fs';
+import {readFileSync, readdirSync} from 'node:fs';
+import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 /**
@@ -32,10 +33,28 @@ import {fileURLToPath} from 'node:url';
  * work/notes/findings/executor-dev-warning-does-not-see-the-signer-client.md).
  */
 
-const CONTEXT = readFileSync(
-	fileURLToPath(new URL('../../../src/lib/context/index.ts', import.meta.url)),
-	'utf-8',
+/**
+ * The composition, wherever a descendant keeps it.
+ *
+ * Every `.ts` under `src/lib/context`, concatenated, rather than one named file.
+ * `wallet-activity-boundary.test.ts` learned this the hard way when the rule
+ * watched a FILE and a consumer moved to another one, and it happened again
+ * here: `template-commit-reveal` splits the composition into `core.ts` (this
+ * template's half) and `game.ts` (its own), leaving `index.ts` a few lines of
+ * re-export. Pointed at `index.ts` this guard threw "no memoiseSignerClient
+ * call" on a branch whose signer client is correctly guarded.
+ *
+ * The question is "is the signer client guarded inside the memoisation", and the
+ * question does not care which file answers it.
+ */
+const CONTEXT_DIR = fileURLToPath(
+	new URL('../../../src/lib/context/', import.meta.url),
 );
+const CONTEXT = readdirSync(CONTEXT_DIR)
+	.filter((name) => name.endsWith('.ts'))
+	.sort()
+	.map((name) => readFileSync(join(CONTEXT_DIR, name), 'utf-8'))
+	.join('\n');
 
 /**
  * The body of the factory handed to `memoiseSignerClient`, by balancing
@@ -45,7 +64,7 @@ const CONTEXT = readFileSync(
  */
 function memoisedFactoryBody(source: string): string {
 	const start = source.indexOf('memoiseSignerClient(');
-	if (start < 0) throw new Error('no memoiseSignerClient call in context');
+	if (start < 0) throw new Error('no memoiseSignerClient call anywhere in src/lib/context');
 	let depth = 0;
 	for (let i = start + 'memoiseSignerClient'.length; i < source.length; i++) {
 		const char = source[i];
