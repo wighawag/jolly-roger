@@ -61,7 +61,7 @@
 		"wallet-host": "dev-wallet-host --port ${PUBLIC_WALLET_HOST_PORT:-50000}",
 		"build": "ldenv vite build @@",
 		"preview": "vite preview",
-		"check": "svelte-check --tsconfig ./tsconfig.json",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"test": "npm run test:unit -- --run && npm run test:e2e",
 		"check:watch": "svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --write .",
