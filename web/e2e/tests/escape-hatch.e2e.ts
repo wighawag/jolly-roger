@@ -93,9 +93,26 @@ describe('Stopping waiting for the wallet', () => {
 			.fill(message);
 		await executeButton(page).click();
 
-		await page
-			.getByRole('button', {name: new RegExp(STALLING_WALLET_NAME, 'i')})
-			.click({timeout: 30_000});
+		// The wallet list is not always the first thing in the modal. With several
+		// wallets and NO other sign-in options it is shown directly; with hosted
+		// sign-in it shares the modal with email and social, so it collapses behind
+		// one button rather than drowning them (see `walletEntryMode`). Waiting for
+		// either and clicking through when the button is there keeps this file the
+		// same on both branches, which matters because the variant that adds hosted
+		// sign-in inherits this suite rather than rewriting it.
+		const walletEntry = page.getByRole('button', {
+			name: /^connect a wallet$/i,
+		});
+		const stallingWallet = page.getByRole('button', {
+			name: new RegExp(STALLING_WALLET_NAME, 'i'),
+		});
+		await expect(walletEntry.or(stallingWallet).first()).toBeVisible({
+			timeout: 30_000,
+		});
+		if (await walletEntry.isVisible().catch(() => false)) {
+			await walletEntry.click();
+		}
+		await stallingWallet.click({timeout: 30_000});
 
 		// This app signs in, so the flow parks at WalletConnected until the user
 		// says yes. Skipping this leaves the connection there forever, with no
