@@ -1,5 +1,5 @@
 <script lang="ts">
-	import * as Card from '$lib/shadcn/ui/card/index.js';
+	import * as Card from '$ui/card/index.js';
 	import {Button} from '$lib/core/ui/button';
 	import {fly} from 'svelte/transition';
 	import {cn} from '$lib/core/utils/tailwind/index.js';

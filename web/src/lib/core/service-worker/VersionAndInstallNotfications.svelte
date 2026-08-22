@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type {ServiceWorkerStore} from '.';
-	import * as Alert from '$lib/shadcn/ui/alert/index.js';
+	import * as Alert from '$ui/alert/index.js';
 	import {Button} from '$lib/core/ui/button';
 	import {cn} from '../utils/tailwind';
 

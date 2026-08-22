@@ -34,6 +34,17 @@
 		type?: 'button' | 'submit' | 'reset';
 		onclick?: (event: MouseEvent) => void;
 		children?: Snippet;
+		/**
+		 * Accessibility attributes pass through, and are part of the contract rather
+		 * than an escape hatch. A `size="icon"` button has no text, so a replacement
+		 * kit that drops these ships an unlabelled control: that is a defect, not a
+		 * restyling. Listed explicitly rather than swept up by a rest spread, so the
+		 * contract stays readable and a forwarded prop is a decision.
+		 */
+		'aria-label'?: string;
+		'aria-describedby'?: string;
+		'aria-expanded'?: boolean;
+		'aria-pressed'?: boolean;
 	}
 
 	let {
@@ -44,9 +55,18 @@
 		type = 'button',
 		onclick,
 		children,
+		...aria
 	}: Props = $props();
 </script>
 
-<KitButton {variant} {size} class={className} {disabled} {type} {onclick}>
+<KitButton
+	{variant}
+	{size}
+	class={className}
+	{disabled}
+	{type}
+	{onclick}
+	{...aria}
+>
 	{@render children?.()}
 </KitButton>
