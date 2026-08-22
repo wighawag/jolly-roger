@@ -69,11 +69,52 @@ function stripCommentsAndStrings(source: string): string {
  * snapshot of a store's value. That is legal in a `.ts` file, where runes do
  * not exist, and a first version of this test failed on it.
  */
-const RUNE =
-	/(?<![.\w$])\$(?:state|derived|effect|props|bindable|inspect|host)\s*[.(]/;
+const RUNE_NAMES = [
+	'state',
+	'derived',
+	'effect',
+	'props',
+	'bindable',
+	'inspect',
+	'host',
+] as const;
+
+const RUNE = new RegExp(
+	`(?<![.\\w$])\\$(?:${RUNE_NAMES.join('|')})\\s*[.(]`,
+);
+
+/**
+ * Names the file DECLARES as ordinary bindings, which are therefore not runes.
+ *
+ * The invocation rule alone is not enough, and a descendant proved it. A local
+ * called `$state` read as `$state.step` is indistinguishable by shape from the
+ * member rune `$state.raw(0)`: both are the name, a dot, and a word. Requiring
+ * the `.` catches the second and cannot help matching the first.
+ *
+ * A declaration settles it, because Svelte will not let you declare a rune. So
+ * `let $state = ...` in a `.ts` file proves every `$state` in that file is the
+ * variable, and this is the same old store-snapshot convention that
+ * `rpcHealth.ts` uses. Scoped per file and per name: declaring `$state` says
+ * nothing about `$effect` in the same file.
+ */
+function declaredNames(source: string): Set<string> {
+	const out = new Set<string>();
+	for (const name of RUNE_NAMES) {
+		const declaration = new RegExp(
+			`(?:^|[^.\\w$])(?:let|const|var)\\s+\\$${name}\\b`,
+		);
+		if (declaration.test(source)) out.add(name);
+	}
+	return out;
+}
 
 function usesRunes(source: string): boolean {
-	return RUNE.test(stripCommentsAndStrings(source));
+	const code = stripCommentsAndStrings(source);
+	const declared = declaredNames(code);
+	return RUNE_NAMES.some((name) => {
+		if (declared.has(name)) return false;
+		return new RegExp(`(?<![.\\w$])\\$${name}\\s*[.(]`).test(code);
+	});
 }
 
 describe('Svelte conventions', () => {
@@ -125,6 +166,25 @@ describe('Svelte conventions', () => {
 					'store.set($state);\n',
 			),
 		).toBe(false);
+		// A DECLARED `$state` read through a PROPERTY. This is the same convention
+		// as above but accessed with a dot, which is shape-identical to the member
+		// rune `$state.raw(0)` and cannot be told apart by invocation alone. A
+		// descendant (`game/core/round.ts`, a store snapshot read as `$state.step`)
+		// failed on exactly this, which is what the declaration check exists for.
+		expect(
+			usesRunes(
+				"let $state: RoundState = {step: 'Idle'};\n" +
+					"if ($state.step !== 'Planning') return;\n" +
+					"return 'actions' in $state ? $state.actions : [];\n",
+			),
+		).toBe(false);
+		// But an UNdeclared one is still a rune, so the exemption cannot be used to
+		// smuggle real rune usage into a `.ts` file.
+		expect(usesRunes('let rows = $state.raw([]);')).toBe(true);
+		// And declaring one name says nothing about another in the same file.
+		expect(
+			usesRunes('let $state = snapshot;\nconst v = $derived(x);\n'),
+		).toBe(true);
 	});
 
 	it('has no .svelte.ts files', () => {
