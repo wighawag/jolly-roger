@@ -1,7 +1,7 @@
 ---
 title: "template-commit-reveal descends from with/local-signer, offshoot-fanout can only feed it from main, and the difference is 13 conflicts instead of 3"
 type: finding
-status: spotted
+status: fixed
 created: 2026-08-22
 source: "compared `merge-tree` against all three candidate parents, then read `childNodes` in offshoot-fanout's nodes.js"
 follows: the-tree-is-thirteen-nodes-not-seven
@@ -48,7 +48,11 @@ This has not happened, because the repo has never been cascaded from `main`. It 
 
 **When it is cascaded:** do it by hand from `with/local-signer`, expect the three conflicts above, and resolve them as variant-versus-variant rather than variant-versus-main.
 
-**The real fix, upstream in the tool:** let the edge carry a branch. The child already declares its own entry branches, so the natural shape is for the child to name the parent branch it grows from, in the same `stem` vocabulary the in-repo edges already use, something like `{"branches": {"main": {"stem": "stem/with/local-signer"}}}`. The in-repo case already distinguishes a chain from a combination; the cross-repo case currently cannot distinguish anything at all. Worth raising against `offshoot-fanout` rather than working around forever, because the workaround is "remember not to run the tool", which is the kind of rule that holds until the day it does not.
+**DONE 2026-08-22.** Implemented in `offshoot-fanout` as `stemBranch` (`offshoot` c4426c7): a root branch names the branch of the PARENT repo that feeds it, defaulting to the primary. `template-commit-reveal` now reports 4 conflicts merging `jolly-roger@with/local-signer` instead of 14 merging `jolly-roger@main`, and renders under the variant where it belongs. The merge machinery needed no change, which is the sign the seam was in the right place: `MergeSource` already fetched an arbitrary `parent.branch` and only the graph forced it to the primary.
+
+**One hazard remains until the new version is installed, and it is silent.** The released binary's config validator drops unknown keys rather than rejecting them, so an OLD `offshoot-fanout` reading the new config parses it happily, ignores `stemBranch`, and cascades from `main` exactly as before, with nothing in the report to say the key was dropped. Verified: the binary on PATH still reports 14 files merging `jolly-roger@main` against the same config the built one reads correctly. So the config is not a guard on its own. Until `offshoot-fanout` is upgraded, `template-commit-reveal` must stay in the ignore list, and the ignore is what is actually protecting it.
+
+**The original analysis, kept because it is what justified the change:** let the edge carry a branch. The child already declares its own entry branches, so the natural shape is for the child to name the parent branch it grows from, in the same `stem` vocabulary the in-repo edges already use, something like `{"branches": {"main": {"stem": "stem/with/local-signer"}}}`. The in-repo case already distinguishes a chain from a combination; the cross-repo case currently cannot distinguish anything at all. Worth raising against `offshoot-fanout` rather than working around forever, because the workaround is "remember not to run the tool", which is the kind of rule that holds until the day it does not.
 
 ## For the audit's numbers
 
