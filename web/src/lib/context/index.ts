@@ -9,7 +9,10 @@ import {createWalletClient, custom, http} from 'viem';
 import {privateKeyToAccount} from 'viem/accounts';
 import {createAccountData} from '$lib/account/AccountData.js';
 import {establishRemoteConnection} from '$lib/core/connection';
-import {createPaymentRail} from '$lib/core/connection/remote.js';
+import {
+	createPaymentRail,
+	type PaymentRail,
+} from '$lib/core/connection/remote.js';
 import {createBalanceStore} from '$lib/core/connection/balance';
 import {createGasFeeStore} from '$lib/core/connection/gasFee';
 import {createRpcHealthStore} from '$lib/core/connection/rpcHealth';
@@ -220,7 +223,7 @@ export function createContext(): {
 	// Given the same chainInfo the app connection was built from, so the payer's
 	// wallet is told about the chain exactly as the player's was, including the
 	// wallet-facing RPC override.
-	const payment = createPaymentRail(chainInfo, {nodeURL: PUBLIC_NODE_URL});
+	const rawPayment = createPaymentRail(chainInfo, {nodeURL: PUBLIC_NODE_URL});
 
 	// ----------------------------------------------------------------------------
 	// CHAIN CONFIGURATION
@@ -344,6 +347,28 @@ export function createContext(): {
 			scopeAddress: operationScopeAddress(deployments.get()),
 		}),
 	});
+
+	// THE THIRD CLIENT THAT SENDS, AND THE ONE THAT MOVES REAL MONEY.
+	//
+	// The payment rail carries a wallet client of its own, built by
+	// `createPaymentRail` from a SECOND connection with its own payer. It is a
+	// different OBJECT from the app wallet client and from the signer client, so
+	// guarding those two leaves this one uncovered, and it is the only one whose
+	// transactions the user paid for on purpose.
+	//
+	// The window is the same as everywhere else: the tab can die between the
+	// wallet returning a signature and the hash coming back, and a purchase lost
+	// there is one the app has no record of and cannot reconcile. That it needs a
+	// human at a wallet makes the window LONGER than the signer's, not shorter.
+	//
+	// Guarded here rather than inside `createPaymentRail`, because the ledger is
+	// this app's and the rail is a core building block that must not reach for
+	// one. Same reason the app wallet client is guarded at its call site.
+	const payment: PaymentRail = {
+		...rawPayment,
+		walletClient: guardDispatch(rawPayment.walletClient, inFlight),
+	};
+
 
 	// ----------------------------------------------------------------------------
 	// TRACKED WALLET CLIENT

@@ -108,10 +108,22 @@ describe('the local signer client', () => {
 		).toEqual([]);
 	});
 
-	it('guards the wallet client too, and only where it is built', () => {
-		// Two guarded clients, no more: one per tracked client the app builds. A
-		// third would mean something is being wrapped at a use site.
+	it('guards every client the app builds, and only where it is built', () => {
+		// One guard per client this app CONSTRUCTS, and no more. An extra would
+		// mean something is being wrapped at a use site, which hands out a fresh
+		// wrapper per call and recreates the untracked-client bug above.
+		//
+		// Three, and the third is the one that took longest to notice:
+		//   1. the app wallet client (the authenticated account)
+		//   2. the signer client, inside the memoisation (see above)
+		//   3. the PAYMENT RAIL's wallet client, a second connection with its own
+		//      payer, and the only one whose transactions the user paid for on
+		//      purpose. It was unguarded until 2026-08-22 while both silent
+		//      clients were covered, which is backwards: it needs a human at a
+		//      wallet, so its window between signature and hash is the LONGEST.
+		//
+		// If this number changes, say which client and why, here.
 		const guards = [...CONTEXT.matchAll(/guardDispatch\(/g)];
-		expect(guards).toHaveLength(2);
+		expect(guards).toHaveLength(3);
 	});
 });
