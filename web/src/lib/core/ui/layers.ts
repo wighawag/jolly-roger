@@ -54,7 +54,7 @@ function layer(name: string, id: string, holds: string): Layer {
  * BOTTOM TO TOP. The order of this array is the paint order, and it must match
  * the order of the `--z-layer-*` declarations in `app.css`.
  *
- * Only three of these are portal targets; the rest hold app-owned surfaces that
+ * Only four of these are portal targets; the rest hold app-owned surfaces that
  * `+layout.svelte` renders into them directly. They are all in one list anyway,
  * because the question "what covers what" has to have exactly one answer.
  */
@@ -84,6 +84,18 @@ export const LAYERS = [
 			'user is doing right now.',
 	),
 	layer(
+		'system',
+		'--layer-system',
+		'Modals whose visibility is DERIVED FROM DOMAIN STATE (ADR-0004): the ' +
+			'connection flow, the balance and error reports. Above ordinary modals ' +
+			'because each is a live question about something already in flight, so ' +
+			'it must be able to cover whatever raised it. A layer rather than a ' +
+			'declaration order, because a PAGE remounts on every navigation and ' +
+			'takes a fresh slot at the end of its layer while AcrossPages keeps the ' +
+			'one it took at startup - so the two used to stack differently ' +
+			'depending on how the user arrived.',
+	),
+	layer(
 		'popover',
 		'--layer-popovers',
 		'Popovers, tooltips and select menus: transient, dismissed by the next ' +
@@ -109,5 +121,7 @@ const byName = (name: string): string => {
 export const DRAWER_LAYER = byName('drawer');
 /** Portal target for modal dialogs. */
 export const MODAL_LAYER = byName('modal');
+/** Portal target for modals driven by domain state. See the layer's `holds`. */
+export const SYSTEM_LAYER = byName('system');
 /** Portal target for popovers, tooltips and select menus. */
 export const POPOVER_LAYER = byName('popover');

@@ -102,12 +102,13 @@
 
 	The containers are rendered from `core/ui/layers.ts`, the same list that tells
 	components which layer to target, so a layer cannot exist as a portal target
-	with no container to land in (or the reverse). Three of them stay empty for
+	with no container to land in (or the reverse). Four of them stay empty for
 	exactly that reason: they are PORTAL TARGETS, addressed by id from
-	`core/ui/modal/modal.svelte`, the navbar drawer and the popover/select
-	contents. A component that forgets to name its target does not land here, and
-	then its paint order is an accident of where it sits in the tree, which is how
-	the drawer once covered every modal.
+	`core/ui/modal/modal.svelte` (which addresses TWO of them, the modal layer and
+	the system layer above it), the navbar drawer and the popover/select contents.
+	A component that forgets to name its target does not land here, and then its
+	paint order is an accident of where it sits in the tree, which is how the
+	drawer once covered every modal.
 
 	The rest hold app-owned surfaces, supplied below as snippets keyed by layer
 	name. Written as snippets rather than as hand-placed divs so that the list

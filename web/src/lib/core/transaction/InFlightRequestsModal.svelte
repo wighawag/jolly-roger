@@ -21,6 +21,7 @@
 </script>
 
 <Modal.Root
+	layer="system"
 	openWhen={$report.length > 0}
 	onCancel={() => inFlight.acknowledgeAll()}
 >

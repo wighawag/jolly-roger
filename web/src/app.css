@@ -221,9 +221,24 @@ html {
 
    THE ORDER, AND WHY. A modal is the task the user is doing right now, so it
    covers the ambient reports of things that merely happened (toasts, push
-   notifications) and the chrome that raised it (the drawer). The progress bar
-   sits on top of everything because it is 2px tall and `pointer-events: none`,
-   so being above a modal costs nothing and being under one would hide it.
+   notifications) and the chrome that raised it (the drawer). SYSTEM overlays sit
+   one rank above ordinary modals: their visibility is derived from domain state
+   (`$connection.step`, `$balanceCheck.step`, `$errorDetails`, see ADR-0004), so
+   each one is a live question about something already in flight and has to be
+   able to cover whatever raised it. The progress bar sits on top of everything
+   because it is 2px tall and `pointer-events: none`, so being above a modal
+   costs nothing and being under one would hide it.
+
+   WHY SYSTEM IS A LAYER AND NOT JUST A DECLARATION ORDER. Within one layer the
+   order is fixed when a component mounts (see below), and that is stable only
+   for components that mount together and stay mounted. A PAGE's modals do not:
+   the router unmounts and remounts them on every navigation, so they take a
+   fresh slot at the END of the layer, while `context/AcrossPages.svelte` keeps
+   the slot it took when the app started. The same two modals therefore stacked
+   one way on a cold load and the other way after a single navigation - which is
+   how "Wallet Action Required" ended up BEHIND a mint dialog that was waiting on
+   it. Declaration order cannot express a guarantee across that boundary; a layer
+   can. Pinned by test/lib/core/ui/modal/modal-remount.svelte.test.ts.
 
    ---------------------------------------------------------------------------
    TO REORDER LAYERS: swap the numbers below. That is the whole change.
@@ -258,9 +273,13 @@ html {
 	--z-layer-notice: 110;
 	--z-layer-toast: 120;
 	--z-layer-modal: 130;
-	/* Above modals, because a modal CONTAINS popovers (an address menu, a select,
-	   a tooltip on a truncated hash). Below them it would be clipped by the very
-	   dialog that opened it, which is the one arrangement that is never wanted. */
+	/* Derived from domain state (ADR-0004), so it is a live question about
+	   something in flight and has to cover whatever raised it. */
+	--z-layer-system: 135;
+	/* Above BOTH kinds of modal, because a modal CONTAINS popovers (an address
+	   menu, a select, a tooltip on a truncated hash). Below them it would be
+	   clipped by the very dialog that opened it, which is the one arrangement
+	   that is never wanted. */
 	--z-layer-popover: 140;
 	--z-layer-progress: 150;
 }
@@ -283,6 +302,10 @@ html {
 
 [data-layer='modal'] {
 	z-index: var(--z-layer-modal);
+}
+
+[data-layer='system'] {
+	z-index: var(--z-layer-system);
 }
 
 [data-layer='popover'] {

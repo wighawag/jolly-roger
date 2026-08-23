@@ -28,15 +28,15 @@ Nothing under `core/` needs editing. That is the whole point: `core/` is the par
 
 This is the contract, and it is short because the widely-used part is wrapped. Everything below is what `core/` imports through `$ui`:
 
-| import | used for | notes |
-|---|---|---|
-| `$ui/button` -> `{Button}` | every action in `core/` | reached only through `core/ui/button`, so **you implement one component, not ten call sites** |
-| `$ui/dialog` -> `* as Dialog` | `Root`, `Portal`, `Content` | reached only through `core/ui/modal`, see the warning below |
-| `$ui/card` -> `* as Card` | `Root`, `Title`, `Description` | one call site |
-| `$ui/alert` -> `* as Alert` | `Root`, `Title`, `Description` | one call site |
-| `$ui/avatar` -> `* as Avatar` | `Root`, `AvatarImage` | one call site |
-| `$ui/popover` -> `* as Popover` | `Root`, `Trigger`, `Content`, `Arrow` | one call site |
-| `$ui/spinner` -> `{Spinner}` | loading states | one call site |
+| import                          | used for                              | notes                                                                                         |
+| ------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `$ui/button` -> `{Button}`      | every action in `core/`               | reached only through `core/ui/button`, so **you implement one component, not ten call sites** |
+| `$ui/dialog` -> `* as Dialog`   | `Root`, `Portal`, `Content`           | reached only through `core/ui/modal`, see the warning below                                   |
+| `$ui/card` -> `* as Card`       | `Root`, `Title`, `Description`        | one call site                                                                                 |
+| `$ui/alert` -> `* as Alert`     | `Root`, `Title`, `Description`        | one call site                                                                                 |
+| `$ui/avatar` -> `* as Avatar`   | `Root`, `AvatarImage`                 | one call site                                                                                 |
+| `$ui/popover` -> `* as Popover` | `Root`, `Trigger`, `Content`, `Arrow` | one call site                                                                                 |
+| `$ui/spinner` -> `{Spinner}`    | loading states                        | one call site                                                                                 |
 
 `Button` accepts `variant` (`default`, `outline`, `ghost`), `size` (`default`, `sm`, `icon`), `class`, `disabled`, `type`, `onclick` and children. That list is narrower than shadcn's on purpose: it is what `core/` uses, so it is what you have to build.
 
