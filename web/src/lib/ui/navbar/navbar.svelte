@@ -238,14 +238,13 @@
 		}}
 		direction="right"
 	>
-		<!-- The portal target belongs on Content, which supplies its own portal; a
-		     bare `<Drawer.Portal to="..." />` sibling has no children and silently
-		     does nothing, which is what once put this drawer on top of every modal.
-		     See the layer block in app.css. -->
-		<Drawer.Content
-			class="select-text **:select-text"
-			portalProps={{to: '#--layer-drawer'}}
-		>
+		<!-- Lands in the drawer layer, which is Drawer.Content's own default (see
+		     lib/core/ui/layers.ts). That is what keeps the modals this panel opens
+		     ABOVE the panel itself. The target has to be on Content, which supplies
+		     its own portal: a bare `<Drawer.Portal to="..." />` sibling has no
+		     children and silently does nothing, which is what once put this drawer
+		     on top of every modal. -->
+		<Drawer.Content class="select-text **:select-text">
 			{#if connection.isTargetStepReached($connection)}
 				<!-- Account Section -->
 				<div class="flex flex-col gap-2 px-4 pt-4">

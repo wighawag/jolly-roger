@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Popover as PopoverPrimitive } from "bits-ui";
 	import PopoverPortal from "./popover-portal.svelte";
+	import { POPOVER_LAYER } from "$lib/core/ui/layers";
 	import { cn, type WithoutChildrenOrChild } from "$lib/shadcn/utils.js";
 	import type { ComponentProps } from "svelte";
 
@@ -16,7 +17,12 @@
 	} = $props();
 </script>
 
-<PopoverPortal {...portalProps}>
+<!-- KEEP THE `to` DEFAULT IF YOU REGENERATE THIS FILE from the shadcn CLI.
+	 A popover is anchored to something in a lower layer (an address inside the
+	 account panel, an avatar inside a modal), so it has to be able to escape
+	 that layer's stacking context. Without this it would be clipped UNDER the
+	 modal that contains its trigger. See lib/core/ui/layers.ts. -->
+<PopoverPortal to={POPOVER_LAYER} {...portalProps}>
 	<PopoverPrimitive.Content
 		bind:ref
 		data-slot="popover-content"

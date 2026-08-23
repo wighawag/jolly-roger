@@ -25,6 +25,7 @@
 	import {PUBLIC_ENS_NODE_URL} from '$env/static/public';
 	import {Toaster} from '$lib/shadcn/ui/sonner';
 	import AcrossPages from '$lib/context/AcrossPages.svelte';
+	import {LAYERS} from '$lib/core/ui/layers';
 	import KitNavigation from '$lib/kit/KitNavigation.svelte';
 	import {navigating, page} from '$app/state';
 	// Identity, from the one file that holds it. Deliberately NOT written as
@@ -97,42 +98,46 @@
 	Every floating surface goes in one of these, and the ORDER IS DECIDED BY THE
 	NUMBERS IN app.css (`--z-layer-*`), not by the order written here: each layer
 	is a stacking context, so a surface's own z-index (shadcn's `z-50`, sonner's
-	`999999999`) only ranks it against its layer-mates. They are still written in
-	that same order, so reading this block tells you the truth.
+	`999999999`) only ranks it against its layer-mates.
 
-	Three of them are empty: they are PORTAL TARGETS, addressed by id from
-	`core/ui/modal/modal.svelte` and the navbar drawer. A component that forgets to
-	name its target does not land here, and then its paint order is an accident of
-	where it sits in the tree, which is exactly how the drawer once covered every
-	modal.
+	The containers are rendered from `core/ui/layers.ts`, the same list that tells
+	components which layer to target, so a layer cannot exist as a portal target
+	with no container to land in (or the reverse). Four of them stay empty for
+	exactly that reason: they are PORTAL TARGETS, addressed by id from
+	`core/ui/modal/modal.svelte` (which addresses TWO of them, the modal layer and
+	the system layer above it), the navbar drawer and the popover/select contents.
+	A component that forgets to name its target does not land here, and then its
+	paint order is an accident of where it sits in the tree, which is how the
+	drawer once covered every modal.
 
-	`system` holds the modals whose visibility is derived from domain state
-	(ADR-0004): the connection flow, the balance and error reports. They are a rank
-	ABOVE ordinary modals because each is a live question about something already
-	in flight. `<Modal.Root layer="system">` is what puts one here.
+	The rest hold app-owned surfaces, supplied below as snippets keyed by layer
+	name. Written as snippets rather than as hand-placed divs so that the list
+	stays the only place a layer is declared: a surface whose layer was deleted
+	simply never renders, instead of quietly painting in the root stacking context
+	above everything.
 -->
-<div data-layer="drawer" id="--layer-drawer"></div>
-
-<div data-layer="notice">
+{#snippet noticeLayer()}
 	<VersionAndInstallNotfications
 		{serviceWorker}
 		classes={{
 			root: 'bg-background bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,var(--color-muted)_10px,var(--color-muted)_20px)]',
 		}}
 	/>
-</div>
+{/snippet}
 
-<div data-layer="toast">
+{#snippet toastLayer()}
 	<Toaster position="bottom-right" richColors closeButton />
 	<NotificationOverlay>
 		<Notifications {notifications} />
 	</NotificationOverlay>
-</div>
+{/snippet}
 
-<div data-layer="modal" id="--layer-modals"></div>
-
-<div data-layer="system" id="--layer-system"></div>
-
-<div data-layer="progress">
+{#snippet progressLayer()}
 	<NavigationProgress isNavigating={() => !!navigating.to} />
-</div>
+{/snippet}
+
+{#each LAYERS as layer (layer.id)}
+	<div id={layer.id} data-layer={layer.name}>
+		{#if layer.name === 'notice'}{@render noticeLayer()}{:else if layer.name === 'toast'}{@render toastLayer()}{:else if layer.name === 'progress'}{@render progressLayer()}{/if}
+	</div>
+{/each}

@@ -186,10 +186,16 @@ html {
    ==========================================================================
 
    Every floating surface the app SHIPS TO USERS (the navbar drawer, dialogs,
-   toasts, push notifications, the update banner, the navigation progress bar)
-   is rendered inside one of these layers in `+layout.svelte`, and the ORDER OF
-   THE NUMBERS BELOW IS THE ANSWER. To change what covers what, change a number
-   here.
+   popovers, toasts, push notifications, the update banner, the navigation
+   progress bar) is rendered inside one of these layers in `+layout.svelte`, and
+   the ORDER OF THE NUMBERS BELOW IS THE ANSWER. To change what covers what,
+   change a number here.
+
+   WHICH LAYERS EXIST is declared in `lib/core/ui/layers.ts`, not here, because
+   a layer is two things that must not drift: a container to render, and a
+   PORTAL TARGET for the components that send themselves into it. That list
+   supplies both, and `test/lib/core/ui/layers.test.ts` fails when this file and
+   that list disagree about a layer's existence or its position in the order.
 
    Two DEBUG surfaces deliberately stay outside: `debug/TxObserverDebugOverlay`
    (`z-9999`, so it can sit above anything it is being used to inspect) and
@@ -237,12 +243,13 @@ html {
    ---------------------------------------------------------------------------
    TO REORDER LAYERS: swap the numbers below. That is the whole change.
 
-   TO ADD A LAYER: add a `--z-layer-<name>` here, add the matching
-   `[data-layer='<name>']` rule below, and wrap the surface in a
-   `<div data-layer="<name>">` in +layout.svelte. The gaps of ten mean you can
-   usually do this without touching any other number. An e2e test asserts that
-   every layer element has a real z-index and that no two share one, so a typo
-   in a custom property fails the suite instead of silently falling back to
+   TO ADD A LAYER: add it to `lib/core/ui/layers.ts` (which is what renders the
+   container and names the portal target), then add a `--z-layer-<name>` here and
+   the matching `[data-layer='<name>']` rule below. The gaps of ten mean you can
+   usually do this without touching any other number. A unit test asserts that
+   the two files list the same layers in the same order, and an e2e test asserts
+   that every layer element has a real z-index and that no two share one, so a
+   typo in a custom property fails the suite instead of silently falling back to
    `auto`.
 
    WITHIN ONE LAYER, order is DECLARATION ORDER, and OPEN ORDER IS IRRELEVANT.
@@ -266,8 +273,15 @@ html {
 	--z-layer-notice: 110;
 	--z-layer-toast: 120;
 	--z-layer-modal: 130;
+	/* Derived from domain state (ADR-0004), so it is a live question about
+	   something in flight and has to cover whatever raised it. */
 	--z-layer-system: 135;
-	--z-layer-progress: 140;
+	/* Above BOTH kinds of modal, because a modal CONTAINS popovers (an address
+	   menu, a select, a tooltip on a truncated hash). Below them it would be
+	   clipped by the very dialog that opened it, which is the one arrangement
+	   that is never wanted. */
+	--z-layer-popover: 140;
+	--z-layer-progress: 150;
 }
 
 [data-layer] {
@@ -292,6 +306,10 @@ html {
 
 [data-layer='system'] {
 	z-index: var(--z-layer-system);
+}
+
+[data-layer='popover'] {
+	z-index: var(--z-layer-popover);
 }
 
 [data-layer='progress'] {
