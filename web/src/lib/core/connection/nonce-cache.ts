@@ -177,6 +177,12 @@ export async function detectNonceCache(params: {
  * (network error, non-2xx, JSON-RPC error) so detection stays silent rather
  * than false-alarming.
  */
+/**
+ * How long a single nonce read may take. An abort is reported as "not known",
+ * which every caller already handles, rather than as a failure.
+ */
+const NONCE_READ_TIMEOUT_MS = 10_000;
+
 export function nodeNonceReader(
 	rpcUrl: string,
 	address: `0x${string}`,
@@ -186,6 +192,17 @@ export function nodeNonceReader(
 			const res = await fetch(rpcUrl, {
 				method: 'POST',
 				headers: {'Content-Type': 'application/json'},
+				// BOUNDED, because callers cannot bound it for us in any way that frees
+				// the socket. A bare fetch has no deadline: if the endpoint accepts the
+				// connection and never answers, this await is outstanding for the life
+				// of the page. The in-flight ledger reconciles through here, so an
+				// endpoint that stalls made it silently stop reporting transactions it
+				// exists to report (see reconcileOnce, which now also has a deadline of
+				// its own; this is the half that actually releases the request).
+				//
+				// Seen for real with eight browsers against one node: a call that
+				// normally answers in ~10ms had not returned after twenty seconds.
+				signal: AbortSignal.timeout(NONCE_READ_TIMEOUT_MS),
 				body: JSON.stringify({
 					id: Date.now(),
 					jsonrpc: '2.0',
