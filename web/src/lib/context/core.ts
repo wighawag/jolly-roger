@@ -130,6 +130,16 @@ export type CoreServices = {
 export type AppContext = {
 	onchainState: Context['onchainState'];
 	viewState: Context['viewState'];
+	/**
+	 * The app's own IO, begun when the context starts and torn down with it.
+	 * Returns its teardown, like every other `start` here.
+	 *
+	 * Optional because this app has none: its chain reads are driven by core's
+	 * refresh wiring. An app with a loop of its own (a game stepping epochs, a
+	 * feed polling) needs somewhere to put it that is not core, and without this
+	 * it would have to reach into core's lifecycle to get it.
+	 */
+	start?: () => () => void;
 };
 
 /**
@@ -559,9 +569,10 @@ export function createCoreContext<App extends AppContext>(params: {
 		chainFetchGate,
 		maxMessages,
 	});
-	// Core consumes exactly this one by name; the rest is spread into the context
-	// below without this file needing to know what it is.
-	const {onchainState} = app;
+	// Core consumes exactly this one by name, and `start` is lifecycle rather
+	// than context, so it is held back from the spread below. The rest goes into
+	// the context without this file needing to know what it is.
+	const {onchainState, start: startApp, ...appContext} = app;
 
 
 	// Whether this browser's signer may act for the account. Scoped to the
@@ -813,7 +824,8 @@ export function createCoreContext<App extends AppContext>(params: {
 		delegation,
 		// The app's half, spread so a descendant adding members never edits this
 		// literal. See AppContext.
-		...app,
+		...appContext,
+		onchainState,
 	};
 
 	// Dev/debug: expose the whole context on globalThis for console access
@@ -899,7 +911,12 @@ export function createCoreContext<App extends AppContext>(params: {
 						}, 5_000)
 					: undefined;
 
+			// Last, so the app can rely on everything core started above, and torn
+			// down first below for the same reason.
+			const stopApp = startApp?.();
+
 			return () => {
+				stopApp?.();
 				cleanupBurnerWallet?.();
 				trackedWalletConnector.disconnect();
 				txObserverConnector.disconnect();
