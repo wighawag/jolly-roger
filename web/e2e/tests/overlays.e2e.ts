@@ -83,6 +83,7 @@ describe('View overlays and navigation', () => {
 			'notice',
 			'toast',
 			'modal',
+			'system',
 			'popover',
 			'progress',
 		]);

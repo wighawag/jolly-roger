@@ -41,6 +41,7 @@
 </script>
 
 <Modal.Root
+	layer="system"
 	openWhen={isOpen}
 	onCancel={() =>
 		$balanceCheck.step === 'insufficient' && $balanceCheck.onDismiss?.()}
