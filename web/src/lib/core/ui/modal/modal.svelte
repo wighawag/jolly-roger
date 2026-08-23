@@ -1,5 +1,6 @@
 <script lang="ts">
 	import * as Dialog from '$ui/dialog/index.js';
+	import {MODAL_LAYER, SYSTEM_LAYER} from '../layers.js';
 	import {type Snippet} from 'svelte';
 
 	interface Props {
@@ -60,7 +61,7 @@
 	}: Props = $props();
 
 	const portalTarget = $derived(
-		layer === 'system' ? '#--layer-system' : '#--layer-modals',
+		layer === 'system' ? SYSTEM_LAYER : MODAL_LAYER,
 	);
 
 	let focusedElementWhenOpened: HTMLElement | null = null;
@@ -100,20 +101,24 @@
 	{...restProps}
 >
 	<!--
-		Every modal in the app goes into one of two LAYERS (see the layer block in
-		+layout.svelte and the scale in app.css): #--layer-modals for view overlays,
-		and #--layer-system, one rank above it, for system overlays. A layer is a
-		stacking context, so this is what puts modals above the drawer, the toasts and
-		the notification overlay; the z-50 shadcn puts on the content below only ranks
-		modals against each other WITHIN one layer.
+		Every modal in the app comes through this component and lands in ONE OF TWO
+		LAYERS (see lib/core/ui/layers.ts for the list and the scale in app.css for
+		the order): the modal layer for view overlays, and the system layer, one rank
+		above it, for the ones whose visibility is derived from domain state. A layer
+		is a stacking context, so it is what puts modals above the drawer, the toasts
+		and the notification overlay; the z-50 shadcn puts on the content below only
+		ranks modals against each other WITHIN one layer, by the order they are
+		declared in context/AcrossPages.svelte.
 
-		The target has to be passed to Content, because Content supplies its own portal
-		(see shadcn's dialog-content.svelte, which wraps itself in DialogPortal). A bare
-		`<Dialog.Portal to="..." />` sibling, which is what stood here, has no children
-		and so does nothing at all: the layer div sat empty and every modal was
-		portalled to document.body instead. The drawer had the identical bug, and there
-		it was visible: it covered every modal, so connecting from inside the drawer
-		opened the wallet picker underneath it.
+		THE TARGET IS PASSED EXPLICITLY, where this once relied on Dialog.Content's
+		own default (see shadcn/ui/dialog/dialog-content.svelte). With two layers to
+		choose between, a default would silently be right for one of them and wrong
+		for the other. It has to be set on Content, which
+		supplies its own portal: a bare `<Dialog.Portal to="..." />` sibling, which is
+		what once stood here, has no children and so does nothing at all, leaving the
+		layer div empty and every modal portalled to document.body. The drawer had the
+		identical bug, and there it was visible: it covered every modal, so connecting
+		from inside the drawer opened the wallet picker underneath it.
 	-->
 	<Dialog.Content
 		portalProps={{to: portalTarget}}
