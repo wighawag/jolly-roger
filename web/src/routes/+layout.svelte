@@ -20,6 +20,7 @@
 	import RpcHealthBanner from '$lib/ui/rpc-health/RpcHealthBanner.svelte';
 	import NonceCacheBanner from '$lib/ui/nonce-cache/NonceCacheBanner.svelte';
 	import OfflineBanner from '$lib/ui/offline/OfflineBanner.svelte';
+	import SendingBanner from '$lib/ui/in-flight/SendingBanner.svelte';
 	import {createENSService} from '$lib/core/ens';
 	import {PUBLIC_ENS_NODE_URL} from '$env/static/public';
 	import {Toaster} from '$lib/shadcn/ui/sonner';
@@ -77,6 +78,7 @@
 		     themselves. Getters, so reading them inside those components tracks
 		     `page`/`navigating` as if they had. See src/lib/kit/README.md. -->
 		<Navbar {repoURL} {communityURL} currentPath={() => page.url.pathname} />
+		<SendingBanner />
 		<OfflineBanner />
 		<NonceCacheBanner />
 		{#if showRpcBanner}
