@@ -18,8 +18,17 @@ describe('View overlays and navigation', () => {
 	// deliberate rather than a consequence of where a component happens to live.
 	const drawerOf = (page: Page) =>
 		page.locator('#--layer-drawer [role="dialog"]');
+	/** A VIEW overlay: the app asking or showing something because the user acted. */
 	const modalOf = (page: Page) =>
 		page.locator('#--layer-modals [role="dialog"]');
+	/**
+	 * A SYSTEM overlay: visibility derived from domain state, so it lives one
+	 * layer up and covers both the drawer and any view modal. Naming the layer is
+	 * half the assertion (see above): a system modal that landed in the ordinary
+	 * modal layer would still be visible, and would still be a bug.
+	 */
+	const systemModalOf = (page: Page) =>
+		page.locator('#--layer-system [role="dialog"]');
 
 	/**
 	 * The navbar is prerendered, so the button exists before the app can answer
@@ -106,7 +115,7 @@ describe('View overlays and navigation', () => {
 		expect(new Set(zs).size, 'no two layers share a z-index').toBe(zs.length);
 	});
 
-	test('a modal raised from inside the drawer sits on top of it', async ({
+	test('a system modal raised from inside the drawer sits on top of it', async ({
 		page,
 	}) => {
 		await page.goto('/');
@@ -116,8 +125,13 @@ describe('View overlays and navigation', () => {
 			.getByRole('button', {name: /^connect$/i})
 			.click();
 
-		const modal = modalOf(page).first();
+		// The wallet picker is part of the connection flow, so it is a SYSTEM
+		// overlay and belongs in the layer above the drawer AND above ordinary
+		// modals. Asserting the container is what would catch it silently moving
+		// back down, which is the state this whole layer exists to prevent.
+		const modal = systemModalOf(page).first();
 		await expect(modal).toBeVisible({timeout: 30000});
+		await expect(modalOf(page)).toHaveCount(0);
 
 		// The real assertion is HITTABILITY, not visibility: the bug this guards
 		// against left the wallet picker on screen with the drawer's dimming overlay

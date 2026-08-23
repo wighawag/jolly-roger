@@ -23,7 +23,7 @@ describe('In-flight transaction requests', () => {
 	const HAS_SENT = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266';
 
 	const noticeOf = (page: Page) =>
-		page.locator('#--layer-modals [role="dialog"]', {
+		page.locator('#--layer-system [role="dialog"]', {
 			hasText: 'may have been sent',
 		});
 
