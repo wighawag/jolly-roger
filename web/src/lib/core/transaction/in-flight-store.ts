@@ -286,9 +286,22 @@ export type InFlightLedgerParams = {
 	 * the transaction, and they would reasonably click again.
 	 */
 	baselineTimeoutMs?: number;
+	/**
+	 * How long a RECONCILIATION read may take before it counts as unreadable.
+	 *
+	 * Not the same budget as `baselineTimeoutMs`, and deliberately looser: that
+	 * one is a user waiting to send, this one is background work with nothing on
+	 * screen behind it, so it can afford to be patient with a slow node. What it
+	 * must not do is wait for EVER, which is what an unbounded read does.
+	 *
+	 * Giving up is a real answer here (`unreadable`), and a watchable one, so the
+	 * backoff watcher tries again rather than the app being stuck.
+	 */
+	readTimeoutMs?: number;
 };
 
 const DEFAULT_BASELINE_TIMEOUT_MS = 4000;
+const DEFAULT_READ_TIMEOUT_MS = 15_000;
 
 function storageKey(chainId: number, genesisHash: string | undefined): string {
 	return genesisHash
@@ -344,6 +357,7 @@ export function createInFlightLedger(
 		readNodeNonce,
 		recordedNonces,
 		baselineTimeoutMs = DEFAULT_BASELINE_TIMEOUT_MS,
+		readTimeoutMs = DEFAULT_READ_TIMEOUT_MS,
 	} = params;
 
 	const key = storageKey(chainId, genesisHash);
@@ -581,11 +595,29 @@ export function createInFlightLedger(
 		// requests before reloading has two records and one nonce to compare them
 		// against.
 		const accounts = [...new Set(pending.map((request) => request.account))];
+		// BOUNDED, exactly as the baseline read on the dispatch path is.
+		//
+		// `.catch()` alone is not enough and the difference is the whole bug: a
+		// rejected read gives `undefined` and the pass finishes, but a read that
+		// simply never SETTLES leaves this `await` outstanding for ever. Then
+		// `reconcile()` never resolves, no outcome is ever written, and the notice
+		// that exists to tell a user their transaction may be in the mempool is
+		// silently never shown. Nothing throws and nothing logs.
+		//
+		// `readNodeNonce` is exactly that shape by default: a bare `fetch` with no
+		// signal (core/connection/nonce-cache). Found by e2e, where eight parallel
+		// browsers against one node stalled it past twenty seconds; the same stall
+		// in production is a flaky RPC, which is the case this whole ledger exists
+		// for. A DESCENDANT's reader is bounded here too, whatever it does.
+		//
+		// Giving up reads `undefined`, which reconciles to the `unreadable`
+		// outcome: watchable, so the backoff watcher asks again and the app heals
+		// itself. That is the designed behaviour, and it was unreachable.
 		const readings = await Promise.all(
 			accounts.map(async (account) => ({
 				account,
-				nodeNonce: await readNodeNonce(account).catch(() => undefined),
-				recorded: await recordedNonces(account).catch(() => undefined),
+				nodeNonce: await withDeadline(readNodeNonce(account), readTimeoutMs),
+				recorded: await withDeadline(recordedNonces(account), readTimeoutMs),
 			})),
 		);
 		const byAccount = new Map(readings.map((r) => [r.account, r]));

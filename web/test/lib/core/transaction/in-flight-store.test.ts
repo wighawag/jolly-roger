@@ -878,3 +878,84 @@ describe('in-flight ledger: records are scoped and bounded', () => {
 		expect(get(nextDay).requests).toHaveLength(1);
 	});
 });
+
+describe('in-flight ledger: a read that never answers', () => {
+	/**
+	 * THE BUG THIS PINS, which cost nothing to write and everything to find.
+	 *
+	 * `reconcileOnce` awaited its two reads with only a `.catch()` on them. A
+	 * REJECTED read was handled; a read that simply never settles was not, and
+	 * those are different things. The default `readNodeNonce` is a bare `fetch`
+	 * with no signal, so "never settles" is its behaviour against an endpoint
+	 * that accepts the connection and then stalls.
+	 *
+	 * The consequence is the worst kind: nothing throws, nothing logs, and the
+	 * ledger simply stops producing outcomes. Since a request is only REPORTED
+	 * once it has an outcome, the notice telling a user their transaction may be
+	 * sitting in the mempool is silently never shown - by the one mechanism whose
+	 * entire purpose is to not lose that transaction.
+	 *
+	 * Found by e2e (eight browsers, one node, a ~10ms call outstanding past
+	 * twenty seconds), which is the only place it could have been found: every
+	 * unit test until now supplied a reader that answers.
+	 */
+	it('still reconciles, and says so, when the node never answers', async () => {
+		vi.useFakeTimers();
+		try {
+			const store = fakeStorage();
+			const ledger = createInFlightLedger({
+				storage: store.storage,
+				chainId: CHAIN_ID,
+				now: () => 1000,
+				// Answers the BASELINE read, then goes silent. That is the shape of
+				// the real failure: the record has a nonce to compare against, and
+				// the later read is the one that stalls. Not a rejection: a silence.
+				readNodeNonce: (() => {
+					let answered = false;
+					return () => {
+						if (answered) return new Promise<number | undefined>(() => {});
+						answered = true;
+						return Promise.resolve(7);
+					};
+				})(),
+				recordedNonces: async () => [],
+				baselineTimeoutMs: 20,
+				readTimeoutMs: 5000,
+			});
+
+			const dispatch = ledger.record({
+				account: ACCOUNT,
+				intent: {description: 'setMessage'},
+			});
+			await vi.advanceTimersByTimeAsync(50);
+			await dispatch;
+
+			let settled = false;
+			const pass = ledger.reconcile().then(() => {
+				settled = true;
+			});
+
+			// Before the deadline it is still waiting, which is correct.
+			await vi.advanceTimersByTimeAsync(4000);
+			expect(settled).toBe(false);
+
+			// After it, the pass completes rather than hanging for ever.
+			await vi.advanceTimersByTimeAsync(2000);
+			await pass;
+			expect(settled).toBe(true);
+
+			// And it reached a real conclusion: unreadable, which is watchable, so
+			// the watcher will ask again and the app heals itself.
+			const state = get(ledger);
+			expect(state.requests).toHaveLength(1);
+			const outcome = state.outcomes[state.requests[0].id];
+			expect(outcome).toBeDefined();
+			expect(outcome?.status).toBe('unknown');
+			expect(outcome && 'reason' in outcome ? outcome.reason : undefined).toBe(
+				'unreadable',
+			);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+});
