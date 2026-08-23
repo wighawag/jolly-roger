@@ -25,20 +25,18 @@ describe('In-flight transaction requests', () => {
 	/**
 	 * How long to wait for the notice to appear.
 	 *
-	 * NOT A PERFORMANCE BUDGET. A seeded record is only REPORTED once it has been
-	 * reconciled, and reconciliation is an RPC round-trip for the account's nonce
-	 * (see reportedRequests: no outcome means not reconciled, and an unreconciled
-	 * request is deliberately not reported). So this waits on a node, and the node
-	 * is shared by every parallel worker in the run.
+	 * A seeded record is only REPORTED once it has been reconciled, and
+	 * reconciliation reads the account's nonce from the node, so this waits on
+	 * one round trip. 15s is many multiples of what that costs (~10ms locally).
 	 *
-	 * It was 15s, which is fine for a demo whose home page reads almost nothing,
-	 * and not fine for a descendant. On Bleeps these three cases passed alone and
-	 * with `--workers=1` (2-3s each) and failed together at 15s, because its pages
-	 * poll the chain hard enough to queue the nonce read behind them. Matched to
-	 * the 30s this file already uses for "wait for the app to be there", since it
-	 * is the same kind of wait.
+	 * It was briefly 30s, to get a descendant's suite green. That was treating a
+	 * symptom: the reads were UNBOUNDED, so a stalled endpoint left the pass
+	 * outstanding for ever and no timeout here was ever going to be enough. The
+	 * ledger now bounds them (see reconcileOnce) and gives up with `unreadable`
+	 * instead, so the pass always completes and this can go back to being a
+	 * generous margin on a fast operation.
 	 */
-	const NOTICE_TIMEOUT = 30000;
+	const NOTICE_TIMEOUT = 15000;
 
 	const noticeOf = (page: Page) =>
 		page.locator('#--layer-system [role="dialog"]', {
