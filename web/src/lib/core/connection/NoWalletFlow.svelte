@@ -153,7 +153,10 @@
 {/if}
 
 <!-- Download Wallet Modal -->
+<!-- `system`, like everything else in the connection flow: this is raised from
+     inside the wallet picker, so it has to be able to cover it. -->
 <BasicModal
+	layer="system"
 	title={isMobile ? 'Get a Mobile Wallet' : 'Get a Wallet'}
 	openWhen={showDownloadModal}
 	onCancel={() => (showDownloadModal = false)}
@@ -205,6 +208,7 @@
 
 <!-- Mobile Wallet Modal -->
 <BasicModal
+	layer="system"
 	title="Continue in Your Wallet"
 	openWhen={showMobileModal}
 	onCancel={() => (showMobileModal = false)}

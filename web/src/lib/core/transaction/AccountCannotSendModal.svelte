@@ -13,6 +13,7 @@
 </script>
 
 <Modal.Root
+	layer="system"
 	openWhen={$accountCannotSend}
 	onCancel={() => accountCannotSend.dismiss()}
 >

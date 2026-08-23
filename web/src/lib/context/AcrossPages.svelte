@@ -34,13 +34,19 @@
 
 <!-- ORDER MATTERS when two of these are open at once.
 
-     They share one LAYER (#--layer-modals, see core/ui/modal/modal.svelte and
-     the layer scale in app.css), so the layer decides nothing between them:
-     within it they share one z-index, so THE ORDER THESE COMPONENTS ARE WRITTEN
-     IN IS THE STACKING ORDER, and moving a line changes what covers what. Not
-     the order they open in, which buys nothing; see the layer block in app.css
-     for why, and test/lib/core/ui/modal/modal-stacking.svelte.test.ts for the
-     proof.
+     Every modal below is a SYSTEM overlay (`<Modal.Root layer="system">`), so
+     they all sit in #--layer-system, one rank above the ordinary modal layer.
+     That is what keeps them above a PAGE's own dialogs, and it has to be a layer
+     rather than an order: a page remounts on every navigation and takes a fresh
+     slot at the end of its layer, while this file keeps the slot it took when
+     the app started, so the two used to stack differently depending on how the
+     user arrived. See test/lib/core/ui/modal/modal-remount.svelte.test.ts.
+
+     WITHIN that layer the layer decides nothing between them: they share one
+     z-index, so THE ORDER THESE COMPONENTS ARE WRITTEN IN IS THE STACKING ORDER,
+     and moving a line changes what covers what. Not the order they open in,
+     which buys nothing; see the layer block in app.css for why, and
+     test/lib/core/ui/modal/modal-stacking.svelte.test.ts for the proof.
 
      So the connection flow comes last: it is always a sub-step of something
      else, and it has to be able to sit on top of whatever asked for it. Declared

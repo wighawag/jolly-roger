@@ -217,7 +217,10 @@
 	{/if}
 {/snippet}
 
-<Modal.Root openWhen={$connection.step == 'WaitingForWalletConnection'}>
+<Modal.Root
+	layer="system"
+	openWhen={$connection.step == 'WaitingForWalletConnection'}
+>
 	<Modal.Title>Waiting for Wallet Connection...</Modal.Title>
 	Please Accept Connection Request...
 	{@render escapeHatch()}
@@ -235,6 +238,7 @@
      nothing at all. Dismiss is the only action, deliberately: neither refusal
      is answered by pressing the same button again. -->
 <BasicModal
+	layer="system"
 	title={failure?.title ?? 'Connection Failed'}
 	openWhen={!!failure &&
 		($connection.step === 'Idle' ||
@@ -252,6 +256,7 @@
 </BasicModal>
 
 <Modal.Root
+	layer="system"
 	openWhen={$connection.step == 'WalletToChoose' ||
 		$connection.step == 'MechanismToChoose'}
 	onCancel={dismissable ? dismiss : undefined}
@@ -384,6 +389,7 @@
 
 <!-- Wallet picker (multi-wallet case): opened from the "Connect a Wallet" button. -->
 <Modal.Root
+	layer="system"
 	openWhen={walletPickerOpen &&
 		($connection.step == 'WalletToChoose' ||
 			$connection.step == 'MechanismToChoose')}
@@ -439,6 +445,7 @@
      Handles a live account swap: if the user changes their active account in
      the wallet UI, `signInAddress` reflects it and Sign In adopts it first. -->
 <Modal.Root
+	layer="system"
 	openWhen={connection.targetStep !== 'WalletConnected' &&
 		$connection.step === 'WalletConnected' &&
 		!signingInFromChooser}
@@ -485,6 +492,7 @@
      - wallet-only target: the plain picker, where clicking a row IS the final
        action (no signature follows). -->
 <Modal.Root
+	layer="system"
 	openWhen={$connection.step === 'ChooseWalletAccount'}
 	onCancel={dismissable ? dismiss : undefined}
 >
@@ -575,6 +583,7 @@
 </Modal.Root>
 
 <BasicModal
+	layer="system"
 	openWhen={$connection.step === 'WaitingForSignature'}
 	title="Please sign"
 	onCancel={dismissable ? dismiss : undefined}
@@ -584,6 +593,7 @@
 </BasicModal>
 
 <BasicModal
+	layer="system"
 	title="Please wait..."
 	openWhen={$connection.step === 'PopupLaunched'}
 >
@@ -602,7 +612,11 @@
 </BasicModal>
 
 <!-- Pending Wallet Request Modal -->
-<BasicModal title="Wallet Action Required" openWhen={pendingRequest}>
+<BasicModal
+	layer="system"
+	title="Wallet Action Required"
+	openWhen={pendingRequest}
+>
 	<div class="flex flex-col items-center gap-4 py-4">
 		<svg
 			class="h-12 w-12 animate-pulse text-primary"
@@ -629,6 +643,7 @@
      can is worse than no control at all. Every word comes from
      wallet-activity.ts's escapeHatchCopy. -->
 <BasicModal
+	layer="system"
 	openWhen={$stopWaiting.open}
 	title={escapeCopy.title}
 	onCancel={() => stopWaiting.close()}
@@ -646,6 +661,7 @@
 
 <!-- Network Switch Modal -->
 <Modal.Root
+	layer="system"
 	openWhen={(connection.isTargetStepReached($connection) &&
 		$connection.mechanism.type === 'wallet' &&
 		$connection.wallet?.invalidChainId) ||
