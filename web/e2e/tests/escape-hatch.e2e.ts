@@ -49,8 +49,10 @@ describe('Stopping waiting for the wallet', () => {
 		(globalThis as any).process.env.E2E_RPC_URL ||
 		`http://127.0.0.1:${(globalThis as any).process.env.E2E_RPC_PORT || '8545'}`;
 
+	// The connection flow's modals are SYSTEM overlays: their visibility is derived
+	// from `$connection.step`, so they sit in the layer above ordinary modals.
 	const dialog = (page: Page, hasText: string | RegExp) =>
-		page.locator('#--layer-modals [role="dialog"]', {hasText});
+		page.locator('#--layer-system [role="dialog"]', {hasText});
 
 	/** The control that submits the write, and the input it reads. */
 	const writeForm = (page: Page) =>
