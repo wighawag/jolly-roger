@@ -22,6 +22,24 @@ describe('In-flight transaction requests', () => {
 	/** Hardhat's first account: it deployed the contracts, so its nonce is past 0. */
 	const HAS_SENT = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266';
 
+	/**
+	 * How long to wait for the notice to appear.
+	 *
+	 * NOT A PERFORMANCE BUDGET. A seeded record is only REPORTED once it has been
+	 * reconciled, and reconciliation is an RPC round-trip for the account's nonce
+	 * (see reportedRequests: no outcome means not reconciled, and an unreconciled
+	 * request is deliberately not reported). So this waits on a node, and the node
+	 * is shared by every parallel worker in the run.
+	 *
+	 * It was 15s, which is fine for a demo whose home page reads almost nothing,
+	 * and not fine for a descendant. On Bleeps these three cases passed alone and
+	 * with `--workers=1` (2-3s each) and failed together at 15s, because its pages
+	 * poll the chain hard enough to queue the nonce read behind them. Matched to
+	 * the 30s this file already uses for "wait for the app to be there", since it
+	 * is the same kind of wait.
+	 */
+	const NOTICE_TIMEOUT = 30000;
+
 	const noticeOf = (page: Page) =>
 		page.locator('#--layer-system [role="dialog"]', {
 			hasText: 'may have been sent',
@@ -76,7 +94,7 @@ describe('In-flight transaction requests', () => {
 		await page.reload();
 
 		const notice = noticeOf(page);
-		await expect(notice).toBeVisible({timeout: 15000});
+		await expect(notice).toBeVisible({timeout: NOTICE_TIMEOUT});
 		// It names the request the way the transaction list would.
 		await expect(notice).toContainText('setMessage');
 		// Nothing has landed from that account, so the only true thing to say is
@@ -102,7 +120,7 @@ describe('In-flight transaction requests', () => {
 		await page.reload();
 
 		const notice = noticeOf(page);
-		await expect(notice).toBeVisible({timeout: 15000});
+		await expect(notice).toBeVisible({timeout: NOTICE_TIMEOUT});
 		await expect(notice).toContainText('most likely sent');
 		// Still hedged: a nonce says a transaction landed, never which one.
 		await expect(notice).toContainText('Check your transaction list');
@@ -118,7 +136,7 @@ describe('In-flight transaction requests', () => {
 		await page.reload();
 
 		const notice = noticeOf(page);
-		await expect(notice).toBeVisible({timeout: 15000});
+		await expect(notice).toBeVisible({timeout: NOTICE_TIMEOUT});
 		await notice.getByRole('button', {name: 'Got it'}).click();
 		await expect(notice).toHaveCount(0);
 
