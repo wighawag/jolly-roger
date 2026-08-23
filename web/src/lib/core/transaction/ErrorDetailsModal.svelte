@@ -21,6 +21,7 @@
 </script>
 
 <Modal.Root
+	layer="system"
 	openWhen={$errorDetails !== null}
 	onCancel={() => errorDetails.dismiss()}
 >

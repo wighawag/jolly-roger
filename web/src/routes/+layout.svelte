@@ -100,11 +100,16 @@
 	`999999999`) only ranks it against its layer-mates. They are still written in
 	that same order, so reading this block tells you the truth.
 
-	Two of them are empty: they are PORTAL TARGETS, addressed by id from
+	Three of them are empty: they are PORTAL TARGETS, addressed by id from
 	`core/ui/modal/modal.svelte` and the navbar drawer. A component that forgets to
 	name its target does not land here, and then its paint order is an accident of
 	where it sits in the tree, which is exactly how the drawer once covered every
 	modal.
+
+	`system` holds the modals whose visibility is derived from domain state
+	(ADR-0004): the connection flow, the balance and error reports. They are a rank
+	ABOVE ordinary modals because each is a live question about something already
+	in flight. `<Modal.Root layer="system">` is what puts one here.
 -->
 <div data-layer="drawer" id="--layer-drawer"></div>
 
@@ -125,6 +130,8 @@
 </div>
 
 <div data-layer="modal" id="--layer-modals"></div>
+
+<div data-layer="system" id="--layer-system"></div>
 
 <div data-layer="progress">
 	<NavigationProgress isNavigating={() => !!navigating.to} />

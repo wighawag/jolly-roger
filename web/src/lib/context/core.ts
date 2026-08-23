@@ -53,7 +53,11 @@ import type {AugmentedChainInfo} from '$lib/core/connection/types.js';
 import {createBalanceCheckStore} from '$lib/core/transaction/balance-check-store.js';
 import {createNavigationService} from '$lib/core/navigation/index.js';
 import {createOverlayRegistry} from '$lib/core/ui/overlay/index.js';
-import {resolveAppConfig, operationScopeAddress} from './config.js';
+import {
+	resolveAppConfig,
+	operationScopeAddress,
+	type ResolvedAppConfig,
+} from './config.js';
 import {startTxObserverLoop} from '$lib/core/tx-observer';
 import {parseImpersonateAddresses} from '$lib/dev-accounts.js';
 
@@ -69,24 +73,64 @@ import {parseImpersonateAddresses} from '$lib/dev-accounts.js';
 /**
  * What `core.ts` hands the app's half, and what it expects back.
  *
- * The seam between the two files, and deliberately the smallest one that works:
- * a fork reads this to know exactly what it may rely on and what it must
- * produce. Widening it is a decision, not a convenience.
+ * THIS IS WHAT CORE HAS, NOT WHAT THIS DEMO USES, and the difference is the
+ * whole point. It listed the greeting demo's four needs once, and every
+ * descendant then had to edit it: one had to REMOVE `maxMessages` (its
+ * `config.ts` has no such field, so it was a type error rather than a
+ * widening), one renamed it and added five members, one added nine. Three out
+ * of three edited the block, in both directions, so it conflicted on every
+ * single alignment.
+ *
+ * A descendant should PICK from this list, never edit it. If something core
+ * builds is missing here, adding it is a one-line change that costs nothing;
+ * if a member is unused by an app, ignoring it costs nothing either.
+ *
+ * The one genuinely per-app value is chain-derived configuration, and it is
+ * passed as the WHOLE resolved object (`appConfig`) rather than as a field of
+ * it. `ResolvedAppConfig` is defined in `./config.ts`, which every fork rewrites
+ * anyway, so the fork changes the file it was already changing and this seam
+ * stays byte-identical.
  */
 export type CoreServices = {
+	/** The chain connection, and how far the app has authenticated to it. */
+	connection: Context['connection'];
 	publicClient: Context['publicClient'];
 	deployments: Context['deployments'];
 	/** The authenticated account, as the connection reports it. */
 	account: Context['account'];
 	accountData: Context['accountData'];
 	/**
+	 * Sends from the authenticated account, with a wallet prompt. Prefer it over
+	 * `walletClient`: it resolves the `from` address and the client together.
+	 */
+	accountExecutor: Context['accountExecutor'];
+	/** Already guarded by the in-flight ledger, so any send records itself. */
+	walletClient: Context['walletClient'];
+	/** Gas held by the account that pays. */
+	accountBalance: Context['accountBalance'];
+	/** Whether that account can cover a given call at current gas. */
+	balanceCheck: Context['balanceCheck'];
+	/** Where a failed transaction's full error text goes, for the details view. */
+	errorDetails: Context['errorDetails'];
+	txObserver: Context['txObserver'];
+	clock: Context['clock'];
+	/**
 	 * Chain reads only run while this is truthy, or always when it is undefined.
 	 * The app must thread it into anything that polls, or its reads will run with
 	 * no RPC to run against.
 	 */
 	chainFetchGate: Readable<boolean> | undefined;
-	/** Chain-derived configuration the app may need. */
-	maxMessages: number;
+	/** Whether the chain is readable right now, as a store the UI can gate on. */
+	canReadChain: Context['canReadChain'];
+	/** Whether the app has an RPC of its own, or reads only through the wallet. */
+	hasAppRpc: boolean;
+	/**
+	 * Chain-derived configuration, exactly as `./config.ts` resolved it.
+	 *
+	 * The whole object rather than a chosen field, so an app that adds one reads
+	 * it here without this type changing. See the note above.
+	 */
+	appConfig: ResolvedAppConfig;
 };
 
 /**
@@ -229,9 +273,13 @@ export function createCoreContext<App extends AppContext>(params: {
 
 	// Resolve chain-specific configuration (finality, block time, intervals)
 	// from the chain's optional properties + defaults.
+	//
+	// Kept WHOLE as well as destructured: core uses two of its fields, and the
+	// app's half is handed the entire object (see CoreServices), so a fork that
+	// adds a field to `config.ts` reads it without touching this file.
 	const chain = deployments.get().chain as AugmentedChainInfo;
-	const {finality, txObserverProcessInterval, maxMessages} =
-		resolveAppConfig(chain);
+	const appConfig = resolveAppConfig(chain);
+	const {finality, txObserverProcessInterval} = appConfig;
 
 	// The app's own RPC url, when it has one. Only the nonce-cache check below
 	// needs it, to compare the wallet's idea of the nonce against a trusted node.
@@ -377,36 +425,6 @@ export function createCoreContext<App extends AppContext>(params: {
 
 	// ----------------------------------------------------------------------------
 
-	// ----------------------------------------------------------------------------
-	// THE APP'S OWN HALF
-	// ----------------------------------------------------------------------------
-
-	// BUILT HERE, PARTWAY THROUGH, and the position is the whole design.
-	//
-	// Everything above is true of any app built on this template. Everything the
-	// app itself composes (its chain reads, its view model) lives in `./app.ts`
-	// and is replaced by a fork. Core builds it rather than the reverse because
-	// the dependencies run BOTH ways and only this order resolves them: the app
-	// needs the connection and accountData, which exist by now, and core's
-	// refresh connector, RPC-health inputs and `refreshChainData` below all need
-	// the app's `onchainState`.
-	//
-	// Injected as a factory rather than imported, so this file names no app
-	// module and a descendant swaps its half by passing a different one.
-	const app = createApp({
-		publicClient,
-		deployments,
-		account,
-		accountData,
-		chainFetchGate,
-		maxMessages,
-	});
-	// Core consumes exactly this one by name, and `start` is lifecycle rather
-	// than context, so it is held back from the spread below. The rest goes into
-	// the context without this file needing to know what it is.
-	const {onchainState, start: startApp, ...appContext} = app;
-
-
 	const txObserver = createTransactionObserver({
 		finality,
 		provider: connection.provider,
@@ -453,11 +471,6 @@ export function createCoreContext<App extends AppContext>(params: {
 		overlays,
 	});
 
-	const onchainStateRefreshConnector = createOnchainStateRefreshConnector({
-		txObserver,
-		onchainState,
-	});
-
 	// ----------------------------------------------------------------------------
 	// BALANCE AND COSTS
 	// ----------------------------------------------------------------------------
@@ -473,6 +486,75 @@ export function createCoreContext<App extends AppContext>(params: {
 	const gasFee = createGasFeeStore({
 		publicClient: publicClient,
 		fetchGate: chainFetchGate,
+	});
+
+	// No balance here: which account pays is now decided per call, not once at
+	// construction. This app has exactly one payer, so every call site passes the
+	// same pair, but passing it is what keeps the check and the sender from ever
+	// disagreeing about whose funds were measured.
+	const balanceCheck = createBalanceCheckStore({
+		publicClient,
+		gasFee,
+	});
+
+	const offline = createOfflineStore();
+
+	// Debug store for tx-observer processing stats
+	const txObserverDebug = writable<TxObserverDebugState>({
+		processCount: 0,
+		lastProcessTime: null,
+		isLeader: false,
+	});
+
+	// ----------------------------------------------------------------------------
+	// THE APP'S OWN HALF
+	// ----------------------------------------------------------------------------
+
+	// BUILT HERE, PARTWAY THROUGH, and the position is the whole design.
+	//
+	// Everything above is true of any app built on this template, and everything
+	// the app itself composes (its chain reads, its view model) lives in `./app.ts`
+	// and is replaced by a fork. Core builds it rather than the reverse because the
+	// dependencies run BOTH ways and only this order resolves them: the app needs
+	// the connection, the executor, the balances and the safety checks, which all
+	// exist by now, and core's refresh connector, RPC-health inputs and
+	// `refreshChainData` below all need the app's `onchainState`.
+	//
+	// THE LINE IS DRAWN AT `onchainState`, deliberately, and that is the ONLY
+	// reason anything is left below. Everything that does not need the app's chain
+	// reads was moved above this point, so `CoreServices` can offer it: an app that
+	// needs a balance or a balance check at CONSTRUCTION (a purchase flow, a game
+	// crediting a signer) would otherwise have to reorder this file, which two
+	// descendants independently did before this moved.
+	//
+	// Injected as a factory rather than imported, so this file names no app
+	// module and a descendant swaps its half by passing a different one.
+	const app = createApp({
+		connection,
+		publicClient,
+		deployments,
+		account,
+		accountData,
+		accountExecutor,
+		walletClient,
+		accountBalance,
+		balanceCheck,
+		errorDetails,
+		txObserver,
+		clock,
+		chainFetchGate,
+		canReadChain,
+		hasAppRpc,
+		appConfig,
+	});
+	// Core consumes exactly this one by name, and `start` is lifecycle rather
+	// than context, so it is held back from the spread below. The rest goes into
+	// the context without this file needing to know what it is.
+	const {onchainState, start: startApp, ...appContext} = app;
+
+	const onchainStateRefreshConnector = createOnchainStateRefreshConnector({
+		txObserver,
+		onchainState,
 	});
 
 	// Health reflects whether we can read the chain right now. All inputs share
@@ -510,23 +592,6 @@ export function createCoreContext<App extends AppContext>(params: {
 		void gasFee.update();
 		void accountBalance.update();
 	};
-	const offline = createOfflineStore();
-
-	// No balance here: which account pays is now decided per call, not once at
-	// construction. This app has exactly one payer, so every call site passes the
-	// same pair, but passing it is what keeps the check and the sender from ever
-	// disagreeing about whose funds were measured.
-	const balanceCheck = createBalanceCheckStore({
-		publicClient,
-		gasFee,
-	});
-
-	// Debug store for tx-observer processing stats
-	const txObserverDebug = writable<TxObserverDebugState>({
-		processCount: 0,
-		lastProcessTime: null,
-		isLeader: false,
-	});
 
 	const context: Context = {
 		fatal: {subscribe: fatal.subscribe},

@@ -27,9 +27,14 @@ import type {CoreServices, AppContext} from './core.js';
  * than a cycle. See the injection point in `core.ts`.
  */
 export function createAppContext(core: CoreServices): AppContext {
-	const {publicClient, deployments, account, accountData, chainFetchGate} = core;
+	const {publicClient, deployments, account, accountData, chainFetchGate} =
+		core;
 
-	const config = {maxMessages: core.maxMessages};
+	// The demo needs one field of the resolved chain configuration. It takes it
+	// from `core.appConfig` rather than having core hand that field over, so an
+	// app that needs a different one changes `./config.ts` and this line, and
+	// never `./core.ts`.
+	const config = {maxMessages: core.appConfig.maxMessages};
 
 	const onchainState = createOnchainState({
 		publicClient,
