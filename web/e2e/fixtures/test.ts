@@ -557,92 +557,72 @@ async function expectWalletConnected(page: Page, timeout = 30_000) {
  */
 async function pickSignableAccount(dialog: Locator, index: number) {
 	const rows = dialog.locator('.overflow-y-auto > button');
-	// WAIT BEFORE COUNTING, because the caller reached this dialog by its TEXT
-	// and the heading renders before the list body does. Counting straight away
-	// can see zero rows in a picker that is about to have several, and zero rows
-	// here is fatal (there is nobody to pick), so it threw "of 0 rows" against a
-	// dialog that was merely still rendering.
-	//
-	// That is the whole of the intermittent 'paying with another wallet' failure:
-	// it passed alone, and failed in a full parallel run where the render lands a
-	// few frames later.
-	//
-	// Generous, and NOT swallowed into a zero: unlike the confirm dialog on
-	// `main`, an empty account picker is never legitimate, so waiting the full
-	// timeout and then reporting the real problem beats reporting a count that
-	// was only ever a symptom of asking too early.
-	await rows
-		.first()
-		.waitFor({state: 'visible', timeout: 15_000})
-		.catch(() => {});
-	// AND WAIT FOR IT TO SAY SOMETHING. A row exists before its label does: the
-	// picker renders the buttons and then fills in addresses and ENS names as they
-	// resolve. An unlabelled row cannot be identified, so scanning too early both
-	// fails to skip impersonated accounts AND selects a row that is not ready,
-	// whose click then never lands.
-	await rows
-		.first()
-		.evaluate((el) => (el.textContent ?? '').trim().length > 0)
-		.catch(() => false)
-		.then(async (hasText) => {
-			if (hasText) return;
-			await rows
-				.first()
-				.filter({hasText: /\S/})
-				.waitFor({state: 'visible', timeout: 10_000})
-				.catch(() => {});
-		});
-	const count = await rows.count().catch(() => 0);
 	// Empty when impersonation is off, in which case nothing is skipped and this
 	// degenerates to picking the Nth row.
 	const impersonated = IMPERSONATE_ADDRESSES.map((a) =>
 		a.slice(0, 6).toLowerCase(),
 	);
 
-	let seen = -1;
-	for (let i = 0; i < count; i++) {
-		const label = (
-			(await rows
-				.nth(i)
-				.innerText()
-				.catch(() => '')) || ''
-		).trim();
-		const lower = label.toLowerCase();
-		// An UNLABELLED row is not a candidate. It is a row whose address has not
-		// arrived yet, and choosing one is how this helper ended up clicking a
-		// button that never became actionable - reported, before the click was
-		// bounded, as the whole test timing out with nothing naming the row.
-		if (!label) continue;
-		if (impersonated.some((prefix) => lower.includes(prefix))) continue;
-		if (/\.eth\b/i.test(label)) continue;
-		seen++;
-		if (seen === index) {
-			// BOUNDED AND RETRIED, because the row can go stale between the scan
-			// above and this click: the picker re-renders as accounts resolve (an
-			// ENS name arriving relabels a row), and an unbounded click on a
-			// detached element waits for ever - which showed up not as a failure
-			// here but as the whole TEST timing out two minutes later, with the
-			// click still pending and nothing saying which one.
-			//
-			// `rows.nth(i)` is re-resolved on each attempt, so a re-render is
-			// simply retried rather than being fatal.
-			let lastError: unknown;
-			for (let attempt = 0; attempt < 3; attempt++) {
+	// POLLED, because the list arrives in pieces and no single moment is the
+	// right one to read it. The caller gets here by matching the dialog's TEXT,
+	// so the heading can be up before any row exists; the rows then render before
+	// their labels do, as addresses and ENS names resolve.
+	//
+	// Every fixed reading of that is wrong in one direction or the other. Reading
+	// immediately saw zero rows and called it fatal ("of 0 rows"), against a
+	// picker that was merely still rendering. Waiting once and then treating an
+	// unlabelled row as ineligible turned "not ready yet" into "not a candidate",
+	// which lost accounts that were about to appear. Re-reading until the answer
+	// is available is the only version that is right at every moment.
+	//
+	// The label is what makes a row eligible or not, so a row with no label is
+	// skipped for THIS pass and reconsidered on the next one.
+	const deadline = Date.now() + 30_000;
+	let lastReason = 'the account list never rendered';
+
+	while (Date.now() < deadline) {
+		const count = await rows.count().catch(() => 0);
+		let seen = -1;
+		let unlabelled = 0;
+
+		for (let i = 0; i < count; i++) {
+			const label = (
+				(await rows
+					.nth(i)
+					.innerText()
+					.catch(() => '')) || ''
+			).trim();
+			if (!label) {
+				unlabelled++;
+				continue;
+			}
+			const lower = label.toLowerCase();
+			if (impersonated.some((prefix) => lower.includes(prefix))) continue;
+			if (/\.eth\b/i.test(label)) continue;
+			seen++;
+			if (seen === index) {
+				// Bounded, and re-resolved on each attempt: the row can go stale
+				// between this scan and the click when a label lands mid-pass. An
+				// unbounded click on a detached element waits for ever, which showed
+				// up not as a failure here but as the whole TEST timing out minutes
+				// later with nothing naming the row.
 				try {
 					await rows.nth(i).click({timeout: 5_000});
 					return;
-				} catch (error) {
-					lastError = error;
+				} catch {
+					lastReason = `row ${i} ("${label}") would not take a click`;
 				}
 			}
-			throw new Error(
-				`could not click account row ${i} ("${label}") after 3 attempts: ` +
-					String(lastError),
-			);
 		}
+
+		lastReason =
+			`found ${seen + 1} signable of ${count} rows` +
+			(unlabelled ? `, ${unlabelled} still unlabelled` : '');
+		await new Promise((resolve) => setTimeout(resolve, 250));
 	}
+
 	throw new Error(
-		`no signable burner account at index ${index} (of ${count} rows); ` +
+		`no signable burner account at index ${index}: ${lastReason}; ` +
 			'impersonated accounts cannot sign the sign-in message',
 	);
 }
