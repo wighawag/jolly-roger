@@ -95,10 +95,17 @@ describe('e2e stalling-wallet account', () => {
 		/STALLING_WALLET_ACCOUNT =\s*'(0x[0-9a-fA-F]{40})'/,
 	)?.[1];
 
+	// An IMPORT, not a mention. This matched the string anywhere in the file, so a
+	// comment that merely referred to the stalling wallet counted as driving it,
+	// and the suite below then reported a nonce race between two files of which
+	// only one sends anything. A guard that fires on prose teaches people to edit
+	// the prose.
+	const IMPORTS_STALLING_WALLET =
+		/from\s+['"][^'"]*fixtures\/stalling-wallet(?:\.js)?['"]/;
 	const users = readdirSync(E2E_DIR)
 		.filter((name) => name.endsWith('.e2e.ts'))
 		.filter((name) =>
-			readFileSync(join(E2E_DIR, name), 'utf8').includes('stalling-wallet'),
+			IMPORTS_STALLING_WALLET.test(readFileSync(join(E2E_DIR, name), 'utf8')),
 		);
 
 	it('declares an address the test can find', () => {
