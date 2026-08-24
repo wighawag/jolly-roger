@@ -342,6 +342,18 @@ async function connectWalletDevMode(
 			// account row first (same direct-child locator as the plain picker),
 			// then sign. With no rows (single-account confirm), just sign.
 			const rows = dialog.locator('.overflow-y-auto > button');
+			// WAIT BEFORE COUNTING. This branch is reached on the dialog's TEXT, and
+			// the heading renders before the list body does, so counting immediately
+			// can see zero rows in a dialog that is about to have several. Then the
+			// account is never selected and sign-in proceeds as the wrong one, which
+			// surfaces far away as a transaction from an account with no funds.
+			//
+			// Bounded and swallowed, because ZERO IS ALSO A REAL ANSWER here: the
+			// single-account confirm dialog has no rows at all and just signs in.
+			await rows
+				.first()
+				.waitFor({state: 'attached', timeout: 2000})
+				.catch(() => {});
 			if ((await rows.count()) > accountIndex) {
 				await rows.nth(accountIndex).click();
 			}
