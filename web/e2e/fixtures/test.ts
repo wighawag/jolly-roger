@@ -595,8 +595,28 @@ async function pickSignableAccount(dialog: Locator, index: number) {
 		if (/\.eth\b/i.test(label)) continue;
 		seen++;
 		if (seen === index) {
-			await rows.nth(i).click();
-			return;
+			// BOUNDED AND RETRIED, because the row can go stale between the scan
+			// above and this click: the picker re-renders as accounts resolve (an
+			// ENS name arriving relabels a row), and an unbounded click on a
+			// detached element waits for ever - which showed up not as a failure
+			// here but as the whole TEST timing out two minutes later, with the
+			// click still pending and nothing saying which one.
+			//
+			// `rows.nth(i)` is re-resolved on each attempt, so a re-render is
+			// simply retried rather than being fatal.
+			let lastError: unknown;
+			for (let attempt = 0; attempt < 3; attempt++) {
+				try {
+					await rows.nth(i).click({timeout: 5_000});
+					return;
+				} catch (error) {
+					lastError = error;
+				}
+			}
+			throw new Error(
+				`could not click account row ${i} ("${label}") after 3 attempts: ` +
+					String(lastError),
+			);
 		}
 	}
 	throw new Error(
