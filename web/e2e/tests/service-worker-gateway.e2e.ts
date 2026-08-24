@@ -75,7 +75,16 @@ test('does not register when a gateway worker already covers the scope', async (
 
 	// Now the gateway worker serves the real site, so this load is OUR app,
 	// controlled by a foreign worker: the situation the guard exists for.
-	await page.goto(`${SW_GATEWAY_URL}/`);
+	//
+	// RETRIED, because this navigation races the worker that the line above just
+	// waited for. A worker calling `clients.claim()` as the request is issued can
+	// have Chromium abandon it, which surfaces as `net::ERR_ABORTED` and looks
+	// like the server is down when it is simply mid-handover. Retrying is what a
+	// user does, and it is the same `toPass` idiom the drawer helper uses for the
+	// same class of problem (a click during hydration).
+	await expect(async () => {
+		await page.goto(`${SW_GATEWAY_URL}/`);
+	}).toPass({timeout: 30_000});
 	// Wait on the DECISION rather than on a fixed delay: the app reaching a
 	// `skipped` state is the signal that registration was considered and
 	// declined. This asserts it too, and asserts the RIGHT reason: had it tried
