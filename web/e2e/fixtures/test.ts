@@ -557,6 +557,24 @@ async function expectWalletConnected(page: Page, timeout = 30_000) {
  */
 async function pickSignableAccount(dialog: Locator, index: number) {
 	const rows = dialog.locator('.overflow-y-auto > button');
+	// WAIT BEFORE COUNTING, because the caller reached this dialog by its TEXT
+	// and the heading renders before the list body does. Counting straight away
+	// can see zero rows in a picker that is about to have several, and zero rows
+	// here is fatal (there is nobody to pick), so it threw "of 0 rows" against a
+	// dialog that was merely still rendering.
+	//
+	// That is the whole of the intermittent 'paying with another wallet' failure:
+	// it passed alone, and failed in a full parallel run where the render lands a
+	// few frames later.
+	//
+	// Generous, and NOT swallowed into a zero: unlike the confirm dialog on
+	// `main`, an empty account picker is never legitimate, so waiting the full
+	// timeout and then reporting the real problem beats reporting a count that
+	// was only ever a symptom of asking too early.
+	await rows
+		.first()
+		.waitFor({state: 'visible', timeout: 15_000})
+		.catch(() => {});
 	const count = await rows.count().catch(() => 0);
 	// Empty when impersonation is off, in which case nothing is skipped and this
 	// degenerates to picking the Nth row.
