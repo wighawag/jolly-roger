@@ -575,6 +575,23 @@ async function pickSignableAccount(dialog: Locator, index: number) {
 		.first()
 		.waitFor({state: 'visible', timeout: 15_000})
 		.catch(() => {});
+	// AND WAIT FOR IT TO SAY SOMETHING. A row exists before its label does: the
+	// picker renders the buttons and then fills in addresses and ENS names as they
+	// resolve. An unlabelled row cannot be identified, so scanning too early both
+	// fails to skip impersonated accounts AND selects a row that is not ready,
+	// whose click then never lands.
+	await rows
+		.first()
+		.evaluate((el) => (el.textContent ?? '').trim().length > 0)
+		.catch(() => false)
+		.then(async (hasText) => {
+			if (hasText) return;
+			await rows
+				.first()
+				.filter({hasText: /\S/})
+				.waitFor({state: 'visible', timeout: 10_000})
+				.catch(() => {});
+		});
 	const count = await rows.count().catch(() => 0);
 	// Empty when impersonation is off, in which case nothing is skipped and this
 	// degenerates to picking the Nth row.
@@ -591,6 +608,11 @@ async function pickSignableAccount(dialog: Locator, index: number) {
 				.catch(() => '')) || ''
 		).trim();
 		const lower = label.toLowerCase();
+		// An UNLABELLED row is not a candidate. It is a row whose address has not
+		// arrived yet, and choosing one is how this helper ended up clicking a
+		// button that never became actionable - reported, before the click was
+		// bounded, as the whole test timing out with nothing naming the row.
+		if (!label) continue;
 		if (impersonated.some((prefix) => lower.includes(prefix))) continue;
 		if (/\.eth\b/i.test(label)) continue;
 		seen++;
