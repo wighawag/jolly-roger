@@ -190,8 +190,23 @@ describe('Delegation - authorising this browser', () => {
 // What is left is not the picker. At the timeout the picker is open and fully
 // labelled, the second payer account is selectable, and the flow simply does
 // not proceed - which is this branch's payment path, not the fixture. That
-// wants someone who knows what `connectPaymentWallet` should do when the payer
-// is a second wallet, rather than more guessing from here.
+// wants someone who knows what `connectPaymentWallet` should do once the payer
+// account has been chosen, rather than more guessing from here.
+//
+// WHAT THE PICKER ACTUALLY IS, since this looked like a wallet choice and is
+// not: at this point the app has ONE wallet announced and shows its 14 accounts
+// ("14 accounts available, choose one" - the impersonated ones first, then the
+// burner's generated ones). The payer is selected by ACCOUNT, not by wallet, so
+// nothing here depends on a second wallet being installed. Two dialogs are open
+// together and in different layers, which is correct and worth knowing when
+// reading this: the top-up modal in `modal`, the connection flow's picker in
+// `system` above it.
+//
+// Note for whoever picks this up: `connectPaymentWallet` also has a
+// "wallets available, choose one" branch that hardcodes `hasText: 'Burner
+// Wallet'`. It is not reached in this configuration, but it would pick the
+// wrong entry the moment a second wallet is announced here - which is what the
+// stalling-wallet suite already does elsewhere.
 //
 // THE WHOLE GROUP, because both tests drive the same payment-wallet path:
 // parking only the first simply moved the failure to the second, which had
