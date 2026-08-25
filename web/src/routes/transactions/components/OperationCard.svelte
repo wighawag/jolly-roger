@@ -1,5 +1,6 @@
 <script lang="ts">
 	import {getAppContext, route} from '$lib';
+	import {bigIntReplacer} from '$lib/core/utils/format/json';
 	import * as Card from '$lib/shadcn/ui/card';
 	import {Badge} from '$lib/shadcn/ui/badge';
 	import {Button} from '$lib/shadcn/ui/button';
@@ -142,10 +143,17 @@
 						>
 							Show arguments ({$operationStore.metadata.args.length})
 						</summary>
+						<!-- `bigIntReplacer`, because these are DECODED CONTRACT ARGUMENTS:
+						     any uint/int parameter arrives here as a bigint, and
+						     JSON.stringify throws on one. It threw during RENDER, not on
+						     expanding the details, because the <pre> is in the DOM either
+						     way - so a single numeric argument anywhere in an operation
+						     took the whole transactions page down with
+						     "Do not know how to serialize a BigInt". -->
 						<pre
 							class="mt-2 max-h-40 overflow-auto rounded bg-muted p-2 text-xs">{JSON.stringify(
 								$operationStore.metadata.args,
-								null,
+								bigIntReplacer,
 								2,
 							)}</pre>
 					</details>
