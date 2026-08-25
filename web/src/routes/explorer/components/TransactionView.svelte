@@ -1,4 +1,7 @@
 <script lang="ts">
+	// Decoded arguments carry bigints for every uint/int parameter, and
+	// JSON.stringify throws on one. See core/utils/format/json.
+	import {bigIntReplacer} from '$lib/core/utils/format/json';
 	import DefaultHead from '$lib/metadata/DefaultHead.svelte';
 	import {getAppContext} from '$lib';
 	import * as Card from '$lib/shadcn/ui/card';
@@ -197,7 +200,7 @@
 					<Card.Content>
 						<pre
 							class="overflow-x-auto rounded-md bg-muted p-3 font-mono text-xs"><code
-								>{JSON.stringify(decodedTxData.args, null, 2)}</code
+								>{JSON.stringify(decodedTxData.args, bigIntReplacer, 2)}</code
 							></pre>
 					</Card.Content>
 				</Card.Root>
@@ -235,7 +238,7 @@
 										class="overflow-x-auto rounded-md bg-red-100/50 p-3 font-mono text-xs dark:bg-red-900/30"><code
 											>{JSON.stringify(
 												decodedTxData.decodedError.args,
-												null,
+												bigIntReplacer,
 												2,
 											)}</code
 										></pre>
@@ -432,7 +435,7 @@
 												<pre
 													class="mt-1 rounded bg-background p-2 font-mono text-xs">{JSON.stringify(
 														log.topics,
-														null,
+														bigIntReplacer,
 														2,
 													)}</pre>
 											</div>
@@ -494,7 +497,11 @@
 												</div>
 												<pre
 													class="overflow-x-auto rounded-md bg-muted p-3 font-mono text-xs"><code
-														>{JSON.stringify(event.args, null, 2)}</code
+														>{JSON.stringify(
+															event.args,
+															bigIntReplacer,
+															2,
+														)}</code
 													></pre>
 											</div>
 										</div>

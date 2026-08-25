@@ -1,3 +1,8 @@
+// `toPlainJson`, not `JSON.parse(JSON.stringify(...))`. Viem decodes every
+// uint/int as a bigint, and plain stringify THROWS on one - inside the catch
+// below, so the failure was silent: any call with a numeric argument simply
+// came back undecoded, which looks like an ABI mismatch and is not.
+import {toPlainJson} from '$lib/core/utils/format/json';
 import type {Abi, Transaction, TransactionReceipt, PublicClient} from 'viem';
 import {
 	decodeFunctionData,
@@ -85,7 +90,7 @@ function decodeFunctionCall(
 
 		return {
 			functionName: decoded.functionName,
-			args: decoded.args ? JSON.parse(JSON.stringify(decoded.args)) : undefined,
+			args: decoded.args ? toPlainJson(decoded.args) : undefined,
 		};
 	} catch (e) {
 		// Decoding failed
@@ -107,7 +112,7 @@ function tryDecodeError(
 		});
 		return {
 			errorName: decoded.errorName,
-			args: decoded.args ? JSON.parse(JSON.stringify(decoded.args)) : undefined,
+			args: decoded.args ? toPlainJson(decoded.args) : undefined,
 			rawData: data,
 		};
 	} catch {
@@ -220,7 +225,7 @@ async function decodeTransactionError(
 						decodedError: {
 							errorName: revertError.data?.errorName || 'Error',
 							args: revertError.data?.args
-								? JSON.parse(JSON.stringify(revertError.data.args))
+								? toPlainJson(revertError.data.args)
 								: undefined,
 						},
 					};
