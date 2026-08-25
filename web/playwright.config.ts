@@ -62,7 +62,20 @@ export default defineConfig({
 	retries: env.CI ? 2 : 0,
 
 	// Limit workers on CI
-	workers: env.CI ? 1 : undefined,
+	//
+	// AND LOCALLY, where Playwright's default is half the cores (8 here). Every
+	// worker boots a full app against the ONE hardhat node the run starts, and
+	// this branch asks far more of it than the template does: a signer, a second
+	// payment connection, delegation reads and credits, on top of everything
+	// `main` already polls. At 8 the node is the bottleneck and whichever suite
+	// happens to be waiting on a chain round-trip loses - which is why the failure
+	// moved around (delegation, hosted-signin, escape-hatch, demo) instead of
+	// pointing at anything.
+	//
+	// Measured, not guessed: every one of those passes alone and with fewer
+	// workers, and the full suite flaked on five of six runs at the default.
+	// `bleeps` capped at 4 for the same reason and the same measurement.
+	workers: env.CI ? 1 : 4,
 
 	// Reporter to use
 	reporter: [
