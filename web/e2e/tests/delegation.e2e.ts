@@ -179,41 +179,22 @@ describe('Delegation - authorising this browser', () => {
 	});
 });
 
-// PARKED, and not for the reason it looked like for most of this session.
-//
-// It failed as "no signable burner account at index 1 (of 0 rows)", which sent
-// three separate fixes into `pickSignableAccount`: it read the list once,
-// before the rows existed; then, once it waited, it treated a row whose label
-// had not arrived as permanently ineligible; and its click was unbounded, so
-// when it did pick a stale row the whole test timed out with nothing naming
-// the row. All three were real, all three are fixed, and they were breaking
-// other suites too (hosted-signin failed on the same helper).
-//
-// What is left is not the picker. At the timeout the picker is open and fully
-// labelled, the second payer account is selectable, and the flow simply does
-// not proceed - which is this branch's payment path, not the fixture. That
-// wants someone who knows what `connectPaymentWallet` should do once the payer
-// account has been chosen, rather than more guessing from here.
-//
-// WHAT THE PICKER ACTUALLY IS, since this looked like a wallet choice and is
+// WHAT THE PICKER HERE ACTUALLY IS, since it reads like a wallet choice and is
 // not: at this point the app has ONE wallet announced and shows its 14 accounts
 // ("14 accounts available, choose one" - the impersonated ones first, then the
 // burner's generated ones). The payer is selected by ACCOUNT, not by wallet, so
-// nothing here depends on a second wallet being installed. Two dialogs are open
-// together and in different layers, which is correct and worth knowing when
-// reading this: the top-up modal in `modal`, the connection flow's picker in
-// `system` above it.
+// nothing here depends on a second wallet being installed.
 //
-// Note for whoever picks this up: `connectPaymentWallet` also has a
-// "wallets available, choose one" branch that hardcodes `hasText: 'Burner
-// Wallet'`. It is not reached in this configuration, but it would pick the
-// wrong entry the moment a second wallet is announced here - which is what the
-// stalling-wallet suite already does elsewhere.
+// Two dialogs are open together and in different layers, which is correct and
+// worth knowing when reading this: the top-up modal in `modal`, the connection
+// flow's picker in `system` above it.
 //
-// THE WHOLE GROUP, because both tests drive the same payment-wallet path:
-// parking only the first simply moved the failure to the second, which had
-// been hidden behind it by `mode: 'serial'`.
-describe.fixme('Delegation - paying with another wallet', () => {
+// Note for whoever touches connectPaymentWallet: it also has a "wallets
+// available, choose one" branch that hardcodes `hasText: 'Burner Wallet'`. It is
+// not reached in this configuration, but it would pick the wrong entry the
+// moment a second wallet is announced here - which the stalling-wallet suite
+// already does elsewhere.
+describe('Delegation - paying with another wallet', () => {
 	describe.configure({mode: 'serial'});
 
 	test('takes the signature route, and explains it before the wallet opens', async ({
