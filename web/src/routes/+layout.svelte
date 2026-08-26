@@ -23,15 +23,14 @@
 	import Context from '$lib/context/Context.svelte';
 	import InitError from '$lib/context/InitError.svelte';
 	import Navbar from '$lib/ui/navbar/navbar.svelte';
-	import RpcHealthBanner from '$lib/ui/rpc-health/RpcHealthBanner.svelte';
-	import NonceCacheBanner from '$lib/ui/nonce-cache/NonceCacheBanner.svelte';
-	import OfflineBanner from '$lib/ui/offline/OfflineBanner.svelte';
 	import SendingIndicator from '$lib/ui/in-flight/SendingIndicator.svelte';
 	import {sendingIndicatorSlot} from '$lib/ui/in-flight/sending';
 	import {createENSService} from '$lib/core/ens';
 	import {PUBLIC_ENS_NODE_URL} from '$env/static/public';
 	import {Toaster} from '$lib/shadcn/ui/sonner';
 	import AcrossPages from '$lib/context/AcrossPages.svelte';
+	import AppShell from '$lib/core/ui/AppShell.svelte';
+	import {CHROME} from '$lib/ui/chrome';
 	import {LAYERS} from '$lib/core/ui/layers';
 	import KitNavigation from '$lib/kit/KitNavigation.svelte';
 	import {navigating, page} from '$app/state';
@@ -67,11 +66,6 @@
 	// PUBLIC_ENS_NODE_URL disables ENS entirely (useENS() then returns undefined
 	// and all ENS-aware components stay inert).
 	if (PUBLIC_ENS_NODE_URL) provideENS(createENSService());
-
-	// The RPC-health / no-RPC banner is relevant on pages that read onchain data.
-	// The home page does not, so it is excluded (blacklist). `page.route.id` is
-	// base-path independent (works under IPFS/relative paths).
-	let showRpcBanner = $derived(page.route.id !== '/');
 </script>
 
 {#if $fatal}
@@ -82,95 +76,28 @@
 		     provides it as a capability. First, so anything below can rely on the
 		     app knowing where it is. Renders nothing. -->
 		<KitNavigation />
-		<!-- THE HEIGHT SHELL, and the one place that decides how tall the app is.
+		<!-- THE HEIGHT SHELL. What it guarantees, why the navbar is out of flow and
+		     what an app-shell scroller would cost are all in
+		     `core/ui/AppShell.svelte`, deliberately: this file is the most-edited in
+		     the template, so rationale parked here conflicts with every descendant
+		     that ever touched it.
 
-		     A viewport-tall column: the in-flow bars as fixed-size children, and the
-		     page in a `flex-1 min-h-0` region, which makes that region EXACTLY what
-		     the chrome leaves and never more. A banner appearing therefore SHRINKS the
-		     page instead of pushing it down: nothing goes under the fold, and nothing
-		     re-lays-out when the banner leaves.
-
-		     The navbar is the exception: it is `fixed` (see navbar.svelte for why a
-		     sticky one could not survive this shell), so it is not a row here, and
-		     `pt-[var(--navbar-height)]` is how the column reserves its space instead.
-		     Same variable the navbar sizes itself with, so this is one number, not
-		     two.
-
-		     WHAT IT BUYS A DESCENDANT: inside the region, `h-full` means "the
-		     viewport minus whatever chrome is up right now", so an app with a canvas,
-		     a map or a board can occupy the screen exactly, with no scrollbar,
-		     WITHOUT knowing which bars exist or how tall they are. Without a shell
-		     every such app reaches for `h-screen` somewhere below instead, and
-		     `h-screen` plus a bar is a page taller than the screen by the height of
-		     the bar. That trap was armed in the template, so it was armed once for
-		     every descendant, which is why it is disarmed here rather than in the app
-		     that happened to trip it.
-
-		     WHY THE BARS STAY IN FLOW instead of floating clear of the problem: they
-		     report DURABLE conditions (offline, no RPC, a stale nonce cache) that
-		     last minutes, and a permanent overlay covering the app's own UI is worse
-		     than a bar that honestly takes its space. `ui/in-flight/sending.ts` draws
-		     the same line from the other side - transient action feedback floats,
-		     durable conditions take space - and the shell is what makes taking space
-		     affordable.
-
-		     `[&>*]:shrink-0` so that chrome is chrome: on a short viewport the bars
-		     keep their height and the page absorbs the loss, rather than every bar
-		     being squeezed into illegibility at once. It reaches the content region
-		     too, harmlessly: that one grows from a basis of 0, so there is never
-		     anything to shrink.
-
-		     THE DOCUMENT IS STILL THE SCROLLER, which is what keeps ordinary pages
-		     ordinary: a page longer than the region overflows it and the window
-		     scrolls, with native scroll restoration on back, the mobile URL bar
-		     retracting, pull-to-refresh, and `scrollbar-gutter` (app.css) all
-		     unchanged.
-
-		     THE CONCESSION that remains. A sticky element stays pinned only while its
-		     containing block is on screen, and this shell is exactly one viewport
-		     tall, so the BARS run out of travel once a page can scroll further than
-		     `100dvh` minus the chrome above them. That is why the navbar is `fixed`
-		     rather than sticky: losing the navigation is losing the way out, while a
-		     bar that scrolls away after a screenful of a long page is a bar that has
-		     already been read. If a descendant decides otherwise, the fix is an
-		     app-shell scroller (`overflow-y-auto` on the content region), and the
-		     price was measured rather than guessed: back-navigation scroll
-		     restoration stops working entirely (SvelteKit saves and restores WINDOW
-		     scroll), the scroll-to-top on forward navigation has to be reimplemented,
-		     and `scrollbar-gutter` has to move off `html` or the navbar ends up
-		     misaligned with the content by a scrollbar's width. -->
-		<div class="flex h-dvh flex-col pt-[var(--navbar-height)] [&>*]:shrink-0">
-			<!-- The framework's answers, handed to components that must not ask for
-			     themselves. Getters, so reading them inside those components tracks
-			     `page`/`navigating` as if they had. See src/lib/kit/README.md. -->
-			<Navbar {repoURL} {communityURL} currentPath={() => page.url.pathname} />
-			<!-- Only the in-flow placement lands here, beside the other bars. The
-		     default one floats and is rendered in an overlay layer below, because it
-		     is transient action feedback rather than a condition the page should
-		     make room for. `$lib` decides which, and `sendingIndicatorSlot` is where
-		     that choice becomes a mount point, so a placement with nowhere to go is
-		     a type error rather than a knob that silently does nothing. -->
-			{#if sendingIndicatorSlot(sendingIndicator) === 'flow'}
-				<SendingIndicator
-					inFlight={context.context.inFlight}
-					placement="banner"
+		     WHICH bars exist is `ui/chrome.ts`, for the same reason. Adding one is a
+		     line there, not an edit here. -->
+		<AppShell chrome={CHROME} routeId={() => page.route.id}>
+			{#snippet navbar()}
+				<!-- The framework's answers, handed to components that must not ask for
+				     themselves. Getters, so reading them inside those components tracks
+				     `page`/`navigating` as if they had. See src/lib/kit/README.md. -->
+				<Navbar
+					{repoURL}
+					{communityURL}
+					currentPath={() => page.url.pathname}
 				/>
-			{/if}
-			<OfflineBanner />
-			<NonceCacheBanner />
-			{#if showRpcBanner}
-				<RpcHealthBanner />
-			{/if}
+			{/snippet}
 
-			<!-- The content region. `min-h-0` is the load-bearing half: without it a
-			     flex item refuses to be shorter than its content, the region grows past
-			     the fold, and the shell is a decoration. `data-app-content` is the
-			     handle the shell's e2e test measures, and a stable name for a
-			     descendant that has to reach the region from outside the tree. -->
-			<div data-app-content class="min-h-0 flex-1">
-				{@render children()}
-			</div>
-		</div>
+			{@render children()}
+		</AppShell>
 
 		<!-- Outside the shell: everything it renders is a portal or a fixed-position
 		     surface, so it has no business being a row in the column. -->
