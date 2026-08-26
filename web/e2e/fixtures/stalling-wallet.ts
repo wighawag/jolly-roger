@@ -25,16 +25,27 @@ import type {Page} from '@playwright/test';
 export const STALLING_WALLET_NAME = 'Stalling Test Wallet';
 
 /**
- * Which account it signs as.
+ * The accounts it can sign as, ONE PER SUITE.
  *
- * Hardhat's account #9, chosen to sit well clear of both lists that matter:
+ * Hardhat's #9 and #8, chosen to sit well clear of both lists that matter:
  * `e2e/impersonate-addresses.json` (what the burner offers, one per suite that
- * sends) and the two in `.env.localhost`. Two suites sending from one account
- * race for its nonce, and that surfaces as an unrelated test failing on a
- * transaction that never appeared.
+ * sends) and anything in the env files. Two suites sending from one account race
+ * for its nonce, and that surfaces as an unrelated test failing on a transaction
+ * that never appeared.
+ *
+ * A POOL RATHER THAN ONE ADDRESS, because this fixture is the only way into the
+ * window between dispatch and answer, so more than one suite legitimately wants
+ * it. It was a single account while one suite used it, and the second suite
+ * turned that into a nonce race; `test/e2e-account-claims.test.ts` now checks
+ * the claims here the same way it checks `walletAccountIndex` for burners.
  */
-export const STALLING_WALLET_ACCOUNT =
-	'0xa0Ee7A142d267C1f36714E4a8F75612F20a79720';
+export const STALLING_WALLET_ACCOUNTS = [
+	'0xa0Ee7A142d267C1f36714E4a8F75612F20a79720',
+	'0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f',
+] as const;
+
+/** The default account, for a suite that does not ask for a particular one. */
+export const STALLING_WALLET_ACCOUNT = STALLING_WALLET_ACCOUNTS[0];
 
 /**
  * Install the wallet before any app code runs.
@@ -45,8 +56,24 @@ export const STALLING_WALLET_ACCOUNT =
  */
 export async function installStallingWallet(
 	page: Page,
-	options: {nodeUrl: string},
+	options: {
+		nodeUrl: string;
+		/**
+		 * Which of {@link STALLING_WALLET_ACCOUNTS} this suite signs as. One suite
+		 * per index: the claim is checked by `test/e2e-account-claims.test.ts`,
+		 * which reads the call sites, so a second suite taking a claimed index fails
+		 * there rather than as a stranger's transaction going missing.
+		 */
+		stallingAccountIndex?: number;
+	},
 ): Promise<void> {
+	const account = STALLING_WALLET_ACCOUNTS[options.stallingAccountIndex ?? 0];
+	if (!account) {
+		throw new Error(
+			`no stalling-wallet account ${options.stallingAccountIndex}: ` +
+				`${STALLING_WALLET_ACCOUNTS.length} are configured`,
+		);
+	}
 	await page.addInitScript(
 		({nodeUrl, account, name}) => {
 			const held: {resolve?: () => Promise<void>} = {};
@@ -137,7 +164,7 @@ export async function installStallingWallet(
 		},
 		{
 			nodeUrl: options.nodeUrl,
-			account: STALLING_WALLET_ACCOUNT,
+			account,
 			name: STALLING_WALLET_NAME,
 		},
 	);
