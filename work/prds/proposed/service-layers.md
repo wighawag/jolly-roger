@@ -114,11 +114,15 @@ One prerequisite for that pairing, small and upstream: webevm does not put `bloc
 
 ## Wave 2: sync
 
-**`with/sync`** (synqable client over secp256k1-db). Both halves exist and the fit is close to one-to-one: synqable's `SyncAdapter` is `pull(account) -> {data, counter}` and `push(account, data, counter)`; secp256k1-db's API is `wallet_getString -> {data, counter, signature}` and `wallet_putString(address, namespace, counter, data, signature)`. secp256k1-db now has a nodejs CLI (`npx secp256k1-db --port 2000 --db ./file.json`), so the offline story is real.
+**`with/sync`** (synqable client over **waxdb**). synqable's `SyncAdapter` is `pull(account) -> {data, counter}` and `push(account, data, counter)`, which is close to one-to-one with what the service offers. The nodejs platform is what makes the offline story real, and it is inherited from the predecessor.
+
+**The target is `waxdb`, not `secp256k1-db`.** The latter is frozen and archived: its deployment keeps running for apps that cannot be rebuilt, and no fix lands there. waxdb is a new service rather than a migration (its decision 1), so an app moving over starts from an empty record, which is only acceptable because the device is the source of truth and the server is a cache (its decision 2). Both of those are assumptions `with/sync` inherits rather than choices it gets to make, and the second is the one to check against synqable's actual behaviour before building.
 
 The missing ingredient is the signature over `put:${namespace}:${counter}:${data}`, which is what the delegated signer provides. That is why this layer stems from `with/local-signer`.
 
-**Blocker, not a caveat: fix secp256k1-db's message encoding first.** See `work/notes/findings/iso-timestamps-make-the-secp256k1-db-signature-ambiguous.md`. The concatenated message can be re-split when the synced blob contains an ISO-8601 timestamp, which account data routinely does. Fixing it changes every signature, so it needs a new method name and a migration window. That is far cheaper before this layer has users than after.
+**The blocker that gated this wave is closed by design, so the wave now waits on waxdb shipping rather than on a fix.** `work/notes/findings/iso-timestamps-make-the-secp256k1-db-signature-ambiguous.md` records why: the predecessor's concatenated message could be re-split when the synced blob contained an ISO-8601 timestamp, which account data routinely does, and that finding is the stated reason waxdb exists. Its replacement encoding is labelled text with a fixed line count, newline-free fields and a hashed payload, so `data` never enters the signed message at all and the only variable-length field is a charset-restricted namespace.
+
+One invariant to carry into the integration, because it is what the whole property rests on: the namespace charset excludes newline, and the message is a fixed line count. Relaxing either brings the ambiguity straight back. If waxdb's conformance suite does not already pin both, that is the regression test to ask for, since a documented invariant with no test is how it gets widened later.
 
 Two design constraints to record while building: the service stores one record per `(address, namespace)`, so sync granularity is whole-document last-writer-wins with no partial sync, and the payload grows with account data. Both follow from synqable's LWW model and are acceptable, but they should be written down rather than discovered.
 
