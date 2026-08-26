@@ -66,20 +66,38 @@
      with native scroll restoration on back, the mobile URL bar retracting,
      pull-to-refresh, and `scrollbar-gutter` (app.css) all unchanged.
 
-     THE CONCESSION that remains. A sticky element stays pinned only while its
-     containing block is on screen, and this shell is exactly one viewport tall,
-     so the BAR GROUP runs out of travel once a page can scroll further than
-     `100dvh` minus the navbar and the group's own height. One threshold for all
-     of them, since they pin as a group. That is why the navbar is `fixed`
-     rather than sticky: losing the navigation is losing the way out, while a bar
-     that scrolls away after a screenful of a long page is a bar that has already
-     been read. If a descendant decides otherwise, the fix is an app-shell scroller
-     (`overflow-y-auto` on the content region), and the price was measured rather
-     than guessed: back-navigation scroll restoration stops working entirely
-     (SvelteKit saves and restores WINDOW scroll), the scroll-to-top on forward
-     navigation has to be reimplemented, and `scrollbar-gutter` has to move off
-     `html` or the navbar ends up misaligned with the content by a scrollbar's
-     width. -->
+     THE CONCESSION that remains, stated exactly, because the rule is simpler
+     than it looks. A sticky element is pinned only while its containing block
+     allows, and the bar group's containing block is THIS SHELL'S CONTENT BOX,
+     which runs from the navbar's bottom to the fold. So the group can be pushed
+     down by `viewport - navbar - group`, which is the content region's height:
+
+         the bar group stays pinned for the first `region` pixels of scrolling,
+         then slides up under the navbar.
+
+     Equivalently it detaches only on a page whose content is more than TWICE the
+     region. Measured on this app, nothing comes close: the tallest page is 690px
+     against a 1030px threshold at a 600px viewport, and provoking it took four
+     simultaneous bars on a 490px window. `layout-shell.e2e.ts` pins the rule.
+
+     WATCH THE SCALING IF YOU ADD BARS, because each one costs twice: it shrinks
+     the region by its height AND lengthens the document by its height, so the
+     threshold falls by twice the bar. The chrome therefore leaves soonest
+     exactly when there is most of it, which is the part worth knowing before
+     adding a fifth.
+
+     The NAVBAR does not share the limit, because it is `fixed`: losing the
+     navigation is losing the way out, while a condition bar that slides away
+     after a full region of scrolling has been on screen a long time. Lifting the
+     limit for the bars too means one of two things. Make the group `fixed` as
+     well and drive this padding from a measured `--chrome-height`, which costs
+     one ResizeObserver and stops the padding being a constant. Or make the
+     content region the scroller (`overflow-y-auto`), whose price was measured
+     rather than guessed: back-navigation scroll restoration stops working
+     entirely (SvelteKit saves and restores WINDOW scroll), the scroll-to-top on
+     forward navigation has to be reimplemented, and `scrollbar-gutter` has to
+     move off `html` or the navbar ends up misaligned with the content by a
+     scrollbar's width. -->
 <div class="flex h-dvh flex-col pt-[var(--navbar-height)] [&>*]:shrink-0">
 	{@render navbar()}
 

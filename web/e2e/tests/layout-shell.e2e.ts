@@ -240,6 +240,64 @@ describe('The layout height shell', () => {
 		await page.context().setOffline(false);
 	});
 
+	test('the bar group stays pinned for exactly one region-height of scroll', async ({
+		page,
+	}) => {
+		// THE CONCESSION, pinned to a number so it cannot drift into something
+		// worse unnoticed. The group's containing block is the shell's content box,
+		// which runs from the navbar's bottom to the fold, so the group can be
+		// pushed down by `viewport - navbar - group`, which IS the region's height.
+		//
+		// 348 tall because this is only reachable on a page whose content is more
+		// than twice the region, and at an ordinary window nothing in this app is
+		// (the tallest is 690 against a 1030 threshold at 600). A short window is
+		// also the only place a user would meet it.
+		await page.setViewportSize({width: 1280, height: 348});
+		await page.goto('/');
+		await page.context().setOffline(true);
+		await expect(page.getByTestId('offline-banner')).toBeVisible();
+
+		const groupTop = () =>
+			page.evaluate(() =>
+				Math.round(
+					document
+						.querySelector('[data-app-content]')!
+						.previousElementSibling!.getBoundingClientRect().top,
+				),
+			);
+
+		const {content, nav} = await geometry(page);
+		const travel = Math.round(content!.height);
+		const pinnedAt = Math.round(nav!.height);
+
+		// THE PRECONDITION. If the page cannot out-scroll the travel there is
+		// nothing to observe, and both assertions below pass while proving nothing.
+		const maxScroll = await page.evaluate(() => {
+			const doc = document.documentElement;
+			return doc.scrollHeight - doc.clientHeight;
+		});
+		expect(
+			maxScroll,
+			'the page has to out-scroll the group, or this test proves nothing',
+		).toBeGreaterThan(travel);
+
+		await page.evaluate((y) => window.scrollTo(0, y), travel);
+		await expect
+			.poll(groupTop, {
+				message: 'still pinned after exactly one region of scrolling',
+			})
+			.toBe(pinnedAt);
+
+		await page.evaluate((y) => window.scrollTo(0, y), travel + 20);
+		await expect
+			.poll(groupTop, {
+				message: 'and past it, it slides under the navbar rather than over it',
+			})
+			.toBe(pinnedAt - 20);
+
+		await page.context().setOffline(false);
+	});
+
 	test('the chrome keeps its height when the viewport is too short for it', async ({
 		page,
 	}) => {

@@ -19,15 +19,27 @@ import type {Component} from 'svelte';
  * not change (the height contract, in `AppShell.svelte`) in a file they never
  * touch. Two files that merge cleanly instead of one that always conflicts.
  *
- * WHAT THIS DELIBERATELY DOES NOT MAKE REPLACEABLE
+ * WHAT IS REPLACEABLE, AND WHAT SIMPLY MOVES IF YOU REPLACE IT
  *
- * The height contract itself. The bug the shell exists to prevent was armed in
- * the TEMPLATE, so it was armed once for every descendant, and a shell an app
- * can simply swap out is a shell an app can re-arm it behind. `template-commit-
- * reveal` proved that from the other direction: it wrote
+ * The shell is one import in `routes/+layout.svelte`, so an app that needs a
+ * different one (an app-shell scroller, fixed chrome, a sidebar down one side)
+ * changes that line and writes its own against the same three props. Nothing
+ * here tries to stop that, and this list works unchanged either way.
+ *
+ * What a replacement does NOT get is silence. `e2e/tests/layout-shell.e2e.ts`
+ * measures `[data-app-content]`: that the region ends at the fold, that it is
+ * exactly what the chrome leaves, that `h-full` inside it means the region, and
+ * that a bar shrinks the page rather than pushing it down. A shell that stops
+ * meeting the contract fails the suite instead of shipping. THE TESTS ARE THE
+ * ENFORCEMENT, not the module boundary.
+ *
+ * That distinction is the whole design. The bug the shell prevents was armed in
+ * the TEMPLATE, so it was armed once for every descendant, and
+ * `template-commit-reveal` proved it from the other direction: it wrote
  * `h-[calc(100dvh-3rem)]` for its game route, which subtracts the navbar and
  * forgets the bars, so any bar being up pushed the bottom of its HUD under the
- * fold. The list is the seam; the contract is not.
+ * fold. A replaceable shell with no contract is how that happens; a replaceable
+ * shell with a measured contract is just flexibility.
  *
  * WHY THE BARS THEMSELVES ARE ZERO-PROP
  *
