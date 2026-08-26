@@ -82,27 +82,84 @@
 		     provides it as a capability. First, so anything below can rely on the
 		     app knowing where it is. Renders nothing. -->
 		<KitNavigation />
-		<!-- The framework's answers, handed to components that must not ask for
-		     themselves. Getters, so reading them inside those components tracks
-		     `page`/`navigating` as if they had. See src/lib/kit/README.md. -->
-		<Navbar {repoURL} {communityURL} currentPath={() => page.url.pathname} />
-		<!-- Only the in-flow placement lands here, beside the other bars. The
+		<!-- THE HEIGHT SHELL, and the one place that decides how tall the app is.
+
+		     A viewport-tall column: chrome (the navbar and the in-flow bars) as
+		     fixed-size children, and the page in a `flex-1 min-h-0` region, which
+		     makes that region EXACTLY what the chrome leaves and never more. A banner
+		     appearing therefore SHRINKS the page instead of pushing it down: nothing
+		     goes under the fold, and nothing re-lays-out when the banner leaves.
+
+		     WHAT IT BUYS A DESCENDANT: inside the region, `h-full` means "the
+		     viewport minus whatever chrome is up right now", so an app with a canvas,
+		     a map or a board can occupy the screen exactly, with no scrollbar,
+		     WITHOUT knowing which bars exist or how tall they are. Without a shell
+		     every such app reaches for `h-screen` somewhere below instead, and
+		     `h-screen` plus a bar is a page taller than the screen by the height of
+		     the bar. That trap was armed in the template, so it was armed once for
+		     every descendant, which is why it is disarmed here rather than in the app
+		     that happened to trip it.
+
+		     WHY THE BARS STAY IN FLOW instead of floating clear of the problem: they
+		     report DURABLE conditions (offline, no RPC, a stale nonce cache) that
+		     last minutes, and a permanent overlay covering the app's own UI is worse
+		     than a bar that honestly takes its space. `ui/in-flight/sending.ts` draws
+		     the same line from the other side - transient action feedback floats,
+		     durable conditions take space - and the shell is what makes taking space
+		     affordable.
+
+		     `[&>*]:shrink-0` so that chrome is chrome: on a short viewport the bars
+		     keep their height and the page absorbs the loss, rather than a squashed
+		     navbar. It reaches the content region too, harmlessly: that one grows
+		     from a basis of 0, so there is never anything to shrink.
+
+		     THE CONCESSION, since this is a height contract for every descendant at
+		     once. The DOCUMENT is still the scroller, which is what keeps ordinary
+		     pages ordinary: a page longer than the region overflows it and the window
+		     scrolls, with native scroll restoration on back, the mobile URL bar
+		     retracting, pull-to-refresh, and `scrollbar-gutter` (app.css) all
+		     unchanged. The price is that sticky chrome can only stay pinned while its
+		     containing block - this shell - is on screen, so on a long page the bars
+		     scroll away after one screenful instead of staying up forever. An app
+		     that would rather keep them pinned can put `overflow-y-auto` on the
+		     content region and have an app-shell scroller instead, and then owes that
+		     whole list back: SvelteKit saves and restores WINDOW scroll, so a region
+		     that scrolls itself has to manage its own. -->
+		<div class="flex h-dvh flex-col [&>*]:shrink-0">
+			<!-- The framework's answers, handed to components that must not ask for
+			     themselves. Getters, so reading them inside those components tracks
+			     `page`/`navigating` as if they had. See src/lib/kit/README.md. -->
+			<Navbar {repoURL} {communityURL} currentPath={() => page.url.pathname} />
+			<!-- Only the in-flow placement lands here, beside the other bars. The
 		     default one floats and is rendered in an overlay layer below, because it
 		     is transient action feedback rather than a condition the page should
 		     make room for. `$lib` decides which, and `sendingIndicatorSlot` is where
 		     that choice becomes a mount point, so a placement with nowhere to go is
 		     a type error rather than a knob that silently does nothing. -->
-		{#if sendingIndicatorSlot(sendingIndicator) === 'flow'}
-			<SendingIndicator inFlight={context.context.inFlight} placement="banner" />
-		{/if}
-		<OfflineBanner />
-		<NonceCacheBanner />
-		{#if showRpcBanner}
-			<RpcHealthBanner />
-		{/if}
+			{#if sendingIndicatorSlot(sendingIndicator) === 'flow'}
+				<SendingIndicator
+					inFlight={context.context.inFlight}
+					placement="banner"
+				/>
+			{/if}
+			<OfflineBanner />
+			<NonceCacheBanner />
+			{#if showRpcBanner}
+				<RpcHealthBanner />
+			{/if}
 
-		{@render children()}
+			<!-- The content region. `min-h-0` is the load-bearing half: without it a
+			     flex item refuses to be shorter than its content, the region grows past
+			     the fold, and the shell is a decoration. `data-app-content` is the
+			     handle the shell's e2e test measures, and a stable name for a
+			     descendant that has to reach the region from outside the tree. -->
+			<div data-app-content class="min-h-0 flex-1">
+				{@render children()}
+			</div>
+		</div>
 
+		<!-- Outside the shell: everything it renders is a portal or a fixed-position
+		     surface, so it has no business being a row in the column. -->
 		<AcrossPages />
 	</Context>
 {/if}
@@ -160,7 +217,10 @@
 	     The ledger is passed in because this is OUTSIDE `<Context>`: a layer
 	     container is a sibling of it, so there is no app context to ask here. -->
 	{#if sendingIndicatorSlot(sendingIndicator) === 'overlay'}
-		<SendingIndicator inFlight={context.context.inFlight} placement="floating" />
+		<SendingIndicator
+			inFlight={context.context.inFlight}
+			placement="floating"
+		/>
 	{/if}
 {/snippet}
 

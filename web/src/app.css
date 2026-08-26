@@ -269,12 +269,19 @@ html {
    thing that raised it, look at declaration order, not at timing.
    --------------------------------------------------------------------------- */
 :root {
-	/* The navbar's height, read by the navbar itself AND by anything that has to
-	   sit clear of it from outside the flow (the floating sending notice, which
-	   lives in an overlay layer at the end of the document and so cannot ask the
-	   navbar how tall it is). Two hardcoded numbers would drift the moment the
-	   chrome changed, and the symptom would be a surface overlapping the navbar
-	   on one screen size. */
+	/* The navbar's height, read by the navbar itself AND by everything that has
+	   to sit clear of it: the in-flow bars, which stick just below it, and the
+	   floating sending notice, which lives in an overlay layer at the end of the
+	   document and so cannot ask the navbar how tall it is. A second hardcoded
+	   number would drift the moment the chrome changed, and the symptom would be
+	   a surface overlapping the navbar on one screen size (the bars said `top-12`
+	   until the height shell went in, which was that number, spelled a third way).
+
+	   NOT the app's height budget: nothing subtracts this from the viewport to
+	   work out how much room a page has. `+layout.svelte` is a flex column, so
+	   the space left over is measured by the browser rather than computed here,
+	   and it stays right when a bar appears, when two do, or when a descendant
+	   adds one of its own. */
 	--navbar-height: 3rem;
 
 	--z-layer-drawer: 100;
