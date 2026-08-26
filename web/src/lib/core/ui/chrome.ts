@@ -1,0 +1,88 @@
+import type {Component} from 'svelte';
+
+/**
+ * What the app shell puts above the page: the ordered list of condition bars.
+ *
+ * WHY A LIST RATHER THAN MARKUP
+ *
+ * The same reason `layers.ts` is a list. `routes/+layout.svelte` is the
+ * most-edited file in this template, so anything spelled out there is spelled
+ * out in the one file every descendant has already changed, and a template
+ * update that touches it conflicts with all of them at once. Measured, at the
+ * commit that introduced the height shell: merging it into
+ * `template-commit-reveal` conflicted on 127 of 257 lines, because the shell
+ * both wrapped the chrome block and re-indented it, and git cannot match a
+ * re-indented block against an edited one.
+ *
+ * A list moves the part descendants actually change (WHICH bars exist, in what
+ * order) into a file the template rarely touches, and leaves the part they must
+ * not change (the height contract, in `AppShell.svelte`) in a file they never
+ * touch. Two files that merge cleanly instead of one that always conflicts.
+ *
+ * WHAT IS REPLACEABLE, AND WHAT SIMPLY MOVES IF YOU REPLACE IT
+ *
+ * The shell is one import in `routes/+layout.svelte`, so an app that needs a
+ * different one (an app-shell scroller, fixed chrome, a sidebar down one side)
+ * changes that line and writes its own against the same three props. Nothing
+ * here tries to stop that, and this list works unchanged either way.
+ *
+ * What a replacement does NOT get is silence. `e2e/tests/layout-shell.e2e.ts`
+ * measures `[data-app-content]`: that the region ends at the fold, that it is
+ * exactly what the chrome leaves, that `h-full` inside it means the region, and
+ * that a bar shrinks the page rather than pushing it down. A shell that stops
+ * meeting the contract fails the suite instead of shipping. THE TESTS ARE THE
+ * ENFORCEMENT, not the module boundary.
+ *
+ * That distinction is the whole design. The bug the shell prevents was armed in
+ * the TEMPLATE, so it was armed once for every descendant, and
+ * `template-commit-reveal` proved it from the other direction: it wrote
+ * `h-[calc(100dvh-3rem)]` for its game route, which subtracts the navbar and
+ * forgets the bars, so any bar being up pushed the bottom of its HUD under the
+ * fold. A replaceable shell with no contract is how that happens; a replaceable
+ * shell with a measured contract is just flexibility.
+ *
+ * WHY THE BARS THEMSELVES ARE ZERO-PROP
+ *
+ * Each one decides its own visibility from the app context, so this list says
+ * only that a bar EXISTS and where it sits. A bar wired here would need its
+ * dependencies threaded through the shell, and the shell would then know what
+ * an RPC is.
+ *
+ * AND WHY THEY KNOW NOTHING ABOUT PINNING
+ *
+ * A bar is a plain `{#if condition}<div>`. `AppShell` pins the whole group, so
+ * a bar carries no `sticky`, no offset and no z-index of its own. That is not
+ * tidying: when each bar pinned itself they all pinned to the SAME offset, so
+ * two live conditions put the second bar exactly on top of the first. See the
+ * note in `AppShell.svelte`, and `chrome-stacking` in the shell's e2e.
+ */
+export type ChromeBar = {
+	/** Stable identity, used as the `{#each}` key and in tests. */
+	readonly name: string;
+	/**
+	 * The bar. Zero-prop and self-gating: it renders nothing when its condition
+	 * is not met.
+	 */
+	readonly component: Component;
+	/** What condition this reports, for whoever adds the next one. */
+	readonly reports: string;
+	/**
+	 * Optional gate for a bar whose relevance is a ROUTE question rather than a
+	 * domain one, which a self-gating component cannot answer without importing
+	 * the framework (see `lib/kit/README.md` for why it must not).
+	 *
+	 * Keyed on `routeId` rather than a pathname because a route id is base-path
+	 * independent, which matters under IPFS and relative deploys.
+	 */
+	readonly when?: (where: {readonly routeId: string | null}) => boolean;
+};
+
+/** One bar. A function so the shape cannot drift between entries. */
+export function chromeBar(
+	name: string,
+	component: Component,
+	reports: string,
+	options: {when?: ChromeBar['when']} = {},
+): ChromeBar {
+	return {name, component, reports, when: options.when};
+}

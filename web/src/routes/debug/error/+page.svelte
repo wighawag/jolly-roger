@@ -8,7 +8,10 @@
 	<title>Error Testing | Debug</title>
 </svelte:head>
 
-<div class="min-h-screen bg-background p-8">
+<!-- `min-h-full` rather than `min-h-screen`, for the reason given in
+     src/routes/+error.svelte: a page lives inside the layout's content region,
+     and the region is already the viewport minus the chrome. -->
+<div class="min-h-full bg-background p-8">
 	<div class="mx-auto max-w-2xl">
 		<h1 class="mb-2 text-3xl font-bold">Error Page Testing</h1>
 		<p class="mb-8 text-muted-foreground">

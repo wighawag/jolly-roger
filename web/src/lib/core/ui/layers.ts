@@ -105,9 +105,14 @@ export const LAYERS = [
 	layer(
 		'progress',
 		'--layer-progress',
-		'The navigation progress bar. On top of everything because it is 2px ' +
-			'tall and pointer-events: none, so being above a modal costs nothing ' +
-			'and being under one would hide it.',
+		'Non-interactive activity indicators: the navigation progress bar, and ' +
+			'the sending notice that explains the browser\'s unload prompt. On top ' +
+			'of everything because they are small and pointer-events: none, so being ' +
+			'above a modal costs nothing and being under one would hide them. The ' +
+			'sending notice needs that: it is the same fact as the wallet-action ' +
+			'modal in the system layer (a dispatch being awaited), and a sentence ' +
+			'about what leaving the page would cost is worth least when the user is ' +
+			'held by a modal and most likely to give up and reload.',
 	),
 ] as const satisfies readonly Layer[];
 

@@ -22,6 +22,7 @@ import {openFromNotification} from './kit/notification-navigation';
 import {createNotificationsService} from './core/notifications';
 import {createContext} from 'svelte';
 import type {Context} from './context/types';
+import type {SendingIndicatorPlacement} from './ui/in-flight/sending';
 import {env} from '$env/dynamic/public';
 
 export const hashParams = getHashParamsFromLocation();
@@ -86,6 +87,20 @@ export const serviceWorker = createServiceWorker(
 	{resolvePath, navigateTo: openFromNotification},
 	notifications,
 );
+
+/**
+ * Where the "sending..." indicator goes, or whether it goes anywhere.
+ *
+ * HERE RATHER THAN IN THE LAYOUT, for the reason `+layout.svelte` gives about
+ * the identity constants it imports instead of spelling out: that file is the
+ * most-edited in the template, so a choice parked in its markup costs a merge
+ * conflict to every fork that makes a different one. A descendant flips this
+ * line; `main` keeps editing the layout around it.
+ *
+ * See `SendingIndicatorPlacement` for what each value means, and in particular
+ * for what `'none'` does NOT turn off.
+ */
+export const sendingIndicator: SendingIndicatorPlacement = 'floating';
 
 const [getAppContextFunction, setAppContext] = createContext<() => Context>();
 
