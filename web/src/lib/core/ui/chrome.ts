@@ -35,6 +35,14 @@ import type {Component} from 'svelte';
  * only that a bar EXISTS and where it sits. A bar wired here would need its
  * dependencies threaded through the shell, and the shell would then know what
  * an RPC is.
+ *
+ * AND WHY THEY KNOW NOTHING ABOUT PINNING
+ *
+ * A bar is a plain `{#if condition}<div>`. `AppShell` pins the whole group, so
+ * a bar carries no `sticky`, no offset and no z-index of its own. That is not
+ * tidying: when each bar pinned itself they all pinned to the SAME offset, so
+ * two live conditions put the second bar exactly on top of the first. See the
+ * note in `AppShell.svelte`, and `chrome-stacking` in the shell's e2e.
  */
 export type ChromeBar = {
 	/** Stable identity, used as the `{#each}` key and in tests. */

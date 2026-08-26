@@ -40,7 +40,7 @@
 
 {#if noRpcYet && !$offline.offline}
 	<div
-		class="sticky top-[var(--navbar-height)] z-40 flex w-full items-center justify-between gap-3 border-b border-sky-900 bg-sky-950 px-4 py-2"
+		class="flex w-full items-center justify-between gap-3 border-b border-sky-900 bg-sky-950 px-4 py-2"
 	>
 		<div class="flex items-center gap-2">
 			<WifiOffIcon class="h-4 w-4 shrink-0 text-sky-400" />
@@ -59,7 +59,7 @@
 	</div>
 {:else if !$rpcHealth.healthy && $rpcHealth.error && !$offline.offline}
 	<div
-		class="sticky top-[var(--navbar-height)] z-40 flex w-full items-center justify-between gap-3 border-b border-amber-900 bg-amber-950 px-4 py-2"
+		class="flex w-full items-center justify-between gap-3 border-b border-amber-900 bg-amber-950 px-4 py-2"
 	>
 		<div class="flex items-center gap-2">
 			<WifiOffIcon class="h-4 w-4 shrink-0 text-amber-400" />

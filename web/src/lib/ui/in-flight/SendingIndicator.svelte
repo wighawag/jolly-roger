@@ -46,8 +46,8 @@
      able to drift between them. -->
 {#snippet message()}
 	{#if $sending.count > 1}
-		Sending {$sending.count} transactions. Leaving the page now means waiting to
-		find out whether they went through.
+		Sending {$sending.count} transactions. Leaving the page now means waiting to find
+		out whether they went through.
 	{:else}
 		Sending{$sending.description ? ` ${$sending.description}` : ''}. Leaving the
 		page now means waiting to find out whether it went through.
@@ -58,7 +58,7 @@
 	{#if placement === 'banner'}
 		<div
 			data-testid="sending-notice"
-			class="sticky z-40 flex w-full items-center gap-2 border-b border-amber-900 bg-amber-950 px-4 py-2 top-[var(--navbar-height)]"
+			class="flex w-full items-center gap-2 border-b border-amber-900 bg-amber-950 px-4 py-2"
 			role="status"
 			aria-live="polite"
 		>
@@ -72,7 +72,7 @@
 		     the SAME `--navbar-height` the navbar sizes itself with (app.css), so a
 		     taller navbar moves this instead of being overlapped by it. -->
 		<div
-			class="pointer-events-none fixed inset-x-0 flex justify-center px-4 top-[calc(var(--navbar-height)+0.5rem)]"
+			class="pointer-events-none fixed inset-x-0 top-[calc(var(--navbar-height)+0.5rem)] flex justify-center px-4"
 			transition:fade={{duration: 150}}
 		>
 			<div

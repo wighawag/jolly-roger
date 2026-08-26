@@ -166,6 +166,80 @@ describe('The layout height shell', () => {
 		await page.context().setOffline(false);
 	});
 
+	test('two live bars never cover each other', async ({page}) => {
+		// THE BUG, which is invisible with one bar and total with two. Every bar
+		// used to carry `sticky top-[var(--navbar-height)]`, meaning "pin me one
+		// navbar from the top", which is only true for the FIRST bar. Two live
+		// conditions pinned to the same offset, so a scroll of one bar's height put
+		// the second exactly on top of the first, and the first was never seen
+		// again. `AppShell` pins the group instead.
+		await page.setViewportSize({width: 1280, height: 348});
+		await page.goto('/');
+
+		await page.context().setOffline(true);
+		const first = page.getByTestId('offline-banner');
+		await expect(first).toBeVisible();
+
+		// A SECOND BAR, as a sibling in the same group. Injected rather than
+		// provoked: two real conditions at once needs a stale nonce cache alongside
+		// a dead network, which is a long setup for a fact about layout, and the
+		// claim here is about the POSITION a second bar occupies, not about which
+		// condition put it there. Same reasoning as the `h-full` probe above.
+		await page.evaluate(() => {
+			const offline = document.querySelector('[data-testid="offline-banner"]')!;
+			const probe = document.createElement('div');
+			probe.dataset.testid = 'probe-bar';
+			probe.style.height = '37px';
+			probe.style.background = 'rebeccapurple';
+			offline.after(probe);
+		});
+		const second = page.getByTestId('probe-bar');
+
+		// The bars do not pin themselves. If this ever reads `sticky` again, the
+		// offsets are back and so is the overlap.
+		expect(
+			await first.evaluate((el) => getComputedStyle(el).position),
+			'a bar leaves pinning to the shell',
+		).toBe('static');
+		expect(
+			await first.evaluate(
+				(el) => getComputedStyle(el.parentElement!).position,
+			),
+			'and the group around them is what is pinned',
+		).toBe('sticky');
+
+		const tops = async () => {
+			const a = (await first.boundingBox())!;
+			const b = (await second.boundingBox())!;
+			return {
+				aTop: Math.round(a.y),
+				aBottom: Math.round(a.y + a.height),
+				bTop: Math.round(b.y),
+			};
+		};
+
+		const atRest = await tops();
+		expect(atRest.bTop, 'the second bar sits under the first').toBe(
+			atRest.aBottom,
+		);
+
+		// Past the point where the old per-bar offsets collapsed onto each other.
+		await page.evaluate(() => window.scrollTo(0, 120));
+		await expect
+			.poll(async () => (await tops()).bTop, {
+				message: 'the second bar is still below the first, not on top of it',
+			})
+			.toBe((await tops()).aBottom);
+
+		const scrolled = await tops();
+		expect(
+			scrolled.aTop,
+			'the two never share a top, which is what the overlap looked like',
+		).not.toBe(scrolled.bTop);
+
+		await page.context().setOffline(false);
+	});
+
 	test('the chrome keeps its height when the viewport is too short for it', async ({
 		page,
 	}) => {

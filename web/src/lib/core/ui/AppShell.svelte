@@ -68,11 +68,12 @@
 
      THE CONCESSION that remains. A sticky element stays pinned only while its
      containing block is on screen, and this shell is exactly one viewport tall,
-     so the BARS run out of travel once a page can scroll further than `100dvh`
-     minus the chrome above them. That is why the navbar is `fixed` rather than
-     sticky: losing the navigation is losing the way out, while a bar that
-     scrolls away after a screenful of a long page is a bar that has already been
-     read. If a descendant decides otherwise, the fix is an app-shell scroller
+     so the BAR GROUP runs out of travel once a page can scroll further than
+     `100dvh` minus the navbar and the group's own height. One threshold for all
+     of them, since they pin as a group. That is why the navbar is `fixed`
+     rather than sticky: losing the navigation is losing the way out, while a bar
+     that scrolls away after a screenful of a long page is a bar that has already
+     been read. If a descendant decides otherwise, the fix is an app-shell scroller
      (`overflow-y-auto` on the content region), and the price was measured rather
      than guessed: back-navigation scroll restoration stops working entirely
      (SvelteKit saves and restores WINDOW scroll), the scroll-to-top on forward
@@ -82,12 +83,36 @@
 <div class="flex h-dvh flex-col pt-[var(--navbar-height)] [&>*]:shrink-0">
 	{@render navbar()}
 
-	{#each chrome as bar (bar.name)}
-		{@const Bar = bar.component}
-		{#if !bar.when || bar.when({routeId: routeId()})}
-			<Bar />
-		{/if}
-	{/each}
+	<!-- ONE STICKY ELEMENT FOR ALL THE BARS, not one per bar, and it is a
+	     correctness fix rather than tidying.
+
+	     Each bar used to carry `sticky top-[var(--navbar-height)]` itself, which
+	     says "pin me one navbar from the top" and is only true for the FIRST bar.
+	     With two conditions live (offline and a stale nonce cache, say) both
+	     pinned to the same offset, so 37px of scroll put the second bar exactly on
+	     top of the first and the first was never seen again. Measured before the
+	     fix: A=[48,85] and B=[48,85] from scrollY 60 onward.
+
+	     Pinning the GROUP has no such arithmetic to get wrong. The bars keep their
+	     natural order inside it, the offset is spelled once, and they arrive and
+	     leave together.
+
+	     It also takes the obligation off whoever adds the next bar. A bar is now a
+	     plain `{#if condition}<div>` with no idea it is pinned, so a descendant
+	     writing one cannot forget the class, cannot get the offset wrong, and does
+	     not add a fifth place spelling the navbar's height.
+
+	     `z-40` here rather than on each bar, so it is one rank against the page
+	     (below the navbar's `z-50`). Within the group DOM order decides, which is
+	     the same rule `context/AcrossPages.svelte` runs on. -->
+	<div class="sticky top-[var(--navbar-height)] z-40">
+		{#each chrome as bar (bar.name)}
+			{@const Bar = bar.component}
+			{#if !bar.when || bar.when({routeId: routeId()})}
+				<Bar />
+			{/if}
+		{/each}
+	</div>
 
 	<!-- The content region. `min-h-0` is the load-bearing half: without it a flex
 	     item refuses to be shorter than its content, the region grows past the
