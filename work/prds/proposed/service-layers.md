@@ -9,6 +9,13 @@ touches: with/local-signer, with/hosted-account, variant/offline
 
 # PRD: Service layers
 
+> **This file is the entry point for the whole plan.** Read it first and in full. Two companion documents hold the parts that belong elsewhere, and everything else is here.
+>
+> - `work/notes/findings/iso-timestamps-make-the-secp256k1-db-signature-ambiguous.md`, on this branch, is why Wave 2 is gated. Its conclusion is also carried upstream as an amendment to issue 2 of `secp256k1-db`'s `KNOWN-ISSUES.md`, so that repo does not need this one to act.
+> - `docs/plans/play-modes.md` in `template-commit-reveal` holds hotseat and the fixed player set. They are a seam rather than a layer, so they are deliberately out of scope here and must not become `with/*` branches.
+>
+> This branch is not part of the main working tree, so `ls` and `find` from the repo root will not show it. Read a file with `git show work:<path>`, or, if `git worktree list` shows a linked worktree for `work`, read it from disk there.
+
 ## Problem
 
 The template demonstrates a fully onchain app with no centralised component. The next step adds five capabilities that each need a service: an indexer, push notifications, account-data sync, chat and DMs, and an in-browser chain. Each is a mature repo already. None of them is integrated, and there is no agreed shape for integrating them.
@@ -129,7 +136,7 @@ Two design constraints to record while building: the service stores one record p
 
 `with/fuzd` at `template-commit-reveal`, for long-period commit-reveal.
 
-Play modes (hotseat, fixed player set with early advance) are **not** part of this PRD and must not become `with/*` branches. They are mutually exclusive alternatives rather than additive capability, so they are a seam, not a layer. They have their own spec in `template-commit-reveal`.
+Play modes (hotseat, fixed player set with early advance) are **not** part of this PRD and must not become `with/*` branches. They are mutually exclusive alternatives rather than additive capability, so they are a seam, not a layer. They have their own spec at `docs/plans/play-modes.md` in `template-commit-reveal`, which is on `main` there rather than on a notes branch.
 
 ## Cost
 
@@ -140,7 +147,7 @@ The number that does not shrink is verification: 10 nodes each needing check, un
 ## Out of scope
 
 - Designing any individual integration. Each layer gets its own task or spec.
-- Play modes and hotseat (separate spec, `template-commit-reveal`).
+- Play modes and hotseat (separate spec: `docs/plans/play-modes.md` in `template-commit-reveal`).
 - Production deployment topology for the services. Each has `platforms/`; how a given app deploys them is the app's decision, constrained only by R3.
 - `variant/offline`'s future beyond deciding it (0.2).
 
