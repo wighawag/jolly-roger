@@ -119,8 +119,29 @@
 </script>
 
 <!--navbar padding handled by scrollbar-gutter on desktop, needs-gutter-padding class adds padding on touch devices, see app.css-->
+<!--
+	`fixed`, NOT `sticky`, and the height shell in `+layout.svelte` is the reason.
+	A sticky element can only stay pinned while its containing block is on screen,
+	and the shell is exactly `100dvh` tall, so a sticky navbar's travel runs out
+	after `100dvh - var(--navbar-height)` of scroll. Any page that can scroll
+	further than that (content taller than about two viewports, which the HOME
+	page already is on a short window or a phone in landscape) scrolled the
+	navigation off the top and left the user with no way back. Out of flow, there
+	is no containing block to run out of.
+
+	The shell reserves the space with `pt-[var(--navbar-height)]`, which is why
+	this is not a second hardcoded number: the height below and the padding there
+	are the same variable.
+
+	`w-full` still lines up with the content under it because
+	`scrollbar-gutter: stable both-edges` (app.css) puts the gutters inside
+	`html`'s padding box, so the containing block a fixed element resolves against
+	is ALREADY inset by them. Measured: 1250 wide at left 15 in a 1280 viewport,
+	no horizontal overflow. Drop that `scrollbar-gutter` line and this bar
+	silently becomes a scrollbar wider than everything beneath it.
+-->
 <nav
-	class="needs-gutter-padding sticky top-0 left-0 z-50 flex h-[var(--navbar-height)] w-full items-center justify-between bg-background py-4 shadow-md"
+	class="needs-gutter-padding fixed top-0 left-0 z-50 flex h-[var(--navbar-height)] w-full items-center justify-between bg-background py-4 shadow-md"
 >
 	<div class="m-1 flex h-full items-center space-x-4">
 		<span class="inline-flex items-baseline gap-4">

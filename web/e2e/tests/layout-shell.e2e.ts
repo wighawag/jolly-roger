@@ -82,6 +82,45 @@ describe('The layout height shell', () => {
 		);
 	});
 
+	test('the navbar survives a page that out-scrolls what a sticky one could reach', async ({
+		page,
+	}) => {
+		// A sticky element stays pinned only while its containing block is on
+		// screen, and the shell is exactly `100dvh`, so a sticky navbar's travel is
+		// `100dvh - var(--navbar-height)`. The trigger is therefore NOT "a long
+		// page": it is a page taller than roughly two viewports, which a laptop
+		// window at half height or a phone in landscape reaches on the HOME page,
+		// the shortest one there is. That is why the navbar is `fixed`.
+		await page.setViewportSize({width: 1280, height: 348});
+		await page.goto('/');
+
+		const {nav, viewportHeight} = await geometry(page);
+		const maxScroll = await page.evaluate(() => {
+			const doc = document.documentElement;
+			return doc.scrollHeight - doc.clientHeight;
+		});
+
+		// THE PRECONDITION, asserted rather than assumed. If the home page ever
+		// stops scrolling this far, the assertion below still passes while proving
+		// nothing, and the bug walks back in silently. That is exactly how it got
+		// in: the suite runs at 720 tall by default, where nothing comes close.
+		expect(
+			maxScroll,
+			'the page has to out-scroll a sticky navbar, or this test proves nothing',
+		).toBeGreaterThan(viewportHeight - nav!.height);
+
+		await page.evaluate(() =>
+			window.scrollTo(0, document.documentElement.scrollHeight),
+		);
+
+		// Still at the top of the viewport, at the very bottom of the document.
+		await expect
+			.poll(async () => Math.round((await geometry(page)).nav!.top), {
+				message: 'the navbar is still pinned at the bottom of the scroll',
+			})
+			.toBe(0);
+	});
+
 	test('a durable-condition bar shrinks the page instead of pushing it down', async ({
 		page,
 	}) => {

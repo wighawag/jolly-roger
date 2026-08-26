@@ -84,11 +84,17 @@
 		<KitNavigation />
 		<!-- THE HEIGHT SHELL, and the one place that decides how tall the app is.
 
-		     A viewport-tall column: chrome (the navbar and the in-flow bars) as
-		     fixed-size children, and the page in a `flex-1 min-h-0` region, which
-		     makes that region EXACTLY what the chrome leaves and never more. A banner
-		     appearing therefore SHRINKS the page instead of pushing it down: nothing
-		     goes under the fold, and nothing re-lays-out when the banner leaves.
+		     A viewport-tall column: the in-flow bars as fixed-size children, and the
+		     page in a `flex-1 min-h-0` region, which makes that region EXACTLY what
+		     the chrome leaves and never more. A banner appearing therefore SHRINKS the
+		     page instead of pushing it down: nothing goes under the fold, and nothing
+		     re-lays-out when the banner leaves.
+
+		     The navbar is the exception: it is `fixed` (see navbar.svelte for why a
+		     sticky one could not survive this shell), so it is not a row here, and
+		     `pt-[var(--navbar-height)]` is how the column reserves its space instead.
+		     Same variable the navbar sizes itself with, so this is one number, not
+		     two.
 
 		     WHAT IT BUYS A DESCENDANT: inside the region, `h-full` means "the
 		     viewport minus whatever chrome is up right now", so an app with a canvas,
@@ -109,23 +115,31 @@
 		     affordable.
 
 		     `[&>*]:shrink-0` so that chrome is chrome: on a short viewport the bars
-		     keep their height and the page absorbs the loss, rather than a squashed
-		     navbar. It reaches the content region too, harmlessly: that one grows
-		     from a basis of 0, so there is never anything to shrink.
+		     keep their height and the page absorbs the loss, rather than every bar
+		     being squeezed into illegibility at once. It reaches the content region
+		     too, harmlessly: that one grows from a basis of 0, so there is never
+		     anything to shrink.
 
-		     THE CONCESSION, since this is a height contract for every descendant at
-		     once. The DOCUMENT is still the scroller, which is what keeps ordinary
-		     pages ordinary: a page longer than the region overflows it and the window
+		     THE DOCUMENT IS STILL THE SCROLLER, which is what keeps ordinary pages
+		     ordinary: a page longer than the region overflows it and the window
 		     scrolls, with native scroll restoration on back, the mobile URL bar
 		     retracting, pull-to-refresh, and `scrollbar-gutter` (app.css) all
-		     unchanged. The price is that sticky chrome can only stay pinned while its
-		     containing block - this shell - is on screen, so on a long page the bars
-		     scroll away after one screenful instead of staying up forever. An app
-		     that would rather keep them pinned can put `overflow-y-auto` on the
-		     content region and have an app-shell scroller instead, and then owes that
-		     whole list back: SvelteKit saves and restores WINDOW scroll, so a region
-		     that scrolls itself has to manage its own. -->
-		<div class="flex h-dvh flex-col [&>*]:shrink-0">
+		     unchanged.
+
+		     THE CONCESSION that remains. A sticky element stays pinned only while its
+		     containing block is on screen, and this shell is exactly one viewport
+		     tall, so the BARS run out of travel once a page can scroll further than
+		     `100dvh` minus the chrome above them. That is why the navbar is `fixed`
+		     rather than sticky: losing the navigation is losing the way out, while a
+		     bar that scrolls away after a screenful of a long page is a bar that has
+		     already been read. If a descendant decides otherwise, the fix is an
+		     app-shell scroller (`overflow-y-auto` on the content region), and the
+		     price was measured rather than guessed: back-navigation scroll
+		     restoration stops working entirely (SvelteKit saves and restores WINDOW
+		     scroll), the scroll-to-top on forward navigation has to be reimplemented,
+		     and `scrollbar-gutter` has to move off `html` or the navbar ends up
+		     misaligned with the content by a scrollbar's width. -->
+		<div class="flex h-dvh flex-col pt-[var(--navbar-height)] [&>*]:shrink-0">
 			<!-- The framework's answers, handed to components that must not ask for
 			     themselves. Getters, so reading them inside those components tracks
 			     `page`/`navigating` as if they had. See src/lib/kit/README.md. -->
