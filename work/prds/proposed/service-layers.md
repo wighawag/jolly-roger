@@ -126,11 +126,23 @@ One invariant to carry into the integration, because it is what the whole proper
 
 **Decision 2 verified against synqable's merge, 2026-08-26.** waxdb assumes the device is the source of truth and the server a cache, which is what makes decision 1's empty-record start acceptable rather than data loss. That assumption is about the client, so it was checked against `mergeStore` rather than taken on trust. Against a brand-new empty server record, local data survives, `hasLocalChanges` is set so it is re-pushed, tombstones are preserved so a delete is not resurrected, and a second device converges to the union rather than clobbering with a whole-blob last write. The migration path is sound.
 
-**The user responsibility is the schema, and it is a real footgun.** A `permanent` field is whole-value last-writer-wins: two devices editing different entries of the same `permanent` collection lose one of the edits entirely. A `map` field merges per key and converges to the union. Both verified. So anything concurrently edited on more than one device must be modelled as a `map`, and `permanent` is for values that are genuinely single-valued. This is the "if you do the right thing it works" clause, and since it is invisible at the type level it belongs in the layer's documentation and in whatever schema the template ships as the example.
+**The user responsibility is the schema, and synqable 0.1.0 reshaped it.** Field types are now named after merge granularity, which is the property that decides whether a concurrent edit survives:
+
+| type | granularity | for |
+|---|---|---|
+| `value<T>()` | whole value | a single value, or a struct whose properties carry a joint invariant |
+| `record<T>()` | per property | a fixed, heterogeneous struct with independently editable properties |
+| `map<T>()` | per key | an open, homogeneous collection, with `deleteAt` and TTL |
+
+`permanent<T>()` is renamed `value<T>()`, and `update()` is now available only on record fields. This came out of an investigation this plan prompted; the reasoning is in synqable's `plans/field-types-and-merge-granularity.md`.
+
+**The rule for choosing, which the compiler cannot help with.** `value` and `record` accept the same `T`, so nothing type-checks the decision: the axis is whether the properties carry a **joint invariant**, which is domain knowledge. `value<{start, end}>` where `start <= end` must stay a value field, because merging the properties independently can converge on a range that existed on no device.
+
+The two mistakes are asymmetric, and that asymmetry is the tie-breaker. A mergeable struct modelled as `value` **loses an edit**: visible, and the surviving state did exist somewhere. An atomic struct modelled as `record` produces a **torn write**: silent, and the resulting state existed nowhere. So prefer `value` when unsure. That belongs in the example schema this layer ships, since it is exactly the decision an adopter copies without re-deriving.
 
 **Residual risk worth knowing, not a blocker:** tombstones are garbage-collected once `deleteAt <= now`. A device offline for longer than the tombstone lifetime can resurrect an item it deleted, when it eventually reconverges. That is the standard cost of last-writer-wins with tombstone expiry rather than anything waxdb or synqable does wrong, and it is bounded by the lifetime the schema sets. Choose that lifetime against how long a device may plausibly be away.
 
-**Smaller than estimated:** synqable already ships a `secp256k1-db` sync adapter, so a waxdb adapter is a sibling of an existing worked example rather than a first.
+**Smaller than estimated:** synqable already ships a `secp256k1-db` sync adapter, so a waxdb adapter is a sibling of an existing worked example rather than a first. The 0.1.0 field-type work did not move the adapter surface: `SyncAdapter` still carries `InternalStorage<S>` as an opaque whole in both directions and encryption still wraps the entire serialised blob, so a waxdb adapter has nothing new to accommodate. One storage-shape note if it ever inspects rather than stores: `$itemTimestamps` is now keyed over record fields as well as map fields, and record fields deliberately carry no entry in `$timestamps`.
 
 Two design constraints to record while building: the service stores one record per `(address, namespace)`, so sync granularity is whole-document last-writer-wins with no partial sync, and the payload grows with account data. Both follow from synqable's LWW model and are acceptable, but they should be written down rather than discovered.
 
