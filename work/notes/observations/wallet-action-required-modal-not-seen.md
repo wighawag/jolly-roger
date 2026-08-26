@@ -69,3 +69,15 @@ The two hypotheses this was tested against:
 
 1. `mechanism.name` is not what we think during that session (if anything ever reports `Burner Wallet` while Rabby is connected, the suppression above fires and everything follows).
 2. The request never reaches the tracked provider, so `pendingRequests` stays empty (state problem), as opposed to the modal failing to render (view problem). The log distinguishes these two immediately.
+
+### Consequence for the sending indicator, and why `main` keeps it (2026-08-26)
+
+Raised while deciding whether `main` needs the sending indicator at all, on the reasoning that it already has the "Wallet Action Required" modal. It does not, and this suppression is why.
+
+Because `isBurnerWalletInSelectionPhase` is true for the burner at every step past selection, `shouldPromptForWalletAction` returns false for the whole life of a burner session, dispatches included. So `main` has a SILENT SEND PATH: with `?burner=true` (or the dev accounts), a transaction goes out with no modal, exactly as it does with a local signer on `with/local-signer`. The unload guard still arms, because it is derived from `$inFlight.dispatching` and knows nothing about mechanisms.
+
+That settles a question that looked like a `main`-versus-variant judgement call. `sendingIndicator` stays `'floating'` at `main` (6d6711d): turning it off there would restore the unexplained blocking dialog for the burner, which is the path the template is most used on in development. It is `template-comit-reveal` and other descendants with their own in-flight affordance that should set `'none'`.
+
+Worth noticing that this predicate has now shaped three separate things: the modal a user never sees, an escape hatch the e2e suite could not reach (which is why `e2e/fixtures/stalling-wallet.ts` exists), and now a UI decision about a different surface entirely, made two branches away by someone reasoning from the modal's apparent presence. Each time the cost was the same: the name says "while choosing" and the behaviour is "always, for this wallet", so the call sites read as narrower than they are. The replacement is still the provider-level `requiresNoUserConfirmation` signal the TODO already names.
+
+Unrelated to the predicate, recorded here because it came out of the same work: `e2e/fixtures/stalling-wallet.ts` now holds a POOL of accounts with a `stallingAccountIndex` claim per suite, rather than one address. The one-address version was fine while one suite used the fixture, and the second suite that needed the dispatch window turned it into a nonce race. `test/e2e-account-claims.test.ts` checks those claims the way it already checked `walletAccountIndex`.
