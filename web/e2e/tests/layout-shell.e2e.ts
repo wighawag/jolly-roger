@@ -298,49 +298,114 @@ describe('The layout height shell', () => {
 		await page.context().setOffline(false);
 	});
 
-	test('the chrome keeps its height when the viewport is too short for it', async ({
+	test('the chrome keeps its height when the viewport is genuinely too short for it', async ({
 		page,
 	}) => {
-		await page.setViewportSize({width: 800, height: 220});
+		// GENUINELY too short, which is the whole point and what this test used to
+		// miss: at 220 the chrome is 85 and the region is a comfortable 135, so
+		// nothing is under pressure and the old assertion (`height >= 0`, which a
+		// DOMRect can never fail) passed on a case that never arose.
+		//
+		// 80 is below `48 + 37`, so the chrome cannot fit however the space is
+		// divided, and `[&>*]:shrink-0` is finally load-bearing.
+		await page.setViewportSize({width: 1280, height: 80});
 		await page.goto('/');
-		const navHeight = (await geometry(page)).nav!.height;
-
 		await page.context().setOffline(true);
-		await expect(page.getByTestId('offline-banner')).toBeVisible();
+		const bar = page.getByTestId('offline-banner');
+		await expect(bar).toBeVisible();
 
-		// Space is scarce enough that something has to give. It is the page, not
-		// the chrome: a squashed navbar is a broken navbar, while a short content
-		// region is just a page that scrolls.
 		const after = await geometry(page);
-		expect(Math.round(after.nav!.height)).toBe(Math.round(navHeight));
-		expect(after.content!.height).toBeGreaterThanOrEqual(0);
+		const barHeight = Math.round((await bar.boundingBox())!.height);
+
+		// Something has to give, and it is the page rather than the chrome. A
+		// squashed navbar is a broken navbar and an unreadable bar reports nothing,
+		// while a region of zero is just a page that has to be scrolled to.
+		expect(Math.round(after.nav!.height), 'the navbar keeps its height').toBe(
+			48,
+		);
+		expect(barHeight, 'and so does the bar').toBeGreaterThan(30);
+		expect(
+			Math.round(after.content!.height),
+			'the region gives up everything rather than going negative',
+		).toBe(0);
+
+		// And the chrome that no longer fits is still reachable, because the
+		// document scrolls. Without this the bar would be permanently half off
+		// screen with no way to see the rest of it.
+		expect(
+			after.documentScrolls,
+			'the overflowing chrome can still be scrolled to',
+		).toBe(true);
 
 		await page.context().setOffline(false);
 	});
 
-	test('ordinary pages still scroll the document', async ({page}) => {
-		// The three pages a descendant inherits that are meant to be longer than
-		// the screen. The shell clamps the REGION, not the page: content taller
-		// than the region overflows it and the window scrolls, which is what keeps
-		// native scroll restoration, the mobile URL bar and pull-to-refresh
-		// working. If the region ever became the scroller, these would report no
-		// document scroll at all.
-		for (const path of ['/demo/', '/transactions/', '/explorer/']) {
+	test('a page taller than the region scrolls the WINDOW, not the region', async ({
+		page,
+	}) => {
+		// The half of the contract that keeps ordinary pages ordinary. The shell
+		// clamps the REGION, not the page: content taller than the region overflows
+		// it and the window scrolls, which is what keeps native scroll restoration,
+		// the mobile URL bar and pull-to-refresh working. The day the region becomes
+		// a scroll container, all three go with it and nothing else here notices.
+		//
+		// MEASURED AGAINST A PROBE rather than against a real page, deliberately.
+		// This used to assert that `/demo/`, `/transactions/` and `/explorer/` were
+		// taller than the viewport, which is a fact about CONTENT: it depends on
+		// whether a wallet is connected, on how many transactions exist, and on an
+		// empty state nobody thought of as load-bearing. The claim here is about the
+		// SHELL, so the height is supplied rather than hoped for.
+		await page.setViewportSize({width: 1280, height: 600});
+		await page.goto('/');
+
+		const before = await geometry(page);
+		await page.evaluate((height) => {
+			const probe = document.createElement('div');
+			probe.dataset.testid = 'tall-probe';
+			probe.style.height = `${height}px`;
+			document.querySelector('[data-app-content]')!.appendChild(probe);
+		}, before.content!.height * 3);
+
+		const after = await geometry(page);
+		expect(after.documentScrolls, 'the window is the scroller').toBe(true);
+		expect(
+			Math.round(after.content!.bottom),
+			'and the region did not grow to fit: it is a height contract',
+		).toBe(after.viewportHeight);
+
+		await page.evaluate(() => window.scrollBy(0, 300));
+		expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+		expect(
+			await page.evaluate(
+				() => document.querySelector('[data-app-content]')!.scrollTop,
+			),
+			'the region itself never scrolled, so scroll restoration still applies',
+		).toBe(0);
+	});
+
+	test('every inherited route renders into the region', async ({page}) => {
+		// A smoke pass over the routes a descendant inherits. It asserts only what
+		// is true regardless of app state, because that is the lesson from the test
+		// above: a route-level check that depends on how much content happens to be
+		// there is a flake waiting for an empty wallet.
+		await page.setViewportSize({width: 1280, height: 600});
+
+		for (const path of ['/', '/demo/', '/transactions/', '/explorer/']) {
 			await page.goto(path);
-			await page.setViewportSize({width: 800, height: 400});
+			const {content, nav, viewportHeight} = await geometry(page);
 
-			const {content, documentScrolls, viewportHeight} = await geometry(page);
-			expect(documentScrolls, `${path} scrolls the document`).toBe(true);
-
-			// The region itself stayed put while the page overflowed it: it is a
-			// height contract, not a scroll container.
-			expect(Math.round(content!.bottom)).toBe(viewportHeight);
-
-			await page.evaluate(() => window.scrollBy(0, 300));
+			expect(content, `${path} renders into the region`).toBeTruthy();
+			// `>=` rather than `===`: a route may raise a bar of its own (the RPC one
+			// is gated to non-home routes), which pushes the region further down. What
+			// must hold everywhere is that the region never starts ABOVE the chrome,
+			// i.e. never paints over it.
 			expect(
-				await page.evaluate(() => window.scrollY),
-				`${path} actually scrolled`,
-			).toBeGreaterThan(0);
+				Math.round(content!.top),
+				`${path} starts below the chrome`,
+			).toBeGreaterThanOrEqual(Math.round(nav!.bottom));
+			expect(Math.round(content!.bottom), `${path} ends at the fold`).toBe(
+				viewportHeight,
+			);
 		}
 	});
 });
