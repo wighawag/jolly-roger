@@ -269,6 +269,14 @@ html {
    thing that raised it, look at declaration order, not at timing.
    --------------------------------------------------------------------------- */
 :root {
+	/* The navbar's height, read by the navbar itself AND by anything that has to
+	   sit clear of it from outside the flow (the floating sending notice, which
+	   lives in an overlay layer at the end of the document and so cannot ask the
+	   navbar how tall it is). Two hardcoded numbers would drift the moment the
+	   chrome changed, and the symptom would be a surface overlapping the navbar
+	   on one screen size. */
+	--navbar-height: 3rem;
+
 	--z-layer-drawer: 100;
 	--z-layer-notice: 110;
 	--z-layer-toast: 120;

@@ -2,7 +2,13 @@
 	import '../app.css';
 
 	import {version} from '$app/environment';
-	import {serviceWorker, notifications, params, route} from '$lib';
+	import {
+		serviceWorker,
+		notifications,
+		params,
+		route,
+		sendingIndicator,
+	} from '$lib';
 	import {
 		provideRoute,
 		provideENS,
@@ -20,7 +26,8 @@
 	import RpcHealthBanner from '$lib/ui/rpc-health/RpcHealthBanner.svelte';
 	import NonceCacheBanner from '$lib/ui/nonce-cache/NonceCacheBanner.svelte';
 	import OfflineBanner from '$lib/ui/offline/OfflineBanner.svelte';
-	import SendingBanner from '$lib/ui/in-flight/SendingBanner.svelte';
+	import SendingIndicator from '$lib/ui/in-flight/SendingIndicator.svelte';
+	import {sendingIndicatorSlot} from '$lib/ui/in-flight/sending';
 	import {createENSService} from '$lib/core/ens';
 	import {PUBLIC_ENS_NODE_URL} from '$env/static/public';
 	import {Toaster} from '$lib/shadcn/ui/sonner';
@@ -79,7 +86,15 @@
 		     themselves. Getters, so reading them inside those components tracks
 		     `page`/`navigating` as if they had. See src/lib/kit/README.md. -->
 		<Navbar {repoURL} {communityURL} currentPath={() => page.url.pathname} />
-		<SendingBanner />
+		<!-- Only the in-flow placement lands here, beside the other bars. The
+		     default one floats and is rendered in an overlay layer below, because it
+		     is transient action feedback rather than a condition the page should
+		     make room for. `$lib` decides which, and `sendingIndicatorSlot` is where
+		     that choice becomes a mount point, so a placement with nowhere to go is
+		     a type error rather than a knob that silently does nothing. -->
+		{#if sendingIndicatorSlot(sendingIndicator) === 'flow'}
+			<SendingIndicator inFlight={context.context.inFlight} placement="banner" />
+		{/if}
 		<OfflineBanner />
 		<NonceCacheBanner />
 		{#if showRpcBanner}
@@ -134,6 +149,19 @@
 
 {#snippet progressLayer()}
 	<NavigationProgress isNavigating={() => !!navigating.to} />
+	<!-- HERE RATHER THAN IN THE TOAST LAYER, which is where it started. A system
+	     modal (the wallet-action prompt) sits above the toast layer and dims what
+	     is under its backdrop, so the one sentence explaining what leaving the
+	     page would cost was greyed out exactly while the user was being held by a
+	     modal, which is when they are most likely to give up and reload. Both are
+	     views of the SAME fact, a dispatch being awaited, so neither can be said
+	     to interrupt the other. See the layer's `holds` in core/ui/layers.ts.
+
+	     The ledger is passed in because this is OUTSIDE `<Context>`: a layer
+	     container is a sibling of it, so there is no app context to ask here. -->
+	{#if sendingIndicatorSlot(sendingIndicator) === 'overlay'}
+		<SendingIndicator inFlight={context.context.inFlight} placement="floating" />
+	{/if}
 {/snippet}
 
 {#each LAYERS as layer (layer.id)}

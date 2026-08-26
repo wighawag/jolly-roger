@@ -77,58 +77,97 @@ describe('e2e wallet account claims', () => {
 });
 
 /**
- * The stalling wallet is a SECOND account pool, and it holds exactly one account.
+ * The stalling wallet is a SECOND account pool, with its own claims.
  *
- * It sends real transactions from an address of its own rather than a burner
- * one, so the rule above cannot see it: `walletAccountIndex` says nothing about
- * it. The same hazard applies though, and worse, because there is only one
- * address to go round: two suites driving it in parallel race for its nonce, and
- * that surfaces as an unrelated test failing on a transaction that never
- * appeared. Both facts are checked here rather than trusted to a comment.
+ * It sends real transactions from addresses of its own rather than burner ones,
+ * so the rule above cannot see it: `walletAccountIndex` says nothing about it.
+ * The same hazard applies though: two suites signing as one address race for its
+ * nonce, and that surfaces as an unrelated test failing on a transaction that
+ * never appeared.
+ *
+ * The claim is `installStallingWallet(page, {..., stallingAccountIndex: N})`,
+ * read from the call site the same way `walletAccountIndex` is, so it cannot be
+ * wrong out loud. It was "exactly one suite may use this fixture" while the pool
+ * held one address; the second suite that needed the dispatch window is what
+ * turned that into a pool.
  */
-describe('e2e stalling-wallet account', () => {
+describe('e2e stalling-wallet accounts', () => {
 	const FIXTURE = readFileSync(
 		new URL('../e2e/fixtures/stalling-wallet.ts', import.meta.url),
 		'utf8',
 	);
-	const account = FIXTURE.match(
-		/STALLING_WALLET_ACCOUNT =\s*'(0x[0-9a-fA-F]{40})'/,
-	)?.[1];
+	const pool =
+		FIXTURE.match(/STALLING_WALLET_ACCOUNTS = \[([\s\S]*?)\]/)?.[1] ?? '';
+	const accounts = [...pool.matchAll(/'(0x[0-9a-fA-F]{40})'/g)].map(
+		(match) => match[1],
+	);
+
+	/** `stallingAccountIndex: 1`, or the default of 0 when absent. */
+	function claimedStallingIndex(source: string): number {
+		const match = source.match(/stallingAccountIndex:\s*(\d+)/);
+		return match ? Number(match[1]) : 0;
+	}
 
 	const users = readdirSync(E2E_DIR)
 		.filter((name) => name.endsWith('.e2e.ts'))
-		.filter((name) =>
-			readFileSync(join(E2E_DIR, name), 'utf8').includes('stalling-wallet'),
-		);
+		.map((name) => ({name, source: readFileSync(join(E2E_DIR, name), 'utf8')}))
+		.filter(({source}) => source.includes('stalling-wallet'));
 
-	it('declares an address the test can find', () => {
-		// Guards the guard: a rename here would make both assertions below vacuous.
+	it('declares addresses the test can find', () => {
+		// Guards the guard: a rename here would make every assertion below vacuous.
 		expect(
-			account,
-			'STALLING_WALLET_ACCOUNT should be a literal address',
-		).toMatch(/^0x[0-9a-fA-F]{40}$/);
+			accounts.length,
+			'STALLING_WALLET_ACCOUNTS should be literal addresses',
+		).toBeGreaterThan(0);
 		expect(users.length).toBeGreaterThan(0);
 	});
 
 	it('stays clear of the accounts the burner offers', () => {
-		const clash = ACCOUNTS.filter(
-			(a) => a.toLowerCase() === account?.toLowerCase(),
+		const clash = accounts.filter((account) =>
+			ACCOUNTS.some((a) => a.toLowerCase() === account.toLowerCase()),
 		);
 		expect(
 			clash,
-			`the stalling wallet signs as ${account}, which is also in ` +
+			`the stalling wallet signs as ${clash.join(', ')}, which is also in ` +
 				`e2e/impersonate-addresses.json. It would then race a burner suite for ` +
-				`that account's nonce. Give it an address nothing else uses.`,
+				`that account's nonce. Give it addresses nothing else uses.`,
 		).toEqual([]);
 	});
 
-	it('is driven by at most one suite, since it has one account', () => {
+	it('never signs as the same address twice', () => {
+		const lowered = accounts.map((a) => a.toLowerCase());
+		expect(new Set(lowered).size, `duplicate in ${accounts.join(', ')}`).toBe(
+			accounts.length,
+		);
+	});
+
+	it('gives each driving suite an account of its own', () => {
+		const byIndex = new Map<number, string[]>();
+		for (const {name, source} of users) {
+			const index = claimedStallingIndex(source);
+			byIndex.set(index, [...(byIndex.get(index) ?? []), name]);
+		}
+
+		const shared = [...byIndex.entries()].filter(
+			([, names]) => names.length > 1,
+		);
 		expect(
-			users,
-			`these suites all drive the stalling wallet, which signs as a single ` +
-				`address, so they will race for its nonce under fullyParallel: ` +
-				`${users.join(', ')}. Give the fixture a second account and let each ` +
-				`suite pick one, the way walletAccountIndex does.`,
-		).toHaveLength(1);
+			shared,
+			`these suites drive the stalling wallet as the same address, so they ` +
+				`will race for its nonce under fullyParallel: ${shared
+					.map(([index, names]) => `index ${index}: ${names.join(', ')}`)
+					.join('; ')}. Pass a free stallingAccountIndex, adding an address to ` +
+				`STALLING_WALLET_ACCOUNTS if none is left.`,
+		).toEqual([]);
+	});
+
+	it('keeps every claim within the pool', () => {
+		for (const {name, source} of users) {
+			const index = claimedStallingIndex(source);
+			expect(
+				index,
+				`${name} claims stalling account ${index}, but only ${accounts.length} are configured`,
+			).toBeLessThan(accounts.length);
+		}
 	});
 });
