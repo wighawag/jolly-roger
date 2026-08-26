@@ -3,7 +3,11 @@
 	import {Button} from '$lib/shadcn/ui/button';
 </script>
 
-<div class="flex min-h-screen items-center justify-center bg-background p-8">
+<!-- `min-h-full`, not `min-h-screen`: this renders INSIDE the layout's content
+     region (`+layout.svelte`), so a viewport-tall box here would be taller than
+     the space left by the navbar and any bar that is up, and the error page
+     would arrive with a scrollbar. Full means full of what is left. -->
+<div class="flex min-h-full items-center justify-center bg-background p-8">
 	<div class="max-w-md text-center">
 		<h1 class="m-0 text-[6rem] leading-none font-bold text-muted-foreground">
 			{page.status}

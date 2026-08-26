@@ -9,6 +9,7 @@
 	import Badge from '$lib/shadcn/ui/badge/badge.svelte';
 	import {formatBalance} from '$lib/core/utils/format/balance';
 	import {countPendingOperations} from '$lib/view/operation';
+	import {createSendingPulse} from '$lib/ui/in-flight/sending';
 	import {effectiveGasPrice} from '$lib/core/connection/gasFee';
 	import {FaucetButton, hasFaucet} from '$lib/core/ui/faucet/index.js';
 	import MenuIcon from '@lucide/svelte/icons/menu';
@@ -44,7 +45,16 @@
 		clock,
 		deployments,
 		overlays,
+		inFlight,
 	} = getAppContext();
+
+	// A transaction being handed over RIGHT NOW, which is the window before it
+	// becomes an operation the badge below can count. Wordless and immediate on
+	// purpose: see the two-surface note in $lib/ui/in-flight/sending.ts. This is
+	// the rung that is on screen whenever the unload guard is armed, so it must
+	// not be delayed AND must not be hidden by a connection step: it is rendered
+	// outside the connected/disconnected branch below for that reason.
+	const sending = createSendingPulse(inFlight);
 
 	// The drawer closes itself on any navigation, and the back gesture closes it,
 	// because it is a registered view overlay. Nav links below therefore carry no
@@ -109,8 +119,29 @@
 </script>
 
 <!--navbar padding handled by scrollbar-gutter on desktop, needs-gutter-padding class adds padding on touch devices, see app.css-->
+<!--
+	`fixed`, NOT `sticky`, and the height shell in `+layout.svelte` is the reason.
+	A sticky element can only stay pinned while its containing block is on screen,
+	and the shell is exactly `100dvh` tall, so a sticky navbar's travel runs out
+	after `100dvh - var(--navbar-height)` of scroll. Any page that can scroll
+	further than that (content taller than about two viewports, which the HOME
+	page already is on a short window or a phone in landscape) scrolled the
+	navigation off the top and left the user with no way back. Out of flow, there
+	is no containing block to run out of.
+
+	The shell reserves the space with `pt-[var(--navbar-height)]`, which is why
+	this is not a second hardcoded number: the height below and the padding there
+	are the same variable.
+
+	`w-full` still lines up with the content under it because
+	`scrollbar-gutter: stable both-edges` (app.css) puts the gutters inside
+	`html`'s padding box, so the containing block a fixed element resolves against
+	is ALREADY inset by them. Measured: 1250 wide at left 15 in a 1280 viewport,
+	no horizontal overflow. Drop that `scrollbar-gutter` line and this bar
+	silently becomes a scrollbar wider than everything beneath it.
+-->
 <nav
-	class="needs-gutter-padding sticky top-0 left-0 z-50 flex h-12 w-full items-center justify-between bg-background py-4 shadow-md"
+	class="needs-gutter-padding fixed top-0 left-0 z-50 flex h-[var(--navbar-height)] w-full items-center justify-between bg-background py-4 shadow-md"
 >
 	<div class="m-1 flex h-full items-center space-x-4">
 		<span class="inline-flex items-baseline gap-4">
@@ -225,17 +256,61 @@
 				{#if transactionCount > 0}
 					<!-- Rendered only while operations are in flight, so its absence
 					     is the app's own "everything has settled" signal. Tests wait
-					     on this rather than on any one feature's pending marker. -->
+					     on this rather than on any one feature's pending marker.
+
+					     It PULSES while another transaction is being handed over, so
+					     the count and the "one more on its way" are one mark rather
+					     than two competing ones. Class only: the element, its testid
+					     and its count are untouched by the animation. -->
 					<span
 						data-testid="pending-operations"
 						data-count={transactionCount}
-						class="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground"
+						class="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground {$sending.sending
+							? 'animate-pulse ring-2 ring-primary/50'
+							: ''}"
 					>
 						{transactionCount > 99 ? '99+' : transactionCount}
 					</span>
 				{/if}
 			{:else}
 				<MenuIcon class="h-5 w-5" />
+			{/if}
+
+			{#if $sending.sending && transactionCount === 0}
+				<!-- The same corner as the badge, before there is anything to count: a
+				     transaction is on its way and has not become an operation yet. It
+				     becomes the badge the moment it does, so the mark grows into a
+				     number rather than one thing replacing another.
+
+				     OUTSIDE the connected branch, unlike the badge. A dispatch can
+				     outlive the step that started it (a wallet locking rebuilds its
+				     state), and this is the rung sending.ts promises is up whenever the
+				     unload guard is armed. Rendered inside, that promise would quietly
+				     be "whenever the account button happens to be showing", and the
+				     browser would ask about leaving with nothing at all on screen.
+
+				     A SEPARATE testid, deliberately. `pending-operations` means "the
+				     app is tracking N operations" and the e2e suite waits for it to
+				     reach zero to mean settled (see e2e/fixtures/test.ts). Reusing it
+				     for a dispatch with nothing recorded yet would make that wait
+				     answer a different question.
+
+				     `aria-hidden`, because the ordinary case is over in a few hundred
+				     milliseconds and announcing every one of those is noise. That does
+				     mean a screen reader gets NOTHING for a quick dispatch, not a
+				     quieter version of it; the concession is spelled out in
+				     $lib/ui/in-flight/sending.ts. -->
+				<span
+					data-testid="sending-transaction"
+					aria-hidden="true"
+					class="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center"
+				>
+					<span
+						class="absolute inline-flex h-3 w-3 animate-ping rounded-full bg-primary opacity-75"
+					></span>
+					<span class="relative inline-flex h-2 w-2 rounded-full bg-primary"
+					></span>
+				</span>
 			{/if}
 		</button>
 	</div>
