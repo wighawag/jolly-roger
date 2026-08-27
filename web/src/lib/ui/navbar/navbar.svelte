@@ -140,7 +140,12 @@
 	no horizontal overflow. Drop that `scrollbar-gutter` line and this bar
 	silently becomes a scrollbar wider than everything beneath it.
 -->
+<!-- `data-app-navbar` is the shell's contract, not decoration: it names the
+     element that IS the fixed chrome, whatever tag an app chooses for it. See
+     the `navbar` prop in core/ui/AppShell.svelte. A descendant that replaces
+     this file keeps the attribute on its own root. -->
 <nav
+	data-app-navbar
 	class="needs-gutter-padding fixed top-0 left-0 z-50 flex h-[var(--navbar-height)] w-full items-center justify-between bg-background py-4 shadow-md"
 >
 	<div class="m-1 flex h-full items-center space-x-4">
