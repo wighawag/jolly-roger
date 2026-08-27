@@ -90,9 +90,13 @@ At two feature branches this tax lands on roughly one merge in seven and the mer
 
 Choose the section boundaries from where the six conflicts actually landed, not from taste.
 
-**0.2 Decide `variant/offline`.** It is 121 commits behind and participates in no cascade. `with/webevm` may simply supersede it: an in-browser chain is a stronger answer to the same question. Decide and record it either way. Past a certain distance a merge stops being a merge and becomes a hand port, and that distance grows weekly.
+**0.2 Decide `variant/offline`. DONE, 2026-08-26: it is an ARCHIVE.** It reached 174 commits behind (121 four days earlier, so about 13 a day) and participates in no cascade. It is not to be reconciled, cascaded into, or counted as a node; `offshoot-fanout` should keep ignoring it and any future tree map should list it as archived rather than stale. `with/webevm` is where the offline question gets its real answer, and an in-browser chain is a stronger one than a branch nobody merges into. The decision costs nothing now and would only have got dearer: past a certain distance a merge stops being a merge and becomes a hand port.
 
-**0.3 Clear existing drift** in `bleeps`, `mandalas` and `template-commit-reveal` before adding nodes. They were eight commits behind with conflicts in application source. That is a different job from a template change and must not be entangled with one.
+**0.3 Clear existing drift. DONE, 2026-08-26.** `template-commit-reveal` was cleared by a cascade; `bleeps` and `mandalas` were merged by hand, each taking the same eight commits and each ending green (check, unit, and a full e2e run against a real chain).
+
+Worth carrying into every later wave, because it is the same lesson twice: **e2e caught what typechecking and 1,637 unit tests between them did not.** In `mandalas` that was a CSS comment closed twice (so `--navbar-height` never parsed and the shell reserved nothing), a measurement taken from `nav` where this app's chrome is the whole `header` (off by exactly one 4px rule), and two hardcoded template heights in an inherited suite. None of those is visible to `check`. This is the merge-tax finding's point restated: a clean merge is evidence about text, not about behaviour.
+
+A second, sharper trap: the auto-merge **silently dropped two definitions** in `bleeps` (`showRpcBanner` and the `repoURL`/`communityURL` import) while leaving their usages inside the conflict markers, so resolving by picking a side would have compiled to an undefined variable. Read the whole file, not the hunks.
 
 **0.4 Write the layer-shape ADR** (rules R1 to R5 above). One page. Without it, `with/all` becomes five bespoke integrations that happen to share a branch.
 
