@@ -6,7 +6,7 @@ import type {Context, TxObserverDebugState} from './types.js';
 import {deployments as deploymentsStore} from '$lib/deployments-store';
 import {createWalletClient, custom, http} from 'viem';
 import {privateKeyToAccount} from 'viem/accounts';
-import {writable, derived, type Readable} from 'svelte/store';
+import {writable, derived, type Readable, type Writable} from 'svelte/store';
 import {createAccountData} from '$lib/account/AccountData.js';
 import {establishRemoteConnection} from '$lib/core/connection';
 import {
@@ -82,15 +82,6 @@ import {
 import {startTxObserverLoop} from '$lib/core/tx-observer';
 import {parseImpersonateAddresses} from '$lib/dev-accounts.js';
 
-/**
- * Build the app context.
- *
- * Synchronous, and constructible off-browser: every service it composes idles
- * when browser APIs are absent, so this also runs during SSR and prerendering.
- * Nothing here starts IO; that belongs to `start()`, which the provider calls
- * from `onMount`. Readiness is expressed as store state, never as an
- * unresolved promise. See ADR-0002 (`work` branch).
- */
 /**
  * What `core.ts` hands the app's half, and what it expects back.
  *
@@ -192,73 +183,33 @@ export type AppFactory<App extends AppContext = AppContext> = (
 	core: CoreServices,
 ) => App;
 
-export function createCoreContext<App extends AppContext>(params: {
-	createApp: AppFactory<App>;
-}): {
-	context: Context;
-	start: () => () => void;
-} {
-	const {createApp} = params;
-	let cleanupBurnerWallet: (() => void) | undefined;
+/**
+ * THE COMPOSITION IS A SEQUENCE OF BUILDERS, AND EACH ONE NAMES WHAT IT NEEDS.
+ *
+ * This used to be one 570-line function. The problem was never its length: it
+ * was that the ORDER was load-bearing and invisible. Blocks had to sit above or
+ * below the app half depending on what they consumed, that constraint lived
+ * only in prose, and a merge that reordered them compiled perfectly and broke at
+ * runtime. One did: `a41dcb8` took main's reordering and had to place this
+ * branch's blocks against it by reading every comment in the file.
+ *
+ * Each builder below takes what it consumes as parameters, so the order is now
+ * checked. Move a call above something it needs and it is a type error at the
+ * call site, in this file, rather than an `undefined` capture discovered later.
+ *
+ * WHAT A DESCENDANT DOES: adds a builder of its own and one call, instead of
+ * inserting into the middle of a long sequence. `with/local-signer` adds five
+ * members this way (signerAddress, delegation, confirmation, topUp,
+ * delegationCheck) and its diff against this file becomes additive.
+ */
 
-	// Reasons the app cannot run. Collected rather than thrown: the context is
-	// also constructed during SSR / prerender, where a throw would fail the build
-	// instead of showing the user anything. See ADR-0002.
-	const fatal = writable<string | undefined>(undefined);
-
-	const burner = resolveBurnerWallet(
-		burnerOverride,
-		PUBLIC_USE_BURNER_WALLET,
-		PUBLIC_NODE_URL,
-	);
-	// An explicit `?burner=true` that cannot be honoured is an error rather than
-	// being silently ignored. It is raised in start() rather than here: it comes
-	// from the URL, which is empty on the server, so setting it now would make
-	// the browser's first render disagree with the prerendered HTML.
-	const burnerFatal =
-		burner.use === false && burner.error ? burner.error : undefined;
-	// Browser-only: the burner announces itself over EIP-6963 on `window`. The
-	// context is also constructed during SSR / prerender, where there is no
-	// wallet to announce to. See ADR-0002.
-	if (burner.use && typeof window !== 'undefined') {
-		const impersonateAddresses = parseImpersonateAddresses(
-			PUBLIC_IMPERSONATE_ADDRESSES,
-			{
-				onDropped: (entry) => {
-					if (!import.meta.env.DEV) return;
-					console.warn(
-						`[burner] ignoring "${entry}" in PUBLIC_IMPERSONATE_ADDRESSES: ` +
-							`it is not an address. The account picker will be one short.`,
-					);
-				},
-			},
-		);
-		if (import.meta.env.DEV && impersonateAddresses.length === 0) {
-			// Not fatal: the burner still announces itself and can hold its own
-			// generated account. But asking for a burner wallet and giving it nobody
-			// to impersonate is almost always a missing env var rather than intent,
-			// and the symptom (an account picker with nothing familiar in it) does
-			// not point at the cause.
-			console.warn(
-				'[burner] PUBLIC_USE_BURNER_WALLET is set but ' +
-					'PUBLIC_IMPERSONATE_ADDRESSES is empty, so there is nobody to ' +
-					'impersonate. See web/.env.localhost.',
-			);
-		}
-		const {cleanup} = initBurnerWallet({
-			nodeURL: burner.nodeURL,
-			impersonateAddresses: [...impersonateAddresses],
-		});
-		cleanupBurnerWallet = cleanup;
-	}
-
-	// How the app authenticates. `targetStep` is config (see core/connection/mode);
-	// only the hosted-mechanism host comes from env. Total, so nothing here can
-	// fail: there is no illegal combination left to reject.
-	const {targetStep, walletHost, walletOnly} = resolveConnectionConfig(
-		TARGET_STEP,
-		PUBLIC_WALLET_HOST,
-	);
+/** The chain connection. Needs only configuration, so it is first. */
+function buildConnection(params: {
+	targetStep: ReturnType<typeof resolveConnectionConfig>['targetStep'];
+	walletHost: ReturnType<typeof resolveConnectionConfig>['walletHost'];
+	walletOnly: ReturnType<typeof resolveConnectionConfig>['walletOnly'];
+}) {
+	const {targetStep, walletHost, walletOnly} = params;
 
 	/**
 	 * Whether this app has a local signer at all.
@@ -275,11 +226,11 @@ export function createCoreContext<App extends AppContext>(params: {
 
 	const {
 		connection,
+		signer,
+		chainInfo,
 		walletClient: rawWalletClient,
 		publicClient,
 		account,
-		signer,
-		chainInfo,
 		deployments,
 		forceRpcFailure,
 	} = establishRemoteConnection({
@@ -328,6 +279,32 @@ export function createCoreContext<App extends AppContext>(params: {
 	// wallet-facing RPC override.
 	const rawPayment = createPaymentRail(chainInfo, {nodeURL: PUBLIC_NODE_URL});
 
+	return {
+		connection,
+		signer,
+		chainInfo,
+		rawPayment,
+		hasLocalSigner,
+		rawWalletClient,
+		publicClient,
+		account,
+		deployments,
+		forceRpcFailure,
+	};
+}
+
+/** Chain-derived configuration, the clock, and per-account storage. */
+function buildChainConfig(params: {
+	targetStep: Parameters<typeof buildConnection>[0]['targetStep'];
+	walletOnly: Parameters<typeof buildConnection>[0]['walletOnly'];
+	fatal: Writable<string | undefined>;
+	deployments: ReturnType<typeof buildConnection>['deployments'];
+	connection: ReturnType<typeof buildConnection>['connection'];
+	account: ReturnType<typeof buildConnection>['account'];
+}) {
+	const {deployments, connection, account, targetStep, walletOnly, fatal} =
+		params;
+
 	// ----------------------------------------------------------------------------
 	// CHAIN CONFIGURATION
 	// ----------------------------------------------------------------------------
@@ -345,6 +322,8 @@ export function createCoreContext<App extends AppContext>(params: {
 	// resolved object (see CoreServices).
 	const {finality, txObserverProcessInterval, credits} = appConfig;
 
+	// The app's own RPC url, when it has one. Only the nonce-cache check below
+	// needs it, to compare the wallet's idea of the nonce against a trusted node.
 	// A local signer broadcasts raw transactions. It prefers a real node RPC
 	// (PUBLIC_NODE_URL or an rpcUrl configured on the chain), and REQUIRES one
 	// under hosted sign-in, where the account may have no wallet to fall back to.
@@ -410,6 +389,42 @@ export function createCoreContext<App extends AppContext>(params: {
 		scopeAddress: operationScopeAddress(deployments.get()),
 	});
 
+	return {
+		chain,
+		appConfig,
+		credits,
+		signerRpcUrl,
+		finality,
+		txObserverProcessInterval,
+		appRpcUrl,
+		hasAppRpc,
+		canReadChain,
+		chainFetchGate,
+		clock,
+		accountData,
+	};
+}
+
+/** The durable record of sends the app has not seen the fate of. */
+function buildInFlight(params: {
+	chain: ReturnType<typeof buildChainConfig>['chain'];
+	clock: ReturnType<typeof buildChainConfig>['clock'];
+	appRpcUrl: ReturnType<typeof buildChainConfig>['appRpcUrl'];
+	accountData: ReturnType<typeof buildChainConfig>['accountData'];
+	publicClient: ReturnType<typeof buildConnection>['publicClient'];
+	account: ReturnType<typeof buildConnection>['account'];
+	deployments: ReturnType<typeof buildConnection>['deployments'];
+}) {
+	const {
+		chain,
+		clock,
+		appRpcUrl,
+		accountData,
+		publicClient,
+		account,
+		deployments,
+	} = params;
+
 	// ----------------------------------------------------------------------------
 	// IN-FLIGHT TRANSACTION REQUESTS
 	// ----------------------------------------------------------------------------
@@ -458,26 +473,18 @@ export function createCoreContext<App extends AppContext>(params: {
 		}),
 	});
 
-	// THE THIRD CLIENT THAT SENDS, AND THE ONE THAT MOVES REAL MONEY.
-	//
-	// The payment rail carries a wallet client of its own, built by
-	// `createPaymentRail` from a SECOND connection with its own payer. It is a
-	// different OBJECT from the app wallet client and from the signer client, so
-	// guarding those two leaves this one uncovered, and it is the only one whose
-	// transactions the user paid for on purpose.
-	//
-	// The window is the same as everywhere else: the tab can die between the
-	// wallet returning a signature and the hash coming back, and a purchase lost
-	// there is one the app has no record of and cannot reconcile. That it needs a
-	// human at a wallet makes the window LONGER than the signer's, not shorter.
-	//
-	// Guarded here rather than inside `createPaymentRail`, because the ledger is
-	// this app's and the rail is a core building block that must not reach for
-	// one. Same reason the app wallet client is guarded at its call site.
-	const payment: PaymentRail = {
-		...rawPayment,
-		walletClient: guardDispatch(rawPayment.walletClient, inFlight),
-	};
+	return {inFlight};
+}
+
+/** The tracked, dispatch-guarded wallet client. AFTER the ledger it guards. */
+function buildWalletClient(params: {
+	rawPayment: ReturnType<typeof buildConnection>['rawPayment'];
+	clock: ReturnType<typeof buildChainConfig>['clock'];
+	rawWalletClient: ReturnType<typeof buildConnection>['rawWalletClient'];
+	publicClient: ReturnType<typeof buildConnection>['publicClient'];
+	inFlight: ReturnType<typeof buildInFlight>['inFlight'];
+}) {
+	const {clock, rawWalletClient, publicClient, inFlight, rawPayment} = params;
 
 	// ----------------------------------------------------------------------------
 	// TRACKED WALLET CLIENT
@@ -503,9 +510,68 @@ export function createCoreContext<App extends AppContext>(params: {
 		inFlight,
 	);
 
+	// THE THIRD CLIENT THAT SENDS, AND THE ONE THAT MOVES REAL MONEY.
+	//
+	// The payment rail carries a wallet client of its own, built by
+	// `createPaymentRail` from a SECOND connection with its own payer. It is a
+	// different OBJECT from the app wallet client and from the signer client, so
+	// guarding those two leaves this one uncovered, and it is the only one whose
+	// transactions the user paid for on purpose.
+	//
+	// The window is the same as everywhere else: the tab can die between the
+	// wallet returning a signature and the hash coming back, and a purchase lost
+	// there is one the app has no record of and cannot reconcile. That it needs a
+	// human at a wallet makes the window LONGER than the signer's, not shorter.
+	//
+	// Guarded here rather than inside `createPaymentRail`, because the ledger is
+	// this app's and the rail is a core building block that must not reach for
+	// one. Same reason the app wallet client is guarded at its call site.
+	const payment: PaymentRail = {
+		...rawPayment,
+		walletClient: guardDispatch(rawPayment.walletClient, inFlight),
+	};
+
+	return {walletClient, payment, trackerBuilder};
+}
+
+/** Who signs, what watches the result, and the connectors that file it. */
+function buildExecution(params: {
+	signer: ReturnType<typeof buildConnection>['signer'];
+	account: ReturnType<typeof buildConnection>['account'];
+	deployments: ReturnType<typeof buildConnection>['deployments'];
+	publicClient: ReturnType<typeof buildConnection>['publicClient'];
+	signerRpcUrl: ReturnType<typeof buildChainConfig>['signerRpcUrl'];
+	chainFetchGate: ReturnType<typeof buildChainConfig>['chainFetchGate'];
+	trackerBuilder: ReturnType<typeof buildWalletClient>['trackerBuilder'];
+	connection: ReturnType<typeof buildConnection>['connection'];
+	walletClient: ReturnType<typeof buildWalletClient>['walletClient'];
+	accountData: ReturnType<typeof buildChainConfig>['accountData'];
+	finality: ReturnType<typeof buildChainConfig>['finality'];
+	inFlight: ReturnType<typeof buildInFlight>['inFlight'];
+}) {
+	const {
+		connection,
+		walletClient,
+		accountData,
+		finality,
+		inFlight,
+		signer,
+		account,
+		deployments,
+		publicClient,
+		signerRpcUrl,
+		chainFetchGate,
+		trackerBuilder,
+	} = params;
+
 	// ----------------------------------------------------------------------------
+	// TRANSACTION EXECUTOR
+	// ----------------------------------------------------------------------------
+	// Named for WHOSE KEY SIGNS. Call sites use this instead of the wallet client
+	// plus account address, so the `from` address, the account argument and the
+	// client can never disagree about who is paying.
+	//
 	// TRANSACTION EXECUTORS
-	// ----------------------------------------------------------------------------
 	//
 	// TWO of them, named for WHO SIGNS, and call sites pick by intent. There is no
 	// mode and no default: "which account is this transaction from" is a property
@@ -592,25 +658,6 @@ export function createCoreContext<App extends AppContext>(params: {
 
 	// ----------------------------------------------------------------------------
 
-	// Whether this browser's signer may act for the account. Scoped to the
-	// account AND its signer, so it resets when either changes, and gated the
-	// same way the message poll is: with no app RPC there is nothing to read it
-	// over until a wallet is connected.
-	const signerAddress = derived(signer, ($signer) => $signer?.address);
-	const delegation = createDelegationState({
-		publicClient,
-		// The one delegation fact this app owns: which of its contracts adopted
-		// the library. The entry points come with the module.
-		registry: delegationRegistryAddress(deployments.get()),
-		// And the chain it is on, because a credential is bound to the PAIR: the
-		// same address on another chain is another contract entirely. Same value
-		// the connection declares its permission for, from the same place.
-		chainId: deployments.get().chain.id,
-		account,
-		signer: signerAddress,
-		fetchGate: chainFetchGate,
-	});
-
 	const txObserver = createTransactionObserver({
 		finality,
 		provider: connection.provider,
@@ -646,6 +693,46 @@ export function createCoreContext<App extends AppContext>(params: {
 		txObserver,
 	});
 
+	// Whether this browser's signer may act for the account. Scoped to the
+	// account AND its signer, so it resets when either changes, and gated the
+	// same way the message poll is: with no app RPC there is nothing to read it
+	// over until a wallet is connected.
+	const signerAddress = derived(signer, ($signer) => $signer?.address);
+	const delegation = createDelegationState({
+		publicClient,
+		// The one delegation fact this app owns: which of its contracts adopted
+		// the library. The entry points come with the module.
+		registry: delegationRegistryAddress(deployments.get()),
+		// And the chain it is on, because a credential is bound to the PAIR: the
+		// same address on another chain is another contract entirely. Same value
+		// the connection declares its permission for, from the same place.
+		chainId: deployments.get().chain.id,
+		account,
+		signer: signerAddress,
+		fetchGate: chainFetchGate,
+	});
+
+	return {
+		accountExecutor,
+		signerExecutor,
+		addressOf,
+		signerAddress,
+		delegation,
+		accountCannotSend,
+		errorDetails,
+		txObserver,
+		tabLeader,
+		trackedWalletConnector,
+		txObserverConnector,
+	};
+}
+
+/** Navigation, the overlay registry that follows it, and the toast connector. */
+function buildNavigation(params: {
+	accountData: ReturnType<typeof buildChainConfig>['accountData'];
+}) {
+	const {accountData} = params;
+
 	// ----------------------------------------------------------------------------
 	// NAVIGATION AND OVERLAYS
 	// ----------------------------------------------------------------------------
@@ -662,10 +749,32 @@ export function createCoreContext<App extends AppContext>(params: {
 		overlays,
 	});
 
+	return {navigation, overlays, toastConnector};
+}
+
+/** What the paying account holds, what a call costs, and whether it can pay. */
+function buildBalances(params: {
+	publicClient: ReturnType<typeof buildConnection>['publicClient'];
+	accountExecutor: ReturnType<typeof buildExecution>['accountExecutor'];
+	signerExecutor: ReturnType<typeof buildExecution>['signerExecutor'];
+	addressOf: ReturnType<typeof buildExecution>['addressOf'];
+	chainFetchGate: ReturnType<typeof buildChainConfig>['chainFetchGate'];
+}) {
+	const {
+		publicClient,
+		accountExecutor,
+		signerExecutor,
+		addressOf,
+		chainFetchGate,
+	} = params;
+
 	// ----------------------------------------------------------------------------
 	// BALANCE AND COSTS
 	// ----------------------------------------------------------------------------
 
+	// Balance of the account that pays. One account sends everything here, so
+	// there is one balance, and it is named for whose it is rather than for the
+	// role it plays.
 	// One balance per executor, named the same way. A call site that named the
 	// executor it sends from names the matching balance, so the two can never
 	// drift apart the way a single "the balance" did.
@@ -707,6 +816,197 @@ export function createCoreContext<App extends AppContext>(params: {
 		processCount: 0,
 		lastProcessTime: null,
 		isLeader: false,
+	});
+
+	return {
+		accountBalance,
+		signerBalance,
+		gasFee,
+		balanceCheck,
+		offline,
+		txObserverDebug,
+	};
+}
+
+/**
+ * Build the app context.
+ *
+ * Synchronous, and constructible off-browser: every service it composes idles
+ * when browser APIs are absent, so this also runs during SSR and prerendering.
+ * Nothing here starts IO; that belongs to `start()`, which the provider calls
+ * from `onMount`. Readiness is expressed as store state, never as an
+ * unresolved promise. See ADR-0002 (`work` branch).
+ */
+export function createCoreContext<App extends AppContext>(params: {
+	createApp: AppFactory<App>;
+}): {
+	context: Context;
+	start: () => () => void;
+} {
+	const {createApp} = params;
+	let cleanupBurnerWallet: (() => void) | undefined;
+
+	// Reasons the app cannot run. Collected rather than thrown: the context is
+	// also constructed during SSR / prerender, where a throw would fail the build
+	// instead of showing the user anything. See ADR-0002.
+	const fatal = writable<string | undefined>(undefined);
+
+	const burner = resolveBurnerWallet(
+		burnerOverride,
+		PUBLIC_USE_BURNER_WALLET,
+		PUBLIC_NODE_URL,
+	);
+	// An explicit `?burner=true` that cannot be honoured is an error rather than
+	// being silently ignored. It is raised in start() rather than here: it comes
+	// from the URL, which is empty on the server, so setting it now would make
+	// the browser's first render disagree with the prerendered HTML.
+	const burnerFatal =
+		burner.use === false && burner.error ? burner.error : undefined;
+	// Browser-only: the burner announces itself over EIP-6963 on `window`. The
+	// context is also constructed during SSR / prerender, where there is no
+	// wallet to announce to. See ADR-0002.
+	if (burner.use && typeof window !== 'undefined') {
+		const impersonateAddresses = parseImpersonateAddresses(
+			PUBLIC_IMPERSONATE_ADDRESSES,
+			{
+				onDropped: (entry) => {
+					if (!import.meta.env.DEV) return;
+					console.warn(
+						`[burner] ignoring "${entry}" in PUBLIC_IMPERSONATE_ADDRESSES: ` +
+							`it is not an address. The account picker will be one short.`,
+					);
+				},
+			},
+		);
+		if (import.meta.env.DEV && impersonateAddresses.length === 0) {
+			// Not fatal: the burner still announces itself and can hold its own
+			// generated account. But asking for a burner wallet and giving it nobody
+			// to impersonate is almost always a missing env var rather than intent,
+			// and the symptom (an account picker with nothing familiar in it) does
+			// not point at the cause.
+			console.warn(
+				'[burner] PUBLIC_USE_BURNER_WALLET is set but ' +
+					'PUBLIC_IMPERSONATE_ADDRESSES is empty, so there is nobody to ' +
+					'impersonate. See web/.env.localhost.',
+			);
+		}
+		const {cleanup} = initBurnerWallet({
+			nodeURL: burner.nodeURL,
+			impersonateAddresses: [...impersonateAddresses],
+		});
+		cleanupBurnerWallet = cleanup;
+	}
+
+	// How the app authenticates. `targetStep` is config (see core/connection/mode);
+	// only the hosted-mechanism host comes from env. Total, so nothing here can
+	// fail: there is no illegal combination left to reject.
+	const {targetStep, walletHost, walletOnly} = resolveConnectionConfig(
+		TARGET_STEP,
+		PUBLIC_WALLET_HOST,
+	);
+
+	// ----------------------------------------------------------------------------
+	// CONNECTION
+	// ----------------------------------------------------------------------------
+
+	// THE ORDER BELOW IS THE DEPENDENCY ORDER, and it is now checked rather than
+	// described: each call takes what it needs from the ones above it, so moving
+	// one is a type error here instead of an undefined capture at runtime.
+	const {
+		connection,
+		signer,
+		chainInfo,
+		rawPayment,
+		hasLocalSigner,
+		rawWalletClient,
+		publicClient,
+		account,
+		deployments,
+		forceRpcFailure,
+	} = buildConnection({targetStep, walletHost, walletOnly});
+
+	const {
+		chain,
+		appConfig,
+		finality,
+		txObserverProcessInterval,
+		appRpcUrl,
+		hasAppRpc,
+		canReadChain,
+		chainFetchGate,
+		clock,
+		accountData,
+		credits,
+		signerRpcUrl,
+	} = buildChainConfig({
+		deployments,
+		connection,
+		account,
+		targetStep,
+		walletOnly,
+		fatal,
+	});
+
+	const {inFlight} = buildInFlight({
+		chain,
+		clock,
+		appRpcUrl,
+		accountData,
+		publicClient,
+		account,
+		deployments,
+	});
+
+	const {walletClient, payment, trackerBuilder} = buildWalletClient({
+		clock,
+		rawWalletClient,
+		publicClient,
+		inFlight,
+		rawPayment,
+	});
+
+	const {
+		accountExecutor,
+		accountCannotSend,
+		errorDetails,
+		signerExecutor,
+		addressOf,
+		signerAddress,
+		delegation,
+		txObserver,
+		tabLeader,
+		trackedWalletConnector,
+		txObserverConnector,
+	} = buildExecution({
+		connection,
+		walletClient,
+		accountData,
+		signer,
+		account,
+		deployments,
+		publicClient,
+		signerRpcUrl,
+		chainFetchGate,
+		trackerBuilder,
+		finality,
+		inFlight,
+	});
+
+	const {navigation, overlays, toastConnector} = buildNavigation({accountData});
+
+	const {
+		accountBalance,
+		signerBalance,
+		gasFee,
+		balanceCheck,
+		offline,
+		txObserverDebug,
+	} = buildBalances({
+		publicClient,
+		accountExecutor,
+		signerExecutor,
+		addressOf,
+		chainFetchGate,
 	});
 
 	// ----------------------------------------------------------------------------
@@ -783,12 +1083,12 @@ export function createCoreContext<App extends AppContext>(params: {
 		typeof window !== 'undefined' &&
 		import.meta.env.DEV &&
 		hasAppRpc &&
-		signerRpcUrl
+		appRpcUrl
 			? createNonceCacheStore({
 					connection,
 					account,
 					txObserver,
-					nodeRpcUrl: signerRpcUrl,
+					nodeRpcUrl: appRpcUrl,
 				})
 			: inactiveNonceCacheStore;
 
@@ -802,6 +1102,7 @@ export function createCoreContext<App extends AppContext>(params: {
 		// this stays safe in an app that does not sign in.
 		void signerBalance.update();
 	};
+
 	// The yes/no questions the app has to ask before going on: "carry on with
 	// what you were doing?", "really give up on a run the wallet may still act
 	// on?". One mechanism, one modal, and the words come from whoever asks.
@@ -850,9 +1151,6 @@ export function createCoreContext<App extends AppContext>(params: {
 		fatal: {subscribe: fatal.subscribe},
 		gasFee,
 		accountBalance,
-		signerBalance,
-		credits,
-		payment,
 		rpcHealth,
 		nonceCache,
 		refreshChainData,
@@ -863,8 +1161,6 @@ export function createCoreContext<App extends AppContext>(params: {
 		connection,
 		walletClient,
 		accountExecutor,
-		signerExecutor,
-		hasLocalSigner,
 		accountCannotSend,
 		errorDetails,
 		publicClient,
@@ -875,12 +1171,17 @@ export function createCoreContext<App extends AppContext>(params: {
 		txObserver,
 		txObserverDebug: {subscribe: txObserverDebug.subscribe},
 		balanceCheck,
-		topUp,
-		delegationCheck,
-		confirmation,
 		inFlight,
 		navigation,
 		overlays,
+		signerBalance,
+		credits,
+		payment,
+		signerExecutor,
+		hasLocalSigner,
+		topUp,
+		delegationCheck,
+		confirmation,
 		// This branch's own: whether the signer may act for the account. Core, not
 		// app: the delegation is a property of how this variant authenticates, and
 		// the greeting demo merely reads it.
