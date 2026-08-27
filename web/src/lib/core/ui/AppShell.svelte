@@ -12,6 +12,18 @@
 		 * The fixed bar at the top. A snippet rather than an entry in `chrome`
 		 * because it is the one piece the shell reserves space for by name, and
 		 * because only the app knows what to put in it.
+		 *
+		 * ITS ROOT ELEMENT MUST CARRY `data-app-navbar`. That is the handle the
+		 * shell's geometry tests measure, and it cannot be supplied here: the
+		 * navbar is `fixed`, so a wrapper this component added would be zero-height
+		 * and measuring it would answer the wrong question.
+		 *
+		 * It exists because the element is NOT predictable from the template. This
+		 * app's is a `<nav>`; a descendant that brackets its bar with rules puts all
+		 * of them inside a `<header>` and that header is the chrome. A test that
+		 * guesses `nav` there is short by the height of the bottom rule and fails
+		 * for a reason that looks like a layout bug and is not. Seen in mandalas,
+		 * off by exactly 4px.
 		 */
 		navbar: Snippet;
 		/** The condition bars, top to bottom. See `chrome.ts`. */
@@ -98,7 +110,10 @@
      forward navigation has to be reimplemented, and `scrollbar-gutter` has to
      move off `html` or the navbar ends up misaligned with the content by a
      scrollbar's width. -->
-<div class="flex h-dvh flex-col pt-[var(--navbar-height)] [&>*]:shrink-0">
+<div
+	data-app-shell
+	class="flex h-dvh flex-col pt-[var(--navbar-height)] [&>*]:shrink-0"
+>
 	{@render navbar()}
 
 	<!-- ONE STICKY ELEMENT FOR ALL THE BARS, not one per bar, and it is a
@@ -122,8 +137,13 @@
 
 	     `z-40` here rather than on each bar, so it is one rank against the page
 	     (below the navbar's `z-50`). Within the group DOM order decides, which is
-	     the same rule `context/AcrossPages.svelte` runs on. -->
-	<div class="sticky top-[var(--navbar-height)] z-40">
+	     the same rule `context/AcrossPages.svelte` runs on.
+
+	     `data-app-bars` is the group's stable handle, for the same reason
+	     `data-app-content` is the region's: a test or a descendant reaching for
+	     the bars should name them rather than describe the DOM they happen to
+	     sit in today. -->
+	<div data-app-bars class="sticky top-[var(--navbar-height)] z-40">
 		{#each chrome as bar (bar.name)}
 			{@const Bar = bar.component}
 			{#if !bar.when || bar.when({routeId: routeId()})}

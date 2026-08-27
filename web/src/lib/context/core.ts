@@ -62,15 +62,6 @@ import {startTxObserverLoop} from '$lib/core/tx-observer';
 import {parseImpersonateAddresses} from '$lib/dev-accounts.js';
 
 /**
- * Build the app context.
- *
- * Synchronous, and constructible off-browser: every service it composes idles
- * when browser APIs are absent, so this also runs during SSR and prerendering.
- * Nothing here starts IO; that belongs to `start()`, which the provider calls
- * from `onMount`. Readiness is expressed as store state, never as an
- * unresolved promise. See ADR-0002 (`work` branch).
- */
-/**
  * What `core.ts` hands the app's half, and what it expects back.
  *
  * THIS IS WHAT CORE HAS, NOT WHAT THIS DEMO USES, and the difference is the
@@ -171,6 +162,415 @@ export type AppFactory<App extends AppContext = AppContext> = (
 	core: CoreServices,
 ) => App;
 
+/**
+ * THE COMPOSITION IS A SEQUENCE OF BUILDERS, AND EACH ONE NAMES WHAT IT NEEDS.
+ *
+ * This used to be one 570-line function. The problem was never its length: it
+ * was that the ORDER was load-bearing and invisible. Blocks had to sit above or
+ * below the app half depending on what they consumed, that constraint lived
+ * only in prose, and a merge that reordered them compiled perfectly and broke at
+ * runtime. One did: `a41dcb8` took main's reordering and had to place this
+ * branch's blocks against it by reading every comment in the file.
+ *
+ * Each builder below takes what it consumes as parameters, so the order is now
+ * checked. Move a call above something it needs and it is a type error at the
+ * call site, in this file, rather than an `undefined` capture discovered later.
+ *
+ * WHAT A DESCENDANT DOES: adds a builder of its own and one call, instead of
+ * inserting into the middle of a long sequence. `with/local-signer` adds five
+ * members this way (signerAddress, delegation, confirmation, topUp,
+ * delegationCheck) and its diff against this file becomes additive.
+ */
+
+/** The chain connection. Needs only configuration, so it is first. */
+function buildConnection(params: {
+	targetStep: ReturnType<typeof resolveConnectionConfig>['targetStep'];
+	walletHost: ReturnType<typeof resolveConnectionConfig>['walletHost'];
+	walletOnly: ReturnType<typeof resolveConnectionConfig>['walletOnly'];
+}) {
+	const {targetStep, walletHost, walletOnly} = params;
+
+	const {
+		connection,
+		walletClient: rawWalletClient,
+		publicClient,
+		account,
+		deployments,
+		forceRpcFailure,
+	} = establishRemoteConnection({
+		nodeURL: PUBLIC_NODE_URL,
+		targetStep,
+		walletHost,
+		walletOnly,
+		// The RPC url handed to the WALLET, which is not necessarily the one the
+		// app uses. Without it the exported chain info carries an empty rpc list
+		// (rocketh does not bake a public endpoint into chain info), and a wallet
+		// that does not already know the chain cannot be told how to reach it:
+		// wallet_switchEthereumChain fails with "Unrecognized chain ID" and there
+		// is nothing to fall back to wallet_addEthereumChain with.
+		//
+		// Deliberately NOT defaulted to PUBLIC_NODE_URL: that one may be a private
+		// or key-bearing endpoint, and this value is handed to every user's wallet.
+		chainInfoNodeURL: PUBLIC_CHAIN_INFO_NODE_URL,
+	});
+
+	return {
+		connection,
+		rawWalletClient,
+		publicClient,
+		account,
+		deployments,
+		forceRpcFailure,
+	};
+}
+
+/** Chain-derived configuration, the clock, and per-account storage. */
+function buildChainConfig(params: {
+	deployments: ReturnType<typeof buildConnection>['deployments'];
+	connection: ReturnType<typeof buildConnection>['connection'];
+	account: ReturnType<typeof buildConnection>['account'];
+}) {
+	const {deployments, connection, account} = params;
+
+	// ----------------------------------------------------------------------------
+	// CHAIN CONFIGURATION
+	// ----------------------------------------------------------------------------
+
+	// Resolve chain-specific configuration (finality, block time, intervals)
+	// from the chain's optional properties + defaults.
+	//
+	// Kept WHOLE as well as destructured: core uses two of its fields, and the
+	// app's half is handed the entire object (see CoreServices), so a fork that
+	// adds a field to `config.ts` reads it without touching this file.
+	const chain = deployments.get().chain as AugmentedChainInfo;
+	const appConfig = resolveAppConfig(chain);
+	const {finality, txObserverProcessInterval} = appConfig;
+
+	// The app's own RPC url, when it has one. Only the nonce-cache check below
+	// needs it, to compare the wallet's idea of the nonce against a trusted node.
+	const appRpcUrl = resolveAppRpcUrl(
+		PUBLIC_NODE_URL,
+		chain.rpcUrls?.default?.http,
+	);
+
+	// Whether the app has an RPC of its own (PUBLIC_NODE_URL or a chain rpcUrl).
+	// When it does not, the app can only reach the chain via the connected wallet,
+	// so chain-data fetching must wait until the wallet is connected (otherwise it
+	// would fail and look like a broken RPC). Exposed so the UI can explain this.
+	const hasAppRpc = hasConfiguredRpc(
+		PUBLIC_NODE_URL,
+		chain.rpcUrls?.default?.http,
+	);
+
+	// Whether the app can read the chain right now: it has its own RPC, or the
+	// wallet is connected (and supplies one). Always a boolean, so UI can gate
+	// fetches and show a "connect to load" state instead of firing calls that
+	// would fail and look like a broken RPC. See also chainFetchGate below.
+	const canReadChain = derived(
+		connection,
+		($c) => hasAppRpc || connection.isTargetStepReached($c),
+	);
+
+	// Gate for chain reads (onchain state, gas). With an app RPC, fetch
+	// unconditionally. Without one, only fetch once the wallet is connected (its
+	// provider then supplies the RPC), so we do not fire calls that would fail and
+	// look like a broken RPC while disconnected.
+	const chainFetchGate = hasAppRpc ? undefined : canReadChain;
+
+	// Reactive clock store that updates every second for smooth "time ago" displays
+	const clock = createClockStore();
+
+	// Built here rather than further down, because the in-flight ledger below
+	// reconciles against the operations it holds, and the wallet client is guarded
+	// by that ledger. Ordering the three by what they need keeps every reference
+	// forward-free.
+	const accountData = createAccountData({
+		accountStore: account,
+		deployments: deployments.get(),
+		clock,
+		scopeAddress: operationScopeAddress(deployments.get()),
+	});
+
+	return {
+		chain,
+		appConfig,
+		finality,
+		txObserverProcessInterval,
+		appRpcUrl,
+		hasAppRpc,
+		canReadChain,
+		chainFetchGate,
+		clock,
+		accountData,
+	};
+}
+
+/** The durable record of sends the app has not seen the fate of. */
+function buildInFlight(params: {
+	chain: ReturnType<typeof buildChainConfig>['chain'];
+	clock: ReturnType<typeof buildChainConfig>['clock'];
+	appRpcUrl: ReturnType<typeof buildChainConfig>['appRpcUrl'];
+	accountData: ReturnType<typeof buildChainConfig>['accountData'];
+	publicClient: ReturnType<typeof buildConnection>['publicClient'];
+	account: ReturnType<typeof buildConnection>['account'];
+	deployments: ReturnType<typeof buildConnection>['deployments'];
+}) {
+	const {
+		chain,
+		clock,
+		appRpcUrl,
+		accountData,
+		publicClient,
+		account,
+		deployments,
+	} = params;
+
+	// ----------------------------------------------------------------------------
+	// IN-FLIGHT TRANSACTION REQUESTS
+	// ----------------------------------------------------------------------------
+
+	// Durable records of transactions handed to the wallet whose fate the app has
+	// not seen. See core/transaction/in-flight: an operation is otherwise recorded
+	// only on `transaction:broadcasted`, so a reload between dispatching
+	// eth_sendTransaction and receiving the hash leaves the app believing nothing
+	// happened while it may already be in the mempool. ADR-0004 (`work` branch).
+	const inFlight = createInFlightLedger({
+		// No storage off-browser, and nothing to record there either: the context is
+		// constructed during SSR / prerender too (ADR-0002). A ledger over a
+		// throwaway Map is inert rather than absent, so nothing has to null-check it.
+		storage:
+			typeof localStorage !== 'undefined' ? localStorage : ephemeralStorage(),
+		chainId: chain.id,
+		// A chain id is not identity: a restarted dev node returns as the same id
+		// with a different history, and these records are reconciled BY NONCE.
+		// AccountData's own key has always been scoped this way.
+		genesisHash: chain.genesisHash,
+		now: () => clock.now(),
+		// The app's own RPC when it has one, and the wallet's provider otherwise.
+		// The order is deliberate: `nonce-cache.ts` documents at length that a
+		// wallet's own nonce is exactly what cannot be trusted here.
+		readNodeNonce: appRpcUrl
+			? (address) => nodeNonceReader(appRpcUrl, address)()
+			: async (address) => {
+					try {
+						return await publicClient.getTransactionCount({
+							address,
+							blockTag: 'pending',
+						});
+					} catch {
+						return undefined;
+					}
+				},
+		recordedNonces: createRecordedNonceReader({
+			accountData,
+			account,
+			// So a record can be reconciled against the account IT names, rather
+			// than only the one that happens to be connected. On a reload with a
+			// locked wallet there is no connected account at all, which is exactly
+			// when this has to work.
+			deployments: deployments.get(),
+			scopeAddress: operationScopeAddress(deployments.get()),
+		}),
+	});
+
+	return {inFlight};
+}
+
+/** The tracked, dispatch-guarded wallet client. AFTER the ledger it guards. */
+function buildWalletClient(params: {
+	clock: ReturnType<typeof buildChainConfig>['clock'];
+	rawWalletClient: ReturnType<typeof buildConnection>['rawWalletClient'];
+	publicClient: ReturnType<typeof buildConnection>['publicClient'];
+	inFlight: ReturnType<typeof buildInFlight>['inFlight'];
+}) {
+	const {clock, rawWalletClient, publicClient, inFlight} = params;
+
+	// ----------------------------------------------------------------------------
+	// TRACKED WALLET CLIENT
+	// ----------------------------------------------------------------------------
+
+	// Wrap the raw wallet client with tracking capabilities
+	// This is exposed as `walletClient` for drop-in compatibility
+	// Use `walletClient.walletClient` to access the underlying viem WalletClient if needed
+	const trackerBuilder = createTrackedWalletClient({
+		populateMetadata: true,
+		clock: () => clock.now(),
+	});
+	// GUARDED HERE, ONCE, so every send in the app records itself before dispatch:
+	// the account executor below is handed this client, and so is anything using
+	// `context.walletClient` directly. An app that builds a SECOND tracked client
+	// (a local signer, see executor.ts's buildSignerClient) has to guard that one
+	// too; nothing can do it on its behalf.
+	const walletClient = guardDispatch(
+		trackerBuilder.using(rawWalletClient, publicClient),
+		inFlight,
+	);
+
+	return {walletClient};
+}
+
+/** Who signs, what watches the result, and the connectors that file it. */
+function buildExecution(params: {
+	connection: ReturnType<typeof buildConnection>['connection'];
+	walletClient: ReturnType<typeof buildWalletClient>['walletClient'];
+	accountData: ReturnType<typeof buildChainConfig>['accountData'];
+	finality: ReturnType<typeof buildChainConfig>['finality'];
+	inFlight: ReturnType<typeof buildInFlight>['inFlight'];
+}) {
+	const {connection, walletClient, accountData, finality, inFlight} = params;
+
+	// ----------------------------------------------------------------------------
+	// TRANSACTION EXECUTOR
+	// ----------------------------------------------------------------------------
+	// Named for WHOSE KEY SIGNS. Call sites use this instead of the wallet client
+	// plus account address, so the `from` address, the account argument and the
+	// client can never disagree about who is paying.
+	//
+	// One executor here, because this app authenticates only as far as a
+	// connected wallet (see TARGET_STEP in core/connection/mode) and so has no
+	// local signer to offer a second one. An app that flips that switch adds a
+	// `sendFrom: 'signer'` executor beside this one, supplying the client factory
+	// that mode requires; nothing about this one changes.
+	const accountExecutor = createExecutor({
+		connection,
+		walletClient,
+		sendFrom: 'account',
+	});
+
+	const accountCannotSend = createAccountCannotSendStore();
+	const errorDetails = createErrorDetailsStore();
+
+	// The address that actually pays. Balance checks and the top-bar balance
+	// follow it, so a shown or gating balance always belongs to the account that
+	// would be spending.
+	const accountAddress = derived(accountExecutor, ($executor) =>
+		$executor.status === 'ready' ? $executor.address : undefined,
+	);
+
+	// ----------------------------------------------------------------------------
+
+	const txObserver = createTransactionObserver({
+		finality,
+		provider: connection.provider,
+		// Injected wallets (e.g. MetaMask) can keep serving a stale pending view
+		// from eth_getTransactionByHash (blockNumber null) for an already-mined
+		// tx, while eth_getTransactionReceipt returns the real receipt. Fetch the
+		// receipt directly in that case so inclusion is detected through the
+		// user's own wallet-configured node (no dedicated/hardcoded RPC needed).
+		alwaysFetchReceipt: true,
+	});
+
+	const tabLeader = createTabLeaderService();
+
+	const trackedWalletConnector = createTrackedWalletConnector({
+		walletClient,
+		accountData,
+		// A transaction that was broadcast but could not be filed as an operation
+		// (the account went away between dispatch and answer) goes to the ledger,
+		// which already holds a record for it and can now attach the hash. Without
+		// this the app has a transaction on chain and no note of it anywhere, which
+		// is the outcome the whole in-flight machinery exists to prevent.
+		onUnrecordedBroadcast: ({from, nonce, hash}) =>
+			inFlight.noteUnrecordedBroadcast({account: from, nonce, hash}),
+	});
+
+	const txObserverConnector = createTransactionObserverConnector({
+		accountData,
+		txObserver,
+	});
+
+	return {
+		accountExecutor,
+		accountCannotSend,
+		errorDetails,
+		accountAddress,
+		txObserver,
+		tabLeader,
+		trackedWalletConnector,
+		txObserverConnector,
+	};
+}
+
+/** Navigation, the overlay registry that follows it, and the toast connector. */
+function buildNavigation(params: {
+	accountData: ReturnType<typeof buildChainConfig>['accountData'];
+}) {
+	const {accountData} = params;
+
+	// ----------------------------------------------------------------------------
+	// NAVIGATION AND OVERLAYS
+	// ----------------------------------------------------------------------------
+
+	// Inert until `$lib/kit` attaches a driver in the browser, so both are
+	// constructible on the server (ADR-0002). The registry follows the service, so
+	// closing view overlays on a route change is decided in one place rather than
+	// by each feature. See ADR-0004 (`work` branch).
+	const navigation = createNavigationService();
+	const overlays = createOverlayRegistry(navigation);
+
+	const toastConnector = createToastConnector({
+		accountData,
+		overlays,
+	});
+
+	return {navigation, overlays, toastConnector};
+}
+
+/** What the paying account holds, what a call costs, and whether it can pay. */
+function buildBalances(params: {
+	publicClient: ReturnType<typeof buildConnection>['publicClient'];
+	accountAddress: ReturnType<typeof buildExecution>['accountAddress'];
+	chainFetchGate: ReturnType<typeof buildChainConfig>['chainFetchGate'];
+}) {
+	const {publicClient, accountAddress, chainFetchGate} = params;
+
+	// ----------------------------------------------------------------------------
+	// BALANCE AND COSTS
+	// ----------------------------------------------------------------------------
+
+	// Balance of the account that pays. One account sends everything here, so
+	// there is one balance, and it is named for whose it is rather than for the
+	// role it plays.
+	const accountBalance = createBalanceStore({
+		publicClient,
+		account: accountAddress,
+	});
+
+	const gasFee = createGasFeeStore({
+		publicClient: publicClient,
+		fetchGate: chainFetchGate,
+	});
+
+	// No balance here: which account pays is now decided per call, not once at
+	// construction. This app has exactly one payer, so every call site passes the
+	// same pair, but passing it is what keeps the check and the sender from ever
+	// disagreeing about whose funds were measured.
+	const balanceCheck = createBalanceCheckStore({
+		publicClient,
+		gasFee,
+	});
+
+	const offline = createOfflineStore();
+
+	// Debug store for tx-observer processing stats
+	const txObserverDebug = writable<TxObserverDebugState>({
+		processCount: 0,
+		lastProcessTime: null,
+		isLeader: false,
+	});
+
+	return {accountBalance, gasFee, balanceCheck, offline, txObserverDebug};
+}
+
+/**
+ * Build the app context.
+ *
+ * Synchronous, and constructible off-browser: every service it composes idles
+ * when browser APIs are absent, so this also runs during SSR and prerendering.
+ * Nothing here starts IO; that belongs to `start()`, which the provider calls
+ * from `onMount`. Readiness is expressed as store state, never as an
+ * unresolved promise. See ADR-0002 (`work` branch).
+ */
 export function createCoreContext<App extends AppContext>(params: {
 	createApp: AppFactory<App>;
 }): {
@@ -243,268 +643,69 @@ export function createCoreContext<App extends AppContext>(params: {
 	// CONNECTION
 	// ----------------------------------------------------------------------------
 
+	// THE ORDER BELOW IS THE DEPENDENCY ORDER, and it is now checked rather than
+	// described: each call takes what it needs from the ones above it, so moving
+	// one is a type error here instead of an undefined capture at runtime.
 	const {
 		connection,
-		walletClient: rawWalletClient,
+		rawWalletClient,
 		publicClient,
 		account,
 		deployments,
 		forceRpcFailure,
-	} = establishRemoteConnection({
-		nodeURL: PUBLIC_NODE_URL,
-		targetStep,
-		walletHost,
-		walletOnly,
-		// The RPC url handed to the WALLET, which is not necessarily the one the
-		// app uses. Without it the exported chain info carries an empty rpc list
-		// (rocketh does not bake a public endpoint into chain info), and a wallet
-		// that does not already know the chain cannot be told how to reach it:
-		// wallet_switchEthereumChain fails with "Unrecognized chain ID" and there
-		// is nothing to fall back to wallet_addEthereumChain with.
-		//
-		// Deliberately NOT defaulted to PUBLIC_NODE_URL: that one may be a private
-		// or key-bearing endpoint, and this value is handed to every user's wallet.
-		chainInfoNodeURL: PUBLIC_CHAIN_INFO_NODE_URL,
-	});
+	} = buildConnection({targetStep, walletHost, walletOnly});
 
-	// ----------------------------------------------------------------------------
-	// CHAIN CONFIGURATION
-	// ----------------------------------------------------------------------------
-
-	// Resolve chain-specific configuration (finality, block time, intervals)
-	// from the chain's optional properties + defaults.
-	//
-	// Kept WHOLE as well as destructured: core uses two of its fields, and the
-	// app's half is handed the entire object (see CoreServices), so a fork that
-	// adds a field to `config.ts` reads it without touching this file.
-	const chain = deployments.get().chain as AugmentedChainInfo;
-	const appConfig = resolveAppConfig(chain);
-	const {finality, txObserverProcessInterval} = appConfig;
-
-	// The app's own RPC url, when it has one. Only the nonce-cache check below
-	// needs it, to compare the wallet's idea of the nonce against a trusted node.
-	const appRpcUrl = resolveAppRpcUrl(
-		PUBLIC_NODE_URL,
-		chain.rpcUrls?.default?.http,
-	);
-
-	// Whether the app has an RPC of its own (PUBLIC_NODE_URL or a chain rpcUrl).
-	// When it does not, the app can only reach the chain via the connected wallet,
-	// so chain-data fetching must wait until the wallet is connected (otherwise it
-	// would fail and look like a broken RPC). Exposed so the UI can explain this.
-	const hasAppRpc = hasConfiguredRpc(
-		PUBLIC_NODE_URL,
-		chain.rpcUrls?.default?.http,
-	);
-
-	// Whether the app can read the chain right now: it has its own RPC, or the
-	// wallet is connected (and supplies one). Always a boolean, so UI can gate
-	// fetches and show a "connect to load" state instead of firing calls that
-	// would fail and look like a broken RPC. See also chainFetchGate below.
-	const canReadChain = derived(
-		connection,
-		($c) => hasAppRpc || connection.isTargetStepReached($c),
-	);
-
-	// Gate for chain reads (onchain state, gas). With an app RPC, fetch
-	// unconditionally. Without one, only fetch once the wallet is connected (its
-	// provider then supplies the RPC), so we do not fire calls that would fail and
-	// look like a broken RPC while disconnected.
-	const chainFetchGate = hasAppRpc ? undefined : canReadChain;
-
-	// Reactive clock store that updates every second for smooth "time ago" displays
-	const clock = createClockStore();
-
-	// Built here rather than further down, because the in-flight ledger below
-	// reconciles against the operations it holds, and the wallet client is guarded
-	// by that ledger. Ordering the three by what they need keeps every reference
-	// forward-free.
-	const accountData = createAccountData({
-		accountStore: account,
-		deployments: deployments.get(),
-		clock,
-		scopeAddress: operationScopeAddress(deployments.get()),
-	});
-
-	// ----------------------------------------------------------------------------
-	// IN-FLIGHT TRANSACTION REQUESTS
-	// ----------------------------------------------------------------------------
-
-	// Durable records of transactions handed to the wallet whose fate the app has
-	// not seen. See core/transaction/in-flight: an operation is otherwise recorded
-	// only on `transaction:broadcasted`, so a reload between dispatching
-	// eth_sendTransaction and receiving the hash leaves the app believing nothing
-	// happened while it may already be in the mempool. ADR-0004 (`work` branch).
-	const inFlight = createInFlightLedger({
-		// No storage off-browser, and nothing to record there either: the context is
-		// constructed during SSR / prerender too (ADR-0002). A ledger over a
-		// throwaway Map is inert rather than absent, so nothing has to null-check it.
-		storage:
-			typeof localStorage !== 'undefined' ? localStorage : ephemeralStorage(),
-		chainId: chain.id,
-		// A chain id is not identity: a restarted dev node returns as the same id
-		// with a different history, and these records are reconciled BY NONCE.
-		// AccountData's own key has always been scoped this way.
-		genesisHash: chain.genesisHash,
-		now: () => clock.now(),
-		// The app's own RPC when it has one, and the wallet's provider otherwise.
-		// The order is deliberate: `nonce-cache.ts` documents at length that a
-		// wallet's own nonce is exactly what cannot be trusted here.
-		readNodeNonce: appRpcUrl
-			? (address) => nodeNonceReader(appRpcUrl, address)()
-			: async (address) => {
-					try {
-						return await publicClient.getTransactionCount({
-							address,
-							blockTag: 'pending',
-						});
-					} catch {
-						return undefined;
-					}
-				},
-		recordedNonces: createRecordedNonceReader({
-			accountData,
-			account,
-			// So a record can be reconciled against the account IT names, rather
-			// than only the one that happens to be connected. On a reload with a
-			// locked wallet there is no connected account at all, which is exactly
-			// when this has to work.
-			deployments: deployments.get(),
-			scopeAddress: operationScopeAddress(deployments.get()),
-		}),
-	});
-
-	// ----------------------------------------------------------------------------
-	// TRACKED WALLET CLIENT
-	// ----------------------------------------------------------------------------
-
-	// Wrap the raw wallet client with tracking capabilities
-	// This is exposed as `walletClient` for drop-in compatibility
-	// Use `walletClient.walletClient` to access the underlying viem WalletClient if needed
-	const trackerBuilder = createTrackedWalletClient({
-		populateMetadata: true,
-		clock: () => clock.now(),
-	});
-	// GUARDED HERE, ONCE, so every send in the app records itself before dispatch:
-	// the account executor below is handed this client, and so is anything using
-	// `context.walletClient` directly. An app that builds a SECOND tracked client
-	// (a local signer, see executor.ts's buildSignerClient) has to guard that one
-	// too; nothing can do it on its behalf.
-	const walletClient = guardDispatch(
-		trackerBuilder.using(rawWalletClient, publicClient),
-		inFlight,
-	);
-
-	// ----------------------------------------------------------------------------
-	// TRANSACTION EXECUTOR
-	// ----------------------------------------------------------------------------
-	// Named for WHOSE KEY SIGNS. Call sites use this instead of the wallet client
-	// plus account address, so the `from` address, the account argument and the
-	// client can never disagree about who is paying.
-	//
-	// One executor here, because this app authenticates only as far as a
-	// connected wallet (see TARGET_STEP in core/connection/mode) and so has no
-	// local signer to offer a second one. An app that flips that switch adds a
-	// `sendFrom: 'signer'` executor beside this one, supplying the client factory
-	// that mode requires; nothing about this one changes.
-	const accountExecutor = createExecutor({
-		connection,
-		walletClient,
-		sendFrom: 'account',
-	});
-
-	const accountCannotSend = createAccountCannotSendStore();
-	const errorDetails = createErrorDetailsStore();
-
-	// The address that actually pays. Balance checks and the top-bar balance
-	// follow it, so a shown or gating balance always belongs to the account that
-	// would be spending.
-	const accountAddress = derived(accountExecutor, ($executor) =>
-		$executor.status === 'ready' ? $executor.address : undefined,
-	);
-
-	// ----------------------------------------------------------------------------
-
-	const txObserver = createTransactionObserver({
+	const {
+		chain,
+		appConfig,
 		finality,
-		provider: connection.provider,
-		// Injected wallets (e.g. MetaMask) can keep serving a stale pending view
-		// from eth_getTransactionByHash (blockNumber null) for an already-mined
-		// tx, while eth_getTransactionReceipt returns the real receipt. Fetch the
-		// receipt directly in that case so inclusion is detected through the
-		// user's own wallet-configured node (no dedicated/hardcoded RPC needed).
-		alwaysFetchReceipt: true,
+		txObserverProcessInterval,
+		appRpcUrl,
+		hasAppRpc,
+		canReadChain,
+		chainFetchGate,
+		clock,
+		accountData,
+	} = buildChainConfig({deployments, connection, account});
+
+	const {inFlight} = buildInFlight({
+		chain,
+		clock,
+		appRpcUrl,
+		accountData,
+		publicClient,
+		account,
+		deployments,
 	});
 
-	const tabLeader = createTabLeaderService();
+	const {walletClient} = buildWalletClient({
+		clock,
+		rawWalletClient,
+		publicClient,
+		inFlight,
+	});
 
-	const trackedWalletConnector = createTrackedWalletConnector({
+	const {
+		accountExecutor,
+		accountCannotSend,
+		errorDetails,
+		accountAddress,
+		txObserver,
+		tabLeader,
+		trackedWalletConnector,
+		txObserverConnector,
+	} = buildExecution({
+		connection,
 		walletClient,
 		accountData,
-		// A transaction that was broadcast but could not be filed as an operation
-		// (the account went away between dispatch and answer) goes to the ledger,
-		// which already holds a record for it and can now attach the hash. Without
-		// this the app has a transaction on chain and no note of it anywhere, which
-		// is the outcome the whole in-flight machinery exists to prevent.
-		onUnrecordedBroadcast: ({from, nonce, hash}) =>
-			inFlight.noteUnrecordedBroadcast({account: from, nonce, hash}),
+		finality,
+		inFlight,
 	});
 
-	const txObserverConnector = createTransactionObserverConnector({
-		accountData,
-		txObserver,
-	});
+	const {navigation, overlays, toastConnector} = buildNavigation({accountData});
 
-	// ----------------------------------------------------------------------------
-	// NAVIGATION AND OVERLAYS
-	// ----------------------------------------------------------------------------
-
-	// Inert until `$lib/kit` attaches a driver in the browser, so both are
-	// constructible on the server (ADR-0002). The registry follows the service, so
-	// closing view overlays on a route change is decided in one place rather than
-	// by each feature. See ADR-0004 (`work` branch).
-	const navigation = createNavigationService();
-	const overlays = createOverlayRegistry(navigation);
-
-	const toastConnector = createToastConnector({
-		accountData,
-		overlays,
-	});
-
-	// ----------------------------------------------------------------------------
-	// BALANCE AND COSTS
-	// ----------------------------------------------------------------------------
-
-	// Balance of the account that pays. One account sends everything here, so
-	// there is one balance, and it is named for whose it is rather than for the
-	// role it plays.
-	const accountBalance = createBalanceStore({
-		publicClient,
-		account: accountAddress,
-	});
-
-	const gasFee = createGasFeeStore({
-		publicClient: publicClient,
-		fetchGate: chainFetchGate,
-	});
-
-	// No balance here: which account pays is now decided per call, not once at
-	// construction. This app has exactly one payer, so every call site passes the
-	// same pair, but passing it is what keeps the check and the sender from ever
-	// disagreeing about whose funds were measured.
-	const balanceCheck = createBalanceCheckStore({
-		publicClient,
-		gasFee,
-	});
-
-	const offline = createOfflineStore();
-
-	// Debug store for tx-observer processing stats
-	const txObserverDebug = writable<TxObserverDebugState>({
-		processCount: 0,
-		lastProcessTime: null,
-		isLeader: false,
-	});
+	const {accountBalance, gasFee, balanceCheck, offline, txObserverDebug} =
+		buildBalances({publicClient, accountAddress, chainFetchGate});
 
 	// ----------------------------------------------------------------------------
 	// THE APP'S OWN HALF
