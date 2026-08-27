@@ -84,7 +84,15 @@ It also removes the need to choose. An app on `with/indexer` still works when th
 
 ## Wave 0: prerequisites, before the first new branch
 
-**0.1 Split `createContext` into named builders.** `web/src/lib/context/index.ts` is 591 lines, one linear function ending in a 27-key object literal, and it is the most conflicted file in the tree (6 of `with/local-signer`'s 65 events). Both a template change and a variant change must always edit it, and both append to the same literal, which is the canonical shape git cannot merge.
+**0.1 Split `createContext` into named builders. DONE, 2026-08-26, and it was two jobs rather than one.**
+
+The half this item was written about had already been fixed before it was actioned. The **core/app split** (`9ba2033`, 2026-08-23) moved the app's contribution behind `...appContext`, so the 27-key literal stopped being a shared append point: a descendant adds to `app.ts` and never edits the literal. Measured across the merges into `with/local-signer`: 8 conflicts in the 12 merges whose incoming side touched `context/**` before that split, and the pre-split conflicts include the literal while the one post-split conflict does not.
+
+What remained was the **570-line linear body**, and that is what the post-split conflict was: `a41dcb8` took main's reordering of the sequence and had to place the branch's own blocks against it by reading every comment in the file, deciding that `signerAddress` and `delegation` belong above the app half while `confirmation`, `topUp` and `delegationCheck` belong below. The order was load-bearing and invisible, so a merge that got it wrong compiled cleanly and failed at runtime.
+
+Seven builders now (`9eb79e9`), boundaries taken from the section banners the file already declared rather than from taste, each taking what it consumes as parameters. `createCoreContext` is a 63-line call sequence. Verified that the hazard is actually closed: moving `buildBalances` above the `buildExecution` that makes its `accountAddress` now fails to compile rather than capturing `undefined`.
+
+The original item, for the record: `web/src/lib/context/index.ts` is 591 lines, one linear function ending in a 27-key object literal, and it is the most conflicted file in the tree (6 of `with/local-signer`'s 65 events). Both a template change and a variant change must always edit it, and both append to the same literal, which is the canonical shape git cannot merge.
 
 At two feature branches this tax lands on roughly one merge in seven and the merge-tax finding reasonably defers the fix. At eight branches it lands on every cascade, on the file where a wrong resolution is a silent runtime bug rather than a type error, because every member looks optional to the compiler once it is in the literal. Adding five layers is precisely the event that makes this non-optional. Pay one contested merge at `with/local-signer` once; afterwards a layer adds a file and one spread.
 
