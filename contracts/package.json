@@ -16,7 +16,7 @@
 		"deployments"
 	],
 	"dependencies": {
-		"@etherplay/delegation": "^0.1.0"
+		"@etherplay/delegation": "^0.1.1"
 	},
 	"devDependencies": {
 		"@nomicfoundation/hardhat-keystore": "^3.0.13",
