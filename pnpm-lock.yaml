@@ -30,8 +30,8 @@ importers:
   contracts:
     dependencies:
       '@etherplay/delegation':
-        specifier: ^0.1.0
-        version: 0.1.0
+        specifier: ^0.1.1
+        version: 0.1.1
     devDependencies:
       '@nomicfoundation/hardhat-keystore':
         specifier: ^3.0.13
@@ -494,6 +494,9 @@ packages:
 
   '@etherplay/delegation@0.1.0':
     resolution: {integrity: sha512-K48jxs+QPCwQ5JjjLlVdL+D/1bBjPuhrVN2J6ZC3x4wkgnHKjZpOxoRDFbkmKZXHAmYbzEaZdGDxTAxd2ytNjQ==}
+
+  '@etherplay/delegation@0.1.1':
+    resolution: {integrity: sha512-NGHZzPdUrpGiQxK936bru+Yqrpu+xmzhOCWKWTKxVmQQCMa137161tlaxfuR/DkwXiuvGt0zFk2x+fU3y6VSjQ==}
 
   '@etherplay/dev-wallet-host@0.1.1':
     resolution: {integrity: sha512-gpuSU/y1sr8eYLSnv78UlHiVR0bt0c7HAPfyYo+WuZnGcJ9Xjo55FOAwy/XJOHVZXzfKXqEspzHGTmHDpffZ/g==}
@@ -3100,6 +3103,10 @@ snapshots:
       svelte: 5.56.9
 
   '@etherplay/delegation@0.1.0':
+    dependencies:
+      '@noble/hashes': 1.8.0
+
+  '@etherplay/delegation@0.1.1':
     dependencies:
       '@noble/hashes': 1.8.0
 
