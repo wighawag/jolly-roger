@@ -28,6 +28,7 @@ describe('reportedRequests', () => {
 			requests: [request('a', 'setMessage')],
 			outcomes: {},
 			dispatching: 0,
+			prompting: 0,
 		};
 		expect(reportedRequests(state)).toEqual([]);
 	});
@@ -37,6 +38,7 @@ describe('reportedRequests', () => {
 			requests: [request('a', 'setMessage')],
 			outcomes: {a: {status: 'recorded', nonce: 3}},
 			dispatching: 0,
+			prompting: 0,
 		};
 		expect(reportedRequests(state)).toEqual([]);
 	});
@@ -46,6 +48,7 @@ describe('reportedRequests', () => {
 			requests: [request('a', 'setMessage')],
 			outcomes: {a: {status: 'unknown', reason: 'nonce-free'}},
 			dispatching: 0,
+			prompting: 0,
 		};
 		const [reported] = reportedRequests(state);
 		expect(reported.id).toBe('a');
@@ -62,6 +65,7 @@ describe('reportedRequests', () => {
 				b: {status: 'nonce-consumed', nonce: 4},
 			},
 			dispatching: 0,
+			prompting: 0,
 		};
 		expect(reportedRequests(state).map((r) => r.description)).toEqual([
 			'first',
@@ -74,6 +78,7 @@ describe('reportedRequests', () => {
 			requests: [request('a', 'done being asked'), request('b', 'asking now')],
 			outcomes: {a: {status: 'unknown', reason: 'nonce-free'}},
 			dispatching: 0,
+			prompting: 0,
 		};
 		expect(reportedRequests(state).map((r) => r.id)).toEqual(['a']);
 	});

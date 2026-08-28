@@ -68,9 +68,18 @@ type SendArgs = {
  */
 const guarded = new WeakMap<
 	object,
-	{ledger: InFlightLedger; wrapper: unknown}
+	{ledger: InFlightLedger; prompts: boolean; wrapper: unknown}
 >();
 const GUARD_BRAND = Symbol.for('jolly-roger.dispatch-guard');
+/**
+ * The wrapper's own answer to "do sends through this need a human".
+ *
+ * On the WRAPPER rather than only in the memo above, because the memo is keyed
+ * by the raw client and a caller holding the wrapper (the likelier mistake once
+ * an app has two guarded clients) never reaches it. Without this, guarding a
+ * wrapper again with the opposite setting returned the first answer in silence.
+ */
+const GUARD_PROMPTS = Symbol.for('jolly-roger.dispatch-guard.prompts');
 
 /** Whether this client records requests before dispatching them. */
 export function isDispatchGuarded(client: unknown): boolean {
@@ -137,13 +146,71 @@ export function describeRequest(
 	};
 }
 
+/**
+ * Whether answering a send through this client needs A HUMAN AT A WALLET.
+ *
+ * ASKED HERE BECAUSE THIS IS WHERE IT IS KNOWN. Whether a transaction prompts
+ * anyone is a property of WHO SIGNS, and the only place that knows who signs is
+ * the place that builds the client. Every consumer downstream sees a count, and
+ * a count cannot tell a wallet apart from a key the app holds itself.
+ *
+ * It used to be inferred: "a dispatch is outstanding" was read as "a human must
+ * act", which is true only while there is exactly one sender and that sender is
+ * a wallet. Add a second guarded client for a local signer and every silent
+ * transaction raises a modal titled "Wallet Action Required" with no wallet
+ * involved and nobody waiting on the user.
+ *
+ * Defaults to `true`, so every existing call site keeps prompting exactly as it
+ * did, and only a client that KNOWS it is silent says so.
+ */
+export type DispatchGuardOptions = {
+	/**
+	 * `false` for a signer the app holds the key for: it sends with no dialog,
+	 * nothing is waiting on the user, and telling them to check their wallet
+	 * would be a lie. It still records, still counts toward `dispatching`, and
+	 * still arms the unload guard, because a silent transaction in flight is
+	 * every bit as losable as a loud one.
+	 */
+	prompts?: boolean;
+};
+
 export function guardDispatch<Client extends SendingClient>(
 	client: Client,
 	ledger: InFlightLedger,
+	options?: DispatchGuardOptions,
 ): Client {
-	if (isDispatchGuarded(client)) return client;
+	const prompts = options?.prompts ?? true;
+
+	/**
+	 * Reported on BOTH already-guarded paths (a wrapper handed back in, and a raw
+	 * client guarded twice), because the answer is a property of the key that
+	 * signs and the second caller is simply wrong about it. Silence here means the
+	 * modal follows whichever call happened to run first, which is the least
+	 * debuggable version of this bug.
+	 */
+	function warnIfPromptsDiffer(guardedPrompts: boolean): void {
+		if (!import.meta.env.DEV || guardedPrompts === prompts) return;
+		console.warn(
+			'[dispatch-guard] this client is already guarded with a different ' +
+				'`prompts` setting. The first one wins, so one of the two callers is ' +
+				'wrong about whether sends through this client need a human at a ' +
+				'wallet, and the "Wallet Action Required" modal will follow the other ' +
+				'one. A client signs with one key: guard it once, where it is built.',
+		);
+	}
+
+	if (isDispatchGuarded(client)) {
+		warnIfPromptsDiffer(
+			(client as Record<symbol, unknown>)[GUARD_PROMPTS] !== false,
+		);
+		return client;
+	}
 	const existing = guarded.get(client);
 	if (existing) {
+		warnIfPromptsDiffer(existing.prompts);
+		// The same hole exists for the ledger below, which cannot be closed the same
+		// way: a wrapper carrying a reference to its ledger would keep it alive for
+		// as long as anything holds the client. Left as it was, deliberately.
 		if (import.meta.env.DEV && existing.ledger !== ledger) {
 			console.warn(
 				'[dispatch-guard] this client is already guarded by a different ' +
@@ -171,6 +238,10 @@ export function guardDispatch<Client extends SendingClient>(
 		const handle = await ledger.record({
 			account,
 			intent: describeRequest(args, fallbackName),
+			// Carried per record rather than read off the client later, because what
+			// the app must decide is about THIS request: which dispatches justify
+			// telling the user to go and look at their wallet.
+			prompts,
 			// An explicit nonce is better than the baseline the ledger would read:
 			// it is the nonce this transaction WILL use, rather than the one the
 			// node happens to expect next. Resubmits and replacements always carry
@@ -231,6 +302,7 @@ export function guardDispatch<Client extends SendingClient>(
 	const wrapper = {
 		...client,
 		[GUARD_BRAND]: true,
+		[GUARD_PROMPTS]: prompts,
 
 		writeContract: ((args: SendArgs) =>
 			run(args, 'Contract call', () =>
@@ -263,6 +335,6 @@ export function guardDispatch<Client extends SendingClient>(
 			)) as Client['sendRawTransactionSync'],
 	} as Client;
 
-	guarded.set(client, {ledger, wrapper});
+	guarded.set(client, {ledger, prompts, wrapper});
 	return wrapper;
 }

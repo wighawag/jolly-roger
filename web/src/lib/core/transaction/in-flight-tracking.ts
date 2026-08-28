@@ -23,10 +23,18 @@ import type {InFlightLedger, InFlightState} from './in-flight-store';
  * Whether the app is waiting on a dispatch RIGHT NOW.
  *
  * The condition `navigation.guardUnload` is registered on, and deliberately the
- * SAME fact the wallet-action modal and the escape hatch now rest on
- * (`dispatching`). Before, each of the three asked a different question, so they
- * could disagree: a modal could be up with no guard behind it, which is exactly
- * what was reported.
+ * SAME fact the escape hatch and the sending indicator rest on (`dispatching`).
+ * Before, each of them asked a different question, so they could disagree: a
+ * modal could be up with no guard behind it, which is exactly what was reported.
+ *
+ * ONE OF THEM HAS SINCE PARTED COMPANY, on purpose. "Wallet Action Required"
+ * reads `prompting` instead: it is an instruction to a person, so it may only
+ * appear for a dispatch a person was actually asked about, and a local signer's
+ * sends are not. This is deliberately NOT narrowed with it. A silent
+ * transaction between dispatch and hash is exactly as losable as a loud one, so
+ * closing the tab is exactly as bad an idea, and the answer to an unexplained
+ * browser dialog is to explain it (`ui/in-flight/sending.ts`) rather than to
+ * stop asking.
  *
  * Narrower than "the ledger has records", on purpose. A record restored from a
  * previous session is durable and has already been reported, so losing the page
