@@ -3,6 +3,7 @@ import {
 	approveHeldTransaction,
 	installStallingWallet,
 	sendAndStall,
+	STALLED_SEND_NAME,
 } from '../fixtures/stalling-wallet';
 
 /**
@@ -74,7 +75,10 @@ describe('Explaining a dispatch in flight', () => {
 
 		// It says what is being sent, in the words the transaction list uses, and
 		// what leaving would cost. That sentence is the whole reason it exists.
-		await expect(page.locator(NOTICE)).toContainText('setMessage');
+		// Named from the fixture, not spelled out: what this app sends is the
+		// fixture's business (see sendAndStall), and a literal here is an
+		// assertion about a function a descendant may never call.
+		await expect(page.locator(NOTICE)).toContainText(STALLED_SEND_NAME);
 		await expect(page.locator(NOTICE)).toContainText('Leaving the page now');
 
 		// Above the wallet-action modal rather than under its backdrop: being
