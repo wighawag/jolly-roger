@@ -1,5 +1,5 @@
 import type {Page} from '@playwright/test';
-import {test, expect, describe} from '../fixtures/test';
+import {test, expect, describe, waitForAppReady} from '../fixtures/test';
 import {SMOKE_ROUTES} from '../routes';
 
 /**
@@ -145,6 +145,13 @@ describe('The layout height shell', () => {
 		page,
 	}) => {
 		await page.goto('/');
+		// EVERY offline test in this file waits for the app to be up FIRST, and it
+		// is not politeness. Cutting the network while the boot is still using it
+		// leaves the app permanently half-started, so no bar can ever appear and the
+		// assertion below fails as though the shell were broken. See
+		// waitForAppReady. This test happened to be safe by accident, because the
+		// `geometry` call below is a round trip; the accident is now a statement.
+		await waitForAppReady(page);
 		const before = await geometry(page);
 
 		// The offline bar is the honest trigger: `core/connection/offline.ts`
@@ -195,6 +202,7 @@ describe('The layout height shell', () => {
 		// again. `AppShell` pins the group instead.
 		await page.setViewportSize({width: 1280, height: 348});
 		await page.goto('/');
+		await waitForAppReady(page);
 
 		await page.context().setOffline(true);
 		const first = page.getByTestId('offline-banner');
@@ -274,6 +282,7 @@ describe('The layout height shell', () => {
 		// also the only place a user would meet it.
 		await page.setViewportSize({width: 1280, height: 348});
 		await page.goto('/');
+		await waitForAppReady(page);
 		await page.context().setOffline(true);
 		await expect(page.getByTestId('offline-banner')).toBeVisible();
 
@@ -332,6 +341,7 @@ describe('The layout height shell', () => {
 		// chosen; the chrome height it is compared against is read below.
 		await page.setViewportSize({width: 1280, height: 80});
 		await page.goto('/');
+		await waitForAppReady(page);
 		await page.context().setOffline(true);
 		const bar = page.getByTestId('offline-banner');
 		await expect(bar).toBeVisible();
