@@ -29,7 +29,7 @@ const IDLE_CONNECTION = {step: 'Idle' as const, wallet: undefined};
 describe('a flow for a connection the app does not dispatch through', () => {
 	it('says the wallet is idle even while the app is dispatching elsewhere', () => {
 		const busyElsewhere = {
-			subscribe: writable({dispatching: 1}).subscribe,
+			subscribe: writable({dispatching: 1, prompting: 1}).subscribe,
 			reconcile: async () => {},
 			stopAwaiting: () => {},
 		};
@@ -54,7 +54,7 @@ describe('a flow for a connection the app does not dispatch through', () => {
 
 	it('has an inert ledger whose actions are safe no-ops', async () => {
 		const ledger = inertActivityLedger();
-		expect(get(ledger)).toEqual({dispatching: 0});
+		expect(get(ledger)).toEqual({dispatching: 0, prompting: 0});
 		// Called by `stopWaitingForWallet` on every branch, so they must exist and
 		// must not throw for a flow that has nothing to release.
 		expect(() => ledger.stopAwaiting()).not.toThrow();

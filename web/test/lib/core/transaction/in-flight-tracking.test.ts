@@ -30,6 +30,7 @@ describe('hasUnansweredRequest (what guardUnload watches)', () => {
 				requests: [request('a', 'setMessage')],
 				outcomes: {},
 				dispatching: 1,
+				prompting: 1,
 			}),
 		).toBe(true);
 	});
@@ -43,29 +44,57 @@ describe('hasUnansweredRequest (what guardUnload watches)', () => {
 				requests: [request('a', 'setMessage'), request('b', 'other')],
 				outcomes: {a: {status: 'unknown', reason: 'nonce-free'}},
 				dispatching: 0,
+				prompting: 0,
 			}),
 		).toBe(false);
 	});
 
-	it('agrees with the wallet modal, because it is the same fact', () => {
+	it('agrees with the wallet modal about a WALLET dispatch', () => {
 		// Reported: a modal for a request, and no prompt when reloading. The three
 		// things that should agree (modal, escape hatch, unload guard) were each
 		// asking a different question. They now all rest on `dispatching`.
+		//
+		// With one caveat, which is the subject of the test below this one: the
+		// modal reads `prompting`, so the two agree about a wallet send and part
+		// company for a silent one, where the guard fires and the modal does not.
 		const awaiting = {
 			requests: [request('a', 'x')],
 			outcomes: {},
 			dispatching: 1,
+			prompting: 1,
 		};
 		expect(hasUnansweredRequest(awaiting)).toBe(
 			shouldPromptForWalletAction({step: 'WalletConnected'}, new Set(), {
 				dispatchInFlight: awaiting.dispatching > 0,
+				promptingDispatchInFlight: awaiting.prompting > 0,
 			}),
 		);
 	});
 
+	it('STILL guards unload for a dispatch no human was asked about', () => {
+		// The half of the distinction that must NOT move. A local signer's send
+		// raises no modal (see wallet-activity.test.ts), and is exactly as losable
+		// between dispatch and hash as one a wallet is holding, so closing the tab
+		// is exactly as bad an idea. Narrowing this to `prompting` would trade a
+		// spurious modal for lost transactions.
+		expect(
+			hasUnansweredRequest({
+				requests: [request('a', 'commit')],
+				outcomes: {},
+				dispatching: 1,
+				prompting: 0,
+			}),
+		).toBe(true);
+	});
+
 	it('is false with nothing in flight', () => {
 		expect(
-			hasUnansweredRequest({requests: [], outcomes: {}, dispatching: 0}),
+			hasUnansweredRequest({
+				requests: [],
+				outcomes: {},
+				dispatching: 0,
+				prompting: 0,
+			}),
 		).toBe(false);
 	});
 });
@@ -164,6 +193,7 @@ describe('watchUnresolvedRequests', () => {
 		requests: [request('a', 'setMessage')],
 		outcomes: {a: {status: 'unknown', reason}},
 		dispatching: 0,
+		prompting: 0,
 	});
 
 	it('keeps asking while the request may still be with the wallet', async () => {
@@ -227,24 +257,33 @@ describe('watchUnresolvedRequests', () => {
 					requests: [request('a', 'x')],
 					outcomes: {a: {status: 'nonce-consumed', nonce: 3}},
 					dispatching: 0,
+					prompting: 0,
 				},
 				{
 					requests: [request('a', 'x')],
 					outcomes: {a: {status: 'broadcast-not-recorded', hash: '0xa'}},
 					dispatching: 0,
+					prompting: 0,
 				},
 				{
 					requests: [request('a', 'x')],
 					outcomes: {a: {status: 'unknown', reason: 'no-baseline'}},
 					dispatching: 0,
+					prompting: 0,
 				},
 				{
 					requests: [request('a', 'x')],
 					outcomes: {a: {status: 'unknown', reason: 'nonce-behind'}},
 					dispatching: 0,
+					prompting: 0,
 				},
 				// Still in flight: the dispatch itself will settle this.
-				{requests: [request('a', 'x')], outcomes: {}, dispatching: 1},
+				{
+					requests: [request('a', 'x')],
+					outcomes: {},
+					dispatching: 1,
+					prompting: 1,
+				},
 			];
 			for (const state of settled) {
 				const {ledger, passes} = fakeLedger(state);
@@ -269,7 +308,7 @@ describe('watchUnresolvedRequests', () => {
 			await vi.advanceTimersByTimeAsync(1000);
 			expect(fake.passes()).toBe(1);
 
-			fake.set({requests: [], outcomes: {}, dispatching: 0});
+			fake.set({requests: [], outcomes: {}, dispatching: 0, prompting: 0});
 			await vi.advanceTimersByTimeAsync(20_000);
 			expect(fake.passes()).toBe(1);
 			stop();
@@ -303,6 +342,7 @@ describe('startInFlightTracking', () => {
 				requests: [request('a', 'setMessage')],
 				outcomes: {a: {status: 'unknown', reason: 'nonce-free'}},
 				dispatching: 1,
+				prompting: 1,
 			});
 			const ledger = {
 				subscribe: state.subscribe,

@@ -332,6 +332,112 @@ describe("the app's own dispatch as a second source of truth", () => {
 		).toBe(false);
 	});
 
+	it('does NOT prompt for a dispatch nobody was asked about', () => {
+		// The modal says "Wallet Action Required". Raising it for a transaction the
+		// app signed with a key it holds itself is a false instruction: no wallet
+		// asked anything, nothing is waiting on the user, and there is nothing for
+		// them to go and do. Observed on a branch with a local signer, where every
+		// commit and a self-submitted registration flashed the modal, several times
+		// a minute in a game with a short round loop, too briefly to read.
+		//
+		// The counts differ because a local signer's dispatch IS outstanding (it is
+		// awaited, it arms the unload guard, it lights the sending indicator) and is
+		// simply not a request to a human. A count of dispatches cannot tell the two
+		// apart, which is why `guardDispatch` records it per dispatch instead.
+		expect(
+			shouldPromptForWalletAction({step: 'WalletConnected'}, new Set(), {
+				dispatchInFlight: true,
+				promptingDispatchInFlight: false,
+			}),
+		).toBe(false);
+
+		// Guards the guard: same state, same call, a wallet doing the signing. If
+		// this ever goes false the silence above has stopped being a distinction and
+		// become the locked-Rabby bug again.
+		expect(
+			shouldPromptForWalletAction({step: 'WalletConnected'}, new Set(), {
+				dispatchInFlight: true,
+				promptingDispatchInFlight: true,
+			}),
+		).toBe(true);
+	});
+
+	it('STILL offers the escape hatch for a silent dispatch', () => {
+		// Only the instruction is narrowed. Everything that protects the
+		// transaction stays broad, or suppressing a modal would start losing
+		// transactions, which is a far worse bug than the one being fixed.
+		const silent = {dispatchInFlight: true, promptingDispatchInFlight: false};
+		expect(offersEscapeHatch({step: 'WalletConnected'}, silent)).toBe(true);
+		expect(outstandingRequestKind({step: 'WalletConnected'}, silent)).toBe(
+			'transaction',
+		);
+	});
+
+	it('does not tell the user their WALLET has a transaction it never saw', () => {
+		// The same untruth as the modal, one click further in, and in the place this
+		// module calls the feature. Suppressing "Wallet Action Required" and then
+		// opening a dialog that says "your wallet still has this transaction ... if
+		// you approve it later" would have moved the lie rather than removed it.
+		const copy = escapeHatchCopy(
+			{step: 'WalletConnected'},
+			{dispatchInFlight: true, promptingDispatchInFlight: false},
+		);
+		expect(copy.title).toBe('This app is still sending a transaction');
+		expect(copy.body).not.toContain('approve it later');
+		expect(copy.body).toContain('nothing for you to approve');
+		// The promises the wording must keep, whatever the case: no implication
+		// that this takes anything back, and the same two buttons.
+		expect(`${copy.title} ${copy.body}`.toLowerCase()).not.toContain('cancel');
+		expect(copy.body).toContain('cannot be taken back');
+		expect(copy.trigger).toBe('Stop waiting');
+		expect(copy.dismiss).toBe('Keep waiting');
+	});
+
+	it('lets the wallet speak when it IS holding something', () => {
+		// A silent dispatch speaks only for itself. With a real request in the
+		// list, the words are the wallet's, because the user does have something to
+		// go and answer.
+		const silent = {dispatchInFlight: true, promptingDispatchInFlight: false};
+		expect(
+			escapeHatchCopy(
+				{wallet: {pendingRequests: [{kind: 'transaction'}]}},
+				silent,
+			).title,
+		).toContain('still has this transaction');
+
+		// And a SIGNATURE keeps its own words instead of being outranked into
+		// transaction wording by a send nobody was asked about. Rare before a local
+		// signer existed, ordinary once one does.
+		expect(
+			escapeHatchCopy(
+				{wallet: {pendingRequests: [{kind: 'signature'}]}},
+				silent,
+			).title,
+		).toContain('signature request');
+	});
+
+	it('still speaks for the wallet when the dispatch IS a wallet dispatch', () => {
+		// Guards the guard: the silent branch must not swallow the case it was
+		// carved out of, which is the library losing track of a real request.
+		const copy = escapeHatchCopy(
+			{step: 'WalletConnected'},
+			{dispatchInFlight: true, promptingDispatchInFlight: true},
+		);
+		expect(copy.title).toContain('still has this transaction');
+	});
+
+	it('assumes a dispatch prompts when nobody has said otherwise', () => {
+		// The default that keeps every existing caller correct: an app that knows
+		// nothing of silent signers passes `dispatchInFlight` alone and keeps
+		// today's behaviour, rather than silently losing the modal for a real
+		// wallet, which is the failure that would be discovered in production.
+		expect(
+			shouldPromptForWalletAction({step: 'WalletConnected'}, new Set(), {
+				dispatchInFlight: true,
+			}),
+		).toBe(true);
+	});
+
 	it('goes quiet again once the user stops waiting', () => {
 		// stopWaitingForWallet clears the app's live dispatches as well as the
 		// library's request ids, so both sources fall silent together and the
@@ -414,13 +520,19 @@ describe('createWalletActivity: one answer, so consumers cannot drift', () => {
 		initial: {
 			connection?: unknown;
 			dispatching?: number;
+			/** Defaults to `dispatching`: these stories are all wallet sends. */
+			prompting?: number;
 		} = {},
 	) {
 		const calls: string[] = [];
 		const connection = writable(
 			initial.connection ?? {step: 'WalletConnected'},
 		);
-		const inFlight = writable({dispatching: initial.dispatching ?? 0});
+		const dispatching = initial.dispatching ?? 0;
+		const inFlight = writable({
+			dispatching,
+			prompting: initial.prompting ?? dispatching,
+		});
 		const activity = createWalletActivity({
 			connection: connection as never,
 			inFlight: {
@@ -437,7 +549,7 @@ describe('createWalletActivity: one answer, so consumers cannot drift', () => {
 					// leaves the count alone would let a refactor move that read inside
 					// the body and silently flip the branch to connection.cancel(), with
 					// the whole suite still passing.
-					inFlight.set({dispatching: 0});
+					inFlight.set({dispatching: 0, prompting: 0});
 				},
 			} as never,
 			cancelConnection: () => calls.push('cancel'),
@@ -487,7 +599,7 @@ describe('createWalletActivity: one answer, so consumers cannot drift', () => {
 		expect(get(activity).promptUser).toBe(true);
 
 		await activity.stopWaiting();
-		inFlight.set({dispatching: 0});
+		inFlight.set({dispatching: 0, prompting: 0});
 		expect(get(activity).promptUser).toBe(false);
 
 		// A different request must not inherit that silence.
@@ -526,7 +638,7 @@ describe('createWalletActivity: the action must not depend on being watched', ()
 		const activity = createWalletActivity({
 			connection: writable({step: 'WalletConnected'}) as never,
 			inFlight: {
-				subscribe: writable({dispatching: 1}).subscribe,
+				subscribe: writable({dispatching: 1, prompting: 1}).subscribe,
 				reconcile: async () => {
 					calls.push('reconcile');
 				},
@@ -551,11 +663,15 @@ describe('createWalletActivity: dismissal is the fifth consumer', () => {
 	// modal disconnects with a transaction in flight, bypassing stopAwaiting()
 	// and the stopped-waiting bookkeeping entirely. Same bug as the escape hatch
 	// had, reached by a different door.
-	function activityFor(dispatching: number, connection: unknown) {
+	function activityFor(
+		dispatching: number,
+		connection: unknown,
+		prompting = dispatching,
+	) {
 		return createWalletActivity({
 			connection: writable(connection) as never,
 			inFlight: {
-				subscribe: writable({dispatching}).subscribe,
+				subscribe: writable({dispatching, prompting}).subscribe,
 				reconcile: async () => {},
 				stopAwaiting: () => {},
 			} as never,
@@ -569,6 +685,17 @@ describe('createWalletActivity: dismissal is the fifth consumer', () => {
 		expect(canDismissConnection(state)).toBe(true);
 
 		expect(get(activityFor(1, state)).dismissable).toBe(false);
+	});
+
+	it('refuses it for a SILENT dispatch too, which raises no modal', () => {
+		// The prompt is narrowed to dispatches a human was asked about; this is not.
+		// A stray click that tears the connection down mid-dispatch loses the
+		// transaction whoever signed it, and a local signer's send is no less real
+		// for being quiet.
+		const state = {step: 'WalletConnected'} as const;
+		const value = get(activityFor(1, state, 0));
+		expect(value.promptUser).toBe(false);
+		expect(value.dismissable).toBe(false);
 	});
 
 	it('still allows dismissal when nothing is outstanding', () => {

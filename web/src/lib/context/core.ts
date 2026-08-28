@@ -400,7 +400,11 @@ function buildWalletClient(params: {
 	// the account executor below is handed this client, and so is anything using
 	// `context.walletClient` directly. An app that builds a SECOND tracked client
 	// (a local signer, see executor.ts's buildSignerClient) has to guard that one
-	// too; nothing can do it on its behalf.
+	// too; nothing can do it on its behalf, and it should pass `{prompts: false}`
+	// because a key the app holds sends with no dialog and nobody to instruct.
+	//
+	// This one prompts, which is the default, so it says nothing: sends here go to
+	// a wallet the user has to answer.
 	const walletClient = guardDispatch(
 		trackerBuilder.using(rawWalletClient, publicClient),
 		inFlight,
