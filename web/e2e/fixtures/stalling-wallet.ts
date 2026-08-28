@@ -186,6 +186,19 @@ export function sentHashes(page: Page): Promise<string[]> {
 }
 
 /**
+ * What the transaction {@link sendAndStall} dispatches is CALLED, in the words
+ * the app puts on screen for it.
+ *
+ * Exported next to the walk that sends it, because it is the same fact: change
+ * which write the walk drives and this changes with it. A suite that asserts the
+ * app named what it is sending (the sending notice does) reads it from here
+ * rather than repeating a literal - `setMessage` is the template's
+ * GreetingsRegistry, and a descendant that does not deploy it inherited an
+ * assertion for a function it never calls.
+ */
+export const STALLED_SEND_NAME = 'setMessage';
+
+/**
  * Get this app to hand the stalling wallet a transaction, and leave it holding
  * it. Call {@link installStallingWallet} first: the wallet has to be announced
  * before the app starts looking.
