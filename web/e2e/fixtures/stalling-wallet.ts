@@ -225,13 +225,29 @@ export function sentHashes(page: Page): Promise<string[]> {
  */
 export async function sendAndStall(
 	page: Page,
-	options: {message: string},
+	options?: {
+		/**
+		 * A distinctive value to send, for a caller that will later assert THEIR
+		 * input survived. Optional, and that is the interface working rather than
+		 * a convenience.
+		 *
+		 * WHAT IT IS HAS TO BE THE APP'S BUSINESS, not the caller's. This app sends
+		 * a greeting, so any string does; a descendant's write takes an ADDRESS,
+		 * and a suite that hardcoded 'sending indicator' there filled an invalid
+		 * field, so the form never submitted and nothing ever reached the wallet -
+		 * the same failure this whole helper exists to stop, one layer in. A suite
+		 * that does not care omits it and gets whatever this app can send; a suite
+		 * that does care is a suite already adapted per app, and passes something
+		 * valid here.
+		 */
+		input?: string;
+	},
 ): Promise<void> {
 	await page.goto('/demo/');
 
 	const input = page.getByPlaceholder('Enter your greeting...');
 	await expect(input).toBeEnabled({timeout: 30_000});
-	await input.fill(options.message);
+	await input.fill(options?.input ?? 'a request nobody answers');
 	await page.getByRole('button', {name: /send/i}).click();
 
 	await chooseStallingWallet(page);
