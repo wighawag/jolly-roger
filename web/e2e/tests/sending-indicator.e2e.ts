@@ -44,7 +44,12 @@ describe('Explaining a dispatch in flight', () => {
 		// hatch's suite and overridden as one piece by a descendant whose sends do
 		// not reach a wallet. This suite used to open-code it and was left behind
 		// when the other copy was adapted, which is what the fixture now prevents.
-		await sendAndStall(page, {message: 'sending indicator'});
+		//
+		// NOTHING PASSED, deliberately: what is sent is this app's business, and
+		// nothing below asserts on it. Naming a value here would be this suite
+		// deciding what a descendant's write accepts, which is how it filled a
+		// greeting into an address field and hung.
+		await sendAndStall(page);
 		const dispatchedAt = Date.now();
 
 		// The wordless rung: no delay, because this is the one that has to be on
