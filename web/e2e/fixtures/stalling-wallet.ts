@@ -1,4 +1,4 @@
-import type {Page} from '@playwright/test';
+import {expect, type Page} from '@playwright/test';
 
 /**
  * A wallet that HOLDS a transaction request until the test lets it go.
@@ -183,4 +183,124 @@ export async function approveHeldTransaction(page: Page): Promise<void> {
 /** Hashes this wallet has broadcast, for asserting a transaction was real. */
 export function sentHashes(page: Page): Promise<string[]> {
 	return page.evaluate(() => (window as any).__stallingWallet.sent as string[]);
+}
+
+/**
+ * Get this app to hand the stalling wallet a transaction, and leave it holding
+ * it. Call {@link installStallingWallet} first: the wallet has to be announced
+ * before the app starts looking.
+ *
+ * ONE PLACE, BECAUSE THE ROUTE TO THAT WINDOW IS AN APP'S OWN BUSINESS. Two
+ * suites need a wallet that is holding something (the escape hatch and the
+ * sending indicator), and both used to open-code the same walk: pick the page,
+ * fill it, submit, choose the wallet, wait. That is the shape `e2e/routes.ts`
+ * exists to prevent, and it rotted the same way: a descendant that sends through
+ * a LOCAL SIGNER has no wallet in the demo page's Send at all, so the walk has
+ * to change, and when only one of the two copies was adapted the other spent
+ * thirty seconds waiting for a wallet that was never going to be asked. It did
+ * not look like a stale test either; it looked like the indicator was broken.
+ *
+ * So a descendant overrides THIS function and inherits both suites. What it must
+ * end up in is the only part that is fixed: a wallet holding a request, with
+ * nothing else on screen waiting on the test.
+ *
+ * The two tolerances below are here for the same reason, and both are inert in
+ * this app:
+ *
+ * - the wallet LIST may be collapsed behind one button when the app also offers
+ *   email or social sign-in, so the picker is two clicks rather than one
+ *   (`walletEntryMode`).
+ * - the flow may stop at "Confirm sign in" before it asks the wallet for
+ *   anything, in an app that signs in rather than merely connecting. Skipping
+ *   that click leaves the connection parked there forever, no request ever
+ *   reaches the wallet, and the failure surfaces as a timeout three assertions
+ *   later.
+ *
+ * Both are written as "click it if it is there" rather than as a branch on which
+ * app this is, so this file stays the same in a descendant that only adds one of
+ * them. NEITHER MAY COST TIME IT DOES NOT NEED: a caller measures from the
+ * moment this returns, so a fixed "wait 2s in case a sign-in modal appears"
+ * spends the delay the sending notice is being timed against, and the suite
+ * fails claiming the app was too fast. See {@link waitUntilHolding}.
+ */
+export async function sendAndStall(
+	page: Page,
+	options: {message: string},
+): Promise<void> {
+	await page.goto('/demo/');
+
+	const input = page.getByPlaceholder('Enter your greeting...');
+	await expect(input).toBeEnabled({timeout: 30_000});
+	await input.fill(options.message);
+	await page.getByRole('button', {name: /send/i}).click();
+
+	await chooseStallingWallet(page);
+
+	// The wallet now has the transaction and is not answering, which is the state
+	// a user gets stuck in.
+	await waitUntilHolding(page);
+}
+
+/**
+ * Pick this wallet out of however the app is offering wallets today.
+ *
+ * With several wallets and nothing else to sign in with, the list is shown
+ * directly; sharing the modal with email or social collapses it behind one
+ * button instead of drowning them. Waiting for EITHER and clicking through when
+ * the button is there keeps one helper correct for both.
+ */
+export async function chooseStallingWallet(page: Page): Promise<void> {
+	const walletEntry = page.getByRole('button', {name: /^connect a wallet$/i});
+	const stallingWallet = page.getByRole('button', {
+		name: new RegExp(STALLING_WALLET_NAME, 'i'),
+	});
+
+	await expect(walletEntry.or(stallingWallet).first()).toBeVisible({
+		timeout: 30_000,
+	});
+	if (await walletEntry.isVisible().catch(() => false)) {
+		await walletEntry.click();
+	}
+	await stallingWallet.click({timeout: 30_000});
+}
+
+/**
+ * Wait until the wallet is holding the request, confirming sign-in on the way if
+ * this app asks for it.
+ *
+ * RACED, NOT SEQUENCED, and that is the whole design of it. "Click Sign In if it
+ * shows up within 2s, then wait for the wallet" is the obvious version and it is
+ * wrong twice: it burns two seconds in an app that never asks, and two seconds
+ * is not obviously enough in one that does, under load. Watching for both
+ * outcomes at once costs nothing when the wallet is asked directly, and waits as
+ * long as it takes when a modal is in the way.
+ *
+ * An app that signs in parks at "Confirm sign in" until the user says yes, and
+ * the stalling wallet answers the sign-in signature with a fixed fake one
+ * (nothing verifies it locally: it is entropy for deriving a signer, and a real
+ * key here would let this fixture authenticate as that account elsewhere).
+ */
+async function waitUntilHolding(page: Page, timeout = 60_000): Promise<void> {
+	const signIn = page.getByRole('button', {name: /^sign in$/i});
+	const deadline = Date.now() + timeout;
+
+	while (Date.now() < deadline) {
+		// Asked FIRST on every pass, so the loop returns the instant the wallet has
+		// it and a caller's clock starts as close to the dispatch as it can.
+		if (await isHoldingTransaction(page).catch(() => false)) return;
+		if (await signIn.isVisible().catch(() => false)) {
+			// May lose a race with the app moving on; that is fine, the next pass
+			// looks again.
+			await signIn.click().catch(() => {});
+		}
+		await page.waitForTimeout(100);
+	}
+
+	throw new Error(
+		`the stalling wallet was never handed a transaction within ${timeout}ms. ` +
+			`Either the flow is parked on a step this helper does not know how to ` +
+			`answer, or this app does not send through the user's wallet here at ` +
+			`all - a descendant that signs with a key of its own has to point ` +
+			`sendAndStall at a page that does.`,
+	);
 }

@@ -4,8 +4,8 @@ import {
 	approveHeldTransaction,
 	installStallingWallet,
 	isHoldingTransaction,
+	sendAndStall as stallARequest,
 	sentHashes,
-	STALLING_WALLET_NAME,
 } from '../fixtures/stalling-wallet';
 
 /**
@@ -40,29 +40,17 @@ describe('Stopping waiting for the wallet', () => {
 		page.locator('#--layer-system [role="dialog"]', {hasText});
 
 	/**
-	 * Send a greeting and leave the wallet holding it.
+	 * Send, leave the wallet holding it, and check the app says so.
 	 *
-	 * Two wallets are announced here (the burner from the build's env, and ours),
-	 * so the connect step is the wallet LIST rather than a single button.
+	 * The walk itself is `sendAndStall` in the fixture, shared with the sending
+	 * indicator's suite and overridden as one piece by a descendant whose sends do
+	 * not go to a wallet. What stays here is the ASSERTION, which is this suite's
+	 * subject rather than its setup: the modal is the thing that offers the escape
+	 * hatch, so every test below starts from it being on screen.
 	 */
 	async function sendAndStall(page: Page, message: string) {
 		await installStallingWallet(page, {nodeUrl});
-		await page.goto('/demo/');
-
-		const input = page.getByPlaceholder('Enter your greeting...');
-		await expect(input).toBeEnabled({timeout: 30_000});
-		await input.fill(message);
-		await page.getByRole('button', {name: /send/i}).click();
-
-		await page
-			.getByRole('button', {name: new RegExp(STALLING_WALLET_NAME, 'i')})
-			.click({timeout: 30_000});
-
-		// The wallet now has the transaction and is not answering, which is the
-		// state a user gets stuck in.
-		await expect
-			.poll(() => isHoldingTransaction(page), {timeout: 30_000})
-			.toBe(true);
+		await stallARequest(page, {message});
 		await expect(dialog(page, 'Wallet Action Required')).toBeVisible({
 			timeout: 30_000,
 		});
