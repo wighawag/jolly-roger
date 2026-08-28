@@ -17,8 +17,9 @@ import {
  *   a user's console log showed the list at 0 with a transaction genuinely in
  *   flight (work/notes/observations/wallet-action-required-modal-not-seen.md).
  * - `$inFlight.dispatching`, the app's OWN count of sends it has made and not had
- *   answered. It cannot go missing, but it starts a beat later than the library's
- *   and knows nothing about signature or connection requests.
+ *   answered, with `$inFlight.prompting` for the subset of those a human at a
+ *   wallet has to answer. It cannot go missing, but it starts a beat later than
+ *   the library's and knows nothing about signature or connection requests.
  * - the requests the user has already given up on, which must stop a prompt
  *   reappearing without silencing the NEXT request.
  *
@@ -43,6 +44,55 @@ import {
  */
 
 /**
+ * What the APP knows about its own sends, as opposed to what the connection
+ * library reports. Two questions, because they stopped having one answer.
+ *
+ * NOT in `wallet-activity-boundary.test.ts`'s sanctioned list, deliberately: it
+ * exists to be passed to the primitives below, and app code reaching for a
+ * primitive is the thing that rule forbids. An app wiring a local signer needs
+ * `guardDispatch(client, ledger, {prompts: false})` and nothing from here; the
+ * answer arrives through {@link createWalletActivity} like every other.
+ */
+export type DispatchActivity = {
+	/**
+	 * Whether the APP is still waiting on a dispatch of its own
+	 * (`$inFlight.dispatching > 0`), whoever signs it.
+	 *
+	 * A SECOND, more trustworthy source than `wallet.pendingRequests`. That is
+	 * transient library state: a wallet state rebuild resets it to `[]` while the
+	 * request is still outstanding, and unlocking a locked wallet is exactly such
+	 * a rebuild. When that happened the user was given no indication their wallet
+	 * was waiting and, worse, no escape hatch. The app's own record does not have
+	 * that problem: it is written immediately before dispatch and cleared only by
+	 * an answer.
+	 *
+	 * This is the ACTIVITY question: is something outstanding that the user could
+	 * be trapped by, or destroy by clicking the wrong thing.
+	 */
+	dispatchInFlight?: boolean;
+	/**
+	 * Whether any of those dispatches needs A HUMAN AT A WALLET
+	 * (`$inFlight.prompting > 0`).
+	 *
+	 * The narrower question, and the only one {@link shouldPromptForWalletAction}
+	 * asks. A dispatch signed by a key the app holds itself is outstanding, can
+	 * still be lost by a reload, and still deserves everything above; what it does
+	 * NOT deserve is a modal telling the user to go and approve something, because
+	 * no wallet asked them anything.
+	 *
+	 * Recorded at dispatch time by `guardDispatch`, never inferred from a count:
+	 * a count of sends cannot tell a wallet apart from a local signer, and reading
+	 * one as the other is what flashed "Wallet Action Required" several times a
+	 * minute in an app with a short round loop.
+	 *
+	 * Omitted means "assume they all prompt", which is what was true before this
+	 * distinction existed, so a caller that has not thought about it keeps the
+	 * loud behaviour rather than silently losing the modal for a real wallet.
+	 */
+	promptingDispatchInFlight?: boolean;
+};
+
+/**
  * Whether this step should offer the escape hatch.
  *
  * Defined AS the negation of {@link canDismissConnection}, not as its own list
@@ -54,7 +104,7 @@ import {
  */
 export function offersEscapeHatch(
 	state: ConnectionStateSnapshot,
-	options?: {dispatchInFlight?: boolean},
+	options?: DispatchActivity,
 ): boolean {
 	// A dispatch the app is still waiting on traps the user just as surely as a
 	// step that refuses dismissal, and for the same reason: something is with the
@@ -73,7 +123,7 @@ export function offersEscapeHatch(
  */
 export function outstandingRequestKind(
 	state: ConnectionStateSnapshot,
-	options?: {dispatchInFlight?: boolean},
+	options?: DispatchActivity,
 ): 'transaction' | 'signature' | undefined {
 	// THE APP'S OWN DISPATCH COUNTS, and outranks the list, because the list is
 	// the thing that goes missing: a wallet state rebuild resets
@@ -127,9 +177,45 @@ export type EscapeHatchCopy = {
  */
 export function escapeHatchCopy(
 	state: ConnectionStateSnapshot,
-	options?: {dispatchInFlight?: boolean},
+	options?: DispatchActivity,
 ): EscapeHatchCopy {
-	const kind = outstandingRequestKind(state, options);
+	// A SILENT DISPATCH NEVER SPEAKS FOR THE WALLET, and this is the second half
+	// of the same fix as `shouldPromptForWalletAction`. Suppressing the modal
+	// titled "Wallet Action Required" and then, one click later, telling the same
+	// user "your wallet still has this transaction ... if you approve it later"
+	// leaves the untruth exactly where this module says the feature lives: in the
+	// wording.
+	//
+	// So when the only outstanding transaction is one the app signed itself, the
+	// words come from what the WALLET is holding (read with no options at all,
+	// i.e. the library's list alone) and the dispatch speaks only for itself.
+	// Three cases fall out, all of them true: the wallet holds a transaction, so
+	// say so; the wallet holds a signature, so say THAT rather than letting the
+	// silent send outrank it into transaction wording; the wallet holds nothing,
+	// so describe what is actually happening, which is this app sending something
+	// nobody was asked about.
+	//
+	// `outstandingRequestKind` itself is deliberately NOT narrowed this way: it
+	// decides whether `stopWaitingForWallet` may cancel the connection, and a
+	// silent transaction in flight must take the release-the-prompt branch just as
+	// firmly as a loud one. What to TEAR DOWN and what to SAY are different
+	// questions, and this is the one about saying.
+	const silentDispatch =
+		options?.dispatchInFlight === true &&
+		options?.promptingDispatchInFlight === false;
+	const kind = silentDispatch
+		? outstandingRequestKind(state)
+		: outstandingRequestKind(state, options);
+
+	if (silentDispatch && kind === undefined) {
+		return {
+			trigger: 'Stop waiting',
+			title: 'This app is still sending a transaction',
+			body: 'Your wallet has not been asked for anything: this app signed this transaction itself, so there is nothing for you to approve. It cannot be taken back either. Stopping here only means this app gives up waiting for the answer. If it was sent, it still counts, and we will tell you what we can find out.',
+			confirm: 'Stop waiting',
+			dismiss: 'Keep waiting',
+		};
+	}
 
 	if (kind === 'transaction') {
 		return {
@@ -182,25 +268,7 @@ export function pendingRequestIds(state: ConnectionStateSnapshot): string[] {
 export function shouldPromptForWalletAction(
 	state: ConnectionStateSnapshot,
 	stoppedWaitingFor: ReadonlySet<string>,
-	options?: {
-		/**
-		 * Whether the APP is still waiting on a dispatch of its own
-		 * (`$inFlight.dispatching > 0`).
-		 *
-		 * A SECOND, more trustworthy source. `wallet.pendingRequests` is transient
-		 * library state: a wallet state rebuild resets it to `[]` while the request
-		 * is still outstanding, and unlocking a locked wallet is exactly such a
-		 * rebuild. When that happened the modal never appeared, so the user was
-		 * given no indication their wallet was waiting and, worse, no escape hatch.
-		 *
-		 * The app's own record does not have that problem: it is written
-		 * immediately before dispatch and cleared only by an answer. Using both
-		 * means the prompt survives the library losing track, and it also makes the
-		 * prompt, the escape hatch and the unload guard agree, since all three now
-		 * rest on this one fact.
-		 */
-		dispatchInFlight?: boolean;
-	},
+	options?: DispatchActivity,
 ): boolean {
 	// Still suppressed for the burner, which needs no human confirmation: a
 	// prompt asking for one would be a lie, and its dispatch settles in
@@ -216,9 +284,28 @@ export function shouldPromptForWalletAction(
 		return typeof id !== 'string' || !stoppedWaitingFor.has(id);
 	});
 
+	// THE PROMPTING ONES, NOT ALL OF THEM, and this is the one consumer that
+	// makes that distinction. The modal says "Wallet Action Required": it is an
+	// instruction to a person to go and approve something, so the only dispatch
+	// that may raise it is one a person has actually been asked about. A local
+	// signer sends with no dialog and nothing waiting on the user, and a modal
+	// telling them otherwise is a false instruction that they cannot act on and
+	// that vanishes before they can read it.
+	//
+	// Everything ELSE about that same dispatch is unchanged and deliberately so:
+	// it still offers the escape hatch (above), still arms the unload guard, and
+	// still lights the sending indicator (`ui/in-flight/sending.ts`), because a
+	// silent transaction is just as losable as a loud one. What narrows here is
+	// only the instruction to go and look at a wallet.
+	//
+	// Falls back to `dispatchInFlight` when nobody has said, so a caller that
+	// knows nothing of silent signers behaves exactly as before.
+	const promptingDispatch =
+		options?.promptingDispatchInFlight ?? options?.dispatchInFlight;
+
 	// Stopping waiting clears the app's live dispatches too (see
 	// `stopWaitingForWallet`), so this needs no separate suppression.
-	return outstanding || options?.dispatchInFlight === true;
+	return outstanding || promptingDispatch === true;
 }
 
 /** The half of the connection store the escape hatch needs. */
@@ -265,7 +352,7 @@ export async function stopWaitingForWallet(
 	connection: CancellableConnection,
 	inFlight: ReconcilableLedger,
 	releasePrompt: (requestIds: readonly string[]) => void,
-	options?: {dispatchInFlight?: boolean},
+	options?: DispatchActivity,
 ): Promise<StopWaitingOutcome> {
 	// RELEASE THE CALLER TOO, whichever branch follows. Dismissing the modal only
 	// released the user from a dialog; whatever started the send is still awaiting
@@ -371,7 +458,15 @@ export type WalletActivityStore = Readable<WalletActivity> & {
 };
 
 /** The ledger surface this needs. See `core/transaction/in-flight-store`. */
-export type ActivityLedger = Readable<{dispatching: number}> &
+export type ActivityLedger = Readable<{
+	dispatching: number;
+	/**
+	 * How many of those need a human at a wallet. Separate from `dispatching`
+	 * because only this one may raise "Wallet Action Required"; see
+	 * {@link DispatchActivity.promptingDispatchInFlight}.
+	 */
+	prompting: number;
+}> &
 	ReconcilableLedger;
 
 /**
@@ -391,7 +486,7 @@ export type ActivityLedger = Readable<{dispatching: number}> &
  */
 export function inertActivityLedger(): ActivityLedger {
 	return {
-		subscribe: readable({dispatching: 0}).subscribe,
+		subscribe: readable({dispatching: 0, prompting: 0}).subscribe,
 		reconcile: async () => {},
 		stopAwaiting: () => {},
 	};
@@ -409,7 +504,14 @@ export function createWalletActivity(params: {
 	const store = derived(
 		[connection, inFlight, stoppedWaiting],
 		([$connection, $inFlight, $stoppedWaiting]): WalletActivity => {
-			const options = {dispatchInFlight: $inFlight.dispatching > 0};
+			const options: DispatchActivity = {
+				dispatchInFlight: $inFlight.dispatching > 0,
+				// Both, always, and never one standing in for the other. A dispatch the
+				// app signs itself is activity (an exit, an unload warning) without
+				// being an instruction to the user, and the two fields are what keep
+				// those apart.
+				promptingDispatchInFlight: $inFlight.prompting > 0,
+			};
 			const escapable = offersEscapeHatch($connection, options);
 			return {
 				// Derived from `escapable` rather than computed alongside it, so the
@@ -444,7 +546,10 @@ export function createWalletActivity(params: {
 				{cancel: cancelConnection},
 				inFlight,
 				stoppedWaiting.stopWaitingFor,
-				{dispatchInFlight: get(inFlight).dispatching > 0},
+				{
+					dispatchInFlight: get(inFlight).dispatching > 0,
+					promptingDispatchInFlight: get(inFlight).prompting > 0,
+				},
 			),
 	};
 }

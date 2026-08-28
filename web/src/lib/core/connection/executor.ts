@@ -185,7 +185,9 @@ function warnIfUnguarded(
 			`transactions before dispatching them, so a reload between sending and ` +
 			`receiving the hash loses the transaction. Wrap it with ` +
 			`guardDispatch(client, inFlight) where it is built, INSIDE any ` +
-			`memoisation, so one key still yields one client object. See ` +
+			`memoisation, so one key still yields one client object. A signer whose ` +
+			`key the app holds should pass {prompts: false}, so its silent sends are ` +
+			`recorded without raising "Wallet Action Required". See ` +
 			`core/transaction/dispatch-guard.`,
 	);
 }
@@ -212,6 +214,11 @@ export function createExecutor(params: ExecutorParams): ExecutorStore {
 	// signer is dispatched with no in-flight record, which is precisely the hole
 	// this slice closed for the account executor, and it would be invisible: the
 	// transactions still go through, they just stop being recoverable.
+	//
+	// A local signer guards with `guardDispatch(client, inFlight, {prompts:
+	// false})`. It records, counts and warns before unload like any other send;
+	// what it must not do is raise "Wallet Action Required", since it signs with a
+	// key the app already has and there is no wallet and no human in the loop.
 	//
 	// A warning rather than a throw, because an app may legitimately compose an
 	// executor before wiring the guard, and taking the app down for it would be a

@@ -505,6 +505,12 @@ function buildWalletClient(params: {
 	// the local signer (`buildSignerClient` below), which is a different object and
 	// therefore needs its own guard. Nothing can do that on its behalf, so the two
 	// call sites are deliberately written to look alike.
+	//
+	// They differ in one word, and it is the one the user sees. This client
+	// PROMPTS, which is the default and therefore unwritten: a send from here goes
+	// to a wallet a human has to answer, so "Wallet Action Required" is a true
+	// instruction. The signer's passes `{prompts: false}`, because it signs with a
+	// key the app already holds and nobody is waiting on anything.
 	const walletClient = guardDispatch(
 		trackerBuilder.using(rawWalletClient, publicClient),
 		inFlight,
