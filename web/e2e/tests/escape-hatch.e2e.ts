@@ -2,10 +2,12 @@ import type {Page} from '@playwright/test';
 import {test, expect, describe} from '../fixtures/test';
 import {
 	approveHeldTransaction,
+	executeButton,
 	installStallingWallet,
 	isHoldingTransaction,
+	sendAndStall as stallARequest,
 	sentHashes,
-	STALLING_WALLET_NAME,
+	writeForm,
 } from '../fixtures/stalling-wallet';
 
 /**
@@ -54,80 +56,25 @@ describe('Stopping waiting for the wallet', () => {
 	const dialog = (page: Page, hasText: string | RegExp) =>
 		page.locator('#--layer-system [role="dialog"]', {hasText});
 
-	/** The control that submits the write, and the input it reads. */
-	const writeForm = (page: Page) =>
-		page
-			.locator('[class*="card"], [class*="function"]')
-			.filter({has: page.getByText('setMessage nonpayable')})
-			.first();
-
 	/**
-	 * The submit control, matched on the stem so it is the same locator whether it
-	 * reads "Execute" or "Executing...". `/execute/i` matches only the first of
-	 * those, since "executing" does not contain "execute", and the test then reads
-	 * as though the button had vanished at exactly the moment it was busy.
-	 */
-	const executeButton = (page: Page) =>
-		writeForm(page).locator('button', {hasText: /execut/i});
-
-	/**
-	 * Send a transaction from the ACCOUNT and leave the wallet holding it.
+	 * Send, leave the wallet holding it, and check the app says so.
 	 *
-	 * Two wallets are announced here (the burner from the build's env, and ours),
-	 * so the connect step is the wallet LIST rather than a single button, and this
-	 * app then asks the user to confirm signing in before it asks the wallet for
-	 * anything.
+	 * The walk itself is `sendAndStall` in the fixture, shared with the sending
+	 * indicator's suite, and on THIS branch it drives `/contracts` rather than the
+	 * demo page: this app posts through a local signer, so the demo page's Send
+	 * never reaches the user's wallet and a stalling wallet cannot stand in a
+	 * window that is not there. The account executor still prompts, and
+	 * `/contracts` calls it directly. That fact is stated once, in the fixture,
+	 * because the sending-indicator suite needs exactly the same thing and got
+	 * left behind when it was stated here instead.
+	 *
+	 * What stays here is the ASSERTION, which is this suite's subject rather than
+	 * its setup: the modal is the thing that offers the escape hatch, so every
+	 * test below starts from it being on screen.
 	 */
 	async function sendAndStall(page: Page, message: string) {
 		await installStallingWallet(page, {nodeUrl});
-		await page.goto('/contracts');
-
-		const writeTab = page.getByRole('tab', {name: 'Write'});
-		await expect(writeTab).toBeVisible({timeout: 30_000});
-		await writeTab.click();
-
-		await expect(page.getByText('setMessage nonpayable')).toBeVisible({
-			timeout: 30_000,
-		});
-		await writeForm(page)
-			.getByPlaceholder('Enter text...')
-			.first()
-			.fill(message);
-		await executeButton(page).click();
-
-		// The wallet list is not always the first thing in the modal. With several
-		// wallets and NO other sign-in options it is shown directly; with hosted
-		// sign-in it shares the modal with email and social, so it collapses behind
-		// one button rather than drowning them (see `walletEntryMode`). Waiting for
-		// either and clicking through when the button is there keeps this file the
-		// same on both branches, which matters because the variant that adds hosted
-		// sign-in inherits this suite rather than rewriting it.
-		const walletEntry = page.getByRole('button', {
-			name: /^connect a wallet$/i,
-		});
-		const stallingWallet = page.getByRole('button', {
-			name: new RegExp(STALLING_WALLET_NAME, 'i'),
-		});
-		await expect(walletEntry.or(stallingWallet).first()).toBeVisible({
-			timeout: 30_000,
-		});
-		if (await walletEntry.isVisible().catch(() => false)) {
-			await walletEntry.click();
-		}
-		await stallingWallet.click({timeout: 30_000});
-
-		// This app signs in, so the flow parks at WalletConnected until the user
-		// says yes. Skipping this leaves the connection there forever, with no
-		// request ever reaching the wallet and nothing to stop waiting for.
-		const signIn = page.getByRole('button', {name: /^sign in$/i});
-		await expect(signIn).toBeVisible({timeout: 30_000});
-		await signIn.click();
-
-		// The wallet now has the transaction and is not answering, which is the
-		// state a user gets stuck in.
-		await expect
-			.poll(() => isHoldingTransaction(page), {timeout: 60_000})
-			.toBe(true);
+		await stallARequest(page, {message});
 		await expect(dialog(page, 'Wallet Action Required')).toBeVisible({
 			timeout: 30_000,
 		});

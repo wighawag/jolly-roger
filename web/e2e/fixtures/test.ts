@@ -447,6 +447,39 @@ async function isWalletConnected(page: Page): Promise<boolean> {
 }
 
 /**
+ * Wait until the app is UP: hydrated, started, and done with the network work
+ * its boot needs.
+ *
+ * WHAT THIS IS FOR, and it is not slowness. `page.goto` resolves at `load`, and
+ * the app then keeps going: it hydrates, starts, and reads the chain. A test
+ * that acts on the environment inside that window (the offline tests take the
+ * NETWORK away) kills requests the boot is still waiting on, and the app never
+ * finishes starting - no stores settle, no chrome bar can ever appear, and
+ * nothing recovers, because the failed request is not retried. The test then
+ * fails 20 seconds later on a missing banner, which reads as a layout bug in the
+ * thing it was about to measure.
+ *
+ * It is a RACE, so it does not fail here and does fail in a descendant: this app
+ * boots in about 125ms after `goto`, and a heavier one under parallel workers
+ * does not. Both were observed; the template passed the same suite the
+ * descendant failed, twice, on different tests of the same file.
+ *
+ * The signal is the navbar's own: the disabled "Connect" spinner is what the
+ * server renders and what the app shows while the connection store is still
+ * loading, so its absence means client-side code has run AND settled. Same
+ * surface `data-connected` comes from, for the same reason (see navbar.svelte):
+ * it is in the DOM on every page, and it does not depend on a breakpoint or on
+ * copy.
+ */
+export async function waitForAppReady(page: Page, timeout = 30_000) {
+	await expect(
+		page.locator(`${WALLET_STATUS} button:disabled`),
+		'the app should have finished starting (navbar still shows the loading ' +
+			'Connect button)',
+	).toHaveCount(0, {timeout});
+}
+
+/**
  * What the app itself says about the connection, for a failure message.
  *
  * The attribute this fixture waits on cannot tell "still connecting" from
