@@ -242,6 +242,140 @@ describe('guardDispatch', () => {
 	});
 });
 
+describe('guardDispatch: whether a send needs a human, recorded not inferred', () => {
+	// A count of dispatches cannot tell a wallet apart from a key the app holds
+	// itself, and reading one as the other raised "Wallet Action Required" for
+	// transactions no wallet and no human was involved in. Whether a client
+	// prompts is known where it is BUILT, so it is stated there and carried per
+	// dispatch.
+	function pendingClient() {
+		let answer: (hash: string) => void = () => {};
+		const client = fakeClient({
+			account: ACCOUNT,
+			send: () =>
+				new Promise((resolve) => {
+					answer = resolve;
+				}),
+		});
+		return {client, answer: (hash: string) => answer(hash)};
+	}
+
+	it('counts a silent send as dispatched, but not as prompting', async () => {
+		const book = ledger();
+		const {client, answer} = pendingClient();
+
+		const call = guardDispatch(client, book, {prompts: false}).writeContract({
+			address: CONTRACT,
+			functionName: 'commit',
+		} as never);
+
+		await vi.waitFor(() => expect(get(book).dispatching).toBe(1));
+		// The whole distinction, in one line: outstanding, guarded against a
+		// reload, and nothing for the user to go and do.
+		expect(get(book).prompting).toBe(0);
+
+		answer('0xhash');
+		await call;
+		expect(get(book).dispatching).toBe(0);
+		expect(get(book).prompting).toBe(0);
+	});
+
+	it('prompts by default, so an unchanged call site is unchanged', async () => {
+		const book = ledger();
+		const {client, answer} = pendingClient();
+
+		const call = guardDispatch(client, book).writeContract({
+			address: CONTRACT,
+			functionName: 'setMessage',
+		} as never);
+
+		await vi.waitFor(() => expect(get(book).dispatching).toBe(1));
+		expect(get(book).prompting).toBe(1);
+
+		answer('0xhash');
+		await call;
+		expect(get(book).prompting).toBe(0);
+	});
+
+	it('keeps the two kinds apart when both are in flight', async () => {
+		// The state a local-signer app is in constantly: a user's own transaction
+		// with the wallet while a background send goes out silently. One prompt,
+		// two dispatches.
+		const book = ledger();
+		const wallet = pendingClient();
+		const signer = pendingClient();
+
+		const walletCall = guardDispatch(wallet.client, book).writeContract({
+			address: CONTRACT,
+			functionName: 'setMessage',
+		} as never);
+		const signerCall = guardDispatch(signer.client, book, {
+			prompts: false,
+		}).writeContract({address: CONTRACT, functionName: 'commit'} as never);
+
+		await vi.waitFor(() => expect(get(book).dispatching).toBe(2));
+		expect(get(book).prompting).toBe(1);
+
+		// The wallet answers first: nothing is left to prompt about, though a
+		// dispatch is still outstanding and still worth an unload warning.
+		wallet.answer('0xhash');
+		await walletCall;
+		expect(get(book).dispatching).toBe(1);
+		expect(get(book).prompting).toBe(0);
+
+		signer.answer('0xhash');
+		await signerCall;
+		expect(get(book).dispatching).toBe(0);
+		expect(get(book).prompting).toBe(0);
+	});
+
+	it('warns when the same client is guarded both ways', () => {
+		// Whether sends prompt is a property of the key that signs, so two callers
+		// disagreeing means one of them is wrong. Both already-guarded paths report
+		// it: handing back the WRAPPER is the likelier mistake once an app has two
+		// guarded clients, and it used to be the silent one.
+		const book = ledger();
+		const client = fakeClient({account: ACCOUNT});
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		try {
+			const wrapper = guardDispatch(client, book);
+			expect(warn).not.toHaveBeenCalled();
+
+			// Same raw client, opposite answer.
+			expect(guardDispatch(client, book, {prompts: false})).toBe(wrapper);
+			expect(warn).toHaveBeenCalledTimes(1);
+
+			// Same wrapper, opposite answer.
+			expect(guardDispatch(wrapper, book, {prompts: false})).toBe(wrapper);
+			expect(warn).toHaveBeenCalledTimes(2);
+
+			// Agreeing is not worth a word.
+			guardDispatch(wrapper, book);
+			guardDispatch(client, book, {prompts: true});
+			expect(warn).toHaveBeenCalledTimes(2);
+		} finally {
+			warn.mockRestore();
+		}
+	});
+
+	it('releases the prompting count when the user stops waiting', async () => {
+		const book = ledger();
+		const {client} = pendingClient();
+		const call = guardDispatch(client, book).writeContract({
+			address: CONTRACT,
+			functionName: 'setMessage',
+		} as never);
+		await vi.waitFor(() => expect(get(book).prompting).toBe(1));
+
+		book.stopAwaiting();
+		await expect(call).rejects.toThrow(StoppedWaitingError);
+		// Both sets are cleared together, or the modal would come straight back
+		// for a request the user has just given up on.
+		expect(get(book).prompting).toBe(0);
+		expect(get(book).dispatching).toBe(0);
+	});
+});
+
 describe('guardDispatch: stopping waiting releases the caller, not the request', () => {
 	it('rejects the caller with StoppedWaitingError while the send runs on', async () => {
 		// Reported from real use: the Send button stayed disabled and spinning

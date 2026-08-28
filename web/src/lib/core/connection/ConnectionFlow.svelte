@@ -204,9 +204,25 @@
 	}
 </script>
 
-<!-- The escape hatch's trigger, on every step that refuses dismissal. A snippet
-     rather than four copies, because four copies is how one of them ends up
-     missing and that step becomes the trap this exists to remove. -->
+<!-- The escape hatch's trigger, on every modal that can be up while the user is
+     trapped. A snippet rather than a copy per modal, because a copy per modal is
+     how one of them ends up missing and that step becomes the trap this exists
+     to remove.
+
+     THAT INCLUDES EVERY MODAL WHOSE `onCancel` IS `dismissable`-GATED, not only
+     the waiting ones. Those modals refuse a stray click precisely BECAUSE a
+     dispatch is outstanding, so in that state the only exits they offered were
+     their own Cancel button, which is `connection.cancel()`: the destructive one
+     this whole slice exists to keep away from a transaction in flight. The
+     honest exit has to be there too.
+
+     It used to be there by accident: "Wallet Action Required" opened for every
+     dispatch and carried the trigger, so something on screen always had it. That
+     modal is now raised only for dispatches a human was actually asked about
+     (see wallet-activity.ts), which is right, and it means these modals can no
+     longer borrow its exit.
+     `test/lib/core/connection/escape-hatch-reachable.test.ts` keeps them in
+     step. -->
 {#snippet escapeHatch()}
 	{#if escapable}
 		<Button
@@ -417,6 +433,8 @@
 			Dev Mode
 		</Button>
 	{/if}
+
+	{@render escapeHatch()}
 </Modal.Root>
 
 <!-- Wallet picker (multi-wallet case): opened from the "Connect a Wallet" button. -->
@@ -514,6 +532,8 @@
 		>
 		<Button onclick={() => signInAdoptingSwap(connection)}>Sign In</Button>
 	</Modal.Footer>
+
+	{@render escapeHatch()}
 </Modal.Root>
 
 <!-- Account choice (multi-account wallet). Two presentations:
@@ -612,6 +632,8 @@
 			</div>
 		{/if}
 	{/if}
+
+	{@render escapeHatch()}
 </Modal.Root>
 
 <BasicModal
@@ -814,4 +836,6 @@
 			{/if}
 		</Button>
 	</Modal.Footer>
+
+	{@render escapeHatch()}
 </Modal.Root>

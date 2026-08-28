@@ -505,6 +505,12 @@ function buildWalletClient(params: {
 	// the local signer (`buildSignerClient` below), which is a different object and
 	// therefore needs its own guard. Nothing can do that on its behalf, so the two
 	// call sites are deliberately written to look alike.
+	//
+	// They differ in one word, and it is the one the user sees. This client
+	// PROMPTS, which is the default and therefore unwritten: a send from here goes
+	// to a wallet a human has to answer, so "Wallet Action Required" is a true
+	// instruction. The signer's passes `{prompts: false}`, because it signs with a
+	// key the app already holds and nobody is waiting on anything.
 	const walletClient = guardDispatch(
 		trackerBuilder.using(rawWalletClient, publicClient),
 		inFlight,
@@ -611,6 +617,20 @@ function buildExecution(params: {
 	// since the app signs locally and no human has to answer, but it is not empty:
 	// the tab can still die between `eth_sendRawTransaction` leaving and the hash
 	// coming back, and that is exactly the case core/transaction exists for.
+	//
+	// AND GUARDED SILENTLY, `{prompts: false}`, which is the one difference from
+	// the wallet client's call site. Guarding is about the RECORD; prompting is
+	// about the USER, and this is the client where those two stop coinciding. The
+	// app holds this key, so a send here opens no dialog and leaves nobody waiting,
+	// and "Wallet Action Required" would be an instruction the user cannot act on
+	// about a wallet that was never asked. In a game loop it is worse than useless:
+	// it appears and vanishes several times a minute, too fast to read, and teaches
+	// the user to ignore the modal for the sends that DO need them.
+	//
+	// The record is untouched by this, deliberately. The send still counts toward
+	// `dispatching`, still arms the unload guard and still lights the sending
+	// indicator, because a transaction nobody was asked about is exactly as losable
+	// as one a wallet is holding. See core/transaction/dispatch-guard.
 	const buildSignerClient = memoiseSignerClient((privateKey) => {
 		const account = privateKeyToAccount(privateKey);
 		const raw = createWalletClient({
@@ -626,7 +646,9 @@ function buildExecution(params: {
 				: custom(connection.provider),
 		});
 		return {
-			client: guardDispatch(trackerBuilder.using(raw, publicClient), inFlight),
+			client: guardDispatch(trackerBuilder.using(raw, publicClient), inFlight, {
+				prompts: false,
+			}),
 			account,
 		};
 	});

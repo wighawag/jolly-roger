@@ -75,12 +75,15 @@ export type InFlightState = {
 	 * for a request the wallet did not have yet: invisible against a local node,
 	 * and a four-second falsehood against a slow public RPC.
 	 *
-	 * The app's own answer to "is a transaction with the wallet at this moment",
-	 * and deliberately the single source for three things that used to disagree:
-	 * whether to show "Wallet Action Required", whether to offer the escape hatch,
-	 * and whether to warn before a reload. It is worth more than the connection
-	 * library's `wallet.pendingRequests` for that purpose, because it is written by
-	 * the app immediately before dispatch and cleared only by an answer, whereas
+	 * The app's own answer to "is a transaction being awaited at this moment", and
+	 * deliberately the single source for the things that used to disagree about
+	 * it: whether to offer the escape hatch, whether to warn before a reload, and
+	 * whether to show that something is being sent. "Wallet Action Required" used
+	 * to rest on it too and now rests on {@link prompting}, because that modal
+	 * asks a narrower question than the other three. It is worth more than the
+	 * connection library's `wallet.pendingRequests` for that purpose, because it
+	 * is written by the app immediately before dispatch and cleared only by an
+	 * answer, whereas
 	 * `pendingRequests` is transient library state that a wallet state rebuild
 	 * resets (see work/notes/observations/wallet-action-required-modal-not-seen.md).
 	 *
@@ -88,6 +91,29 @@ export type InFlightState = {
 	 * survived, and those are reported by the notice instead.
 	 */
 	dispatching: number;
+	/**
+	 * How many of those dispatches are waiting on A HUMAN AT A WALLET.
+	 *
+	 * NOT DERIVABLE FROM {@link dispatching}, which is the whole reason it is
+	 * carried separately. "a dispatch is outstanding" and "a person has to go and
+	 * approve something" are the same fact only while every sender is a wallet.
+	 * An app that also signs with a key it holds itself (a local signer) sends
+	 * silently, and inferring the second from the first put "Wallet Action
+	 * Required" on screen for transactions no wallet and no human was involved in:
+	 * several flashes a minute in a game with a short round loop.
+	 *
+	 * Recorded at dispatch time instead, from `guardDispatch`'s `prompts` option,
+	 * because the place that BUILDS the client is the one place that knows whether
+	 * the thing prompts. Always <= `dispatching`.
+	 *
+	 * THE NARROW QUESTION, and the only one this answers: which dispatches justify
+	 * telling the user to go and look at their wallet. Everything else that keys
+	 * on activity keeps reading `dispatching`, and should: the unload guard,
+	 * because a silent transaction in flight is still an excellent reason not to
+	 * close the tab, and the sending indicator, which exists precisely to explain
+	 * that guard for the silent case.
+	 */
+	prompting: number;
 };
 
 /**
@@ -186,6 +212,15 @@ export type InFlightLedger = Readable<InFlightState> & {
 		 * the truth whenever the wallet already has something queued.
 		 */
 		nonce?: number;
+		/**
+		 * Whether answering this request needs a human at a wallet. Defaults to
+		 * `true`, so a caller that has not thought about it gets the loud behaviour
+		 * rather than a silent one. See {@link InFlightState.prompting}.
+		 *
+		 * Not persisted: it only decides what to show while the request is live, and
+		 * after a reload nothing is being awaited at all.
+		 */
+		prompts?: boolean;
 	}): Promise<InFlightHandle>;
 	/**
 	 * Work out what happened to every unsettled record.
@@ -380,6 +415,16 @@ export function createInFlightLedger(
 	 */
 	const dispatchedIds = new Set<string>();
 
+	/**
+	 * The subset of {@link dispatchedIds} that a human has to answer.
+	 *
+	 * A second set rather than a filter over the records, because the records are
+	 * persisted and this is a fact about the live request only. Kept in step with
+	 * `dispatchedIds` by the same three lines (`dispatched`, `settle`,
+	 * `stopAwaiting`), so it can never outlive the dispatch it describes.
+	 */
+	const promptingIds = new Set<string>();
+
 	function readStored(): InFlightRequest[] {
 		try {
 			const raw = storage.getItem(key);
@@ -415,13 +460,18 @@ export function createInFlightLedger(
 		requests: readStored(),
 		outcomes: {},
 		dispatching: 0,
+		prompting: 0,
 	};
 	const state = writable<InFlightState>(current);
 
-	function commit(next: Omit<InFlightState, 'dispatching'>) {
-		// Always recomputed rather than passed in, so it cannot drift from the map
-		// that actually holds the live dispatches.
-		current = {...next, dispatching: dispatchedIds.size};
+	function commit(next: Omit<InFlightState, 'dispatching' | 'prompting'>) {
+		// Always recomputed rather than passed in, so it cannot drift from the maps
+		// that actually hold the live dispatches.
+		current = {
+			...next,
+			dispatching: dispatchedIds.size,
+			prompting: promptingIds.size,
+		};
 		writeStored(current.requests);
 		state.set(current);
 	}
@@ -444,8 +494,9 @@ export function createInFlightLedger(
 		account: `0x${string}`;
 		intent: InFlightIntent;
 		nonce?: number;
+		prompts?: boolean;
 	}): Promise<InFlightHandle> {
-		const {account, intent, nonce: knownNonce} = recordParams;
+		const {account, intent, nonce: knownNonce, prompts = true} = recordParams;
 		const id = randomId();
 
 		// PERSISTED FIRST, with no nonce. Everything after this line may never
@@ -489,6 +540,7 @@ export function createInFlightLedger(
 		const settle = (then: () => void) => {
 			const wasAwaited = awaiting.delete(id);
 			const wasDispatched = dispatchedIds.delete(id);
+			promptingIds.delete(id);
 			then();
 			// `leaveUnresolved` changes nothing else, so without this the count would
 			// stay high and the app would keep claiming a wallet was still thinking.
@@ -517,6 +569,7 @@ export function createInFlightLedger(
 			dispatched: () => {
 				if (abandonedFlag) return;
 				dispatchedIds.add(id);
+				if (prompts) promptingIds.add(id);
 				commitDispatching();
 			},
 			discard: () => settle(() => remove(id)),
@@ -536,6 +589,7 @@ export function createInFlightLedger(
 		const releasing = [...awaiting.values()];
 		awaiting.clear();
 		dispatchedIds.clear();
+		promptingIds.clear();
 		commitDispatching();
 		for (const abandon of releasing) abandon(new StoppedWaitingError());
 	}
