@@ -2,8 +2,7 @@ import {test, expect, describe} from '../fixtures/test';
 import {
 	approveHeldTransaction,
 	installStallingWallet,
-	isHoldingTransaction,
-	STALLING_WALLET_NAME,
+	sendAndStall,
 } from '../fixtures/stalling-wallet';
 
 /**
@@ -41,21 +40,11 @@ describe('Explaining a dispatch in flight', () => {
 		page,
 	}) => {
 		await installStallingWallet(page, {nodeUrl, stallingAccountIndex: 1});
-		await page.goto('/demo/');
-
-		const input = page.getByPlaceholder('Enter your greeting...');
-		await expect(input).toBeEnabled({timeout: 30_000});
-		await input.fill('sending indicator');
-		await page.getByRole('button', {name: /send/i}).click();
-		// Two wallets are announced (the build's burner and ours), so connecting is
-		// a choice from a list.
-		await page
-			.getByRole('button', {name: new RegExp(STALLING_WALLET_NAME, 'i')})
-			.click({timeout: 30_000});
-
-		await expect
-			.poll(() => isHoldingTransaction(page), {timeout: 30_000})
-			.toBe(true);
+		// The walk to a wallet that is holding something, shared with the escape
+		// hatch's suite and overridden as one piece by a descendant whose sends do
+		// not reach a wallet. This suite used to open-code it and was left behind
+		// when the other copy was adapted, which is what the fixture now prevents.
+		await sendAndStall(page, {message: 'sending indicator'});
 		const dispatchedAt = Date.now();
 
 		// The wordless rung: no delay, because this is the one that has to be on
@@ -88,7 +77,9 @@ describe('Explaining a dispatch in flight', () => {
 		// layer (core/ui/layers.ts).
 		const layer = await page
 			.locator(NOTICE)
-			.evaluate((node) => node.closest('[data-layer]')?.getAttribute('data-layer'));
+			.evaluate((node) =>
+				node.closest('[data-layer]')?.getAttribute('data-layer'),
+			);
 		expect(layer).toBe('progress');
 
 		// And both go when the answer arrives.
