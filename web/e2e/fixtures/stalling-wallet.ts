@@ -77,9 +77,26 @@ export async function installStallingWallet(
 	await page.addInitScript(
 		({nodeUrl, account, name}) => {
 			const held: {resolve?: () => Promise<void>} = {};
+			// Node calls this wallet is waiting on RIGHT NOW, by method, with the
+			// moment each started. Everything except the parked send and the
+			// signatures is forwarded to the node with a bare `fetch`, so a node that
+			// is slow (four workers against one hardhat) or gone looks IDENTICAL from
+			// the outside to an app that never asked the wallet for anything: the
+			// modal is up, the page says it is sending, and nothing is held. Naming
+			// what it is waiting on is the difference between a five-minute mystery
+			// and a one-line answer.
+			const inFlight = new Map<number, {method: string; startedAt: number}>();
 			(window as any).__stallingWallet = {
 				/** Whether a transaction request is parked right now. */
 				isHolding: () => !!held.resolve,
+				/** What the wallet is waiting on the node for, oldest first. */
+				waitingOn: () =>
+					[...inFlight.values()]
+						.sort((a, b) => a.startedAt - b.startedAt)
+						.map((call) => ({
+							method: call.method,
+							forMs: Math.round(performance.now() - call.startedAt),
+						})),
 				/** Let the parked transaction through to the node. */
 				approve: async () => {
 					if (!held.resolve) throw new Error('no transaction is being held');
@@ -91,23 +108,29 @@ export async function installStallingWallet(
 
 			let id = 0;
 			async function rpc(method: string, params: unknown[]) {
-				const res = await fetch(nodeUrl, {
-					method: 'POST',
-					headers: {'Content-Type': 'application/json'},
-					body: JSON.stringify({
-						id: ++id,
-						jsonrpc: '2.0',
-						method,
-						params: params ?? [],
-					}),
-				});
-				const json = await res.json();
-				if (json.error) {
-					throw Object.assign(new Error(json.error.message), {
-						code: json.error.code,
+				const callId = ++id;
+				inFlight.set(callId, {method, startedAt: performance.now()});
+				try {
+					const res = await fetch(nodeUrl, {
+						method: 'POST',
+						headers: {'Content-Type': 'application/json'},
+						body: JSON.stringify({
+							id: callId,
+							jsonrpc: '2.0',
+							method,
+							params: params ?? [],
+						}),
 					});
+					const json = await res.json();
+					if (json.error) {
+						throw Object.assign(new Error(json.error.message), {
+							code: json.error.code,
+						});
+					}
+					return json.result;
+				} finally {
+					inFlight.delete(callId);
 				}
-				return json.result;
 			}
 
 			const provider = {
@@ -183,6 +206,13 @@ export async function approveHeldTransaction(page: Page): Promise<void> {
 /** Hashes this wallet has broadcast, for asserting a transaction was real. */
 export function sentHashes(page: Page): Promise<string[]> {
 	return page.evaluate(() => (window as any).__stallingWallet.sent as string[]);
+}
+
+/** What the wallet is waiting on the node for, for a failure message. */
+export function walletWaitingOn(
+	page: Page,
+): Promise<{method: string; forMs: number}[]> {
+	return page.evaluate(() => (window as any).__stallingWallet.waitingOn());
 }
 
 /**
@@ -325,11 +355,23 @@ async function waitUntilHolding(page: Page, timeout = 60_000): Promise<void> {
 		await page.waitForTimeout(100);
 	}
 
+	// What the wallet itself was doing, because the three explanations look
+	// identical from the page: a flow parked on a step nobody answered, an app
+	// that does not send through the wallet here at all, and a wallet waiting on a
+	// node that is not keeping up. Only the last one names an RPC method.
+	const waiting = await walletWaitingOn(page).catch(() => []);
 	throw new Error(
-		`the stalling wallet was never handed a transaction within ${timeout}ms. ` +
-			`Either the flow is parked on a step this helper does not know how to ` +
-			`answer, or this app does not send through the user's wallet here at ` +
-			`all - a descendant that signs with a key of its own has to point ` +
-			`sendAndStall at a page that does.`,
+		`the stalling wallet was never handed a transaction within ${timeout}ms.\n` +
+			`The wallet is waiting on the node for: ${
+				waiting.length === 0
+					? 'nothing (so the app never got as far as asking it)'
+					: waiting.map((c) => `${c.method} (${c.forMs}ms)`).join(', ')
+			}.\n` +
+			`Nothing waiting means the flow is parked on a step this helper does ` +
+			`not know how to answer, or this app does not send through the user's ` +
+			`wallet here at all - a descendant that signs with a key of its own has ` +
+			`to point sendAndStall at a page that does. A method waiting for many ` +
+			`seconds means the node is the bottleneck, and the lever is the worker ` +
+			`count in playwright.config.ts, not this timeout.`,
 	);
 }
