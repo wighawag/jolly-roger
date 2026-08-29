@@ -2,6 +2,7 @@ import {derived, type Readable} from 'svelte/store';
 import type {Connection, UnderlyingEthereumProvider} from '@etherplay/connect';
 import {isRegistered, type DelegationValue} from '$lib/onchain/delegation';
 import type {Context} from '$lib/context/types';
+import {grantStatus, type SignerGrant} from './grant';
 
 /**
  * What the account panel says about this browser's authority, and whether the
@@ -42,8 +43,17 @@ export function deriveDelegationRow(input: {
 	delegation: DelegationValue;
 	/** Whether the account can submit a transaction (i.e. it has a wallet). */
 	ownerCanSend: boolean;
+	/**
+	 * What the key is for, in this app's terms.
+	 *
+	 * The status lines below said "post greetings" until this arrived, which was
+	 * the greeting demo's copy sitting in shared code and inherited, unread, by
+	 * every app on the tree. Same fix as the payment dialog's consent list, and
+	 * the same single source: see ./grant.
+	 */
+	grant: SignerGrant;
 }): DelegationRowView {
-	const {owner, signer, delegation, ownerCanSend} = input;
+	const {owner, signer, delegation, ownerCanSend, grant} = input;
 
 	// No signer means nothing has been authorised and nothing can be: a
 	// wallet-only deployment, or any step before sign-in. It is also what makes
@@ -56,11 +66,14 @@ export function deriveDelegationRow(input: {
 	return {
 		visible: true,
 		authorised,
-		status: authorised
-			? 'This browser can post greetings in your name.'
-			: delegation.step === 'Loaded'
-				? 'This browser cannot yet post in your name.'
-				: 'Checking whether this browser can post in your name...',
+		status: grantStatus(
+			grant,
+			authorised
+				? 'authorised'
+				: delegation.step === 'Loaded'
+					? 'not-authorised'
+					: 'checking',
+		),
 		// Only an authorisation that exists can be withdrawn, and only by an
 		// account that can send: `revokeDelegate` takes `msg.sender` as the
 		// account withdrawing, so there is nobody else who could send it.
@@ -76,9 +89,12 @@ export type DelegationRowStore = Readable<DelegationRowView>;
 
 /** Bind the view above to the app's stores. */
 export function createDelegationRowStore(
-	params: Pick<Context, 'connection' | 'delegation' | 'accountExecutor'>,
+	params: Pick<
+		Context,
+		'connection' | 'delegation' | 'accountExecutor' | 'signerGrant'
+	>,
 ): DelegationRowStore {
-	const {connection, delegation, accountExecutor} = params;
+	const {connection, delegation, accountExecutor, signerGrant} = params;
 
 	return derived(
 		[connection, delegation, accountExecutor],
@@ -94,6 +110,7 @@ export function createDelegationRowStore(
 				signer: account?.signer.address,
 				delegation: $delegation,
 				ownerCanSend: $executor.status === 'ready',
+				grant: signerGrant,
 			});
 		},
 	);
