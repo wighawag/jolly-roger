@@ -10,6 +10,7 @@ import type {
 	SendTransactionParameters,
 } from 'viem';
 import {InsufficientFundsError} from './InsufficientFundsError';
+import {sameAddress} from '$lib/core/utils/ethereum/address';
 import type {Chain, Account} from 'viem';
 
 export type BalanceCheckState =
@@ -139,30 +140,48 @@ export function createBalanceCheckStore({
 	};
 
 	/**
-	 * Something has been done that should raise the blocked account's balance:
-	 * start watching for it to move, and offer to continue once it does.
+	 * An account has been funded: if it is the one blocking a transaction, start
+	 * watching for the money to land and offer to continue once it does.
 	 *
-	 * Named for the effect rather than for the faucet, because there are now two
-	 * remedies that produce it. A faucet claim funds the authenticated account; a
-	 * top-up funds the local signer through the payment rail. The modal treats
-	 * them identically from here on, and calling this `markFaucetClaimed` from the
-	 * top-up path would describe the wrong one of the two.
+	 * Named for the effect rather than for the faucet, because there are several
+	 * remedies that produce it. A faucet claim funds the authenticated account or
+	 * a payer on the payment rail; a top-up funds the local signer through that
+	 * rail. The modal treats them identically from here on, and calling this
+	 * `markFaucetClaimed` from the top-up path would describe the wrong one.
 	 *
-	 * A no-op unless a transaction is actually blocked, so callers do not have to
-	 * check first.
+	 * TAKES THE ADDRESS THAT WAS FUNDED, and decides for itself whether that is
+	 * the account it is waiting on. Callers used to decide, by comparing against
+	 * the authenticated account's executor, which quietly assumed the only two
+	 * payers were that account and the local signer. A third one exists now (a
+	 * wallet on the payment rail), and under that comparison funding it never
+	 * counted: the modal went on waiting for a change to an account nobody had
+	 * touched, having just sent the money to the account that was actually short.
+	 * The rule is not "was this the executor", it is "was this the account THIS
+	 * check is blocked on", and only this store knows that.
+	 *
+	 * The pre-funding balance is read here too, from the store being watched,
+	 * rather than passed in. A caller reading its own idea of the balance is how
+	 * the account's balance came to be sampled for a claim made on the signer's
+	 * behalf, which is a figure the poller can never see move.
+	 *
+	 * A no-op unless a transaction is actually blocked on that account, so callers
+	 * do not have to check first.
 	 */
-	const markFundingRequested = (preFaucetBalance: bigint) => {
+	const markFundingRequested = (fundedAddress: `0x${string}` | undefined) => {
 		update((state) => {
-			if (state.step === 'insufficient') {
-				startPolling(state.balanceStore, preFaucetBalance);
-				return {
-					...state,
-					faucetClaimedAt: Date.now(),
-					preFaucetBalance,
-					isWaitingForBalanceUpdate: true,
-				};
-			}
-			return state;
+			if (state.step !== 'insufficient') return state;
+			if (!sameAddress(fundedAddress, state.sender)) return state;
+
+			const current = get(state.balanceStore);
+			const preFaucetBalance = current.step === 'Loaded' ? current.value : 0n;
+
+			startPolling(state.balanceStore, preFaucetBalance);
+			return {
+				...state,
+				faucetClaimedAt: Date.now(),
+				preFaucetBalance,
+				isWaitingForBalanceUpdate: true,
+			};
 		});
 	};
 

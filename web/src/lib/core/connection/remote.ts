@@ -206,6 +206,32 @@ export type PaymentRail = {
 };
 
 /**
+ * WHICH ACCOUNT the payment connection is currently holding, if any.
+ *
+ * One line, and it is here rather than inline at each caller because "who is the
+ * payer right now" is asked from more than one place and answered wrongly in
+ * more than one way. A payment flow asks it to size an offer; the
+ * insufficient-funds modal asks it to work out whether the account that is short
+ * is the wallet the user chose to pay with, which decides both what it calls
+ * that account and which remedy it offers.
+ *
+ * `undefined` while the rail is dormant, which is its normal state: it is built
+ * with `autoConnect: false` and holds nobody until the user asks to pay. That is
+ * a real answer and callers must treat it as one - an unconnected rail is not a
+ * match for anything, and guessing otherwise names a wallet the user never
+ * picked.
+ *
+ * NOT the account a WALLET has switched to behind the connection's back. On an
+ * account change @etherplay/connect deliberately leaves `account` alone and
+ * records the new address separately, because adopting it silently would change
+ * who is paying without asking. This reports what the connection holds.
+ */
+export function payerAddressOf($payment: unknown): `0x${string}` | undefined {
+	return ($payment as {account?: {address?: `0x${string}`}} | undefined)
+		?.account?.address;
+}
+
+/**
  * The payment rail, built up front BY THE APP THAT WANTS ONE.
  *
  * Deliberately not built by `establishRemoteConnection`, and this is the one

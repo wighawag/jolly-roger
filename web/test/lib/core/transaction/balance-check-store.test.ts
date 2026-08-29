@@ -195,3 +195,96 @@ describe('balanceCheck.ensureCanAfford', () => {
 		expect(gas.update).toHaveBeenCalled();
 	});
 });
+
+/**
+ * WHO WAS FUNDED, and whether that unblocks the transaction being waited on.
+ *
+ * The store is what knows which account a blocked transaction is short on, so
+ * it is what decides whether a funding event is the one it is waiting for. That
+ * used to be the CALLER's decision, taken by comparing the funded address
+ * against the authenticated account's executor, which is a rule that reads
+ * "there are two payers and this is not the other one". A third payer exists (a
+ * wallet on the payment rail), and under that comparison funding it counted as
+ * funding nobody: the modal went on waiting for a change to an account nobody
+ * had touched, immediately after sending money to the account that was short.
+ */
+describe('balanceCheck.markFundingRequested', () => {
+	const SIGNER = '0xbBbBbBbBbBbBbBbBbBbBbBbBbBbBbBbBbBbBbBbB' as const;
+
+	function blockedOn(sender: `0x${string}`, balance = 0n) {
+		const store = createBalanceCheckStore({
+			publicClient: {} as unknown as PublicClient,
+			gasFee: fakeGasFee(estimate),
+		});
+		store.showInsufficientFunds({
+			balanceStore: fakeBalance(balance),
+			sender,
+			estimatedCost: 1000n,
+			onContinue: () => {},
+			onDismiss: () => {},
+		});
+		return store;
+	}
+
+	it('starts waiting when the funded account is the one that is short', () => {
+		const store = blockedOn(ADDR);
+		store.markFundingRequested(ADDR);
+		expect((get(store) as any).isWaitingForBalanceUpdate).toBe(true);
+		store.close();
+	});
+
+	it('starts waiting for ANY payer that is short, not just the account', () => {
+		// The rail case. Nothing here knows which kind of payer this is, and that
+		// is the point: the rule is "is this the account I am blocked on".
+		const store = blockedOn(SIGNER);
+		store.markFundingRequested(SIGNER);
+		expect((get(store) as any).isWaitingForBalanceUpdate).toBe(true);
+		store.close();
+	});
+
+	it('ignores funding aimed at an account it is not waiting on', () => {
+		// A top-up faucets the PAYER before it can buy anything, while the blocked
+		// transaction is short on someone else entirely. Believing that would leave
+		// the modal waiting for a change that is never coming, and then inviting
+		// the user to continue into the same failure.
+		const store = blockedOn(ADDR);
+		store.markFundingRequested(SIGNER);
+		expect((get(store) as any).isWaitingForBalanceUpdate).toBe(false);
+		store.close();
+	});
+
+	it('ignores an unknown funded address rather than assuming it matched', () => {
+		const store = blockedOn(ADDR);
+		store.markFundingRequested(undefined);
+		expect((get(store) as any).isWaitingForBalanceUpdate).toBe(false);
+		store.close();
+	});
+
+	it('matches case-insensitively', () => {
+		// These two arrive from different places (a caller, an executor store) and
+		// disagree about EIP-55 casing. A strict compare silently skips the notice.
+		const store = blockedOn(ADDR);
+		store.markFundingRequested(ADDR.toLowerCase() as `0x${string}`);
+		expect((get(store) as any).isWaitingForBalanceUpdate).toBe(true);
+		store.close();
+	});
+
+	it('reads the pre-funding balance from the store it is watching', () => {
+		// Not from whatever the caller happened to have. Sampling the account's
+		// balance for a claim made on another payer's behalf yields a figure the
+		// poller can never see move.
+		const store = blockedOn(ADDR, 250n);
+		store.markFundingRequested(ADDR);
+		expect((get(store) as any).preFaucetBalance).toBe(250n);
+		store.close();
+	});
+
+	it('is a no-op when nothing is blocked', () => {
+		const store = createBalanceCheckStore({
+			publicClient: {} as unknown as PublicClient,
+			gasFee: fakeGasFee(estimate),
+		});
+		store.markFundingRequested(ADDR);
+		expect(get(store).step).toBe('idle');
+	});
+});

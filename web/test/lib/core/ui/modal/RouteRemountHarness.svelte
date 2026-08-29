@@ -24,7 +24,7 @@
 
 <!-- The page: mounted and unmounted by the router. -->
 {#if pageMounted}
-	<Modal.Root openWhen={pageOpen} onCancel={() => {}}>
+	<Modal.Root layer="modal" openWhen={pageOpen} onCancel={() => {}}>
 		<Modal.Title>Page modal</Modal.Title>
 	</Modal.Root>
 {/if}

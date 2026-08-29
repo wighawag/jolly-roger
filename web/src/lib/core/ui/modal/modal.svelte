@@ -15,11 +15,32 @@
 		/**
 		 * WHICH LAYER THIS MODAL LIVES IN, and therefore what it can cover.
 		 *
+		 * REQUIRED, AND DELIBERATELY WITHOUT A DEFAULT. This is the same argument the
+		 * note on `Dialog.Content` below makes about the portal target, and it was
+		 * learned the same way, twice: with two layers to choose between, a default is
+		 * silently right for one of them and wrong for the other, and the wrong one
+		 * does not look like a missing prop. It looks like a timing bug.
+		 *
+		 * What it cost: `TopUpModal` is opened FROM the insufficient-funds modal,
+		 * which is `'system'`. It named no layer, so it took `'modal'`, one rank
+		 * BELOW - and a layer is a stacking context, so it rendered underneath the
+		 * dialog whose button had just opened it, with no declaration order able to
+		 * reach across. Its own comment said it opened over that modal; the file that
+		 * declared it said the ordering was what put it on top; both were wrong, and
+		 * the prop that decided it was the one nobody had written. `ConfirmationModal`
+		 * had the same hole for the same reason.
+		 *
+		 * So the answer to "must a modal opened from another modal state its layer" is
+		 * that EVERY modal states it, precisely because the one that has to is the one
+		 * that looks like it does not need to. The cost is a word at each view
+		 * overlay; the alternative stayed invisible in review for as long as it
+		 * existed.
+		 *
 		 * The two values are ADR-0004's two kinds of overlay, and the distinction is
 		 * the one that predicts stacking:
 		 *
-		 * - `'modal'` (the default) is a VIEW overlay: the app asking something, or
-		 *   showing something, because the user just acted.
+		 * - `'modal'` is a VIEW overlay: the app asking something, or showing
+		 *   something, because the user just acted.
 		 * - `'system'` is a SYSTEM overlay: visibility derived from domain state
 		 *   (`$connection.step`, `$balanceCheck.step`, `$errorDetails`). It is a live
 		 *   question about something already in flight, so it must be able to cover
@@ -33,8 +54,13 @@
 		 * same two modals stacked one way on a cold load and the other way after a
 		 * single navigation. See modal-remount.svelte.test.ts, which pins exactly
 		 * that, and the layer block in app.css.
+		 *
+		 * IT IS NOT A TIE-BREAK IN THE OTHER DIRECTION EITHER: declaration order
+		 * cannot override a layer. A `'modal'` dialog declared AFTER a `'system'` one
+		 * still paints below it. See modal-layer-stacking.svelte.test.ts, which pins
+		 * that, because assuming otherwise is what made the bug above survive review.
 		 */
-		layer?: 'modal' | 'system';
+		layer: 'modal' | 'system';
 		onCancel?: () => void;
 		children?: Snippet;
 		elementToFocus?: HTMLElement | null;
@@ -52,7 +78,7 @@
 
 	let {
 		openWhen,
-		layer = 'modal',
+		layer,
 		onCancel,
 		children,
 		elementToFocus,

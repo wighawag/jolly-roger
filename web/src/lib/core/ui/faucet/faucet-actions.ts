@@ -1,5 +1,6 @@
 import {get} from 'svelte/store';
 import {claimFund} from 'faucet-client';
+import {sameAddress} from '$lib/core/utils/ethereum/address';
 import type {PublicClient} from 'viem';
 import type {Context} from '$lib/context/types';
 
@@ -69,12 +70,22 @@ export type FaucetClaimDeps = Pick<
  * flow), then refresh balance and notify the balance-check store so it can poll
  * for the balance change. Throws on failure.
  *
- * Funds the address that actually pays for transactions (the accountExecutor address):
- * the wallet/owner in wallet mode, the local signer in signer mode.
+ * Funds the address that actually pays for transactions (the accountExecutor
+ * address) by default: the wallet/owner in wallet mode.
+ *
+ * `target` OVERRIDES THAT ADDRESS, for a payer that is neither the authenticated
+ * account nor anything this branch has: a wallet on the payment rail, which a
+ * descendant lets the user choose to pay with. Such a wallet can be empty, and
+ * when it is, it is the account that is short and therefore the account worth
+ * funding. Nothing on this branch passes it (there is one payer here), and it is
+ * here rather than downstream for the same reason `createPaymentRail` and
+ * `core/funding` are: the rail's other half is useless if each descendant has to
+ * rediscover that the faucet was always able to do this.
  */
 export async function claimFaucet(
 	deps: FaucetClaimDeps,
 	config: {faucetApi?: string; faucetLink: string},
+	target?: `0x${string}`,
 ): Promise<void> {
 	const {
 		accountExecutor,
@@ -85,8 +96,9 @@ export async function claimFaucet(
 	} = deps;
 
 	const $accountExecutor = get(accountExecutor);
-	const address =
+	const executorAddress =
 		$accountExecutor.status === 'ready' ? $accountExecutor.address : undefined;
+	const address = target ?? executorAddress;
 	if (!address) {
 		throw new Error(`no account for faucet`);
 	}
@@ -107,12 +119,17 @@ export async function claimFaucet(
 		);
 	}
 
-	// Record pre-faucet balance before triggering update.
-	const currentBalance = get(accountBalance);
-	const preFaucetBalance =
-		currentBalance.step === 'Loaded' ? currentBalance.value : 0n;
-	// Trigger immediate balance refresh.
-	accountBalance.update();
-	// Notify the balance check store to poll for balance change.
-	balanceCheck.markFundingRequested(preFaucetBalance);
+	// Refresh the account's own displayed balance, when the account is what was
+	// funded. A claim aimed elsewhere did not change it, and re-reading it would
+	// only spend a request to learn that.
+	if (sameAddress(address, executorAddress)) {
+		accountBalance.update();
+	}
+
+	// Tell the balance check WHICH account was funded and let it decide whether
+	// that is the one it is blocked on. It used to be told a balance instead, and
+	// the caller decided - which meant the caller had to know which account the
+	// modal was waiting for, got it right for two payers, and had no way to be
+	// right for a third.
+	balanceCheck.markFundingRequested(address);
 }
