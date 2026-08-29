@@ -48,6 +48,17 @@
      which buys nothing; see the layer block in app.css for why, and
      test/lib/core/ui/modal/modal-stacking.svelte.test.ts for the proof.
 
+     THAT ORDER ONLY APPLIES TO MODALS THAT ARE ACTUALLY IN THIS LAYER, which is
+     the half this note used to leave out. A component listed below that does not
+     pass `layer="system"` is not ranked by its position here at all: it is in
+     the layer below, under every modal in this block, and moving its line does
+     nothing. That is not hypothetical - it happened to the top-up modal, which
+     is opened from the funds modal and spent its life rendering behind it. So
+     ADDING A COMPONENT HERE MEANS GIVING IT `layer="system"` IN ITS OWN FILE;
+     the prop has no default precisely so that this cannot be forgotten, and
+     test/lib/core/ui/modal/modal-layer-stacking.svelte.test.ts shows what it
+     looks like when it is.
+
      So the connection flow comes last: it is always a sub-step of something
      else, and it has to be able to sit on top of whatever asked for it. Declared
      before the modals, a wallet picker raised from inside one of them opens

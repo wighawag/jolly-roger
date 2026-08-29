@@ -10,7 +10,7 @@
 	import {getAppContext} from '$lib';
 	import {deriveInsufficientFundsView} from './insufficient-funds-view';
 
-	const {balanceCheck} = getAppContext();
+	const {balanceCheck, accountExecutor} = getAppContext();
 
 	let isOpen = $derived($balanceCheck.step !== 'idle');
 
@@ -20,9 +20,28 @@
 	);
 	let currentBalance = $derived(balanceStoreRef ? $balanceStoreRef : null);
 
-	// All balance math lives in the pure view-model helper.
+	// EVERY ACCOUNT THIS APP CAN SEND FROM. One, here: this branch has no local
+	// signer and no payment rail, so a transaction is only ever sent by the
+	// account the user signed in as. A descendant that adds a payer adds an entry,
+	// and the view then names it and picks its remedy - which is the whole reason
+	// this is a list rather than an address compared against the sender.
+	let payers = $derived([
+		{
+			kind: 'account' as const,
+			address:
+				$accountExecutor.status === 'ready'
+					? $accountExecutor.address
+					: undefined,
+		},
+	]);
+
+	// All balance math, all wording about WHO is short, and the choice of remedy
+	// live in the pure view-model helper.
 	let view = $derived(
-		deriveInsufficientFundsView($balanceCheck, currentBalance),
+		deriveInsufficientFundsView($balanceCheck, currentBalance, {
+			payers,
+			faucetConfigured: hasFaucet,
+		}),
 	);
 	let hasSufficientFunds = $derived(view.hasSufficientFunds);
 	let displayBalance = $derived(view.displayBalance);
@@ -68,14 +87,17 @@
 					Waiting for balance update...
 				</p>
 			{:else}
-				<p class="text-muted-foreground">
-					You don't have enough funds to complete this transaction.
-				</p>
+				<p class="text-muted-foreground">{view.payer.explanation}</p>
+				{#if view.payer.showAddress && view.payer.address}
+					<p class="font-mono text-sm break-all text-muted-foreground">
+						{view.payer.address}
+					</p>
+				{/if}
 			{/if}
 
 			<div class="space-y-2 rounded-lg bg-muted p-4">
 				<div class="flex justify-between">
-					<span class="text-muted-foreground">Your balance:</span>
+					<span class="text-muted-foreground">{view.payer.balanceLabel}</span>
 					<span class="font-mono"
 						>{formatBalance(displayBalance)}
 						{$deployments.chain.nativeCurrency.symbol}</span
@@ -100,8 +122,15 @@
 				{/if}
 			</div>
 
-			{#if !hasSufficientFunds && !isWaitingForBalanceUpdate && hasFaucet}
-				<FaucetButton />
+			<!-- AT MOST ONE REMEDY, and it is chosen in the view rather than here.
+			     Offering the wrong one is worse than offering nothing: it appears to
+			     work, moves a balance nobody was waiting on, and the transaction fails
+			     anyway. The faucet carries the address it should fund, so this cannot
+			     aim it at whoever happens to be signed in. -->
+			{#if !hasSufficientFunds && !isWaitingForBalanceUpdate}
+				{#if view.remedy.kind === 'faucet'}
+					<FaucetButton target={view.remedy.target} />
+				{/if}
 			{/if}
 		</div>
 

@@ -262,11 +262,20 @@ html {
    underneath.
 
    The consequence to remember: a dialog raised from another dialog is on top
-   only because it is DECLARED AFTER it. That holds inside one component (a
-   modal and the prompts it raises, declared below it) and across components,
-   which is why the order of components in `context/AcrossPages.svelte` is
-   load-bearing and documented there. If a prompt ever appears underneath the
-   thing that raised it, look at declaration order, not at timing.
+   only because it is DECLARED AFTER it, AND ONLY IF THE TWO SHARE A LAYER. That
+   holds inside one component (a modal and the prompts it raises, declared below
+   it) and across components, which is why the order of components in
+   `context/AcrossPages.svelte` is load-bearing and documented there.
+
+   CHECK THE LAYER FIRST, THEN THE ORDER, and in that order, because this comment
+   used to say only the second half and that is precisely how the bug survived:
+   the top-up modal, raised from a system modal, named no layer and so took this
+   one, a rank below. It rendered UNDER the dialog whose button opened it, and
+   every reading of the declaration order said it should be on top. Declaration
+   order ranks modals WITHIN a layer; it cannot reach across two, and no amount
+   of moving lines in AcrossPages will make it. `layer` is now a required prop
+   for that reason (see core/ui/modal/modal.svelte), and
+   test/lib/core/ui/modal/modal-layer-stacking.svelte.test.ts pins both halves.
    --------------------------------------------------------------------------- */
 :root {
 	/* The navbar's height, read by the navbar itself AND by everything that has
