@@ -97,6 +97,8 @@ Start with `0001-capabilities-vs-app-context` (how things are passed down the co
 pnpm i
 ```
 
+Installing also generates `web/src/lib/deployments.ts` from the deployment records committed to this repo, so that `pnpm web:check` and the web unit tests work before you have deployed anything. That file is gitignored (it names a chain and its addresses, so it belongs to whoever deployed rather than to the repo), and deploying overwrites it: an export for your own chain always wins, and nothing regenerates it while it exists. See `scripts/ensure-deployments.mjs`.
+
 We recommend installing [Zellij](https://zellij.dev/) for an optimal development experience with `pnpm start`.
 
 ## Quick Start

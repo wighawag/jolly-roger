@@ -23,6 +23,7 @@
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
+    "prepare": "node scripts/ensure-deployments.mjs",
     "cleandep": "rm -rf node_modules && pnpm -r exec rm -rf node_modules",
     "---------------------- FORMAT ----------------------": "",
     "format": "pnpm -r format",
