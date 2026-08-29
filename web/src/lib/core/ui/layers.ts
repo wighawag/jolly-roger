@@ -106,7 +106,7 @@ export const LAYERS = [
 		'progress',
 		'--layer-progress',
 		'Non-interactive activity indicators: the navigation progress bar, and ' +
-			'the sending notice that explains the browser\'s unload prompt. On top ' +
+			"the sending notice that explains the browser's unload prompt. On top " +
 			'of everything because they are small and pointer-events: none, so being ' +
 			'above a modal costs nothing and being under one would hide them. The ' +
 			'sending notice needs that: it is the same fact as the wallet-action ' +

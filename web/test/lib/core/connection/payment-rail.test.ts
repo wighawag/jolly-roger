@@ -37,7 +37,8 @@ const chainInfo = {
 	name: 'Anvil',
 	nativeCurrency: {decimals: 18, name: 'Ether', symbol: 'ETH'},
 	rpcUrls: {default: {http: []}},
-	genesisHash: '0x5b206276f108cb545b45cc5661e73484b2fc5208d65f71d53d1de4df3b2e2a66',
+	genesisHash:
+		'0x5b206276f108cb545b45cc5661e73484b2fc5208d65f71d53d1de4df3b2e2a66',
 	properties: {},
 } as unknown as ChainInfo;
 
