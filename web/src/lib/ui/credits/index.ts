@@ -13,13 +13,16 @@ export {
 	fundSignerFromAccount,
 	type GetCreditsResult,
 } from './get-credits';
+// Who can pay is `core/funding`'s, not this directory's: it needs no signer and
+// no notion of credits. Re-exported here so the components that render the
+// choice keep one import, and so a descendant can see where it went.
 export {
 	availablePaymentMethods,
 	paymentMethods,
 	NO_PAYMENT_METHOD_EXPLANATION,
 	type PaymentMethod,
 	type PaymentMethodId,
-} from './payment-methods';
+} from '$lib/core/funding';
 export {
 	createTopUpFlow,
 	formatAmount,

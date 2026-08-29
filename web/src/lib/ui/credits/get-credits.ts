@@ -9,36 +9,16 @@ import {
 	type FaucetClaimDeps,
 } from '$lib/core/ui/faucet/faucet-actions';
 import type {Context} from '$lib/context/types';
+import {
+	checkPayerFunds,
+	TRANSFER_GAS,
+	type PayerFunds,
+} from '$lib/core/funding';
 
-/** Gas a plain native transfer costs; this template's top-up is exactly that. */
-export const TRANSFER_GAS = 21_000n;
-
-export type PayerFunds =
-	{ok: true} | {ok: false; balance: bigint; required: bigint};
-
-/**
- * Can the payer actually afford this top-up, gas included?
- *
- * Checked BEFORE the transaction reaches the wallet. Without it the wallet is
- * the thing that discovers the shortfall, and it reports it in its own words,
- * in a popup the user has to dismiss, about a number they cannot see. Asking
- * the chain first turns that into an ordinary form error next to the field they
- * typed in.
- *
- * Gas is included rather than compared against `value` alone: sending exactly
- * the balance always fails, and failing at the wallet for a reason the app
- * could have predicted is the case this exists to remove.
- */
-export function checkPayerFunds(params: {
-	balance: bigint;
-	value: bigint;
-	maxFeePerGas: bigint;
-	gas?: bigint;
-}): PayerFunds {
-	const {balance, value, maxFeePerGas, gas = TRANSFER_GAS} = params;
-	const required = value + gas * maxFeePerGas;
-	return balance >= required ? {ok: true} : {ok: false, balance, required};
-}
+// Both moved to `core/funding`, which is where a descendant can reach them
+// without importing this file's opinion about what is being bought. Re-exported
+// so the existing call sites and tests keep their import path.
+export {checkPayerFunds, TRANSFER_GAS, type PayerFunds};
 
 export type GetCreditsResult =
 	| {status: 'bought'}
