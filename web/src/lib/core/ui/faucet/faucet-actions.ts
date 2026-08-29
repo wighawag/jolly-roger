@@ -1,5 +1,6 @@
 import {get} from 'svelte/store';
 import {claimFund} from 'faucet-client';
+import {sameAddress} from '$lib/core/utils/ethereum/address';
 import type {PublicClient} from 'viem';
 import type {Context} from '$lib/context/types';
 
@@ -106,11 +107,16 @@ export type FaucetClaimDeps = Pick<
  * faucet at the signer would let local development take a shortcut that
  * production does not have, and hide the flow that matters.
  *
- * `target` overrides the address, for the one account that is neither of those:
- * the PAYER behind the payment connection. Buying credits needs a funded payer,
- * and on a local chain that payer is a fresh empty account, so without this the
- * flow is impossible to exercise. It still goes through the purchase, which is
- * the point; the faucet only supplies the money the purchase spends.
+ * `target` OVERRIDES THAT ADDRESS, for the one account that is neither of those:
+ * a PAYER on the payment connection. That happens two ways, and they are worth
+ * telling apart. Buying credits needs a funded payer, and on a local chain that
+ * payer is a fresh empty account, so without this the flow is impossible to
+ * exercise - it still goes through the purchase, which is the point, and the
+ * faucet only supplies the money the purchase spends. The other way is that the
+ * payer is what a blocked transaction is short ON, in which case this IS the
+ * remedy rather than a step towards one, and the address to fund is the address
+ * that is short. See `FundsRemedy` in core/transaction/insufficient-funds-view,
+ * which carries it for exactly that reason.
  */
 export async function claimFaucet(
 	deps: FaucetClaimDeps,
@@ -156,26 +162,22 @@ export async function claimFaucet(
 
 	const dispensed = await dispensedByClaim({publicClient, txHash});
 
-	// Record pre-faucet balance before triggering update.
-	const currentBalance = get(accountBalance);
-	const preFaucetBalance =
-		currentBalance.step === 'Loaded' ? currentBalance.value : 0n;
-	// Trigger immediate balance refresh.
-	accountBalance.update();
-
-	// Only tell the balance-check store when the account it MEASURES was funded.
-	// It polls for a change to unblock a transaction that could not be afforded;
-	// pointing it at a claim made for the payer would leave it waiting for a
-	// change that is never coming, and then inviting the user to continue into
-	// the same failure.
-	// Case-insensitively: these two arrive from different places (one from the
-	// caller, one from the executor) and an address that differs only in casing is
-	// the same account. A strict compare here would silently skip the notice and
-	// leave a blocked transaction waiting for a change it had already been told
-	// about.
-	if (address.toLowerCase() === executorAddress?.toLowerCase()) {
-		balanceCheck.markFundingRequested(preFaucetBalance);
+	// Refresh the account's own displayed balance, when the account is what was
+	// funded. A claim aimed elsewhere did not change it, and re-reading it would
+	// only spend a request to learn that.
+	if (sameAddress(address, executorAddress)) {
+		accountBalance.update();
 	}
+
+	// Tell the balance check WHICH account was funded and let it decide whether
+	// that is the one it is blocked on. This used to compare against the executor
+	// here, and skip the notice for anything else - which was right for the two
+	// payers that existed (a claim made for the PAYER mid-top-up must not unblock
+	// a transaction waiting on the SIGNER) and wrong the moment a payer could be
+	// the account that is short itself. The rule was never "is this the
+	// executor", it was "is this the account the check is blocked on", and only
+	// that store knows.
+	balanceCheck.markFundingRequested(address);
 
 	return {txHash, dispensed};
 }

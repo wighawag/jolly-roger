@@ -50,6 +50,11 @@ import {
 	type GetCreditsResult,
 } from './get-credits';
 import {signerAccountOf} from './credits-view';
+// Was a private copy here. It came up to `core/connection/remote` next to
+// `PaymentRail` when the insufficient-funds modal needed the same answer, and
+// two copies of "who is the payer right now" is exactly the duplication that
+// lets one of them go stale.
+import {payerAddressOf} from '$lib/core/connection/remote';
 import {
 	availablePaymentMethods,
 	paymentMethods,
@@ -531,11 +536,6 @@ export function createTopUpFlow(
 			knownToHold,
 		});
 
-	/** The address the payment connection currently holds, if any. */
-	const payerAddressOf = ($payment: unknown): `0x${string}` | undefined =>
-		($payment as {account?: {address?: `0x${string}`}} | undefined)?.account
-			?.address;
-
 	/**
 	 * The account the WALLET switched to, which the connection has not adopted.
 	 *
@@ -909,13 +909,6 @@ export function createTopUpFlow(
 			}
 		}
 
-		// Captured BEFORE sending, for the transaction that may be waiting on
-		// this. A transaction blocked on the signer's balance is resumed by
-		// watching that balance CHANGE, so the watcher needs the value it is
-		// changing from.
-		const before = get(signerBalance);
-		const beforeValue = before.step === 'Loaded' ? before.value : 0n;
-
 		set({phase: 'sending', error: undefined, details: undefined});
 
 		const result: RegistrationOutcome = route
@@ -925,10 +918,17 @@ export function createTopUpFlow(
 		if (stale(mine)) return;
 
 		if (result.status === 'bought') {
-			// Tells whatever is blocked on the signer's balance to start watching
-			// for it to move. A no-op unless something actually is (see
+			// Names WHO was funded, and lets the balance check decide whether that is
+			// the account it is blocked on. A no-op unless something actually is (see
 			// balance-check-store), so this is safe from the panel too.
-			balanceCheck.markFundingRequested(beforeValue);
+			//
+			// It used to pass the signer's balance from before the send instead, which
+			// quietly asserted that anything blocked was blocked on the SIGNER. With a
+			// payment rail that is not given: the blocked transaction may be one the
+			// payer was sending, and telling the check about a signer top-up would have
+			// it watch the wrong balance. Saying which account moved lets it answer
+			// that itself, from the store it is actually watching.
+			balanceCheck.markFundingRequested(signer.address);
 			void signerBalance.update();
 			set({...CLOSED});
 		} else if (result.status === 'insufficient') {

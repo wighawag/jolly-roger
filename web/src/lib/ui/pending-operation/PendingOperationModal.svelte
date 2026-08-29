@@ -162,7 +162,15 @@
 	   the mounting condition free of data makes that impossible rather than
 	   unlikely.
 -->
-<Modal.Root openWhen={$inspector.open} onCancel={() => inspector.close()}>
+<!-- A VIEW overlay: it is here because the user clicked a pending operation, not
+     because domain state raised it. So `'modal'`, and the three dialogs it opens
+     below are in the same layer, above it by declaration order. Stated rather
+     than defaulted; see the `layer` prop in core/ui/modal/modal.svelte. -->
+<Modal.Root
+	layer="modal"
+	openWhen={$inspector.open}
+	onCancel={() => inspector.close()}
+>
 	{#if inspected.status === 'loading'}
 		<Modal.Title>Pending Transaction</Modal.Title>
 		<div class="flex items-center gap-3 py-6 text-muted-foreground">

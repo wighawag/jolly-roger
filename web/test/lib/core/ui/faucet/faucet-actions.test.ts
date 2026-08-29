@@ -74,11 +74,24 @@ describe('claimFaucet: funding an account other than the executor', () => {
 		vi.unstubAllGlobals();
 	});
 
-	it('does NOT notify the balance check when a different account was funded', async () => {
-		// The balance check polls the EXECUTOR's balance to unblock a stuck
-		// transaction. Telling it about a claim made for the payer would leave it
-		// waiting for a change that never comes, and then invite the user to
-		// continue into the same failure. That exact sequence was a reported bug.
+	it('reports WHICH account it funded, rather than deciding what that means', async () => {
+		// The balance check polls the balance of whatever account a stuck
+		// transaction is short on. Telling it about a claim made for the payer,
+		// when it is waiting on someone else, leaves it watching for a change that
+		// never comes and then inviting the user to continue into the same
+		// failure. That exact sequence was a reported bug, and this is still the
+		// guarantee - but it is no longer enforced HERE.
+		//
+		// This used to compare the funded address against the executor and stay
+		// silent when they differed, which is a rule that reads "there are two
+		// payers and this is not the other one". A third exists (a wallet on the
+		// payment rail), and it can be the account a transaction is short on, so
+		// that comparison suppressed exactly the notice that was wanted. The rule
+		// was never "is this the executor", it is "is this the account the check is
+		// blocked on", and only the store knows that. So this reports the address
+		// and the store decides: see markFundingRequested in
+		// test/lib/core/transaction/balance-check-store.test.ts, which pins both
+		// directions.
 		vi.stubGlobal(
 			'fetch',
 			vi.fn(async () => ({ok: true, json: async () => ({txHash: '0xabc'})})),
@@ -87,11 +100,11 @@ describe('claimFaucet: funding an account other than the executor', () => {
 
 		await claimFaucet(d, config, PAYER);
 
-		expect(markFundingRequested).not.toHaveBeenCalled();
+		expect(markFundingRequested).toHaveBeenCalledWith(PAYER);
 		vi.unstubAllGlobals();
 	});
 
-	it('still notifies it when the executor itself was funded', async () => {
+	it('names the executor when no target was given', async () => {
 		vi.stubGlobal(
 			'fetch',
 			vi.fn(async () => ({ok: true, json: async () => ({txHash: '0xabc'})})),
@@ -100,7 +113,23 @@ describe('claimFaucet: funding an account other than the executor', () => {
 
 		await claimFaucet(d, config);
 
-		expect(markFundingRequested).toHaveBeenCalledWith(5n);
+		expect(markFundingRequested).toHaveBeenCalledWith(EXECUTOR);
+		vi.unstubAllGlobals();
+	});
+
+	it('does not re-read the account balance for a claim aimed elsewhere', async () => {
+		// It did not change, so the read only spends a request to find that out.
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(async () => ({ok: true, json: async () => ({txHash: '0xabc'})})),
+		);
+		const {deps: d} = deps();
+
+		await claimFaucet(d, config, PAYER);
+
+		expect(
+			(d as never as {accountBalance: {update: unknown}}).accountBalance.update,
+		).not.toHaveBeenCalled();
 		vi.unstubAllGlobals();
 	});
 });

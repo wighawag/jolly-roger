@@ -9,8 +9,11 @@
 	import {deployments} from '$lib/deployments-store';
 	import {getAppContext} from '$lib';
 	import {deriveInsufficientFundsView} from './insufficient-funds-view';
+	import {payerAddressOf} from '$lib/core/connection/remote';
 
-	const {balanceCheck, accountExecutor, topUp} = getAppContext();
+	const {balanceCheck, accountExecutor, signerExecutor, payment, topUp} =
+		getAppContext();
+	const paymentConnection = payment.connection;
 
 	let isOpen = $derived($balanceCheck.step !== 'idle');
 
@@ -20,19 +23,50 @@
 	);
 	let currentBalance = $derived(balanceStoreRef ? $balanceStoreRef : null);
 
-	// The faucet funds the authenticated account, so that is the only shortfall
-	// it can fix. Whether that matches the account which is actually short is
-	// decided in the view-model helper, along with all the balance math.
-	let accountAddress = $derived(
-		$accountExecutor.status === 'ready' ? $accountExecutor.address : undefined,
-	);
+	// EVERY ACCOUNT THIS APP CAN SEND FROM, which on this branch is three.
+	//
+	// The view classifies the sender against this list rather than comparing it
+	// with one address, and the difference is the bug this replaces: a wallet on
+	// the payment rail is neither the account nor the signer, so under
+	// `accountAddress === sender` it fell into the signer's branch. An empty
+	// MetaMask account the user had just chosen to pay with was then called "your
+	// in-app spending account" and offered a top-up that funds the signer, so the
+	// money went somewhere nobody was waiting on and the transaction failed for
+	// exactly the reason it already had.
+	//
+	// A payer that is not listed here is classified `unknown` and offered
+	// nothing, which is the safe direction: naming the wrong account is worse
+	// than declining to name one.
+	let payers = $derived([
+		{
+			kind: 'account' as const,
+			address:
+				$accountExecutor.status === 'ready'
+					? $accountExecutor.address
+					: undefined,
+		},
+		{
+			kind: 'signer' as const,
+			address:
+				$signerExecutor.status === 'ready'
+					? $signerExecutor.address
+					: undefined,
+		},
+		{
+			// Undefined while the rail is dormant, which is most of the time. That
+			// is an absence rather than a wildcard: it simply never matches.
+			kind: 'rail' as const,
+			address: payerAddressOf($paymentConnection),
+		},
+	]);
+
+	// All balance math, all wording about WHO is short, and the choice of remedy
+	// live in the pure view-model helper.
 	let view = $derived(
-		deriveInsufficientFundsView(
-			$balanceCheck,
-			currentBalance,
-			accountAddress,
-			hasFaucet,
-		),
+		deriveInsufficientFundsView($balanceCheck, currentBalance, {
+			payers,
+			faucetConfigured: hasFaucet,
+		}),
 	);
 	let hasSufficientFunds = $derived(view.hasSufficientFunds);
 	let displayBalance = $derived(view.displayBalance);
@@ -78,24 +112,17 @@
 					Waiting for balance update...
 				</p>
 			{:else}
-				<p class="text-muted-foreground">
-					{#if view.sentFromAnotherAccount}
-						Your in-app spending account does not have enough to complete this
-						transaction. It is separate from the account you signed in with, and
-						is funded separately.
-					{:else}
-						You don't have enough funds to complete this transaction.
-					{/if}
-				</p>
+				<p class="text-muted-foreground">{view.payer.explanation}</p>
+				{#if view.payer.showAddress && view.payer.address}
+					<p class="font-mono text-sm break-all text-muted-foreground">
+						{view.payer.address}
+					</p>
+				{/if}
 			{/if}
 
 			<div class="space-y-2 rounded-lg bg-muted p-4">
 				<div class="flex justify-between">
-					<span class="text-muted-foreground"
-						>{view.sentFromAnotherAccount
-							? 'In-app balance:'
-							: 'Your balance:'}</span
-					>
+					<span class="text-muted-foreground">{view.payer.balanceLabel}</span>
 					<span class="font-mono"
 						>{formatBalance(displayBalance)}
 						{$deployments.chain.nativeCurrency.symbol}</span
@@ -120,16 +147,31 @@
 				{/if}
 			</div>
 
+			<!-- AT MOST ONE REMEDY, and it is chosen in the view rather than here.
+			     Offering the wrong one is worse than offering nothing: it appears to
+			     work, moves a balance nobody was waiting on, and the transaction fails
+			     anyway. That is not a rule this markup has to remember: `remedy` is one
+			     field, so there is no order to test these in and no way to show two. -->
 			{#if !hasSufficientFunds && !isWaitingForBalanceUpdate}
-				{#if view.canUseFaucet}
-					<FaucetButton />
-				{:else if view.canTopUp}
+				{#if view.remedy.kind === 'faucet'}
+					<!-- Carries the address to fund, which is the account that is short:
+					     the authenticated account, or the wallet on the payment rail that
+					     the user picked. The faucet always took a target; only the
+					     two-payer assumption above kept it aimed at whoever was signed
+					     in. -->
+					<FaucetButton target={view.remedy.target} />
+				{:else if view.remedy.kind === 'top-up'}
 					<!-- The account that is short is the in-app signer, which the faucet
-					     cannot fund. Topping up can, and it reports back to this store
-					     when it succeeds, so the footer below switches to "Continue
-					     Transaction" and the blocked transaction carries on. Opens over
-					     this modal rather than replacing it: this one is still the thing
-					     being resolved. -->
+					     deliberately will not fund. Topping up can, and it reports back to
+					     this store when it succeeds, so the footer below switches to
+					     "Continue Transaction" and the blocked transaction carries on.
+
+					     Opens OVER this modal rather than replacing it: this one is still
+					     the thing being resolved. That takes the top-up modal being in the
+					     same layer as this one - it is `layer="system"`, and for a long
+					     time the top-up modal was not, so it opened underneath and this
+					     comment was simply untrue. Declaration order in AcrossPages ranks
+					     them once they share a layer; it cannot reach across two. -->
 					<Button class="w-full" onclick={() => topUp.start()}>
 						Top up the in-app balance
 					</Button>

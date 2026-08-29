@@ -761,10 +761,16 @@ describe('createTopUpFlow: sending', () => {
 		expect(get(flow).phase).toBe('idle');
 	});
 
-	it('tells the balance check to watch for the money, so a blocked transaction can resume', async () => {
+	it('tells the balance check WHICH account the money went to, so a blocked transaction can resume', async () => {
 		// This is what makes "Send -> no funds -> top up -> continue" one flow
-		// rather than two: the transaction waiting on the signer's balance is
-		// resumed by watching that balance change, from the value it had BEFORE.
+		// rather than two: the transaction waiting on the signer is resumed by
+		// watching that account's balance change.
+		//
+		// It says the SIGNER rather than a balance the signer had a moment ago. The
+		// balance form asserted that anything blocked was blocked on the signer,
+		// which a payment rail makes untrue - the blocked transaction can be one the
+		// payer was sending, and the check would then have watched the wrong
+		// account. Naming the funded account lets it answer that itself.
 		const {flowDeps, markFundingRequested} = deps({
 			payerBalance: ETH,
 			credits: CREDITS,
@@ -775,7 +781,7 @@ describe('createTopUpFlow: sending', () => {
 		await flow.choose('wallet');
 		await flow.confirm();
 
-		expect(markFundingRequested).toHaveBeenCalledWith(7n);
+		expect(markFundingRequested).toHaveBeenCalledWith(SIGNER);
 	});
 
 	it('does not send, and does not close, when signed out', async () => {

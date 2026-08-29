@@ -8,6 +8,22 @@
 	import {claimFaucet} from './faucet-actions';
 	import {PUBLIC_FAUCET_LINK, PUBLIC_FAUCET_API} from '$env/static/public';
 
+	interface Props {
+		/**
+		 * WHICH account to fund, when it is not the authenticated one.
+		 *
+		 * Omitted, the faucet funds the account the user signed in as, which is what
+		 * every use on this branch wants. It is passed when the button is offered as
+		 * the remedy for a specific shortfall, because then the account worth funding
+		 * is the account that is short: see `FundsRemedy` in
+		 * core/transaction/insufficient-funds-view, which carries the target for
+		 * exactly this reason rather than letting the caller pick one.
+		 */
+		target?: `0x${string}`;
+	}
+
+	let {target}: Props = $props();
+
 	const context = getAppContext();
 	const {deployments} = context;
 
@@ -16,10 +32,14 @@
 	async function openFaucet() {
 		status = 'pending';
 		try {
-			await claimFaucet(context, {
-				faucetApi: PUBLIC_FAUCET_API,
-				faucetLink: PUBLIC_FAUCET_LINK,
-			});
+			await claimFaucet(
+				context,
+				{
+					faucetApi: PUBLIC_FAUCET_API,
+					faucetLink: PUBLIC_FAUCET_LINK,
+				},
+				target,
+			);
 			status = 'success';
 		} catch {
 			status = 'error';

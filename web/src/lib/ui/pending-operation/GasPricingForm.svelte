@@ -86,7 +86,7 @@
 	}
 </script>
 
-<Modal.Root openWhen={open} {onCancel}>
+<Modal.Root layer="modal" openWhen={open} {onCancel}>
 	<Modal.Title>Resubmit Transaction</Modal.Title>
 
 	<div class="space-y-4 py-4">

@@ -19,7 +19,23 @@
 
 <!-- `dismiss`, not `cancel`: this fires on a click anywhere outside the dialog,
      and a wallet popup makes that click routine. See TopUpFlow.dismiss. -->
-<Modal.Root openWhen={$topUp.open} onCancel={() => topUp.dismiss()}>
+<!-- SYSTEM, because this is opened FROM the insufficient-funds modal, which is
+     a system overlay, and it has to sit on top of the dialog whose button
+     opened it.
+
+     This is the bug that made `layer` a required prop. It named no layer, took
+     the default (`'modal'`, one rank below `'system'`), and a layer is a
+     stacking context - so it rendered UNDERNEATH the modal that opened it, and
+     the user saw "Let this browser play for you" through the dialog covering it.
+     AcrossPages declares this after the funds modal and said in a comment that
+     the ordering was what put it on top; declaration order ranks modals within
+     ONE layer and cannot reach across two, so it never did. Pinned by
+     test/lib/core/ui/modal/top-up-over-funds.svelte.test.ts. -->
+<Modal.Root
+	layer="system"
+	openWhen={$topUp.open}
+	onCancel={() => topUp.dismiss()}
+>
 	<Modal.Title>
 		<span class="flex items-center gap-2">
 			{#if $topUp.registering}
