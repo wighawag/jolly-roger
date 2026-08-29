@@ -20,9 +20,22 @@ function fakeFlow() {
 	const start = vi.fn(async () => {
 		store.set({open: true});
 	});
+	// The flow offers the words for the two payments this template makes; this
+	// gate is the caller that asks for the authorisation one. Distinguishable
+	// values, so the assertion below is about which purpose was passed rather
+	// than about a purpose having been passed at all.
+	const purposes = {
+		topUp: {headline: 'top-up purpose', explanation: 'not this one'},
+		authorise: {headline: 'authorise purpose', explanation: 'this one'},
+	};
 	return {
-		flow: {subscribe: store.subscribe, start} as unknown as TopUpFlow,
+		flow: {
+			subscribe: store.subscribe,
+			start,
+			purposes,
+		} as unknown as TopUpFlow,
 		start,
+		purposes,
 		close: () => store.set({open: false}),
 	};
 }
@@ -52,7 +65,7 @@ function fakeDelegation(allowed: boolean) {
 const RESUME = {action: 'Send your greeting', detail: 'Hello from here'};
 
 function setup(allowed: boolean) {
-	const {flow, start, close} = fakeFlow();
+	const {flow, start, close, purposes} = fakeFlow();
 	const {delegation, register} = fakeDelegation(allowed);
 	const {confirmation} = makeConfirmation();
 	const check = createDelegationCheckStore({
@@ -63,7 +76,7 @@ function setup(allowed: boolean) {
 	/** The question, once it is being asked. */
 	const asking = () =>
 		get(confirmation) as Extract<ConfirmationState, {step: 'asking'}>;
-	return {check, confirmation, asking, start, close, register};
+	return {check, confirmation, asking, start, close, register, purposes};
 }
 
 describe('ensureRegistered: when this browser is already authorised', () => {
@@ -84,7 +97,7 @@ describe('ensureRegistered: when it is not', () => {
 		// rather than the user having to notice the app forgot and ask again. It
 		// comes back on their say-so, because by now they have been through a
 		// wallet and several dialogs.
-		const {check, asking, start, close, register} = setup(false);
+		const {check, asking, start, close, register, purposes} = setup(false);
 
 		let resumed = false;
 		const pending = check
@@ -97,6 +110,12 @@ describe('ensureRegistered: when it is not', () => {
 		await vi.waitFor(() => expect(get(check).step).toBe('registering'));
 		expect(start).toHaveBeenCalled();
 		expect(resumed).toBe(false);
+
+		// AND IT SAID WHAT THE PAYMENT IS FOR. The dialog used to work this out
+		// itself, by branching on whether a registration was pending, which is one
+		// caller's purpose standing in for every caller's. This gate is the caller
+		// whose payment really is the authorisation, so it is the one that says so.
+		expect(start).toHaveBeenCalledWith(purposes.authorise);
 
 		// It lands, and the flow closes.
 		register();
@@ -158,7 +177,11 @@ describe('ensureRegistered: when it is not', () => {
 		const {delegation} = fakeDelegation(true);
 		const fresh = createDelegationCheckStore({
 			delegation,
-			topUp: {subscribe: () => () => {}, start} as unknown as TopUpFlow,
+			topUp: {
+				subscribe: () => () => {},
+				start,
+				purposes: {topUp: undefined, authorise: undefined},
+			} as unknown as TopUpFlow,
 			confirmation: makeConfirmation().confirmation,
 		});
 

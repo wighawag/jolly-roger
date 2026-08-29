@@ -56,7 +56,7 @@
 			size="sm"
 			class="w-full"
 			data-testid="open-top-up"
-			onclick={() => topUp.start()}
+			onclick={() => topUp.start(view.topUpPurpose)}
 		>
 			{view.topUpLabel}
 		</Button>

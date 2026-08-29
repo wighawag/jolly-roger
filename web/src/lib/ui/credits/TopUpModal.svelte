@@ -9,12 +9,21 @@
 	import {hasFaucet} from '$lib/core/ui/faucet/index.js';
 	import {getAppContext} from '$lib';
 	import {deployments} from '$lib/deployments-store';
-	import {topUpActionLabel} from './credits-view';
 
 	// Every decision below (which methods exist, which step, how much, what it
 	// buys, whether this also authorises the browser) is made in
 	// ./top-up-flow.ts, which the context holds one of. This renders the answer.
-	const {topUp, errorDetails, credits} = getAppContext();
+	//
+	// AND IT NO LONGER DECIDES WHAT THE PAYMENT IS FOR. That used to be a two-way
+	// branch on `registering` - a flag meaning "this also authorises the browser"
+	// which was being read as "this is an onboarding", i.e. one caller's purpose
+	// standing in for every caller's. Both arms described an OUTCOME; neither
+	// described what this dialog actually does, which is ask ONE question: who
+	// pays. That question is the same every time, which is what makes the dialog
+	// reusable, and a descendant that needed to ask it for a third reason had no
+	// way to say so and wrote a second chooser instead. The words now arrive with
+	// the run, in `$topUp.purpose`. See ./funding-purpose.ts.
+	const {topUp, errorDetails} = getAppContext();
 </script>
 
 <!-- `dismiss`, not `cancel`: this fires on a click anywhere outside the dialog,
@@ -38,13 +47,15 @@
 >
 	<Modal.Title>
 		<span class="flex items-center gap-2">
-			{#if $topUp.registering}
+			<!-- A NAME, mapped to a component here. The purpose is plain data built
+			     in a `.ts` module, so it names its icon rather than importing one;
+			     which glyph that is, is presentation and therefore this file's. -->
+			{#if $topUp.purpose.icon === 'key'}
 				<KeyRoundIcon class="h-5 w-5" />
-				Let this browser play for you
 			{:else}
 				<CoinsIcon class="h-5 w-5" />
-				{topUpActionLabel(credits)}
 			{/if}
+			{$topUp.purpose.headline}
 		</span>
 	</Modal.Title>
 
@@ -55,23 +66,12 @@
 				Working out how you can pay.
 			</p>
 		{:else if $topUp.phase === 'choosing'}
-			{#if $topUp.registering}
-				<p class="text-muted-foreground">
-					This browser holds a key so the app can post your greetings without
-					asking you to sign every time. One transaction authorises it and gives
-					it the gas it needs.
-				</p>
-			{:else}
-				<p class="text-muted-foreground">
-					{#if credits}
-						This adds credits to your in-app balance, so the app can keep making
-						moves for you.
-					{:else}
-						This moves funds to your in-app balance, so the app can keep making
-						moves for you.
-					{/if}
-				</p>
-			{/if}
+			<!-- WHY money is being asked for at all, which is the whole reason this
+			     step is shown even when only one method can be used. One line from
+			     the caller, no branch: what the payment is for is theirs to say. -->
+			<p class="text-muted-foreground" data-testid="purpose-explanation">
+				{$topUp.purpose.explanation}
+			</p>
 
 			<div class="flex flex-col gap-2" data-testid="payment-methods">
 				<!-- Order is the order they are declared in ./payment-methods.ts, and
@@ -182,9 +182,24 @@
 				</p>
 			{/if}
 		{:else}
-			<p class="text-muted-foreground">
-				{#if $topUp.registering}
-					One transaction authorises this browser to post in your name, and
+			<!-- The caller's words again, because this is a different screen from the
+			     chooser and the user arrived at it by pressing a button, not by
+			     scrolling. What they are paying for should not have to be remembered
+			     from the previous step. -->
+			<p class="text-muted-foreground" data-testid="purpose-explanation">
+				{$topUp.purpose.explanation}
+			</p>
+
+			<!-- WHAT THE TRANSACTION DOES, which is not the same thing as what the
+			     payment is FOR, and is the one part of this dialog that genuinely is
+			     the flow's to say: `registering` and `route` are read off the chain
+			     and the connection, so no caller could supply them and none should
+			     be trusted to. This is additive to the purpose above rather than a
+			     replacement for it: a user who asked to top up and is also, in the
+			     same transaction, authorising this browser is owed both sentences. -->
+			{#if $topUp.registering}
+				<p class="text-muted-foreground">
+					This same transaction authorises this browser to act in your name, and
 					sends it the gas it needs to do so.
 					{#if $topUp.route === 'direct'}
 						<!-- Why no signature is coming. Without this the collapse looks
@@ -196,14 +211,8 @@
 						Your account already authorised this browser when you signed in, so
 						there is nothing to sign.
 					{/if}
-				{:else if credits}
-					This adds credits to your in-app balance, so the app can keep making
-					moves for you.
-				{:else}
-					This moves funds to your in-app balance, so the app can keep making
-					moves for you.
-				{/if}
-			</p>
+				</p>
+			{/if}
 
 			{#if $topUp.registering && $topUp.route === 'live-signature'}
 				<!-- IMMEDIATELY BEFORE THE WALLET OPENS, which is what the button
@@ -226,12 +235,19 @@
 							key held by this browser may act for your account.
 						{/if}
 					</p>
+					<!-- WHAT THE KEY MAY AND MAY NOT DO, in the app's own terms. These
+					     three lines were written out here with the greeting demo's words
+					     in them, so every app on this tree told its users that the key
+					     they were about to authorise was for posting greetings. The
+					     sentences are the template's and the verb phrase inside them is
+					     the app's: see ui/delegation/grant.ts. -->
 					<ul
 						class="list-disc space-y-1 pl-5 text-sm text-muted-foreground marker:text-muted-foreground"
+						data-testid="delegation-consent-list"
 					>
-						<li>It lets this browser post greetings in your name.</li>
-						<li>It cannot move your funds, or anything else you own.</li>
-						<li>You can withdraw it later from your account panel.</li>
+						{#each $topUp.consent as line (line)}
+							<li>{line}</li>
+						{/each}
 					</ul>
 					<p class="text-sm text-muted-foreground">
 						Only sign this on websites you trust.
@@ -306,9 +322,12 @@
 		     retry. -->
 		{#if $topUp.phase === 'preparing' || $topUp.phase === 'connecting' || $topUp.phase === 'signing-in' || $topUp.phase === 'claiming'}
 			{#if $topUp.error}
+				<!-- The SAME purpose, because this is a retry of the run the user is
+				     looking at, not a new errand: re-deriving one here would be this
+				     file deciding what the payment is for all over again. -->
 				<Button
 					class="flex-1"
-					onclick={() => topUp.start()}
+					onclick={() => topUp.start($topUp.purpose)}
 					disabled={$topUp.busy}
 				>
 					Try again

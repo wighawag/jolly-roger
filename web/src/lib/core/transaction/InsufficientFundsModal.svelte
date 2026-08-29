@@ -172,7 +172,14 @@
 					     time the top-up modal was not, so it opened underneath and this
 					     comment was simply untrue. Declaration order in AcrossPages ranks
 					     them once they share a layer; it cannot reach across two. -->
-					<Button class="w-full" onclick={() => topUp.start()}>
+					<!-- The purpose is funding the signer, even though the reason the
+					     user is here is a blocked transaction: what they are about to PAY
+					     for is the in-app balance, and this dialog has already explained
+					     the blockage. -->
+					<Button
+						class="w-full"
+						onclick={() => topUp.start(topUp.purposes.topUp)}
+					>
 						Top up the in-app balance
 					</Button>
 				{/if}

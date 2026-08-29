@@ -58,7 +58,10 @@
 					duration: 8000,
 					closeButton: true,
 					action: result.canTopUp
-						? {label: 'Top up', onClick: () => topUp.start()}
+						? {
+								label: 'Top up',
+								onClick: () => topUp.start(topUp.purposes.topUp),
+							}
 						: {
 								label: 'Details',
 								onClick: () => errorDetails.show(result.details),
