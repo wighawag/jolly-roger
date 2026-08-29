@@ -64,7 +64,8 @@ const CONTEXT = readdirSync(CONTEXT_DIR)
  */
 function memoisedFactoryBody(source: string): string {
 	const start = source.indexOf('memoiseSignerClient(');
-	if (start < 0) throw new Error('no memoiseSignerClient call anywhere in src/lib/context');
+	if (start < 0)
+		throw new Error('no memoiseSignerClient call anywhere in src/lib/context');
 	let depth = 0;
 	for (let i = start + 'memoiseSignerClient'.length; i < source.length; i++) {
 		const char = source[i];
