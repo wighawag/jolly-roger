@@ -31,6 +31,21 @@ const {params: paramFromLocation} = getParamsFromLocation();
 export const {isParentRoute, isSameRoute, route, params} = createRouteHandler(
 	paramFromLocation,
 	{
+		// DECLARED HERE SO NAVIGATION PRESERVES THEM, and for no other reason.
+		//
+		// Nothing in this codebase READS `debug`, `debugLevel`, `traceLevel` or
+		// `debugLabel`: they are parsed by the inline named-logs script at the top
+		// of `src/app.html`, before any module runs. Listing them here only keeps
+		// them attached across navigation, so a debugging session survives a link.
+		//
+		// Do not conclude from the absence of a reader that logging is unwired and
+		// call `hook()` from a module. `hook()` (named-logs' own export; the
+		// `hookup()` in named-logs-console is a different package, not a
+		// dependency here) assigns `globalThis._logFactory`, so it installs a
+		// second, freshly defaulted factory over the one app.html built and
+		// silently undoes whatever the URL asked for. `web/README.md` has the
+		// parameters, their defaults, and the reason `?debug=*` alone shows
+		// nothing.
 		globalQueryParams: [
 			'dev',
 			'transactions',
