@@ -16,7 +16,7 @@
 	let isDropped = $derived(status === 'Dropped');
 </script>
 
-<Modal.Root openWhen={open} {onCancel}>
+<Modal.Root layer="modal" openWhen={open} {onCancel}>
 	<Modal.Title>
 		<span class="flex items-center gap-2">
 			{#if isDropped}

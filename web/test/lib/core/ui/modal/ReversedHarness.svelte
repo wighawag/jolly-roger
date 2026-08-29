@@ -7,10 +7,10 @@
 
 <div data-layer="modal" id="--layer-modals"></div>
 
-<Modal.Root openWhen={childOpen} onCancel={() => {}}>
+<Modal.Root layer="modal" openWhen={childOpen} onCancel={() => {}}>
 	<Modal.Title>Child prompt</Modal.Title>
 </Modal.Root>
 
-<Modal.Root openWhen={parentOpen} onCancel={() => {}}>
+<Modal.Root layer="modal" openWhen={parentOpen} onCancel={() => {}}>
 	<Modal.Title>Parent modal</Modal.Title>
 </Modal.Root>

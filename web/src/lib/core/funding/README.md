@@ -25,15 +25,16 @@ The cost of not knowing this directory exists has been measured: a descendant re
 
 ## What to reuse rather than rebuild
 
-| You need                           | Call                                                         | Do not write                               |
-| ---------------------------------- | ------------------------------------------------------------ | ------------------------------------------ |
-| Which payment options to offer     | `paymentMethods()`                                           | A "prefer the account, else a wallet" rule |
-| Whether there is any option at all | `availablePaymentMethods()`, `NO_PAYMENT_METHOD_EXPLANATION` | A disabled button with no reason           |
-| How much to keep back for gas      | `gasReserve()` / `spendableBalance()`                        | Your own fee multiplier and gas constant   |
-| What to charge this payer now      | `offerAmount({ceiling})`                                     | `min(price, balance)`                      |
-| Can they afford exactly this       | `checkPayerFunds()`                                          | Letting the wallet discover it             |
-| Read a payer end to end            | `readSendable()`                                             | Two awaits and the arithmetic again        |
-| Money that just arrived            | `reconcileBalance()` / `knownToHold`                         | Nothing, until a user reports it           |
+| You need                            | Call                                                         | Do not write                               |
+| ----------------------------------- | ------------------------------------------------------------ | ------------------------------------------ |
+| Which payment options to offer      | `paymentMethods()`                                           | A "prefer the account, else a wallet" rule |
+| Whether there is any option at all  | `availablePaymentMethods()`, `NO_PAYMENT_METHOD_EXPLANATION` | A disabled button with no reason           |
+| How much to keep back for gas       | `gasReserve()` / `spendableBalance()`                        | Your own fee multiplier and gas constant   |
+| What to charge this payer now       | `offerAmount({ceiling})`                                     | `min(price, balance)`                      |
+| Can they afford exactly this        | `checkPayerFunds()`                                          | Letting the wallet discover it             |
+| Read a payer end to end             | `readSendable()`                                             | Two awaits and the arithmetic again        |
+| Money that just arrived             | `reconcileBalance()` / `knownToHold`                         | Nothing, until a user reports it           |
+| Which payer is short, what fixes it | `deriveInsufficientFundsView()` (`core/transaction`)         | An `address === sender` comparison         |
 
 ## When this cascades to a descendant
 
@@ -71,5 +72,7 @@ It does not choose a payer, connect a wallet, or drive a UI. On `with/local-sign
 `core/ui/faucet` claims from a faucet and reports what it dispensed, which is the `knownToHold` above.
 
 `core/transaction/balance-check-store.ts` has `ensureCanAfford`, which is the _other_ insufficient-funds path: it wraps a transaction you are about to send, and when the sender cannot cover it, it raises the insufficient-funds modal (with the faucet in it) and resumes the send once the money lands. Reach for it around any send that could be short. Writing a bare "does not have enough funds" instead produces a dead end where the template would have offered a remedy.
+
+**Pass it the payer that is actually paying, and declare that payer to the modal.** `ensureCanAfford` takes `{balance, sender}` per call rather than reading one global account, because a payment rail means there is no longer one account that sends everything. The modal on the other end classifies that `sender` against the payers you list (`KnownPayer[]` in `core/transaction/insufficient-funds-view.ts`) and offers the single remedy that can work for that kind: the faucet aimed at the account that is short, or a top-up. **A payer you add and do not list is classified `unknown` and offered nothing.** That is the safe failure, and it is deliberate, because this went the other way once: a third payer fell through to the local signer's branch, so a wallet the user had picked by hand was described as "your in-app spending account" and offered a top-up that funded a different address entirely. The balance moved, the modal reported progress, and the transaction failed for exactly the original reason. Offering the wrong remedy is worse than offering none.
 
 `core/connection/remote.ts` builds the second connection a third-party payer uses, so that paying is not signing in.

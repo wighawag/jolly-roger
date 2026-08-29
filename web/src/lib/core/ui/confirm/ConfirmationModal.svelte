@@ -16,7 +16,14 @@
 	$effect(() => confirmation.registerRenderer());
 </script>
 
+<!-- SYSTEM, and for the same reason as the top-up modal it is declared after in
+     AcrossPages: this asks ABOUT a flow already in progress (carry on with what
+     was interrupted, or really give up on a request the wallet may still act
+     on), so it must be able to cover whatever raised it. It had the same hole -
+     no layer named, so the default put it a rank below every modal it exists to
+     sit on top of, and its position in AcrossPages bought it nothing. -->
 <Modal.Root
+	layer="system"
 	openWhen={$confirmation.step === 'asking'}
 	onCancel={() => $confirmation.step === 'asking' && $confirmation.onCancel()}
 >
