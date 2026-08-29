@@ -15,7 +15,7 @@
  * point in `core.ts`.
  */
 import {createCoreContext} from './core.js';
-import {createAppContext} from './app.js';
+import {createAppContext, SIGNER_GRANT} from './app.js';
 import type {Context} from './types.js';
 
 export type {CoreServices, AppContext, AppFactory} from './core.js';
@@ -24,5 +24,12 @@ export function createContext(): {
 	context: Context;
 	start: () => () => void;
 } {
-	return createCoreContext({createApp: createAppContext});
+	// Both of the app's contributions travel the same way, and for the same
+	// reason: `core.ts` must not import `app.ts`. The grant is the app's answer
+	// to "what is this browser's key for", which two pieces of shared UI need and
+	// neither can work out. See ui/delegation/grant.
+	return createCoreContext({
+		createApp: createAppContext,
+		signerGrant: SIGNER_GRANT,
+	});
 }

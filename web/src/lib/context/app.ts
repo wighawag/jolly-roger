@@ -1,6 +1,23 @@
 import {createOnchainState} from '$lib/onchain/state.js';
 import {createViewState} from '$lib/view/index.js';
 import type {CoreServices, AppContext} from './core.js';
+import type {SignerGrant} from '$lib/ui/delegation/grant.js';
+
+/**
+ * WHAT THIS APP'S BROWSER KEY IS FOR, in this app's own words.
+ *
+ * The demo posts greetings, so that is what it says. It lives HERE, in the half
+ * a fork replaces, because it is the one piece of the authorisation copy that
+ * is not true of every app: the template owns the sentences it lands in (see
+ * ui/delegation/grant.ts), and they are shown in the two places where being
+ * wrong is most expensive - the dialog asking the user to authorise a key, and
+ * the account panel row saying what that key can do.
+ *
+ * It used to be written out inside those two shared files with "greetings" in
+ * it, so every app on this tree inherited the demo's sentence. If you are
+ * forking this template, this line is one of the few you MUST change.
+ */
+export const SIGNER_GRANT: SignerGrant = {action: 'post greetings'};
 
 /**
  * THIS APP'S HALF OF THE CONTEXT. The part a fork replaces.

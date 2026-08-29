@@ -14,6 +14,7 @@ import type {
 	TypedPublicClient,
 } from '$lib/core/connection/types';
 import type {CreditsConfig} from '$lib/core/connection/credits';
+import type {SignerGrant} from '$lib/ui/delegation/grant';
 import type {ExecutorStore} from '$lib/core/connection/executor';
 import type {TrackedWalletClientAutoPopulate} from '@etherkit/viem-tx-tracker';
 import type {
@@ -89,6 +90,16 @@ export type Context = {
 	 * worst gas price and the gas one action costs; see core/connection/credits.
 	 */
 	credits: CreditsConfig | undefined;
+	/**
+	 * What the key this browser holds is FOR, in this app's terms.
+	 *
+	 * Configuration, and it sits beside `credits` for the same reason: several
+	 * unrelated pieces of UI need the answer (the payment dialog's consent step,
+	 * the account panel's delegation row) and none of them can work it out. It
+	 * comes from `context/app.ts`, the half of the context a fork replaces, via
+	 * `createCoreContext`. See ui/delegation/grant.
+	 */
+	signerGrant: SignerGrant;
 	/**
 	 * The payment rail (buying credits): a second, wallet-only connection plus
 	 * its clients. The payer is not necessarily the player. Dormant until

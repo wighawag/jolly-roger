@@ -12,7 +12,25 @@ The reusable half of this lives on `main`, in [`core/funding`](../../core/fundin
 
 **`payment-methods.ts` used to be here and is now `core/funding/payment-methods.ts`.** It needed no signer and no notion of credits, so it went where a descendant can reach it. It is re-exported from `./index.ts`.
 
-**`credits-view.ts`** derives what the indicator shows. **`TopUpModal.svelte`**, **`CreditsIndicator.svelte`** and **`SignerBalance.svelte`** render; they hold no policy.
+**`funding-purpose.ts`** is what a payment is FOR, as data the caller supplies. **`credits-view.ts`** derives what the indicator shows, and builds the top-up purpose next to the label it composes with. **`TopUpModal.svelte`**, **`CreditsIndicator.svelte`** and **`SignerBalance.svelte`** render; they hold no policy.
+
+## The dialog asks one question, and is told why
+
+The payment dialog's job is to ask **who pays**: the account you signed in with, another wallet, and later a card. That question is the same every time, which is what makes the dialog reusable. What the money is FOR is not, and the dialog cannot know it, so `start()` takes a `FundingPurpose` (a headline and a line of explanation) and renders it.
+
+It used to guess, by branching on `registering`. That flag means "this payment also authorises the browser", and it was being read as "this payment is an onboarding" - one caller's purpose standing in for every caller's. Two consequences, both real. A descendant that needed to take a payment for a third reason had no way to say so, so it built a second chooser dialog that duplicated the method list, the ordering and the rules in order to change a title and one sentence. And a template whose demo posts greetings told every downstream app's users, in the dialog asking them to authorise a key, that the key was for posting greetings.
+
+So the words now come from three places, and which one owns what is the whole design:
+
+| Who        | Says what                     | Where                                       |
+| ---------- | ----------------------------- | ------------------------------------------- |
+| The caller | What this payment is for      | `FundingPurpose`, passed to `start()`       |
+| The app    | What the browser's key may do | `SignerGrant`, from `context/app.ts`        |
+| The flow   | What the transaction does     | `registering` / `route`, read off the chain |
+
+The app's half is configuration rather than an argument, and that is not a detail: whether a payment also registers the signer is **discovered by reading the chain**, so any caller's run can reach the signature step. A consent list carried in the purpose would be supplied only by the caller that set out to register, and therefore missing exactly when somebody is being asked to sign.
+
+The template's own two purposes are on the flow as `topUp.purposes.topUp` and `topUp.purposes.authorise`, because each needs something a call site has no reason to hold (the chain's credits configuration; the app's grant). A descendant builds its own and passes that.
 
 ## The shape of the flow
 
@@ -29,7 +47,8 @@ A game's onboarding is usually "buy the thing, and fund the signer, in one trans
 - **Who can pay** is `paymentMethods()` from `core/funding`. Do not re-derive a "prefer the account, fall back to a wallet" rule.
 - **How much they can send** is `spendableBalance` / `offerAmount`, and `readSendable` if you want the chain reads too. Do not write your own fee multiplier and gas constant.
 - **The stale-wallet rule** is `reconcileBalance` (the `knownToHold` argument). You will otherwise meet it as a bug report.
-- **The terminal action** is the part that is genuinely yours, and today it is not a parameter: `perform()` branches between `fundOnly` and `registerAndFund`, both of which target the signer. Making it injectable is the outstanding work; the three places it is currently wired in are the gas figure passed to `readSendable`, the `walletRouteBlocked` veto handed to `paymentMethods`, and the route check inside `settle()`.
+- **The words around the choice** are `FundingPurpose`. Pass one to `start()` saying what you are selling. You do not need a second dialog to change a title, and if you write one you will also be duplicating the method list, its ordering and the rule that the first available method is the primary action.
+- **The terminal action** is the part that is genuinely yours, and today it is not a parameter: `perform()` branches between `fundOnly` and `registerAndFund`, both of which target the signer. Making it injectable is the outstanding work, and it is now the ONLY thing still standing between a descendant and deleting its private purchase dialog: the words are no longer a reason to fork this one. The three places it is currently wired in are the gas figure passed to `readSendable`, the `walletRouteBlocked` veto handed to `paymentMethods`, and the route check inside `settle()`.
 
 Whatever you build, wrap the send in `balanceCheck.ensureCanAfford` (`core/transaction/balance-check-store.ts`). It raises the insufficient-funds modal, with the faucet in it, and resumes once the money lands. Skipping it produces a bare "does not have enough funds" where the template would have offered a remedy.
 
@@ -44,3 +63,5 @@ Whatever you build, wrap the send in `balanceCheck.ensureCanAfford` (`core/trans
 **Dismissing by clicking away is refused while a wallet is thinking.** A wallet takes focus, and the first click back on the page lands outside the dialog. Treating that as "close" tore down runs that had already been signed.
 
 **The amount is never asked for.** A top-up is a fixed purchase, so the flow works out the most it can send and sends that. There is no form to get wrong.
+
+**No user-facing sentence here may name what the app does.** This directory is inherited by every app on the tree, so a sentence about greetings written here is a sentence a game shows its players. What the app's key is for arrives as `SignerGrant` from `context/app.ts`; the sentence frames it lands in are in `ui/delegation/grant.ts`. This was wrong for as long as the dialog existed and nobody noticed, because nobody reads a template's demo dialogs.

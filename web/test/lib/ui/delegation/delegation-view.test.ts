@@ -13,6 +13,11 @@ const registered = {
 const none = {step: 'Loaded' as const, allowed: false, withdrawn: false};
 const unknown = {step: 'Unloaded' as const};
 
+// The app's answer to "what is this key for". Deliberately NOT the greeting
+// demo's, so that a status line built from the template's sentence frames shows
+// up here as the app's words rather than passing on a hard-coded default.
+const GRANT = {action: 'feed the cat'} as const;
+
 describe('isRegistered', () => {
 	it('reads the answer the chain gave about THIS signer', () => {
 		// A field, not an address comparison: `delegationStatus` was asked about
@@ -38,6 +43,7 @@ describe('deriveDelegationRow: what the account panel offers', () => {
 				signer: undefined,
 				delegation: none,
 				ownerCanSend: true,
+				grant: GRANT,
 			}).visible,
 		).toBe(false);
 	});
@@ -50,6 +56,7 @@ describe('deriveDelegationRow: what the account panel offers', () => {
 			signer: SIGNER,
 			delegation: registered,
 			ownerCanSend: true,
+			grant: GRANT,
 		});
 		expect(view.visible).toBe(true);
 		expect(view.authorised).toBe(true);
@@ -65,6 +72,7 @@ describe('deriveDelegationRow: what the account panel offers', () => {
 			signer: SIGNER,
 			delegation: registered,
 			ownerCanSend: false,
+			grant: GRANT,
 		});
 		expect(view.canRevoke).toBe(false);
 		expect(view.revokeBlockedReason).toMatch(/no wallet/);
@@ -76,6 +84,7 @@ describe('deriveDelegationRow: what the account panel offers', () => {
 			signer: SIGNER,
 			delegation: none,
 			ownerCanSend: true,
+			grant: GRANT,
 		});
 		expect(view.authorised).toBe(false);
 		expect(view.canRevoke).toBe(false);
@@ -87,8 +96,31 @@ describe('deriveDelegationRow: what the account panel offers', () => {
 			signer: SIGNER,
 			delegation: unknown,
 			ownerCanSend: true,
+			grant: GRANT,
 		});
 		expect(view.authorised).toBe(false);
 		expect(view.status).toMatch(/Checking/);
+	});
+
+	// THE BUG THIS PINS: the three status lines were written out in
+	// `delegation-view.ts` with the greeting demo's words in them, so every app
+	// built on this template told its users that the key was for posting
+	// greetings. Nobody noticed, because nobody reads the account panel of a
+	// template's own demo. Asserting the app's phrase appears is what makes a
+	// hard-coded sentence fail here rather than ship.
+	it.each([
+		['authorised', registered],
+		['not yet authorised', none],
+		['still loading', unknown],
+	])("says what the key is for in the APP's words when %s", (_, delegation) => {
+		const view = deriveDelegationRow({
+			owner: OWNER,
+			signer: SIGNER,
+			delegation,
+			ownerCanSend: true,
+			grant: GRANT,
+		});
+		expect(view.status).toContain(GRANT.action);
+		expect(view.status).not.toMatch(/greeting/i);
 	});
 });

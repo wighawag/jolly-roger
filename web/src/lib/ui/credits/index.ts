@@ -5,9 +5,15 @@ export {
 	createCreditsViewStore,
 	deriveCreditsView,
 	signerAccountOf,
+	topUpActionLabel,
+	topUpPurpose,
 	type CreditsView,
 	type CreditsViewStore,
 } from './credits-view';
+// What a payment is FOR, which the dialog is told rather than deciding. A
+// descendant paying for something of its own builds one of these instead of
+// building a second chooser dialog. See ./funding-purpose.ts.
+export {authorisationPurpose, type FundingPurpose} from './funding-purpose';
 export {
 	getCredits,
 	fundSignerFromAccount,

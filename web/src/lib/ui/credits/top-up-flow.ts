@@ -49,7 +49,9 @@ import {
 	TRANSFER_GAS,
 	type GetCreditsResult,
 } from './get-credits';
-import {signerAccountOf} from './credits-view';
+import {signerAccountOf, topUpPurpose} from './credits-view';
+import {authorisationPurpose, type FundingPurpose} from './funding-purpose';
+import {consentBullets} from '$lib/ui/delegation/grant';
 // Was a private copy here. It came up to `core/connection/remote` next to
 // `PaymentRail` when the insufficient-funds modal needed the same answer, and
 // two copies of "who is the payer right now" is exactly the duplication that
@@ -207,6 +209,29 @@ export type TopUpPhase =
 
 export type TopUpState = {
 	phase: TopUpPhase;
+	/**
+	 * What this payment is FOR, in the words of whoever opened the flow.
+	 *
+	 * Held in the state rather than passed to the component, because the dialog
+	 * is one long-lived instance driven by this store: it renders whichever run
+	 * is open, so the run has to carry its own words. Survives every step of a
+	 * run, including `reauthorise`, which signs the user out and back in and
+	 * would otherwise return them to a dialog that had forgotten what they were
+	 * buying.
+	 *
+	 * See `./funding-purpose.ts` for why the dialog is told rather than deciding.
+	 */
+	purpose: FundingPurpose;
+	/**
+	 * What the user is agreeing to, when this payment also authorises the
+	 * browser and a wallet is going to ask them to sign for it.
+	 *
+	 * Built from the app's grant, NOT from the purpose, and the difference
+	 * matters: whether a signature is coming is discovered by reading the chain,
+	 * so any caller's run can reach the consent step. A user who pressed "Top
+	 * up" with an unregistered signer gets their own purpose and this list.
+	 */
+	consent: readonly string[];
 	/** The modal is showing: every phase except the closed one. */
 	open: boolean;
 	/** A step is in flight, so the controls are disabled. */
@@ -281,7 +306,11 @@ export type TopUpState = {
 	details: string | undefined;
 };
 
-const CLOSED: TopUpState = {
+// Only the fields a run does not carry over. `purpose` and `consent` are set
+// when the flow is built and again by `start`, so they are deliberately absent:
+// spreading `CLOSED` must never blank the words the dialog is currently
+// rendering, and a closed dialog renders nothing anyway.
+const CLOSED: Omit<TopUpState, 'purpose' | 'consent'> = {
 	phase: 'idle',
 	open: false,
 	busy: false,
@@ -315,6 +344,10 @@ export type TopUpFlowDeps = FaucetClaimDeps &
 		| 'deployments'
 		| 'delegation'
 		| 'confirmation'
+		// What this app's key is for. Configuration, like `credits`, and for the
+		// same reason: the flow needs an answer on every run, whoever opened it,
+		// so it cannot be an argument to one call site. See ui/delegation/grant.
+		| 'signerGrant'
 	>;
 
 export type TopUpFlowConfig = {
@@ -336,8 +369,23 @@ export type TopUpFlowConfig = {
 type RegistrationOutcome = GetCreditsResult | {status: 'stale-credential'};
 
 export type TopUpFlow = Readable<TopUpState> & {
-	/** Open the flow: work out who can pay, and offer the choice. */
-	start(): Promise<void>;
+	/**
+	 * The two purposes this template's own callers pay for.
+	 *
+	 * Ready-made because both need something the call site has no reason to
+	 * hold: `topUp` needs the chain's credits configuration, and `authorise`
+	 * needs the app's grant. A descendant paying for something else builds its
+	 * own `FundingPurpose` and passes that; it does not extend this.
+	 */
+	readonly purposes: {topUp: FundingPurpose; authorise: FundingPurpose};
+	/**
+	 * Open the flow: work out who can pay, and offer the choice.
+	 *
+	 * The purpose is REQUIRED, and deliberately has no default. A default is
+	 * what the old two-way branch effectively was, and it is how one caller's
+	 * words ended up in front of every other caller's users.
+	 */
+	start(purpose: FundingPurpose): Promise<void>;
 	/** Take one of the offered payment methods. */
 	choose(method: PaymentMethodId): Promise<void>;
 	/** Send the faucet at whoever is paying, then return to the transfer step. */
@@ -381,9 +429,28 @@ export function createTopUpFlow(
 		publicClient,
 		balanceCheck,
 		confirmation,
+		signerGrant,
 	} = deps;
-	const store = writable<TopUpState>({...CLOSED});
-	let state: TopUpState = {...CLOSED};
+
+	// Built once: neither depends on anything a run discovers.
+	const purposes = {
+		topUp: topUpPurpose(credits),
+		authorise: authorisationPurpose(signerGrant),
+	} as const;
+
+	// The consent list is the app's answer rather than a run's, so it is fixed
+	// here and simply not rendered on the runs that never reach a signature.
+	const consent = consentBullets(signerGrant);
+
+	// A closed flow still needs SOMETHING in `purpose`: the store is read before
+	// the first `start`, and a component forced to guard every field against
+	// undefined is a component doing the branching this change removes. Funding
+	// the signer is the honest placeholder, being what this flow does when nobody
+	// has said otherwise, and it is never on screen: `open` stays false until
+	// `start` has replaced it.
+	const initial: TopUpState = {...CLOSED, purpose: purposes.topUp, consent};
+	const store = writable<TopUpState>(initial);
+	let state: TopUpState = initial;
 
 	/**
 	 * Which run of the flow is current.
@@ -1057,12 +1124,16 @@ export function createTopUpFlow(
 	// as bare functions in event handlers.
 	const flow: TopUpFlow = {
 		subscribe: store.subscribe,
+		purposes,
 
-		async start() {
+		async start(purpose: FundingPurpose) {
 			if (state.busy) return;
 			const mine = ++session;
 			credential = undefined;
-			set({...CLOSED, phase: 'preparing'});
+			// The purpose is adopted BEFORE anything is on screen, so the first
+			// frame of the dialog already carries the caller's words rather than
+			// the previous run's.
+			set({...CLOSED, purpose, phase: 'preparing'});
 			try {
 				const registering = await resolveRegistering();
 				if (stale(mine)) return;
@@ -1365,8 +1436,12 @@ export function createTopUpFlow(
 
 				// Back to the payment methods when there is no payer to return to: the
 				// account itself has changed, so who can pay is worth asking again.
+				//
+				// CARRYING THE PURPOSE THROUGH, because this is still the same errand:
+				// the user asked to buy something, was sent to sign in again, and must
+				// come back to a dialog that still says what they were buying.
 				if (!payer) {
-					await flow.start();
+					await flow.start(state.purpose);
 					return;
 				}
 

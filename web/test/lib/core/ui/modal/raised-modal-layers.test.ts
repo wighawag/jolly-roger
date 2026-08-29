@@ -61,8 +61,13 @@ describe('modals opened from a system modal', () => {
 	it('has the funds modal offering the top-up, which is what makes them a pair', () => {
 		// If this stops being true the test above is guarding a relationship that
 		// no longer exists, and should be deleted rather than left passing.
+		//
+		// The OPEN PAREN, not `start()`, because the flow now takes the purpose of
+		// the payment from whoever opens it (see ui/credits/funding-purpose.ts).
+		// What this line is checking is that this modal still raises that one, and
+		// the argument is no business of a layering test.
 		expect(
 			sourceOf('src/lib/core/transaction/InsufficientFundsModal.svelte'),
-		).toContain('topUp.start()');
+		).toContain('topUp.start(');
 	});
 });

@@ -480,6 +480,7 @@ function deps(params: DepsParams) {
 		// The real one: it is pure, and a run that asks a question the test cannot
 		// answer would hang rather than fail.
 		confirmation,
+		signerGrant: GRANT,
 	} as unknown as TopUpFlowDeps;
 
 	return {
@@ -507,6 +508,21 @@ function deps(params: DepsParams) {
 const CONFIG = {faucetLink: 'http://faucet.test', hasFaucet: true};
 
 /**
+ * What the app's key is for, and what a caller is paying for.
+ *
+ * Deliberately NOT this template's own words. The flow used to decide both of
+ * these for itself, from `registering`, which is how the greeting demo's copy
+ * ended up in front of every descendant's users; a fixture that reused the
+ * template's phrasing could not tell the difference between the caller's words
+ * being rendered and a default being rendered.
+ */
+const GRANT = {action: 'feed the cat'} as const;
+const PURPOSE = {
+	headline: 'Buy a tin of food',
+	explanation: 'This buys one tin, which the cat then eats.',
+} as const;
+
+/**
  * Switch which accounts a wallet will act as, the way a user switching account
  * in Rabby does: the connection keeps naming who it connected as, and only the
  * wallet's own list moves.
@@ -532,6 +548,82 @@ function setWalletAccounts(
 	});
 }
 
+describe('createTopUpFlow: what the payment is for', () => {
+	/**
+	 * THE BUG THIS GROUP EXISTS FOR.
+	 *
+	 * The dialog decided what it was for by branching on `registering`, a flag
+	 * that means "this payment also authorises the browser". That is one
+	 * caller's PURPOSE being read off a fact about the transaction, and it left
+	 * a descendant taking a payment for a third reason (selling an avatar) with
+	 * no way to say so - so it wrote a second chooser dialog that duplicated the
+	 * method list to get a different title and one different line.
+	 *
+	 * The rule now: the caller says what the payment is for, the flow says what
+	 * the transaction does, and neither answers for the other.
+	 */
+	it('shows the caller’s words, not one it picked for itself', async () => {
+		const {flowDeps} = deps({payerBalance: ETH, accountBalance: ETH});
+		const flow = createTopUpFlow(flowDeps, CONFIG);
+
+		await flow.start(PURPOSE);
+
+		expect(get(flow).purpose).toEqual(PURPOSE);
+	});
+
+	it('keeps the caller’s words even when it turns out to be a registration', async () => {
+		// THE HEART OF IT. Whether this payment also authorises the browser is read
+		// off the chain, so ANY caller's run can turn out to be a registration: a
+		// user who pressed "Top up" with an unregistered signer is still topping
+		// up. The flow adds what the transaction does; it does not overwrite what
+		// the user asked for, which is what the old two-way title branch did.
+		const {flowDeps} = deps({
+			payerBalance: ETH,
+			accountBalance: ETH,
+			allowed: false,
+		});
+		const flow = createTopUpFlow(flowDeps, CONFIG);
+
+		await flow.start(PURPOSE);
+
+		const state = get(flow);
+		expect(state.registering).toBe(true);
+		expect(state.purpose).toEqual(PURPOSE);
+	});
+
+	it('offers the two purposes this template’s own callers pay for', async () => {
+		// Ready-made because both need something a call site has no reason to hold:
+		// the chain's credits configuration, and the app's grant. A descendant
+		// paying for something else passes its own instead.
+		const {flowDeps} = deps({payerBalance: ETH, credits: CREDITS});
+		const flow = createTopUpFlow(flowDeps, CONFIG);
+
+		// Composed with `topUpActionLabel`, rather than a third copy of the same
+		// decision: with credits configured, a top-up is called "Get credits".
+		expect(flow.purposes.topUp.headline).toBe('Get credits');
+		expect(flow.purposes.authorise.explanation).toContain(GRANT.action);
+	});
+
+	it('takes the consent list from the app, not from the caller', async () => {
+		// The other half of the same split, and the reason the consent copy is NOT
+		// carried in the purpose: the signature step is reachable from any caller's
+		// run, so a list that only the registration caller supplied would be
+		// missing exactly when someone is being asked to sign.
+		const {flowDeps} = deps({
+			payerBalance: ETH,
+			accountBalance: ETH,
+			allowed: false,
+		});
+		const flow = createTopUpFlow(flowDeps, CONFIG);
+
+		await flow.start(PURPOSE);
+
+		const {consent} = get(flow);
+		expect(consent[0]).toContain(GRANT.action);
+		expect(consent.join(' ')).not.toMatch(/greeting/i);
+	});
+});
+
 describe('createTopUpFlow: who can pay', () => {
 	it('offers both methods when the account can cover it and a wallet is present', async () => {
 		const {flowDeps} = deps({
@@ -541,7 +633,7 @@ describe('createTopUpFlow: who can pay', () => {
 		});
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 
 		const state = get(flow);
 		expect(state.phase).toBe('choosing');
@@ -561,7 +653,7 @@ describe('createTopUpFlow: who can pay', () => {
 		});
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 
 		const account = get(flow).methods.find((m) => m.id === 'account');
 		expect(account?.available).toBe(false);
@@ -577,7 +669,7 @@ describe('createTopUpFlow: who can pay', () => {
 		});
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 
 		const account = get(flow).methods.find((m) => m.id === 'account');
 		expect(account?.available).toBe(false);
@@ -593,7 +685,7 @@ describe('createTopUpFlow: who can pay', () => {
 		});
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 
 		const wallet = get(flow).methods.find((m) => m.id === 'wallet');
 		expect(wallet?.available).toBe(false);
@@ -610,7 +702,7 @@ describe('createTopUpFlow: who can pay', () => {
 		});
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 
 		expect(get(flow).phase).toBe('choosing');
 		expect(get(flow).method).toBeUndefined();
@@ -638,7 +730,7 @@ describe('createTopUpFlow: who can pay', () => {
 		});
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 
 		const state = get(flow);
 		expect(state.phase).toBe('unavailable');
@@ -659,7 +751,7 @@ describe('createTopUpFlow: who can pay', () => {
 		});
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 
 		const wallet = get(flow).methods.find((m) => m.id === 'wallet');
 		expect(wallet?.available).toBe(false);
@@ -675,7 +767,7 @@ describe('createTopUpFlow: which step the payer lands on', () => {
 		const {flowDeps} = deps({payerBalance: ETH, credits: CREDITS});
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 
 		const state = get(flow);
@@ -692,7 +784,7 @@ describe('createTopUpFlow: which step the payer lands on', () => {
 		const {flowDeps} = deps({payerBalance: 0n, credits: CREDITS});
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 
 		expect(get(flow).phase).toBe('empty');
@@ -703,7 +795,7 @@ describe('createTopUpFlow: which step the payer lands on', () => {
 		const {flowDeps} = deps({payerBalance: TRANSFER_COST, credits: CREDITS});
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 
 		expect(get(flow).phase).toBe('empty');
@@ -713,7 +805,7 @@ describe('createTopUpFlow: which step the payer lands on', () => {
 		const {flowDeps} = deps({payerBalance: ETH});
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 
 		expect(get(flow).creditsText).toBeUndefined();
@@ -729,7 +821,7 @@ describe('createTopUpFlow: sending', () => {
 		});
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 		await flow.confirm();
 
@@ -751,7 +843,7 @@ describe('createTopUpFlow: sending', () => {
 		});
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('account');
 		expect(get(flow).payer).toBe(OWNER);
 		await flow.confirm();
@@ -777,7 +869,7 @@ describe('createTopUpFlow: sending', () => {
 		});
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 		await flow.confirm();
 
@@ -790,7 +882,7 @@ describe('createTopUpFlow: sending', () => {
 			credits: CREDITS,
 		});
 		const flow = createTopUpFlow(flowDeps, CONFIG);
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 		// Signing out between opening the modal and confirming: the signer address
 		// it would have sent to no longer exists.
@@ -821,7 +913,7 @@ describe('createTopUpFlow: the first top-up is the registration', () => {
 			unregistered();
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		expect(get(flow).registering).toBe(true);
 		await flow.choose('account');
 		expect(get(flow).route).toBe('direct');
@@ -843,7 +935,7 @@ describe('createTopUpFlow: the first top-up is the registration', () => {
 		const {flowDeps} = unregistered({accountBalance: topUpCeiling(CREDITS)});
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('account');
 
 		expect(get(flow).value).toBe(topUpCeiling(CREDITS) - REGISTRATION_COST);
@@ -861,7 +953,7 @@ describe('createTopUpFlow: the first top-up is the registration', () => {
 		});
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 		expect(get(flow).route).toBe('pre-signed');
 
@@ -900,7 +992,7 @@ describe('createTopUpFlow: the first top-up is the registration', () => {
 			'0x00000000000000000000000000000000000000ff';
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 
 		// Nothing to submit and nobody to ask, so the remedy is a fresh sign-in.
@@ -919,7 +1011,7 @@ describe('createTopUpFlow: the first top-up is the registration', () => {
 		});
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 
 		expect(get(flow).phase).toBe('re-authorise');
@@ -949,7 +1041,7 @@ describe('createTopUpFlow: the first top-up is the registration', () => {
 		});
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 
 		// NOT `re-authorise`, which is where this used to land.
@@ -990,7 +1082,7 @@ describe('createTopUpFlow: the first top-up is the registration', () => {
 		};
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 		expect(get(flow).phase).toBe('re-authorise');
 
@@ -1003,6 +1095,11 @@ describe('createTopUpFlow: the first top-up is the registration', () => {
 		// And back where the user was, now with something to submit.
 		expect(get(flow).phase).toBe('ready');
 		expect(get(flow).route).toBe('pre-signed');
+		// STILL THE SAME ERRAND. This step signs the user out and back in, which
+		// replaces the whole account and re-reads every figure; the one thing it
+		// must not replace is what the user was trying to buy when it interrupted
+		// them.
+		expect(get(flow).purpose).toEqual(PURPOSE);
 	});
 
 	it('says the user is signed out when they back out of that sign-in', async () => {
@@ -1021,7 +1118,7 @@ describe('createTopUpFlow: the first top-up is the registration', () => {
 		);
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 		await flow.reauthorise();
 
@@ -1052,7 +1149,7 @@ describe('createTopUpFlow: the first top-up is the registration', () => {
 			).ensureConnected.mockRejectedValueOnce(error);
 			const flow = createTopUpFlow(flowDeps, CONFIG);
 
-			await flow.start();
+			await flow.start(PURPOSE);
 			await flow.choose('wallet');
 			await flow.reauthorise();
 			return get(flow);
@@ -1137,7 +1234,7 @@ describe('createTopUpFlow: the first top-up is the registration', () => {
 		);
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 		await flow.confirm();
 
@@ -1164,7 +1261,7 @@ describe('createTopUpFlow: the first top-up is the registration', () => {
 		);
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 		await flow.confirm();
 
@@ -1175,7 +1272,7 @@ describe('createTopUpFlow: the first top-up is the registration', () => {
 		// delete it, so without remembering the refusal, backing out and starting
 		// again would pick the same doomed credential and fail the same way.
 		await flow.cancel();
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 
 		expect(get(flow).phase).toBe('re-authorise');
@@ -1187,7 +1284,7 @@ describe('createTopUpFlow: the first top-up is the registration', () => {
 			unregistered();
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 
 		// The confirm step carries the explanation, because it is the step
@@ -1235,7 +1332,7 @@ describe('createTopUpFlow: the first top-up is the registration', () => {
 		});
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 
 		expect(get(flow).route).toBe('direct');
@@ -1260,7 +1357,7 @@ describe('createTopUpFlow: the first top-up is the registration', () => {
 		});
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 
 		expect(get(flow).route).toBe('pre-signed');
@@ -1273,7 +1370,7 @@ describe('createTopUpFlow: the first top-up is the registration', () => {
 		});
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		expect(get(flow).registering).toBe(false);
 		await flow.choose('wallet');
 		await flow.confirm();
@@ -1288,7 +1385,7 @@ describe('createTopUpFlow: the faucet step', () => {
 		const {flowDeps} = deps({payerBalance: 0n, credits: CREDITS});
 		const flow = createTopUpFlow(flowDeps, {...CONFIG, hasFaucet: false});
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 		await flow.claim();
 
@@ -1317,7 +1414,7 @@ describe('createTopUpFlow: the faucet step', () => {
 			})),
 		);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 		await flow.claim();
 
@@ -1355,7 +1452,7 @@ describe('createTopUpFlow: the faucet step', () => {
 			}),
 		);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 		expect(get(flow).payer).toBe(PAYER);
 
@@ -1401,7 +1498,7 @@ describe('createTopUpFlow: the faucet step', () => {
 			}),
 		);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		setAccountBalance(0n);
 		await flow.choose('account');
 		expect(get(flow).phase).toBe('empty');
@@ -1437,7 +1534,7 @@ describe('createTopUpFlow: the faucet step', () => {
 			})),
 		);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 		await flow.claim();
 
@@ -1472,7 +1569,7 @@ describe('createTopUpFlow: the faucet step', () => {
 			})),
 		);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 		await flow.claim();
 
@@ -1504,7 +1601,7 @@ describe('createTopUpFlow: the faucet step', () => {
 			}),
 		);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 		expect(get(flow).phase).toBe('empty');
 
@@ -1529,7 +1626,7 @@ describe('createTopUpFlow: when connecting a payer fails', () => {
 		};
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 
 		expect(get(flow).open).toBe(true);
@@ -1547,7 +1644,7 @@ describe('createTopUpFlow: when connecting a payer fails', () => {
 		};
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 
 		expect(get(flow).open).toBe(false);
@@ -1566,7 +1663,7 @@ describe('createTopUpFlow: always asking who pays', () => {
 		};
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 
 		expect(payment.connection.disconnect).toHaveBeenCalled();
@@ -1586,7 +1683,7 @@ describe('createTopUpFlow: always asking who pays', () => {
 		};
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('account');
 
 		expect(payment.connection.ensureConnected).not.toHaveBeenCalled();
@@ -1602,7 +1699,7 @@ describe('createTopUpFlow: pricing the reserve', () => {
 		const {flowDeps} = deps({payerBalance: topUpCeiling(CREDITS)});
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 
 		const value = get(flow).value;
@@ -1622,7 +1719,7 @@ describe('createTopUpFlow: pricing the reserve', () => {
 		).publicClient;
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 
 		expect(client.estimateFeesPerGas).toHaveBeenCalled();
@@ -1655,7 +1752,7 @@ describe('createTopUpFlow: a wallet that holds one account at a time', () => {
 		});
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 		await flow.confirm();
 
@@ -1677,7 +1774,7 @@ describe('createTopUpFlow: a wallet that holds one account at a time', () => {
 		});
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 		await flow.confirm();
 		expect(get(flow).switchReason).toBe('sign');
@@ -1719,7 +1816,7 @@ describe('createTopUpFlow: a wallet that holds one account at a time', () => {
 		});
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 		await flow.confirm();
 
@@ -1754,7 +1851,7 @@ describe('createTopUpFlow: not losing a run to a stray click', () => {
 			return LIVE_SIGNATURE;
 		});
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 		const signing = flow.confirm();
 		await vi.waitFor(() => expect(get(flow).phase).toBe('sending'));
@@ -1775,7 +1872,7 @@ describe('createTopUpFlow: not losing a run to a stray click', () => {
 		const {flowDeps} = unregistered();
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		expect(get(flow).phase).toBe('choosing');
 
 		flow.dismiss();
@@ -1795,7 +1892,7 @@ describe('createTopUpFlow: not losing a run to a stray click', () => {
 			() => new Promise(() => {}) as Promise<`0x${string}`>,
 		);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 		void flow.confirm();
 		await vi.waitFor(() => expect(get(flow).phase).toBe('sending'));
@@ -1828,7 +1925,7 @@ describe('createTopUpFlow: not losing a run to a stray click', () => {
 			return LIVE_SIGNATURE;
 		});
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 		const run = flow.confirm();
 		await vi.waitFor(() => expect(get(flow).phase).toBe('sending'));
@@ -1848,7 +1945,7 @@ describe('createTopUpFlow: not losing a run to a stray click', () => {
 		const {flowDeps, asking} = unregistered();
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.cancel();
 
 		expect(get(flow).open).toBe(false);
@@ -1869,7 +1966,7 @@ describe('createTopUpFlow: what the confirm step promises', () => {
 		const {flowDeps} = unregistered({walletName: 'MetaMask'});
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 
 		expect(get(flow).phase).toBe('ready');
@@ -1883,7 +1980,7 @@ describe('createTopUpFlow: what the confirm step promises', () => {
 		const {flowDeps} = unregistered({walletName: 'Burner Wallet'});
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 
 		expect(get(flow).phase).toBe('ready');
@@ -1909,7 +2006,7 @@ describe('createTopUpFlow: the payer changing under the modal', () => {
 			credits: CREDITS,
 		});
 		const flow = createTopUpFlow(flowDeps, CONFIG);
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 		expect(get(flow).payer).toBe(PAYER);
 
@@ -1927,7 +2024,7 @@ describe('createTopUpFlow: the payer changing under the modal', () => {
 		// which is why the modal used to go on naming the previous account.
 		const {flowDeps} = deps({payerBalance: ETH, credits: CREDITS});
 		const flow = createTopUpFlow(flowDeps, CONFIG);
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 
 		const connection = (
@@ -1954,7 +2051,7 @@ describe('createTopUpFlow: the payer changing under the modal', () => {
 			credits: CREDITS,
 		});
 		const flow = createTopUpFlow(flowDeps, CONFIG);
-		await flow.start();
+		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 
 		// Switch without letting the watcher run, i.e. the same-tick race.

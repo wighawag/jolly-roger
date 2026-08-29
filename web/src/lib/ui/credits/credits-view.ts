@@ -8,6 +8,7 @@ import {
 } from '$lib/core/connection/credits';
 import type {BalanceValue} from '$lib/core/connection/balance';
 import type {Context} from '$lib/context/types';
+import type {FundingPurpose} from './funding-purpose';
 
 /** Who the signer is, and which account it belongs to. */
 export type SignerAccount = {
@@ -46,6 +47,8 @@ export type CreditsView = {
 	topBarText: string;
 	/** Label for the action that funds the signer. */
 	topUpLabel: string;
+	/** What to tell the payment dialog this payment is for. */
+	topUpPurpose: FundingPurpose;
 };
 
 const HIDDEN: CreditsView = {
@@ -59,6 +62,7 @@ const HIDDEN: CreditsView = {
 	showTopBarIndicator: false,
 	topBarText: '',
 	topUpLabel: '',
+	topUpPurpose: topUpPurpose(undefined),
 };
 
 /**
@@ -86,6 +90,31 @@ const DESCRIPTION =
  */
 export function topUpActionLabel(credits: CreditsConfig | undefined): string {
 	return credits ? 'Get credits' : 'Top up';
+}
+
+/**
+ * Funding the signer, as a purpose the payment dialog can be handed.
+ *
+ * COMPOSES with `topUpActionLabel` rather than restating it. That label already
+ * varies on whether the chain prices actions in credits, and it is exported so
+ * the button that opens the flow and the dialog that runs it cannot drift
+ * apart; a purpose that wrote its own headline would be a third copy of the
+ * same decision and the drift would come back.
+ *
+ * The explanation moved here out of `TopUpModal.svelte`, where it was one arm
+ * of a branch the modal took on its own. The modal no longer decides what the
+ * payment is for: three callers fund the signer (the account panel, the
+ * insufficient-funds modal, and the demo's Send) and they all pass this.
+ */
+export function topUpPurpose(
+	credits: CreditsConfig | undefined,
+): FundingPurpose {
+	return {
+		headline: topUpActionLabel(credits),
+		explanation: credits
+			? 'This adds credits to your in-app balance, so the app can keep making moves for you.'
+			: 'This moves funds to your in-app balance, so the app can keep making moves for you.',
+	};
 }
 
 /**
@@ -149,6 +178,7 @@ export function deriveCreditsView(input: CreditsViewInput): CreditsView {
 						: 'Needs funds'
 					: denominate(signerBalance),
 		topUpLabel: topUpActionLabel(credits),
+		topUpPurpose: topUpPurpose(credits),
 	};
 }
 

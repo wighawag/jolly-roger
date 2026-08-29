@@ -145,8 +145,13 @@ export function createDelegationCheckStore(params: {
 			// The registration flow funds the signer in the same transaction, so
 			// this is also how an empty signer gets its gas. It renders its own
 			// modal; this step only records that we are waiting on it.
+			// THE PURPOSE IS THIS GATE'S, and it is the one case where the payment
+			// exists only to authorise the browser. Taken from the flow rather than
+			// written here, because it is built from the app's grant and this module
+			// deliberately knows nothing about what the delegate will be used for
+			// (see the note on RESUME_EXPLANATION above, which is the same rule).
 			store.set({step: 'registering'});
-			void topUp.start();
+			void topUp.start(topUp.purposes.authorise);
 			await whenClosed(topUp);
 
 			// The CHAIN decides, not the flow: it can close for reasons that say
