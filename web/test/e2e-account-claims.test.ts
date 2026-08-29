@@ -163,7 +163,9 @@ describe('e2e stalling-wallet accounts', () => {
 			`these suites drive the stalling wallet as the same address, so they ` +
 				`will race for its nonce under fullyParallel: ${shared
 					.map(([index, names]) => `index ${index}: ${names.join(', ')}`)
-					.join('; ')}. Pass a free stallingAccountIndex, adding an address to ` +
+					.join(
+						'; ',
+					)}. Pass a free stallingAccountIndex, adding an address to ` +
 				`STALLING_WALLET_ACCOUNTS if none is left.`,
 		).toEqual([]);
 	});
