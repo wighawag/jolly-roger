@@ -41,12 +41,18 @@ const deploymentsDir = join(root, 'contracts', 'deployments');
 if (existsSync(target)) process.exit(0);
 
 /**
- * The networks this repo ships records for.
+ * The networks there are records for, on disk.
  *
  * Read from disk rather than hardcoded, so a fork that commits its own network
- * is served by the same script without editing it. `localhost` and the other
- * throwaway chains are gitignored (see contracts/.gitignore), so what is left
- * here is exactly the set somebody chose to keep.
+ * is served by the same script without editing it.
+ *
+ * ON DISK, not in git, and the difference shows up in exactly one place. A
+ * fresh clone has only the committed records, which is the case this script is
+ * for. A working tree may also hold gitignored throwaway chains (`localhost`,
+ * `hardhat*`, see contracts/.gitignore) left by a local deploy, and those are
+ * offered too. That is the right answer where it happens: a developer whose
+ * generated file went missing wants their own chain back, not a testnet. It is
+ * reachable only when the file is absent, since an existing one wins above.
  */
 const networks = existsSync(deploymentsDir)
 	? readdirSync(deploymentsDir).filter((name) =>
