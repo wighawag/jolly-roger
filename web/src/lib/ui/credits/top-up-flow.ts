@@ -1,5 +1,12 @@
 import {get, writable, type Readable} from 'svelte/store';
-import {formatUnits} from 'viem';
+import {
+	formatAmount,
+	offerAmount,
+	spendableBalance,
+	readSendable as readSendableFrom,
+	type BalanceReader,
+	type Sendable,
+} from '$lib/core/funding';
 import {
 	formatCredits,
 	toCredits,
@@ -49,7 +56,13 @@ import {
 	NO_PAYMENT_METHOD_EXPLANATION,
 	type PaymentMethod,
 	type PaymentMethodId,
-} from './payment-methods';
+} from '$lib/core/funding';
+
+// The funding arithmetic and the payer set are re-exported rather than defined
+// here: they moved to `core/funding` so that a descendant paying for something
+// else can reuse them without reaching into this flow (see its README). This
+// file keeps the parts that know what a top-up IS.
+export {formatAmount, spendableBalance};
 
 /**
  * Topping up the in-app balance, as one flow rather than three buttons.
@@ -104,43 +117,6 @@ export const DEFAULT_TOP_UP_CEILING = 10_000_000_000_000_000n; // 0.01 native
 export const REGISTRATION_GAS = 150_000n;
 
 /**
- * How much the fee estimate is multiplied by before it is held back.
- *
- * The app does not choose what the transfer costs: it is sent through the
- * user's wallet, and the wallet picks the fee. A wallet routinely picks more
- * than `estimateFeesPerGas` returns (it adds its own priority tip, and the base
- * fee can rise between the estimate and the send), so reserving the estimate
- * exactly produces the bug this exists to stop: a top-up sized at "everything
- * the faucet gave, minus gas" that the payer then cannot afford to send.
- *
- * Two, because the reserve is only ever a few cents of gas, while getting it
- * wrong costs the user a failed transaction and a confusing wallet error.
- */
-const FEE_SAFETY_MULTIPLIER = 2n;
-
-/** Gas the transfer itself costs, which the payer must keep back. */
-function gasReserve(maxFeePerGas: bigint, gas: bigint = TRANSFER_GAS): bigint {
-	return gas * maxFeePerGas * FEE_SAFETY_MULTIPLIER;
-}
-
-/**
- * What the payer can actually send: its balance minus the gas of sending.
- *
- * Zero rather than negative when the balance does not even cover gas, because
- * the caller's question is "how much can be sent", and the answer there is
- * none. Sending the whole balance always fails, which is the failure this
- * subtraction exists to prevent.
- */
-export function spendableBalance(params: {
-	balance: bigint;
-	maxFeePerGas: bigint;
-	gas?: bigint;
-}): bigint {
-	const reserve = gasReserve(params.maxFeePerGas, params.gas);
-	return params.balance > reserve ? params.balance - reserve : 0n;
-}
-
-/**
  * The most one top-up is worth, before the payer's balance is considered.
  *
  * With credits configured this is the price of one top-up, so the fixed-price
@@ -158,6 +134,11 @@ export function topUpCeiling(credits: CreditsConfig | undefined): bigint {
  * minimum is what makes the faucet enough: a freshly fauceted payer holds
  * exactly the faucet's amount, and this lands under it by the cost of the
  * transfer instead of attempting a fixed price the payer cannot cover.
+ *
+ * A THIN WRAPPER over `offerAmount`, which is the same rule with the price as a
+ * plain number. What is left here is the only part that knows about credits:
+ * turning a `CreditsConfig` into that number. A descendant pricing something
+ * else calls `offerAmount` directly and never meets `CreditsConfig` at all.
  */
 export function maxTopUp(params: {
 	balance: bigint;
@@ -165,20 +146,12 @@ export function maxTopUp(params: {
 	credits: CreditsConfig | undefined;
 	gas?: bigint;
 }): bigint {
-	const ceiling = topUpCeiling(params.credits);
-	const spendable = spendableBalance(params);
-	return spendable < ceiling ? spendable : ceiling;
-}
-
-/** Render a wei value for display, rounded down to a readable number of places. */
-export function formatAmount(
-	value: bigint,
-	decimals: number,
-	places = 6,
-): string {
-	if (decimals <= places) return formatUnits(value, decimals);
-	const factor = 10n ** BigInt(decimals - places);
-	return formatUnits((value / factor) * factor, decimals);
+	return offerAmount({
+		balance: params.balance,
+		maxFeePerGas: params.maxFeePerGas,
+		gas: params.gas,
+		ceiling: topUpCeiling(params.credits),
+	});
 }
 
 /**
@@ -345,11 +318,6 @@ export type TopUpFlowConfig = {
 	/** Whether a faucet is configured; without one an empty payer is a dead end. */
 	hasFaucet: boolean;
 };
-
-/**
- * What a payer can send, and whether that figure is ahead of the chain read.
- */
-type Sendable = {value: bigint; pending: boolean};
 
 /**
  * What a registration can end as: everything a purchase can, plus the one
@@ -521,83 +489,47 @@ export function createTopUpFlow(
 	const ownerCanSend = (): boolean => get(accountExecutor).status === 'ready';
 
 	/**
-	 * The fee the transaction should be priced at.
+	 * The public client that reads the chain for a given payer.
 	 *
-	 * `estimateFeesPerGas` rather than `getGasPrice`, because it is an EIP-1559
-	 * transaction and `getGasPrice` reports roughly the base fee alone. Reserving
-	 * that much left out the priority tip, so the reserve was short and the
-	 * top-up could exceed what the payer could actually send. Falls back to
-	 * `getGasPrice` for chains that do not support the estimate at all.
+	 * WHICH CONNECTION ANSWERS depends on who is paying: the app's own client
+	 * knows about the signed-in account, the payment rail's about a wallet the
+	 * user just connected. Handing the wrong one over reads the right address on
+	 * the wrong chain. This is the part `core/funding` cannot decide, which is
+	 * why it takes a reader rather than finding one.
+	 *
+	 * Returned as the full client, because `submitRegistration` also waits on a
+	 * receipt with it. Only the balance-reading subset is narrowed, at the one
+	 * call that needs it.
 	 */
-	/** The public client that reads the chain for a given payer. */
 	const readerFor = (method: PaymentMethodId | undefined) =>
 		method === 'account' ? publicClient : payment.publicClient;
-
-	const feePerGas = async (reader: {
-		estimateFeesPerGas: () => Promise<{maxFeePerGas?: bigint} | undefined>;
-		getGasPrice: () => Promise<bigint>;
-	}): Promise<bigint> => {
-		try {
-			const fees = await reader.estimateFeesPerGas();
-			if (fees?.maxFeePerGas) return fees.maxFeePerGas;
-		} catch {
-			// Legacy chain, or a node without a fee history. Priced below instead.
-		}
-		return reader.getGasPrice();
-	};
 
 	/**
 	 * What this payer could send right now, after the gas of sending it.
 	 *
-	 * The gas depends on WHAT is being sent: a registration is a contract call,
-	 * an ordinary top-up is a plain transfer. Reserving the transfer's gas for a
-	 * registration would size a top-up the payer cannot afford to send, which is
-	 * the exact failure the reserve exists to prevent.
+	 * The two chain reads, the EIP-1559 fee estimate, the gas reserve and the
+	 * rule for a wallet that has not seen a faucet claim yet all live in
+	 * `core/funding` (see `readSendable` and `reconcileBalance` there, which is
+	 * where each of those failures is explained).
+	 *
+	 * What stays HERE is the only part that is about a top-up: how much gas the
+	 * terminal transaction costs. A registration is a contract call, an ordinary
+	 * top-up is a plain transfer, and reserving the transfer's gas for a
+	 * registration would size a top-up the payer cannot afford to send.
 	 */
-	const readSendable = async (
+	const readSendable = (
 		address: `0x${string}`,
 		method: PaymentMethodId | undefined,
 		registering: boolean,
-		/**
-		 * A balance we know the payer holds regardless of what the chain says,
-		 * because we just watched it arrive.
-		 *
-		 * An injected wallet answers `eth_getBalance` from a cache until it sees a
-		 * new block, so a read straight after a faucet claim reports the balance
-		 * from BEFORE the claim. Taking the larger of the two means a wallet that
-		 * has not caught up cannot tell the user their freshly funded account is
-		 * empty, and a wallet that HAS caught up still wins when it knows more (the
-		 * payer may have held something already).
-		 */
+		/** What a faucet just dispensed. See `reconcileBalance`. */
 		knownToHold?: bigint,
-	): Promise<Sendable> => {
-		const reader = readerFor(method) as unknown as {
-			getBalance: (a: {address: `0x${string}`}) => Promise<bigint>;
-			estimateFeesPerGas: () => Promise<{maxFeePerGas?: bigint} | undefined>;
-			getGasPrice: () => Promise<bigint>;
-		};
-		const [reported, maxFeePerGas] = await Promise.all([
-			reader.getBalance({address}),
-			feePerGas(reader),
-		]);
-		// AHEAD OF THE READ, deliberately: the money is on chain, and Ethereum's
-		// nonce ordering means a transaction sent now is fine even if the node
-		// answering us has not caught up. But the WALLET has to agree before it
-		// will let the user sign, and a wallet that is behind shows the old
-		// balance and refuses. So the figure is optimistic and says that it is,
-		// rather than either refusing or pretending everything is settled.
-		const behind = !!knownToHold && knownToHold > reported;
-		const balance = behind ? knownToHold : reported;
-		return {
-			value: maxTopUp({
-				balance,
-				maxFeePerGas,
-				credits,
-				gas: registering ? REGISTRATION_GAS : TRANSFER_GAS,
-			}),
-			pending: behind,
-		};
-	};
+	): Promise<Sendable> =>
+		readSendableFrom(readerFor(method) as unknown as BalanceReader, {
+			address,
+			ceiling: topUpCeiling(credits),
+			gas: registering ? REGISTRATION_GAS : TRANSFER_GAS,
+			knownToHold,
+		});
 
 	/** The address the payment connection currently holds, if any. */
 	const payerAddressOf = ($payment: unknown): `0x${string}` | undefined =>
@@ -1151,10 +1083,20 @@ export function createTopUpFlow(
 					accountSpendable,
 					ownerCanSend: canSend,
 					walletsAvailable: walletsAvailable(),
-					blockedFromSignatureRoute:
+					// WHY a third-party wallet cannot work here is a fact about the
+					// registration, not about paying, so the wording travels with it
+					// rather than living in `core/funding`. Withdrawal is per delegate:
+					// only an owner-sent `registerDelegate` clears it, so re-authorising
+					// the SAME signer cannot go through another wallet.
+					walletRouteBlocked:
 						registering &&
 						$delegation.step === 'Loaded' &&
-						$delegation.withdrawn,
+						$delegation.withdrawn
+							? {
+									reason:
+										"You withdrew this browser's access before, and only your own account can authorise it again.",
+								}
+							: undefined,
 				});
 
 				const available = availablePaymentMethods(methods);
