@@ -49,10 +49,26 @@ pnpm test:e2e:headed
 During development, you can run tests in watch mode:
 
 ```bash
-pnpm test:unit
+pnpm test:unit:watch
 ```
 
 This will re-run tests when files change.
+
+### Why `test:unit` is two commands
+
+`pnpm test:unit` runs the `server` project and then the `client` project, rather
+than letting vitest start both at once. The `client` project drives a real
+headless chromium through playwright and the `server` project fans a large
+module graph across worker processes, and they compete badly for the machine.
+
+Splitting them is faster even when you have the machine to yourself (25s rather
+than 43s here), and it is the difference between finishing and hanging when you
+do not: three of these repos running the projects together never completed,
+while the same three with them split finish in under two minutes. The reasoning
+and the measurements are in `vite.config.ts`.
+
+Watch mode keeps the single-process behaviour on purpose, because that is one
+developer on one machine.
 
 ## E2E Test Architecture
 
