@@ -25,9 +25,9 @@ import {execFileSync} from 'node:child_process';
  */
 const KNOWN_LEAKS: Record<string, string> = {
 	'src/lib/Head.svelte':
-		"reads `page.url.pathname` for the canonical and og:url. Parameterising it " +
-		"was tried and reverted: the prop has to be optional or every one of a " +
-		'site\'s <Head> call sites becomes a compile error, and an optional one ' +
+		'reads `page.url.pathname` for the canonical and og:url. Parameterising it ' +
+		'was tried and reverted: the prop has to be optional or every one of a ' +
+		"site's <Head> call sites becomes a compile error, and an optional one " +
 		'silently defaults the URL of every page to "/". Two descendants have ten ' +
 		'such call sites between them, none of which would have failed a test. ' +
 		'The fix is a documentLocation CAPABILITY, which the component reads from ' +
