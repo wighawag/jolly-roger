@@ -79,9 +79,7 @@ const RUNE_NAMES = [
 	'host',
 ] as const;
 
-const RUNE = new RegExp(
-	`(?<![.\\w$])\\$(?:${RUNE_NAMES.join('|')})\\s*[.(]`,
-);
+const RUNE = new RegExp(`(?<![.\\w$])\\$(?:${RUNE_NAMES.join('|')})\\s*[.(]`);
 
 /**
  * Names the file DECLARES as ordinary bindings, which are therefore not runes.
@@ -138,10 +136,14 @@ describe('Svelte conventions', () => {
 		// flagged. Verified against the tree: both of these are live text in
 		// `src/lib/core/ui/overlay/`.
 		expect(
-			usesRunes('// the usual call site is `$effect(() => overlay.register())`'),
+			usesRunes(
+				'// the usual call site is `$effect(() => overlay.register())`',
+			),
 		).toBe(false);
 		expect(
-			usesRunes('/**\n * $derived(...) is how a component would read this.\n */'),
+			usesRunes(
+				'/**\n * $derived(...) is how a component would read this.\n */',
+			),
 		).toBe(false);
 		expect(usesRunes("console.warn('(usually $effect(() => x())).');")).toBe(
 			false,
@@ -182,9 +184,9 @@ describe('Svelte conventions', () => {
 		// smuggle real rune usage into a `.ts` file.
 		expect(usesRunes('let rows = $state.raw([]);')).toBe(true);
 		// And declaring one name says nothing about another in the same file.
-		expect(
-			usesRunes('let $state = snapshot;\nconst v = $derived(x);\n'),
-		).toBe(true);
+		expect(usesRunes('let $state = snapshot;\nconst v = $derived(x);\n')).toBe(
+			true,
+		);
 	});
 
 	it('has no .svelte.ts files', () => {
