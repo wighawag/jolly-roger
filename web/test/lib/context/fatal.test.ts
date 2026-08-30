@@ -26,17 +26,26 @@ afterEach(() => {
 //
 // A HANG GUARD, NOT A BUDGET, and the number reflects that. The first case pays
 // for transforming the entire context graph in one go, and measured cold across
-// the tree it runs in 6.5-15s with a long tail: on a 16-way parallel run under
-// load the same import has been seen at 23s and past 30s, on the TEMPLATE as
-// well as on descendants whose graph is larger. At 30s it failed roughly one
-// cold run in three, which is worse than useless - a flake teaches people to
-// re-run rather than to read. The second case in this file takes ~0.3s, because
-// by then the graph is transformed; the whole cost is the first import.
+// the tree it runs in 6.5-15s with a long tail. The second case takes ~0.3s,
+// because by then the graph is transformed; the whole cost is the first import.
 //
 // So: high enough that only a real hang trips it, and a real hang still fails
 // the suite in two minutes rather than never. Raise it here rather than in a
 // fork: this file is identical at every node, and a fork that edits it buys
 // itself a conflict on every future alignment.
+//
+// DO NOT RAISE IT AGAIN. It went 30s -> 120s chasing a flake, and 120s was then
+// blown too, by BOTH cases at once including the ~0.3s one - which is the tell,
+// because no per-test budget explains a case that does no importing timing out
+// beside the one that does. The cause was never this file: vitest defaults to a
+// worker per core, each worker holding its own copy of a large module graph, so
+// running three of these repos side by side put 48 forks into 8GB of free
+// memory and the machine swapped. Everything got ~10x slower and the heaviest
+// file was simply the first to hit a wall.
+//
+// The fix is `maxWorkers` in `vite.config.ts`, where the reasoning and the
+// measurements are. If this times out again, look at what else is running
+// before you touch this number.
 const IMPORT_TIMEOUT = 120_000;
 
 async function loadContextWith(env: Record<string, string>) {

@@ -37,6 +37,26 @@ export default defineConfig(({mode}) => ({
 	},
 	test: {
 		expect: {requireAssertions: true},
+		// HALF THE CORES, because a test run does not own the machine.
+		//
+		// Vitest defaults to one worker per core, and every worker that touches
+		// the app barrel holds its own copy of a large module graph. That is fine
+		// alone and falls apart the moment a second suite runs beside it: three of
+		// these repos at once (16 cores, 30GB) drove the machine into swap and
+		// `test/lib/context/fatal.test.ts` blew its 120s hang guard in ALL THREE,
+		// with the whole run taking 27 minutes instead of 30 seconds. The failure
+		// looks like a flaky test and is not one: it is 48 forks competing for 8GB.
+		//
+		// It is not a trade against speed, which is why it is a default rather
+		// than something CI passes. Measured on this repo, solo: 19.3s -> 17.4s
+		// wall, with transform 65s -> 34s and import 95s -> 46s, because the work
+		// saved on contention more than pays for the workers given up. The same
+		// three-way run that failed above passes in 80s with this set.
+		//
+		// A PERCENTAGE, not a number: these repos are cloned onto everything from
+		// a laptop to a CI runner, and a hardcoded count is either oversubscribed
+		// on the small machine or wasteful on the big one.
+		maxWorkers: '50%',
 		projects: [
 			{
 				extends: './vite.config.ts',
