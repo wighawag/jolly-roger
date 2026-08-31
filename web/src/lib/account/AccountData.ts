@@ -18,7 +18,6 @@ import {
 	map,
 } from 'synqable';
 import {PUBLIC_OPERATION_RETENTION_DAYS} from '$env/static/public';
-import {getAddress} from 'viem';
 
 /**
  * Local operations belong to a specific deployment, so the storage key is
@@ -73,19 +72,19 @@ const schema = defineSchema({
 export type Schema = typeof schema;
 
 /**
- * Where one account's operations are stored, for this deployment.
- *
- * Extracted so it is written ONCE. It is used both to build the live store and
- * to read an account's operations WITHOUT one (see {@link readStoredOperations}),
- * and two copies of a storage key formula is two chances to read from a slightly
- * different place than you wrote to.
- */
-/**
  * Everything in an operations key EXCEPT which account's list it is.
  *
- * Split out so the scan below can find every account this browser has stored a
- * list for, without knowing any of their addresses. Same string either way, so
- * the reader and the writer cannot drift apart.
+ * Where one account's operations are stored, minus the account. Written ONCE
+ * and shared by both users (the live store's key, and the scan in
+ * {@link readAllStoredOperations}), because two copies of a storage key formula
+ * is two chances to read from a slightly different place than you wrote to.
+ *
+ * Being able to name the scope WITHOUT naming an account is what lets the scan
+ * find every list this browser holds without knowing whose they are. That in
+ * turn is why nothing here has to guess at address CASING any more: the account
+ * is read out of the key rather than built into it, so there is no spelling to
+ * get wrong. The scope's own casing cannot drift, since the writer and the
+ * reader are handed the same `operationScopeAddress(deployments)` value.
  */
 function operationsStorageKeyPrefix(params: {
 	chainId: number;
@@ -109,9 +108,15 @@ function operationsStorageKey(params: {
 /**
  * Parse one stored operations envelope. `undefined` means NOT KNOWN.
  *
- * The shape is synqable's and is not a public contract; see
- * `readStoredOperations` for why an envelope we cannot read must degrade to "I
- * do not know" and never to "there are none".
+ * THE SHAPE IS SYNQABLE'S, AND IT IS NOT A PUBLIC CONTRACT. `{$version, data:
+ * {operations}}` is what `createSyncableStore` writes today, read back here
+ * without going through it. If that ever changes this must degrade to "I do not
+ * know" and never to "there are none", because the second is the app inventing
+ * evidence that it never saw a transaction, which is the failure this whole
+ * feature exists to prevent. Hence the explicit check below rather than a
+ * `?? {}`. `test/lib/account/stored-operations.svelte.test.ts` writes through
+ * the real store and reads back through here, so drift fails loudly, not
+ * quietly.
  */
 function parseStoredOperations(
 	raw: string | null,
@@ -188,91 +193,6 @@ export function readAllStoredOperations(params: {
 	}
 
 	return {operations, complete};
-}
-
-/**
- * Read an account's stored operations directly, with no connection to it.
- *
- * WHY THIS EXISTS. The live store holds ONE account at a time, the one that is
- * currently connected, which is fine for showing a user their transactions and
- * useless for the thing that has to work when nobody is connected: reconciling
- * an in-flight record left behind by a session that is over. On a reload with a
- * locked wallet there is no account, so the live store cannot answer "do we
- * already have an operation at this nonce?", and the app fell back to guessing
- * from the chain and told the user a transaction might have been sent while it
- * was sitting in their list.
- *
- * Storage does not have that limitation: the key is derived from the chain, the
- * deployment and the address, all of which a record carries. So this reads the
- * account named on the record rather than the account that happens to be
- * connected.
- *
- * `undefined` means NOT KNOWN, and is returned for every way this can fail to
- * produce a real answer: no key, unparseable contents, or a payload that is not
- * the shape expected. There is no loading state to confuse it with, since
- * localStorage is synchronous.
- *
- * THE SHAPE IS SYNQABLE'S, AND IT IS NOT A PUBLIC CONTRACT. `{$version, data:
- * {operations}}` is what `createSyncableStore` writes today, read back here
- * without going through it. If that ever changes this must degrade to "I do not
- * know" and never to "there are none", because the second is the app inventing
- * evidence that it never saw a transaction, which is the failure this whole
- * feature exists to prevent. Hence the explicit check below rather than a
- * `?? {}`. `test/lib/account/stored-operations.svelte.test.ts` writes through the
- * real store and reads back through here, so drift fails loudly, not quietly.
- *
- * Synqable also debounces its saves, so for an account that is NOT the connected
- * one this can lag the live store by a moment. Harmless: a missing recent
- * operation makes reconciliation fall through to the nonce comparison, which is
- * what it would have done anyway.
- */
-export function readStoredOperations(params: {
-	deployments: TypedDeployments;
-	scopeAddress: `0x${string}`;
-	account: `0x${string}`;
-}): Record<string, OnchainOperation> | undefined {
-	const {deployments, scopeAddress, account} = params;
-	if (typeof localStorage === 'undefined') return undefined;
-
-	// BOTH SPELLINGS, the way `nonce-cache.ts` queries both when asking a wallet
-	// for a nonce. The key embeds whatever the multi-account store was handed,
-	// which is normally the provider's lowercase form, while an in-flight record
-	// can carry a checksummed one. Same account, two strings, and looking under
-	// only one of them returns NOT KNOWN for data that is right there: the user is
-	// then told a transaction "may have been sent" while it sits in their list,
-	// which is the exact failure this reader exists to remove. Assuming one casing
-	// would be an assumption about every wallet, forever.
-	const spellings = new Set<string>([account, account.toLowerCase()]);
-	try {
-		// The checksummed form too, so the lookup works whichever spelling WROTE
-		// the key, not merely whichever one is asking. Derived rather than assumed:
-		// lowercasing the query only covers one of the two directions.
-		spellings.add(getAddress(account));
-	} catch {
-		// Not a checksummable address; the other spellings still apply.
-	}
-
-	const keys = [...spellings].map((spelling) =>
-		operationsStorageKey({
-			chainId: deployments.chain.id,
-			genesisHash: deployments.chain.genesisHash,
-			scopeAddress,
-			account: spelling,
-		}),
-	);
-
-	try {
-		const raw = keys.reduce<string | null>(
-			(found, key) => found ?? localStorage.getItem(key),
-			null,
-		);
-		// Deliberately not `?? {}`: an envelope we cannot read is unknown, not
-		// empty. Saying "no operations" here would be inventing evidence that the
-		// app never saw a transaction.
-		return parseStoredOperations(raw);
-	} catch {
-		return undefined;
-	}
 }
 
 export function createAccountData(params: {
