@@ -122,8 +122,19 @@
 	// is UI-only state: the connection store stays in `WalletToChoose` throughout.
 	let walletPickerOpen: boolean = $state(false);
 
-	// Whether to keep blocking the user with "confirm the request in your wallet".
+	// Whether to keep blocking the user with "confirm the request in your wallet",
+	// and what to say while doing it. The words come from wallet-activity, like the
+	// escape hatch's, because since @etherplay/connect 0.10.0 there is a real
+	// choice to make: a pending request can name its `purpose` (a delegation is
+	// worth naming) and the `account` expected to answer it, which may no longer be
+	// the connected one.
 	let pendingRequest = $derived($walletActivity.promptUser);
+	let promptCopy = $derived($walletActivity.promptCopy);
+	// Whether the modal should offer the one action that can move a locked wallet.
+	// `unlock()` keeps the step, the account and the wallet, where re-running the
+	// flow rebuilds all three; upstream publishes `wallet.status` precisely so an
+	// app can tell those apart (their ADR-0002).
+	let unlockable = $derived($walletActivity.unlockable);
 
 	// Whether the connect modal offers sign-in options besides wallets (the
 	// email input under hosted sign-in). Controls the modal's layout, including
@@ -634,11 +645,7 @@
 </BasicModal>
 
 <!-- Pending Wallet Request Modal -->
-<BasicModal
-	layer="system"
-	title="Wallet Action Required"
-	openWhen={pendingRequest}
->
+<BasicModal layer="system" title={promptCopy.title} openWhen={pendingRequest}>
 	<div class="flex flex-col items-center gap-4 py-4">
 		<svg
 			class="h-12 w-12 animate-pulse text-primary"
@@ -654,8 +661,11 @@
 			/>
 		</svg>
 		<p class="text-center text-sm text-muted-foreground">
-			Please confirm the request in your wallet
+			{promptCopy.body}
 		</p>
+		{#if unlockable}
+			<Button class="w-full" onclick={() => connection.unlock()}>Unlock</Button>
+		{/if}
 	</div>
 	{@render escapeHatch()}
 </BasicModal>

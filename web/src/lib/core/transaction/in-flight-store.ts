@@ -78,14 +78,20 @@ export type InFlightState = {
 	 * The app's own answer to "is a transaction being awaited at this moment", and
 	 * deliberately the single source for the things that used to disagree about
 	 * it: whether to offer the escape hatch, whether to warn before a reload, and
-	 * whether to show that something is being sent. "Wallet Action Required" used
+	 * whether to show that something is being sent. The wallet-action modal used
 	 * to rest on it too and now rests on {@link prompting}, because that modal
-	 * asks a narrower question than the other three. It is worth more than the
-	 * connection library's `wallet.pendingRequests` for that purpose, because it
-	 * is written by the app immediately before dispatch and cleared only by an
-	 * answer, whereas
-	 * `pendingRequests` is transient library state that a wallet state rebuild
-	 * resets (see work/notes/observations/wallet-action-required-modal-not-seen.md).
+	 * asks a narrower question than the other three.
+	 *
+	 * NOT A SUBSTITUTE FOR `wallet.pendingRequests`, and no longer a workaround for
+	 * it. It was one: until @etherplay/connect 0.10.0 every wallet-state rebuild
+	 * asserted `pendingRequests: []` and erased an outstanding request permanently,
+	 * so this count was the only thing left standing
+	 * (work/notes/observations/wallet-action-required-modal-not-seen.md). That is
+	 * fixed upstream. What this still answers, and that list structurally cannot,
+	 * is what the APP is waiting on: a send signed by a key the app holds itself is
+	 * never a wallet request at all, and none of the three consumers above may go
+	 * quiet for it. See `core/connection/wallet-activity` for which preference now
+	 * rests on which reason.
 	 *
 	 * In memory only: after a reload nothing is being awaited, whatever records
 	 * survived, and those are reported by the notice instead.

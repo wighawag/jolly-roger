@@ -16,22 +16,116 @@ import type {
 type ConnectionState = Connection<UnderlyingEthereumProvider>;
 
 /**
+ * One entry of `connection.pendingRequests`, as far as this app reads it.
+ *
+ * A DELIBERATE WIDENING of what used to be `readonly unknown[]`, taken when
+ * @etherplay/connect 0.10.0 gave `PendingRequest` its `purpose` and `account`
+ * fields. The loose version was right while the list was untrustworthy and the
+ * app only ever counted it; now that the list survives a wallet-state rebuild,
+ * the app reads the entries and says different words about them, so the shape
+ * it reads should be the shape the typecheck enforces.
+ *
+ * THE TWO FIELDS ARE TYPED DIFFERENTLY ON PURPOSE, because a change to each
+ * means something different here:
+ *
+ * - `kind` is the upstream union verbatim, so ADDING A KIND FAILS THIS BUILD.
+ *   That is wanted: `outstandingRequestKind` returns those two values and the
+ *   escape hatch says something materially different about each (a signature
+ *   approved late is untidy, a transaction approved late moves funds). A third
+ *   kind is a question nobody here has answered yet, and it should be answered
+ *   deliberately rather than falling into whichever branch is last.
+ * - `purpose` is `string`, NOT the upstream union, so ADDING A PURPOSE DOES
+ *   NOT. The union is expected to grow, and a purpose only chooses flavour
+ *   text: an unrecognised one falls back to `kind` (see `walletPromptCopy`),
+ *   which is always safe. Pinning it here would turn every upstream addition
+ *   into a build break in an app that would have coped fine.
+ *
+ * Both are optional, and `id` with them, because these are read out of a
+ * request the caller made and a caller is not obliged to make one this layer
+ * can read.
+ */
+export type PendingRequestSnapshot = {
+	id?: string;
+	kind?: 'transaction' | 'signature';
+	/** WHY the library is asking, when the library is the one asking. */
+	purpose?: string;
+	/** WHO is expected to answer: the signer of a signature, a transaction's `from`. */
+	account?: `0x${string}`;
+};
+
+/**
  * Structural subset of {@link ConnectionState} these helpers actually read.
  *
  * Deriving each field from the real union (rather than re-declaring loose
  * shapes) means a rename of `step`, `mechanism.type`/`.name`, or
- * `wallet.pendingRequests` upstream fails the typecheck here, while still
- * letting tests pass lightweight fixtures. The fields are `Partial` because
+ * `pendingRequests` upstream fails the typecheck here, while still letting
+ * tests pass lightweight fixtures. The fields are `Partial` because
  * `mechanism`/`wallet` only exist on some steps of the union.
+ *
+ * `pendingRequests` SITS BESIDE `wallet`, NOT INSIDE IT, since
+ * @etherplay/connect 0.11.0 moved it there and deprecated the mirror. That is
+ * not a tidy-up to follow later: the list describes what the always-on wrapper
+ * is holding, and the wrapper outlives any particular wallet state, so the
+ * states that carry NO wallet are exactly the ones this app needed it in. A
+ * bare `connect()` on a locked wallet rests on the wallet picker with
+ * `wallet: undefined` while the user's wallet is still holding the transaction
+ * that raised the flow, and reading the deprecated mirror there answers
+ * `undefined` for a request that is very much outstanding.
+ *
+ * So `^0.11.0` in package.json is a FLOOR rather than a preference. Reading only
+ * the new field is deliberate: accepting `state.pendingRequests ?? state.wallet
+ * ?.pendingRequests` would restore the exact ambiguity this move removed, in
+ * which an empty answer means either "nothing is outstanding" or "this state has
+ * no wallet to ask". Against 0.10.0 the app therefore sees no wallet request at
+ * all, and `e2e/tests/escape-hatch.e2e.ts` fails loudly rather than degrading.
  */
 export type ConnectionStateSnapshot = Partial<
 	Pick<ConnectionState, 'step'> & {
+		pendingRequests: readonly PendingRequestSnapshot[];
 		mechanism: Partial<{type: string; name: string; address: string}>;
 		wallet: Partial<{
-			pendingRequests: readonly unknown[];
 			accountChanged: `0x${string}`;
+			/**
+			 * Pinned to the upstream union rather than widened to `string`, on the
+			 * same reasoning as `kind`: each value names a different thing the user
+			 * can DO about it, so a fourth is a decision somebody has to make rather
+			 * than a label to fall through. Passing the real `Connection` here is
+			 * what makes that a compile error.
+			 */
+			status: 'connected' | 'locked' | 'disconnected';
+			unlocking: boolean;
 		}>;
 	}
+>;
+
+/**
+ * THE GUARD `Partial` CANNOT GIVE ON ITS OWN, and the reason it is spelled out
+ * rather than left implied by the snapshot above.
+ *
+ * The doc on {@link ConnectionStateSnapshot} claims that a rename upstream fails
+ * the typecheck here. For `step` that is true, because it is `Pick`ed from the
+ * real union. For the fields this app re-declares it was never true: every field
+ * is optional, so the real `Connection` stays assignable to the snapshot after
+ * upstream drops or renames one, and the app would simply read `undefined` for a
+ * request the wallet is genuinely holding. Exactly the silence this whole module
+ * exists to prevent, arriving through the type system instead of the store.
+ *
+ * `pendingRequests` cannot be `Pick`ed to fix that, because the real element
+ * type has four required fields and the tests here pass deliberately partial
+ * fixtures. So the shape is asserted separately, which catches BOTH failure
+ * modes and costs nothing at runtime:
+ *
+ * - the field moving or being renamed makes the indexed access itself an error;
+ * - a new `kind` makes the element no longer assignable, so `Assert<false>`
+ *   errors. That is wanted, for the reason given on
+ *   {@link PendingRequestSnapshot}: a third kind changes what the app must say
+ *   about danger. A new `purpose` still passes, because it is typed `string`.
+ */
+type Assert<T extends true> = T;
+type _PendingRequestsStillLiveOnTheConnection = Assert<
+	ConnectionState['pendingRequests'] extends readonly PendingRequestSnapshot[]
+		? true
+		: false
 >;
 
 /** A wallet as exposed by the connection store's `wallets` array. */
@@ -79,6 +173,36 @@ export function resolveSignInAddress(
 		state.wallet?.accountChanged ??
 		(state.mechanism?.address as `0x${string}` | undefined)
 	);
+}
+
+/**
+ * WHETHER THE WALLET CAN ANSWER ANYTHING RIGHT NOW.
+ *
+ * A locked wallet keeps `step: 'WalletConnected'`, so every
+ * `isTargetStepReached` check in this app reads it as connected and it renders
+ * exactly like a working one. Measured, not assumed: with a transaction parked
+ * and the wallet locked, the navbar showed a balance and the page offered no
+ * Connect button, no Unlock, and no hint that anything was wrong, while the
+ * wallet-action modal told the user to approve a request their locked wallet was
+ * not showing them. That is the same false instruction as "confirm in your
+ * wallet" during a silent dispatch, arriving from the other side.
+ *
+ * `unlocking` is a state of its own rather than a flag on `locked`, because a
+ * control that stays live during it invites a second `unlock()` that does
+ * nothing, and one that simply vanishes reads as the app having lost interest.
+ *
+ * `disconnected` is deliberately NOT treated as locked. It means the wallet has
+ * revoked this site rather than gone to sleep, and the remedy is a fresh connect
+ * (a permission prompt), not an unlock (a password prompt). Offering the wrong
+ * one of those is a dead end the user cannot tell from a broken app.
+ */
+export type WalletLockState = 'unlocked' | 'locked' | 'unlocking';
+
+export function walletLockState(
+	state: ConnectionStateSnapshot,
+): WalletLockState {
+	if (state.wallet?.status !== 'locked') return 'unlocked';
+	return state.wallet.unlocking ? 'unlocking' : 'locked';
 }
 
 /**
@@ -305,7 +429,7 @@ export function hasPendingWalletRequest(
 	state: ConnectionStateSnapshot,
 ): boolean {
 	return (
-		(state.wallet?.pendingRequests?.length ?? 0) > 0 &&
+		(state.pendingRequests?.length ?? 0) > 0 &&
 		!isBurnerWalletInSelectionPhase(state)
 	);
 }

@@ -9,6 +9,7 @@ import {
 	pendingRequestIds,
 	shouldPromptForWalletAction,
 	stopWaitingForWallet,
+	walletPromptCopy,
 } from '../../../../src/lib/core/connection/wallet-activity';
 
 describe('the escape hatch: an exit that does not lie', () => {
@@ -23,7 +24,7 @@ describe('the escape hatch: an exit that does not lie', () => {
 			{step: 'PopupLaunched'},
 			{
 				step: 'WalletConnected',
-				wallet: {pendingRequests: [{kind: 'transaction'}]},
+				pendingRequests: [{kind: 'transaction'}],
 			},
 			{step: 'Idle'},
 			{step: 'WalletToChoose'},
@@ -42,9 +43,7 @@ describe('the escape hatch: an exit that does not lie', () => {
 		// The sentence has to be about the one that can spend money.
 		expect(
 			outstandingRequestKind({
-				wallet: {
-					pendingRequests: [{kind: 'signature'}, {kind: 'transaction'}],
-				},
+				pendingRequests: [{kind: 'signature'}, {kind: 'transaction'}],
 			}),
 		).toBe('transaction');
 	});
@@ -53,9 +52,7 @@ describe('the escape hatch: an exit that does not lie', () => {
 		expect(outstandingRequestKind({step: 'WaitingForWalletConnection'})).toBe(
 			undefined,
 		);
-		expect(outstandingRequestKind({wallet: {pendingRequests: []}})).toBe(
-			undefined,
-		);
+		expect(outstandingRequestKind({pendingRequests: []})).toBe(undefined);
 	});
 
 	it('never offers to cancel, undo, or take back', () => {
@@ -63,8 +60,8 @@ describe('the escape hatch: an exit that does not lie', () => {
 		// is precisely the thing it cannot do.
 		const states = [
 			{step: 'WaitingForWalletConnection'},
-			{wallet: {pendingRequests: [{kind: 'transaction'}]}},
-			{wallet: {pendingRequests: [{kind: 'signature'}]}},
+			{pendingRequests: [{kind: 'transaction'}]},
+			{pendingRequests: [{kind: 'signature'}]},
 		] as const;
 
 		for (const state of states) {
@@ -82,13 +79,13 @@ describe('the escape hatch: an exit that does not lie', () => {
 
 	it('says the request survives, and that approving it later still acts', () => {
 		const transaction = escapeHatchCopy({
-			wallet: {pendingRequests: [{kind: 'transaction'}]},
+			pendingRequests: [{kind: 'transaction'}],
 		});
 		expect(transaction.title).toContain('still has this transaction');
 		expect(transaction.body).toContain('it will still be sent');
 
 		const signature = escapeHatchCopy({
-			wallet: {pendingRequests: [{kind: 'signature'}]},
+			pendingRequests: [{kind: 'signature'}],
 		});
 		expect(signature.title).toContain('signature request');
 		expect(signature.body).toContain('Nothing is spent');
@@ -111,7 +108,7 @@ describe('the escape hatch: an exit that does not lie', () => {
 		const outcome = await stopWaitingForWallet(
 			{
 				step: 'WalletConnected',
-				wallet: {pendingRequests: [{kind: 'transaction', id: 'req_1'}]},
+				pendingRequests: [{kind: 'transaction', id: 'req_1'}],
 			},
 			{cancel: () => calls.push('cancel')},
 			{
@@ -134,7 +131,7 @@ describe('the escape hatch: an exit that does not lie', () => {
 		// stayed disabled and spinning for ever. Reported from real use.
 		const calls: string[] = [];
 		await stopWaitingForWallet(
-			{wallet: {pendingRequests: [{kind: 'transaction', id: 'req_1'}]}},
+			{pendingRequests: [{kind: 'transaction', id: 'req_1'}]},
 			{cancel: () => calls.push('cancel')},
 			{
 				reconcile: async () => {
@@ -169,7 +166,7 @@ describe('the escape hatch: an exit that does not lie', () => {
 		// will settle its own record the moment the wallet answers.
 		const calls: string[] = [];
 		await stopWaitingForWallet(
-			{wallet: {pendingRequests: [{kind: 'transaction', id: 'req_1'}]}},
+			{pendingRequests: [{kind: 'transaction', id: 'req_1'}]},
 			{cancel: () => calls.push('cancel')},
 			{
 				reconcile: async () => {
@@ -207,12 +204,15 @@ describe('the escape hatch: an exit that does not lie', () => {
 });
 
 describe('shouldPromptForWalletAction: holding vs blocking', () => {
-	const request = (id: string, kind = 'transaction') => ({id, kind});
+	const request = (
+		id: string,
+		kind: 'transaction' | 'signature' = 'transaction',
+	) => ({id, kind});
 
 	it('prompts while the wallet holds something nobody gave up on', () => {
 		expect(
 			shouldPromptForWalletAction(
-				{step: 'WalletConnected', wallet: {pendingRequests: [request('a')]}},
+				{step: 'WalletConnected', pendingRequests: [request('a')]},
 				new Set(),
 			),
 		).toBe(true);
@@ -221,7 +221,7 @@ describe('shouldPromptForWalletAction: holding vs blocking', () => {
 	it('stops prompting for a request the user gave up on', () => {
 		expect(
 			shouldPromptForWalletAction(
-				{step: 'WalletConnected', wallet: {pendingRequests: [request('a')]}},
+				{step: 'WalletConnected', pendingRequests: [request('a')]},
 				new Set(['a']),
 			),
 		).toBe(false);
@@ -233,7 +233,7 @@ describe('shouldPromptForWalletAction: holding vs blocking', () => {
 		// confirm that one, and a flag would have made the second send silent.
 		expect(
 			shouldPromptForWalletAction(
-				{step: 'WalletConnected', wallet: {pendingRequests: [request('b')]}},
+				{step: 'WalletConnected', pendingRequests: [request('b')]},
 				new Set(['a']),
 			),
 		).toBe(true);
@@ -244,7 +244,7 @@ describe('shouldPromptForWalletAction: holding vs blocking', () => {
 			shouldPromptForWalletAction(
 				{
 					step: 'WalletConnected',
-					wallet: {pendingRequests: [request('a'), request('b')]},
+					pendingRequests: [request('a'), request('b')],
 				},
 				new Set(['a']),
 			),
@@ -258,7 +258,7 @@ describe('shouldPromptForWalletAction: holding vs blocking', () => {
 			shouldPromptForWalletAction(
 				{
 					step: 'WalletConnected',
-					wallet: {pendingRequests: [{kind: 'transaction'}]},
+					pendingRequests: [{kind: 'transaction'}],
 				},
 				new Set(['a']),
 			),
@@ -266,15 +266,15 @@ describe('shouldPromptForWalletAction: holding vs blocking', () => {
 	});
 
 	it('says nothing when the wallet holds nothing, and keeps the burner silent', () => {
-		expect(
-			shouldPromptForWalletAction({wallet: {pendingRequests: []}}, new Set()),
-		).toBe(false);
+		expect(shouldPromptForWalletAction({pendingRequests: []}, new Set())).toBe(
+			false,
+		);
 		expect(
 			shouldPromptForWalletAction(
 				{
 					step: 'WalletConnected',
 					mechanism: {type: 'wallet', name: 'Burner Wallet'},
-					wallet: {pendingRequests: [request('a')]},
+					pendingRequests: [request('a')],
 				},
 				new Set(),
 			),
@@ -284,19 +284,29 @@ describe('shouldPromptForWalletAction: holding vs blocking', () => {
 	it('reads the ids the wallet is holding', () => {
 		expect(
 			pendingRequestIds({
-				wallet: {pendingRequests: [request('a'), request('b'), {kind: 'x'}]},
+				// The third has no id, which is a request that cannot be given up on
+				// individually rather than a malformed one.
+				pendingRequests: [request('a'), request('b'), {kind: 'transaction'}],
 			}),
 		).toEqual(['a', 'b']);
 		expect(pendingRequestIds({step: 'Idle'})).toEqual([]);
 	});
 });
 
-describe("the app's own dispatch as a second source of truth", () => {
-	// Reported: with a locked Rabby, no "Wallet Action Required" modal appeared
-	// for a transaction being sent. `wallet.pendingRequests` is transient library
-	// state that a wallet state rebuild resets to [] while the request is still
-	// outstanding, and unlocking a locked wallet is exactly such a rebuild. The
-	// app's own in-flight record does not have that problem.
+describe("the app's own dispatch, which answers a different question", () => {
+	// WHY THIS LEDGER STILL EXISTS, since the reason it was BUILT has expired.
+	//
+	// It was built for a locked-Rabby report: no modal appeared for a transaction
+	// being sent, because every wallet-state rebuild in @etherplay/connect asserted
+	// `pendingRequests: []` and erased the outstanding request permanently.
+	// 0.10.0 copies the live list at each rebuild instead, so that is fixed at the
+	// source and the e2e suite now drives the transition that caused it
+	// (e2e/tests/escape-hatch.e2e.ts, "survives a reconnect").
+	//
+	// What these tests now pin is the part no upstream fix reaches: a send signed
+	// by a key the app holds itself is not a wallet request and can never appear in
+	// a list of them, and the app starts waiting a beat before the wallet is handed
+	// anything. See ADR-0008 on the `work` branch.
 	it('prompts when the app is dispatching, even if the library shows nothing', () => {
 		expect(
 			shouldPromptForWalletAction({step: 'WalletConnected'}, new Set(), {
@@ -312,7 +322,7 @@ describe("the app's own dispatch as a second source of truth", () => {
 	it('offers the escape hatch on the strength of a dispatch alone', () => {
 		// A dispatch nobody has answered traps the user just as surely as a step
 		// that refuses dismissal, so it must carry an exit even when the library
-		// has lost track of the request.
+		// reports nothing, which for a locally-signed send it always will.
 		const state = {step: 'WalletConnected'} as const;
 		expect(canDismissConnection(state)).toBe(true);
 		expect(offersEscapeHatch(state)).toBe(false);
@@ -399,31 +409,296 @@ describe("the app's own dispatch as a second source of truth", () => {
 		// go and answer.
 		const silent = {dispatchInFlight: true, promptingDispatchInFlight: false};
 		expect(
-			escapeHatchCopy(
-				{wallet: {pendingRequests: [{kind: 'transaction'}]}},
-				silent,
-			).title,
+			escapeHatchCopy({pendingRequests: [{kind: 'transaction'}]}, silent).title,
 		).toContain('still has this transaction');
 
 		// And a SIGNATURE keeps its own words instead of being outranked into
 		// transaction wording by a send nobody was asked about. Rare before a local
 		// signer existed, ordinary once one does.
 		expect(
-			escapeHatchCopy(
-				{wallet: {pendingRequests: [{kind: 'signature'}]}},
-				silent,
-			).title,
+			escapeHatchCopy({pendingRequests: [{kind: 'signature'}]}, silent).title,
 		).toContain('signature request');
 	});
 
 	it('still speaks for the wallet when the dispatch IS a wallet dispatch', () => {
 		// Guards the guard: the silent branch must not swallow the case it was
-		// carved out of, which is the library losing track of a real request.
+		// carved out of, which is a real request the app is waiting on.
 		const copy = escapeHatchCopy(
 			{step: 'WalletConnected'},
 			{dispatchInFlight: true, promptingDispatchInFlight: true},
 		);
 		expect(copy.title).toContain('still has this transaction');
+	});
+
+	it('does not let a visible signature outrank a silent transaction', () => {
+		// THE PRECEDENCE THE 0.10.0 FIX MADE MORE IMPORTANT, not less.
+		//
+		// `outstandingRequestKind` decides whether stopping waiting may cancel the
+		// connection, and cancelling with a transaction in flight is the
+		// disconnect-and-lose-the-transaction bug. A send the app signed ITSELF is
+		// invisible to `pendingRequests` by construction, so if the library's list
+		// were read first, a delegation signature sitting in it would answer
+		// 'signature' and take the cancelling branch.
+		//
+		// That pairing used to be near-hypothetical and is now ordinary: the same
+		// release routed `getDelegation` and `getSignatureForPublicKeyPublication`
+		// through the wrapper, so library signatures are announced where before they
+		// opened a wallet with nothing behind them.
+		const state = {
+			step: 'WalletConnected',
+			pendingRequests: [
+				{id: 'sig', kind: 'signature' as const, purpose: 'delegation'},
+			],
+		} as const;
+		expect(outstandingRequestKind(state)).toBe('signature');
+		expect(
+			outstandingRequestKind(state, {
+				dispatchInFlight: true,
+				promptingDispatchInFlight: false,
+			}),
+		).toBe('transaction');
+	});
+});
+
+describe('walletPromptCopy: saying WHAT the wallet is asking', () => {
+	// Three sentences @etherplay/connect 0.10.0 made available that were not
+	// before: what a library-originated request is FOR (`purpose`), WHO is
+	// expected to answer it (`account`), and the honest reading of an empty list,
+	// which used to be ambiguous between "not asked yet" and "asked, then erased".
+	const connected = '0x1111111111111111111111111111111111111111' as const;
+	const other = '0x2222222222222222222222222222222222222222' as const;
+	const asConnected = {
+		step: 'WalletConnected' as const,
+		mechanism: {type: 'wallet', name: 'Rabby', address: connected},
+	};
+
+	it('names a delegation, which is the request worth naming', () => {
+		// A delegation grants a browser key authority to act for the account. An
+		// unexplained request for exactly that is the shape a phishing prompt takes,
+		// so a user who cannot tell them apart is right to distrust both.
+		const copy = walletPromptCopy(
+			{
+				...asConnected,
+				pendingRequests: [{id: 'a', kind: 'signature', purpose: 'delegation'}],
+			},
+			new Set(),
+		);
+		expect(copy.title).toContain('delegation');
+		expect(copy.body).toContain('send transactions for your account');
+		// It must not imply anything is spent, because nothing is.
+		expect(copy.body).toContain('Nothing is spent');
+	});
+
+	it('names a public-key publication', () => {
+		const copy = walletPromptCopy(
+			{
+				...asConnected,
+				pendingRequests: [
+					{id: 'a', kind: 'signature', purpose: 'public-key-publication'},
+				],
+			},
+			new Set(),
+		);
+		expect(copy.title).toContain('public key');
+	});
+
+	it('falls back to the kind for a purpose it has never heard of', () => {
+		// The union is expected to grow. An unrecognised purpose is a request the
+		// user must still be told about, so it degrades to the kind rather than
+		// throwing or going blank. This is also why `purpose` is typed `string` in
+		// PendingRequestSnapshot: a new one upstream must not break this build.
+		const copy = walletPromptCopy(
+			{
+				...asConnected,
+				pendingRequests: [
+					{id: 'a', kind: 'signature', purpose: 'something-invented-later'},
+				],
+			},
+			new Set(),
+		);
+		expect(copy.title).toContain('signature request');
+		expect(copy.body).not.toContain('undefined');
+	});
+
+	it('says a transaction is a transaction when nothing named a purpose', () => {
+		// Absent `purpose` is the NORMAL case, not a gap: it means the app sent this
+		// itself through connection.provider and already knows what it is.
+		const copy = walletPromptCopy(
+			{
+				...asConnected,
+				pendingRequests: [{id: 'a', kind: 'transaction'}],
+			},
+			new Set(),
+		);
+		expect(copy.title).toContain('transaction');
+		expect(copy.body).toContain('will not be sent until you approve it');
+	});
+
+	it('tells the user WHICH account a request is waiting on after a switch', () => {
+		// A request now survives a wallet-state rebuild, so it can outlive the wallet
+		// state it started under, and the user may switch account while one is
+		// outstanding. The upstream list is not per-wallet and nothing marks or drops
+		// a request when the wallet is swapped underneath it, so this comparison is
+		// the only way the case is detectable from here. Without it the modal tells
+		// the user to approve in a wallet that cannot answer.
+		const copy = walletPromptCopy(
+			{
+				...asConnected,
+				pendingRequests: [{id: 'a', kind: 'transaction', account: other}],
+			},
+			new Set(),
+		);
+		expect(copy.title).toContain('different account');
+		expect(copy.body).toContain('0x2222...2222');
+		expect(copy.body).toContain('0x1111...1111');
+		// It must not lose the escape hatch's promise on the way.
+		expect(copy.body).toContain('approved later it still acts');
+	});
+
+	it('follows a swapped account rather than the stale connected one', () => {
+		// `wallet.accountChanged` is where a live swap surfaces; `mechanism.address`
+		// stays stale. Comparing against the stale one would report a mismatch for a
+		// request the user's CURRENT account is holding perfectly well.
+		const copy = walletPromptCopy(
+			{
+				...asConnected,
+				wallet: {accountChanged: other},
+				pendingRequests: [{id: 'a', kind: 'transaction', account: other}],
+			},
+			new Set(),
+		);
+		expect(copy.title).not.toContain('different account');
+	});
+
+	it('never guesses a mismatch from a missing address', () => {
+		// `account` is optional upstream and `mechanism.address` is absent on some
+		// steps. Reading either absence as a mismatch would send the user hunting
+		// through wallets for a request the one in front of them is holding.
+		expect(
+			walletPromptCopy(
+				{
+					...asConnected,
+					pendingRequests: [{id: 'a', kind: 'transaction'}],
+				},
+				new Set(),
+			).title,
+		).not.toContain('different account');
+		expect(
+			walletPromptCopy(
+				{
+					step: 'WalletConnected',
+					pendingRequests: [{id: 'a', kind: 'transaction', account: other}],
+				},
+				new Set(),
+			).title,
+		).not.toContain('different account');
+	});
+
+	it('does not tell a LOCKED wallet owner to go and approve something', () => {
+		// The most literal false instruction available: the request is real, the
+		// wallet has it, and a locked wallet does not show it. Measured before this
+		// existed: with a transaction parked and the wallet locked, the modal said
+		// "Confirm the transaction in your wallet" and the whole page offered no
+		// Unlock, no Connect and no hint anything was wrong.
+		const locked = {
+			...asConnected,
+			wallet: {status: 'locked' as const, unlocking: false},
+			pendingRequests: [{id: 'a', kind: 'transaction' as const}],
+		};
+		const copy = walletPromptCopy(locked, new Set());
+		expect(copy.title).toBe('Your wallet is locked');
+		expect(copy.body).toContain('Unlock it');
+		// And it must not imply the app gave up on the request while they were away.
+		expect(copy.body).toContain('still there waiting');
+
+		// Checked BEFORE what the request is, because it changes what the user must
+		// DO and everything else only changes what it is called.
+		expect(
+			walletPromptCopy(
+				{
+					...locked,
+					pendingRequests: [
+						{id: 'a', kind: 'signature', purpose: 'delegation'},
+					],
+				},
+				new Set(),
+			).title,
+		).toBe('Your wallet is locked');
+	});
+
+	it('stops repeating itself once the wallet is asking for the password', () => {
+		// `unlocking` is the wallet's own prompt being up. Saying "your wallet is
+		// locked" at that moment reads as the app not having noticed, and offering
+		// Unlock again invites a click that does nothing visible.
+		const unlocking = {
+			...asConnected,
+			wallet: {status: 'locked' as const, unlocking: true},
+			pendingRequests: [{id: 'a', kind: 'transaction' as const}],
+		};
+		expect(walletPromptCopy(unlocking, new Set()).title).toBe(
+			'Waiting for your wallet to unlock',
+		);
+	});
+
+	it('does not claim the wallet is asking before it has been asked', () => {
+		// THE DEMOTION. The ledger term in shouldPromptForWalletAction still raises
+		// the modal a beat before the wallet has anything, because viem reads a chain
+		// id, a nonce and a gas estimate through the same provider first. Saying
+		// "confirm the request in your wallet" there is the four-second falsehood
+		// in-flight-store already moved this counter once to avoid.
+		//
+		// Only tellable because an empty list is now unambiguous. Before 0.10.0 it
+		// meant either this or "asked, then erased", so the loud wording had to cover
+		// both.
+		const copy = walletPromptCopy({step: 'WalletConnected'}, new Set(), {
+			dispatchInFlight: true,
+			promptingDispatchInFlight: true,
+		});
+		expect(copy.title).toBe('Getting your transaction ready');
+		// True under the other reading too, which this app cannot rule out: if the
+		// wallet HAS already been asked, the sentence still tells the user what to do.
+		expect(copy.body).toContain('if it has already asked, approve it there');
+		// And it is still a block with an exit behind it: only the claim was dropped.
+		expect(
+			shouldPromptForWalletAction({step: 'WalletConnected'}, new Set(), {
+				dispatchInFlight: true,
+				promptingDispatchInFlight: true,
+			}),
+		).toBe(true);
+	});
+
+	it('describes the transaction rather than a signature beside it', () => {
+		// Same rule as outstandingRequestKind: with both outstanding, the sentence is
+		// about the one that can spend money.
+		const copy = walletPromptCopy(
+			{
+				...asConnected,
+				pendingRequests: [
+					{id: 'a', kind: 'signature', purpose: 'delegation'},
+					{id: 'b', kind: 'transaction'},
+				],
+			},
+			new Set(),
+		);
+		expect(copy.title).toContain('transaction');
+	});
+
+	it('does not describe a request the user has given up on', () => {
+		// The modal is up for the newer send, so the words have to be about that one.
+		// It reads the SAME stopped-waiting set the decision to prompt was made with,
+		// which is what keeps the two from describing different moments.
+		const copy = walletPromptCopy(
+			{
+				...asConnected,
+				pendingRequests: [
+					{id: 'abandoned', kind: 'transaction', account: other},
+				],
+			},
+			new Set(['abandoned']),
+			{dispatchInFlight: true, promptingDispatchInFlight: true},
+		);
+		expect(copy.title).not.toContain('different account');
+		expect(copy.title).toBe('Getting your transaction ready');
 	});
 
 	it('assumes a dispatch prompts when nobody has said otherwise', () => {
@@ -444,7 +719,7 @@ describe("the app's own dispatch as a second source of truth", () => {
 		// modal does not come straight back.
 		expect(
 			shouldPromptForWalletAction(
-				{step: 'WalletConnected', wallet: {pendingRequests: [{id: 'r1'}]}},
+				{step: 'WalletConnected', pendingRequests: [{id: 'r1'}]},
 				new Set(['r1']),
 				{dispatchInFlight: false},
 			),
@@ -565,6 +840,28 @@ describe('createWalletActivity: one answer, so consumers cannot drift', () => {
 		expect(value.escapeCopy.title).toContain('still has this transaction');
 	});
 
+	it('hands the modal its words instead of letting it choose them', () => {
+		// The boundary rule in action: the component needed a sharper sentence than
+		// "Wallet Action Required", and the answer is a field here rather than a
+		// component reading `pendingRequests` for itself. Reaching around this is
+		// what let five consumers drift far enough apart to cancel a connection with
+		// a transaction in flight.
+		const {activity} = setup({
+			connection: {
+				step: 'WalletConnected',
+				mechanism: {
+					type: 'wallet',
+					name: 'Rabby',
+					address: '0x1111111111111111111111111111111111111111',
+				},
+				pendingRequests: [{id: 'a', kind: 'signature', purpose: 'delegation'}],
+			},
+		});
+		const value = get(activity);
+		expect(value.promptUser).toBe(true);
+		expect(value.promptCopy.title).toContain('delegation');
+	});
+
 	it('acts on the SAME answer it displayed', () => {
 		// The whole point: whatever made the exit appear is what decides what the
 		// exit does. Reading a narrower source here is what cancelled connections.
@@ -592,7 +889,7 @@ describe('createWalletActivity: one answer, so consumers cannot drift', () => {
 		const {activity, connection, inFlight} = setup({
 			connection: {
 				step: 'WalletConnected',
-				wallet: {pendingRequests: [{id: 'r1', kind: 'transaction'}]},
+				pendingRequests: [{id: 'r1', kind: 'transaction'}],
 			},
 			dispatching: 1,
 		});
@@ -605,7 +902,7 @@ describe('createWalletActivity: one answer, so consumers cannot drift', () => {
 		// A different request must not inherit that silence.
 		connection.set({
 			step: 'WalletConnected',
-			wallet: {pendingRequests: [{id: 'r2', kind: 'transaction'}]},
+			pendingRequests: [{id: 'r2', kind: 'transaction'}],
 		});
 		expect(get(activity).promptUser).toBe(true);
 	});
@@ -616,7 +913,7 @@ describe('createWalletActivity: one answer, so consumers cannot drift', () => {
 
 		connection.set({
 			step: 'WalletConnected',
-			wallet: {pendingRequests: [{id: 'r1', kind: 'signature'}]},
+			pendingRequests: [{id: 'r1', kind: 'signature'}],
 		});
 		expect(get(activity).escapable).toBe(true);
 		// The kind still reaches the user, through the words rather than a field
@@ -720,7 +1017,7 @@ describe('createWalletActivity: dismissal is the fifth consumer', () => {
 				0,
 				{
 					step: 'WalletConnected',
-					wallet: {pendingRequests: [{id: 'r', kind: 'transaction'}]},
+					pendingRequests: [{id: 'r', kind: 'transaction'}],
 				},
 			],
 		] as const) {
