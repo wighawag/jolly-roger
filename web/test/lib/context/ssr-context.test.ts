@@ -28,10 +28,17 @@ describe('app context off-browser', () => {
 		// The connection rests where @etherplay/connect leaves it with no
 		// window to auto-connect from. This is also the browser's first render,
 		// which is why hydration matches.
+		//
+		// `pendingRequests` is part of that resting shape as of 0.11.0, which moved
+		// the list off the wallet object and stamps it on EVERY publish, including
+		// the states that carry no wallet. An empty array here is the point of that
+		// change rather than noise: there is one shape, and "nothing is outstanding"
+		// is said rather than left to be inferred from a missing field.
 		expect(get(context.connection)).toEqual({
 			step: 'Idle',
 			loading: true,
 			wallets: [],
+			pendingRequests: [],
 		});
 		expect(get(context.account)).toBe(undefined);
 

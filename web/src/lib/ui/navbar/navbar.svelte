@@ -72,6 +72,29 @@
 	let operations = $derived(accountData.watchField('operations'));
 	let transactionCount = $derived(countPendingOperations($operations));
 
+	// A LOCKED WALLET STILL RENDERS AS CONNECTED HERE, and that is a decision
+	// rather than the oversight it looks like.
+	//
+	// Locking keeps `step: 'WalletConnected'`, so every `isTargetStepReached`
+	// branch below treats it as connected, and everything they show is still TRUE:
+	// the account is connected, the address is right, and the balance is read
+	// through the always-on provider rather than the wallet. Only SIGNING is
+	// asleep.
+	//
+	// An "Unlock" button was built here and taken out again. A wallet prompts for
+	// its password ON DEMAND, exactly when something needs signing, so an app-side
+	// button duplicates a thing the wallet already does better and at a better
+	// moment, while a chrome that changes shape whenever a wallet auto-locks on a
+	// timer is noise about a state that resolves itself.
+	//
+	// The case that does NOT resolve itself is a request made BEFORE the lock: the
+	// wallet is then sitting on it behind a password screen with nothing to
+	// re-surface it. That is a modal, not chrome, and it is handled where the user
+	// is actually stuck, by `walletPromptCopy` and `WalletActivity.unlockable` in
+	// core/connection/wallet-activity. `e2e/tests/escape-hatch.e2e.ts` asserts this
+	// bar keeps showing the balance in that state, so the decision is pinned rather
+	// than rediscovered.
+
 	// Derive formatted balance
 	let formattedBalance = $derived.by(() => {
 		if ($accountBalance.step === 'Loaded') {
