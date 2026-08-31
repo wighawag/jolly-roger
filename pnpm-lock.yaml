@@ -147,8 +147,8 @@ importers:
         specifier: ^0.0.9
         version: 0.0.9(viem@2.55.19(typescript@6.0.3)(zod@4.4.3))
       '@etherplay/connect':
-        specifier: ^0.11.0
-        version: 0.11.0
+        specifier: ^0.11.2
+        version: 0.11.2
       '@internationalized/date':
         specifier: ^3.12.3
         version: 3.12.3
@@ -480,8 +480,8 @@ packages:
   '@etherplay/connect-core@0.7.2':
     resolution: {integrity: sha512-V4Gj7kAQFxPLWSZU3dX7NDmCg7DMPU/B+vg4OnlBddvUE+3+TconfCGJxdVCiNVGKNpL5T0T4BzUluR2J4nbMw==}
 
-  '@etherplay/connect@0.11.0':
-    resolution: {integrity: sha512-Vm+mD5hI8HaEuPHWAHCku9gJm6ESDpIGtSBaj+wplUnZApjTbolaC+RxQJkB+Kp0SVURWmW1PCJurWZB7DHwjQ==}
+  '@etherplay/connect@0.11.2':
+    resolution: {integrity: sha512-vPINgpkNazUrlPzNtLuUIVk6VLF/zdOF2op4IdAJ80yKsow8wzMoPCh4kH8awP+MQmmWdsZOLfeu0e+kxW0Ogg==}
 
   '@etherplay/delegation@0.1.1':
     resolution: {integrity: sha512-NGHZzPdUrpGiQxK936bru+Yqrpu+xmzhOCWKWTKxVmQQCMa137161tlaxfuR/DkwXiuvGt0zFk2x+fU3y6VSjQ==}
@@ -3082,7 +3082,7 @@ snapshots:
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
 
-  '@etherplay/connect@0.11.0':
+  '@etherplay/connect@0.11.2':
     dependencies:
       '@etherplay/connect-core': 0.7.2
       '@etherplay/wallet-connector': 0.1.0
