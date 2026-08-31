@@ -19,6 +19,7 @@
 		signInToAccount,
 		combinesAccountChoiceWithSignIn,
 		effectiveAccountSelection,
+		chainSwitchCopy,
 	} from './connection-flow';
 	import {
 		createWalletActivity,
@@ -124,8 +125,19 @@
 	// is UI-only state: the connection store stays in `WalletToChoose` throughout.
 	let walletPickerOpen: boolean = $state(false);
 
-	// Whether to keep blocking the user with "confirm the request in your wallet".
+	// Whether to keep blocking the user with "confirm the request in your wallet",
+	// and what to say while doing it. The words come from wallet-activity, like the
+	// escape hatch's, because since @etherplay/connect 0.10.0 there is a real
+	// choice to make: a pending request can name its `purpose` (a delegation is
+	// worth naming) and the `account` expected to answer it, which may no longer be
+	// the connected one.
 	let pendingRequest = $derived($walletActivity.promptUser);
+	let promptCopy = $derived($walletActivity.promptCopy);
+	// Whether the modal should offer the one action that can move a locked wallet.
+	// `unlock()` keeps the step, the account and the wallet, where re-running the
+	// flow rebuilds all three; upstream publishes `wallet.status` precisely so an
+	// app can tell those apart (their ADR-0002).
+	let unlockable = $derived($walletActivity.unlockable);
 
 	// Whether the connect modal offers sign-in options besides wallets (the
 	// email input under hosted sign-in). Controls the modal's layout, including
@@ -163,6 +175,9 @@
 	let dismissable = $derived($walletActivity.dismissable);
 	const dismiss = () => connection.cancel();
 	let swappedAccount = $derived(hasSwappedAccount($connection));
+
+	// The network-switch modal's words. Two prompts, not one: see chainSwitchCopy.
+	let chainSwitch = $derived(chainSwitchCopy($connection));
 
 	// What a failed attempt should say. Under @etherplay/connect 0.6.0 the wallet
 	// host's own refusals reach the app instead of being flattened into a
@@ -666,11 +681,7 @@
 </BasicModal>
 
 <!-- Pending Wallet Request Modal -->
-<BasicModal
-	layer="system"
-	title="Wallet Action Required"
-	openWhen={pendingRequest}
->
+<BasicModal layer="system" title={promptCopy.title} openWhen={pendingRequest}>
 	<div class="flex flex-col items-center gap-4 py-4">
 		<svg
 			class="h-12 w-12 animate-pulse text-primary"
@@ -686,8 +697,11 @@
 			/>
 		</svg>
 		<p class="text-center text-sm text-muted-foreground">
-			Please confirm the request in your wallet
+			{promptCopy.body}
 		</p>
+		{#if unlockable}
+			<Button class="w-full" onclick={() => connection.unlock()}>Unlock</Button>
+		{/if}
 	</div>
 	{@render escapeHatch()}
 </BasicModal>
@@ -796,9 +810,12 @@
 			</div>
 		</div>
 
-		<!-- Info Text -->
+		<!-- Info Text. Says which of the TWO chain prompts is up: a wallet that has
+		     never seen this network is asked to ADD it before it can be asked to
+		     switch, and calling both "the network switch" describes something other
+		     than what the wallet is showing (see chainSwitchCopy). -->
 		<p class="text-center text-sm text-muted-foreground">
-			Your wallet might prompt you to approve the network switch
+			{chainSwitch.hint}
 		</p>
 	</div>
 
@@ -806,15 +823,15 @@
 		<Button
 			variant="outline"
 			onclick={() => connection.cancel()}
-			disabled={!!$connection.wallet?.switchingChain}
+			disabled={chainSwitch.busy}
 		>
 			Cancel
 		</Button>
 		<Button
 			onclick={() => connection.switchWalletChain()}
-			disabled={!!$connection.wallet?.switchingChain}
+			disabled={chainSwitch.busy}
 		>
-			{#if $connection.wallet?.switchingChain}
+			{#if chainSwitch.busy}
 				<svg class="mr-2 h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
 					<circle
 						class="opacity-25"
@@ -830,10 +847,8 @@
 						d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
 					/>
 				</svg>
-				Switching...
-			{:else}
-				Switch Network
 			{/if}
+			{chainSwitch.action}
 		</Button>
 	</Modal.Footer>
 

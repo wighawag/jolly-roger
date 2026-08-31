@@ -10,6 +10,8 @@ import {
 	combinesAccountChoiceWithSignIn,
 	effectiveAccountSelection,
 	canDismissConnection,
+	walletLockState,
+	chainSwitchCopy,
 } from '../../../../src/lib/core/connection/connection-flow';
 
 const wallet = (name: string) => ({info: {name, icon: ''}});
@@ -54,7 +56,7 @@ describe('hasPendingWalletRequest', () => {
 			hasPendingWalletRequest({
 				step: 'WalletConnected',
 				mechanism: {type: 'wallet', name: 'MetaMask'},
-				wallet: {pendingRequests: [{}]},
+				pendingRequests: [{}],
 			}),
 		).toBe(true);
 	});
@@ -63,7 +65,7 @@ describe('hasPendingWalletRequest', () => {
 		expect(
 			hasPendingWalletRequest({
 				step: 'WalletConnected',
-				wallet: {pendingRequests: []},
+				pendingRequests: [],
 			}),
 		).toBe(false);
 	});
@@ -73,7 +75,7 @@ describe('hasPendingWalletRequest', () => {
 			hasPendingWalletRequest({
 				step: 'WalletConnected',
 				mechanism: {type: 'wallet', name: 'Burner Wallet'},
-				wallet: {pendingRequests: [{}]},
+				pendingRequests: [{}],
 			}),
 		).toBe(false);
 	});
@@ -359,7 +361,7 @@ describe('canDismissConnection: not losing a flow to a stray click', () => {
 			canDismissConnection({
 				step: 'WalletConnected',
 				mechanism: {type: 'wallet', name: 'MetaMask'},
-				wallet: {pendingRequests: [{}]},
+				pendingRequests: [{}],
 			}),
 		).toBe(false);
 	});
@@ -372,7 +374,7 @@ describe('canDismissConnection: not losing a flow to a stray click', () => {
 			canDismissConnection({
 				step: 'WalletToChoose',
 				mechanism: {type: 'wallet', name: 'Burner Wallet'},
-				wallet: {pendingRequests: [{}]},
+				pendingRequests: [{}],
 			}),
 		).toBe(true);
 	});
@@ -388,5 +390,97 @@ describe('canDismissConnection: not losing a flow to a stray click', () => {
 		] as const) {
 			expect(canDismissConnection({step}), step).toBe(true);
 		}
+	});
+});
+
+describe('walletLockState: a locked wallet is not a connected one', () => {
+	// The bug this exists for: locking keeps `step: 'WalletConnected'`, so every
+	// `isTargetStepReached` branch in the navbar rendered a locked wallet exactly
+	// like a working one. Measured with a transaction parked and the wallet
+	// locked: the navbar showed a balance, and the page offered no Connect, no
+	// Unlock and no hint that the wallet was refusing everything.
+	it('reads a connected wallet as unlocked', () => {
+		expect(
+			walletLockState({step: 'WalletConnected', wallet: {status: 'connected'}}),
+		).toBe('unlocked');
+	});
+
+	it('reads a locked wallet as locked, whatever the step says', () => {
+		// The step deliberately still says WalletConnected here. That is the whole
+		// trap: this is the state the rest of the app calls "connected".
+		expect(
+			walletLockState({
+				step: 'WalletConnected',
+				wallet: {status: 'locked', unlocking: false},
+			}),
+		).toBe('locked');
+	});
+
+	it('separates unlocking, so the remedy is not offered twice', () => {
+		// The wallet's own password prompt is up. A live Unlock button invites a
+		// second `unlock()` that does nothing the user can see.
+		expect(
+			walletLockState({
+				step: 'WalletConnected',
+				wallet: {status: 'locked', unlocking: true},
+			}),
+		).toBe('unlocking');
+	});
+
+	it('does NOT treat disconnected as locked', () => {
+		// Different remedy, and offering the wrong one is a dead end the user
+		// cannot tell from a broken app: disconnected means the wallet revoked this
+		// site, which needs a fresh connect (a permission prompt), where locked
+		// needs an unlock (a password prompt).
+		expect(
+			walletLockState({
+				step: 'WalletConnected',
+				wallet: {status: 'disconnected'},
+			}),
+		).toBe('unlocked');
+	});
+
+	it('says unlocked when there is no wallet at all', () => {
+		// Every wallet-less step: nothing to unlock, and the Connect path is right.
+		expect(walletLockState({step: 'Idle'})).toBe('unlocked');
+		expect(walletLockState({step: 'WalletToChoose'})).toBe('unlocked');
+	});
+});
+
+describe('chainSwitchCopy: adding a network is not switching to one', () => {
+	// @etherplay/connect 0.11.2 publishes WHICH of the two chain prompts is up,
+	// and documents that a consumer wording them the same way asks the user to
+	// approve something other than what their wallet is showing. This app said
+	// "Switching..." for both, over one sentence about "the network switch".
+	it('names adding while the wallet is asking to add', () => {
+		const copy = chainSwitchCopy({
+			step: 'WalletConnected',
+			wallet: {switchingChain: 'addingChain'},
+		});
+		expect(copy.action).toContain('Adding');
+		expect(copy.hint).toContain('add it first');
+		expect(copy.busy).toBe(true);
+	});
+
+	it('names switching while the wallet is asking to switch', () => {
+		const copy = chainSwitchCopy({
+			step: 'WalletConnected',
+			wallet: {switchingChain: 'switchingChain'},
+		});
+		expect(copy.action).toBe('Switching...');
+		expect(copy.hint).toContain('approve the network switch');
+		expect(copy.busy).toBe(true);
+	});
+
+	it('hedges before anything has been asked', () => {
+		// Nothing is up yet, and a wallet already on this network may not prompt at
+		// all, so this is the one place "might" is the honest word.
+		const copy = chainSwitchCopy({
+			step: 'WalletConnected',
+			wallet: {switchingChain: false},
+		});
+		expect(copy.action).toBe('Switch Network');
+		expect(copy.hint).toContain('might prompt');
+		expect(copy.busy).toBe(false);
 	});
 });
