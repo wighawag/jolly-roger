@@ -30,14 +30,39 @@ import {
  * `undefined` still means NOT KNOWN, and is still distinct from an empty list.
  */
 
-/** Every nonce across every attempt of every recorded operation. */
+/**
+ * Every nonce this SENDER has a recorded attempt at, across every operation.
+ *
+ * FILTERED BY `from`, and that is the whole point of the parameter. A nonce is
+ * per account, and an operation list is not: account data is keyed by the
+ * authenticated player and holds whatever any of this app's senders did on their
+ * behalf, each transaction carrying the address that signed it. Pooling them
+ * meant the signer's nonce 4 could answer a question about the account's nonce
+ * 4, and `reconcileRequest` checks this list BEFORE it compares against the node
+ * and returns `recorded` outright, at which point the ledger deletes the record
+ * as settled. So the failure was silent and in the dangerous direction: a
+ * request nobody could account for, dropped because a different account happened
+ * to have used that number.
+ *
+ * STRICT about a missing `from`: an attempt that does not say who sent it is not
+ * evidence about this sender. Operations carry `from` from the moment they are
+ * filed (`addOperationFromTrackedTransaction`) and the observer's own
+ * `BroadcastedTransaction` declares it readonly-required, so it survives the
+ * merge in `updateOperationFromTransactionStateUpdated` and there is no ordinary
+ * path that produces one without it.
+ */
 export function collectRecordedNonces(
 	operations: Record<string, OnchainOperation>,
+	sender: `0x${string}`,
 ): number[] {
+	const from = sender.toLowerCase();
 	const nonces: number[] = [];
 	for (const operation of Object.values(operations)) {
 		for (const tx of operation.transactionIntent.transactions) {
-			if (typeof tx.nonce === 'number') nonces.push(tx.nonce);
+			if (typeof tx.nonce !== 'number') continue;
+			if (typeof tx.from !== 'string') continue;
+			if (tx.from.toLowerCase() !== from) continue;
+			nonces.push(tx.nonce);
 		}
 	}
 	return nonces;
@@ -77,10 +102,6 @@ export function createRecordedNonceReader(params: {
 
 	const operations = accountData.watchField('operations');
 
-	function readNow(): number[] {
-		return collectRecordedNonces(get(operations));
-	}
-
 	return async (address) => {
 		const current = get(account);
 		if (!current || current.toLowerCase() !== address.toLowerCase()) {
@@ -91,10 +112,12 @@ export function createRecordedNonceReader(params: {
 				scopeAddress,
 				account: address,
 			});
-			return stored ? collectRecordedNonces(stored) : undefined;
+			return stored ? collectRecordedNonces(stored, address) : undefined;
 		}
 
-		if (accountData.isReady()) return readNow();
+		if (accountData.isReady()) {
+			return collectRecordedNonces(get(operations), address);
+		}
 
 		return new Promise<readonly number[] | undefined>((resolve) => {
 			let settled = false;
@@ -122,7 +145,7 @@ export function createRecordedNonceReader(params: {
 					finish(undefined);
 					return;
 				}
-				finish(collectRecordedNonces(current));
+				finish(collectRecordedNonces(current, address));
 			});
 
 			if (settled) unsubscribe?.();
