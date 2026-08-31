@@ -829,6 +829,9 @@ describe('createTopUpFlow: sending', () => {
 			account: PAYER,
 			to: SIGNER,
 			value: topUpCeiling(CREDITS),
+			// The rail's client is tracked, so the payment names itself for the
+			// transaction list. See ui/credits/get-credits.
+			metadata: {type: 'unknown', name: 'topUp', data: []},
 		});
 		// Closed again, because what the user opened it for is done.
 		expect(get(flow).phase).toBe('idle');

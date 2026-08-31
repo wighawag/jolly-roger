@@ -1,4 +1,8 @@
-import type {Context, TxObserverDebugState} from './types.js';
+import type {
+	Context,
+	TrackedPaymentRail,
+	TxObserverDebugState,
+} from './types.js';
 // The same store the connection hands back below, imported here because the
 // permission the app declares has to be known BEFORE the connection is built.
 // Aliased so the name the rest of this function uses keeps coming from the
@@ -9,10 +13,7 @@ import {privateKeyToAccount} from 'viem/accounts';
 import {writable, derived, type Readable, type Writable} from 'svelte/store';
 import {createAccountData} from '$lib/account/AccountData.js';
 import {establishRemoteConnection} from '$lib/core/connection';
-import {
-	createPaymentRail,
-	type PaymentRail,
-} from '$lib/core/connection/remote.js';
+import {createPaymentRail} from '$lib/core/connection/remote.js';
 import {createBalanceStore} from '$lib/core/connection/balance';
 import {createGasFeeStore} from '$lib/core/connection/gasFee';
 import {createRpcHealthStore} from '$lib/core/connection/rpcHealth';
@@ -522,20 +523,58 @@ function buildWalletClient(params: {
 	// The payment rail carries a wallet client of its own, built by
 	// `createPaymentRail` from a SECOND connection with its own payer. It is a
 	// different OBJECT from the app wallet client and from the signer client, so
-	// guarding those two leaves this one uncovered, and it is the only one whose
+	// wrapping those two leaves this one uncovered, and it is the only one whose
 	// transactions the user paid for on purpose.
 	//
-	// The window is the same as everywhere else: the tab can die between the
-	// wallet returning a signature and the hash coming back, and a purchase lost
-	// there is one the app has no record of and cannot reconcile. That it needs a
-	// human at a wallet makes the window LONGER than the signer's, not shorter.
+	// BOTH WRAPPERS, and for a long time it had only the guard. That split was the
+	// worst of the three outcomes available: the silent key's every move was
+	// listed, and the one transaction the user consciously paid real money for was
+	// not. Guarding and tracking answer two different questions and both have to be
+	// answered here - the guard asks "was this request lost", tracking asks "what
+	// did the user do" - and the rail is the client where forgetting either is
+	// most expensive.
 	//
-	// Guarded here rather than inside `createPaymentRail`, because the ledger is
-	// this app's and the rail is a core building block that must not reach for
-	// one. Same reason the app wallet client is guarded at its call site.
-	const payment: PaymentRail = {
+	// GUARDED, because the window is the same as everywhere else: the tab can die
+	// between the wallet returning a signature and the hash coming back, and a
+	// purchase lost there is one the app has no record of and cannot reconcile.
+	// That it needs a human at a wallet makes the window LONGER than the signer's,
+	// not shorter.
+	//
+	// TRACKED, so the purchase becomes an operation in account data like every
+	// other transaction. Without it a purchase is invisible to everything built on
+	// that ledger: it is missing from the transaction list, and, worse, a reload
+	// while it is in flight leaves the app with nothing to read, so a descendant
+	// selling something has no way to know a purchase is already under way and
+	// lets the user pay for it a second time. The alternative that suggests itself
+	// there - remembering the purchase in local storage - is a second copy of
+	// exactly what the operations ledger exists to hold.
+	//
+	// PROMPTS, unwritten because it is the default, and true here for the same
+	// reason it is true of the app wallet client: a human at a wallet has to
+	// answer. Only the signer's client is silent.
+	//
+	// THE RAIL'S OWN PUBLIC CLIENT, not the app's, and this one is not a nicety.
+	// The tracker RESOLVES THE NONCE and injects it, reading `pending` from the
+	// public client it was given. The nonce it needs is the PAYER's, and the payer
+	// is reachable through the payment connection's provider - their own wallet's
+	// node, which is the only one that has seen their pending transactions. Asking
+	// the app's node for it would answer from a node the payer never sent through,
+	// which is a stale count, a colliding nonce and a purchase that replaces or is
+	// replaced by something else. The two chains agreeing would not make the app's
+	// client right, and they need not even agree: the payer connects their own
+	// wallet, wherever it happens to be pointed.
+	//
+	// Wrapped here rather than inside `createPaymentRail`, because the ledger and
+	// the tracker are this app's and the rail is a core building block that must
+	// not reach for either. Same reason the app wallet client is wrapped at its
+	// call site. `PaymentRail` therefore stays a rail of plain viem clients, and
+	// what the app holds is a `TrackedPaymentRail` (see ./types).
+	const payment: TrackedPaymentRail = {
 		...rawPayment,
-		walletClient: guardDispatch(rawPayment.walletClient, inFlight),
+		walletClient: guardDispatch(
+			trackerBuilder.using(rawPayment.walletClient, rawPayment.publicClient),
+			inFlight,
+		),
 	};
 
 	return {walletClient, payment, trackerBuilder};
@@ -552,6 +591,7 @@ function buildExecution(params: {
 	trackerBuilder: ReturnType<typeof buildWalletClient>['trackerBuilder'];
 	connection: ReturnType<typeof buildConnection>['connection'];
 	walletClient: ReturnType<typeof buildWalletClient>['walletClient'];
+	payment: ReturnType<typeof buildWalletClient>['payment'];
 	accountData: ReturnType<typeof buildChainConfig>['accountData'];
 	finality: ReturnType<typeof buildChainConfig>['finality'];
 	inFlight: ReturnType<typeof buildInFlight>['inFlight'];
@@ -559,6 +599,7 @@ function buildExecution(params: {
 	const {
 		connection,
 		walletClient,
+		payment,
 		accountData,
 		finality,
 		inFlight,
@@ -694,12 +735,20 @@ function buildExecution(params: {
 
 	const tabLeader = createTabLeaderService();
 
-	// Both executors' clients feed Account Data, so a transaction is recorded
+	// EVERY CLIENT THAT SENDS FEEDS ACCOUNT DATA, so a transaction is recorded
 	// whichever key signed it. Operations are keyed by the AUTHENTICATED account,
-	// not by the sender, so the signer's moves and the account's transactions
-	// belong to the same player and land in one list.
+	// not by the sender, so the signer's moves, the account's transactions and
+	// whatever a payer bought belong to the same player and land in one list. A
+	// consumer that wants them apart filters on `from`, which is also what the
+	// pending-operation UI already does when it decides whether the account that
+	// sent something is one this app can replace it from.
+	//
+	// The rail is in `clients` rather than in `executors` because it is neither an
+	// executor nor swappable: it is built once with the context and holds whatever
+	// payer connects to it. Leaving it out was the whole of the bug this list
+	// shape exists to make unrepeatable - see the connector's own header.
 	const trackedWalletConnector = createTrackedWalletConnector({
-		walletClient,
+		clients: [walletClient, payment.walletClient],
 		executors: [accountExecutor, signerExecutor],
 		accountData,
 		// A transaction that was broadcast but could not be filed as an operation
@@ -1013,6 +1062,7 @@ export function createCoreContext<App extends AppContext>(params: {
 	} = buildExecution({
 		connection,
 		walletClient,
+		payment,
 		accountData,
 		signer,
 		account,

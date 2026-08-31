@@ -112,7 +112,21 @@ export async function getCredits(
 			};
 		}
 
-		await payment.walletClient.sendTransaction({account: from, to, value});
+		await payment.walletClient.sendTransaction({
+			account: from,
+			to,
+			value,
+			// THE SAME NAME `fundSignerFromAccount` uses, deliberately: these two are
+			// the two ways of paying for the same thing, and which wallet the user
+			// picked is not a difference their transaction list should show. Spelled
+			// out because only `writeContract` auto-populates metadata; a plain
+			// transfer has no function name to read one from, and without this the
+			// purchase lands unnamed both in the list and in the in-flight record the
+			// dispatch guard writes (which names it the same way, on purpose, so a
+			// user matching "we are not sure this was sent" against their list is
+			// matching two identical strings).
+			metadata: {type: 'unknown', name: 'topUp', data: []},
+		});
 
 		// The signer's balance is what the user is watching, so refresh it now
 		// rather than waiting up to a full poll interval. Fire-and-forget: the

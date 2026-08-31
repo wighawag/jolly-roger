@@ -80,14 +80,114 @@ export type Schema = typeof schema;
  * and two copies of a storage key formula is two chances to read from a slightly
  * different place than you wrote to.
  */
+/**
+ * Everything in an operations key EXCEPT which account's list it is.
+ *
+ * Split out so the scan below can find every account this browser has stored a
+ * list for, without knowing any of their addresses. Same string either way, so
+ * the reader and the writer cannot drift apart.
+ */
+function operationsStorageKeyPrefix(params: {
+	chainId: number;
+	genesisHash: string;
+	scopeAddress: `0x${string}`;
+}): string {
+	const {chainId, genesisHash, scopeAddress} = params;
+	return `__private__${chainId}_${genesisHash}_${scopeAddress}_`;
+}
+
 function operationsStorageKey(params: {
 	chainId: number;
 	genesisHash: string;
 	scopeAddress: `0x${string}`;
 	account: string;
 }): string {
-	const {chainId, genesisHash, scopeAddress, account} = params;
-	return `__private__${chainId}_${genesisHash}_${scopeAddress}_${account}`;
+	const {account, ...scope} = params;
+	return `${operationsStorageKeyPrefix(scope)}${account}`;
+}
+
+/**
+ * Parse one stored operations envelope. `undefined` means NOT KNOWN.
+ *
+ * The shape is synqable's and is not a public contract; see
+ * `readStoredOperations` for why an envelope we cannot read must degrade to "I
+ * do not know" and never to "there are none".
+ */
+function parseStoredOperations(
+	raw: string | null,
+): Record<string, OnchainOperation> | undefined {
+	if (!raw) return undefined;
+	try {
+		const stored = serializer.deserialize(raw) as
+			{data?: {operations?: Record<string, OnchainOperation>}} | undefined;
+		const operations = stored?.data?.operations;
+		if (!operations || typeof operations !== 'object') return undefined;
+		return operations;
+	} catch {
+		return undefined;
+	}
+}
+
+/**
+ * Every stored operations list on this chain and deployment, whoever's it is.
+ *
+ * WHY WHOSE LIST IT IS DOES NOT MATTER. The one question this serves is "has
+ * this app already recorded a transaction from sender S at nonce N", and that
+ * pair names ONE transaction slot on a chain: a nonce belongs to the account
+ * that signs, not to the player whose list happens to hold the record. So the
+ * scope an operation was filed under carries no information for this question,
+ * and searching every scope is the accurate way to ask it rather than a
+ * scattergun.
+ *
+ * Reading one scope was accurate only while the sender and the list-owner were
+ * the same address, which stopped being true when a second sender arrived. A
+ * signer's transactions are filed under the PLAYER, and so are a payer's, so
+ * looking them up under their own address found an empty scope that is never
+ * written and reported NOT KNOWN for a transaction sitting in the user's list.
+ *
+ * `complete` is false when anything could not be read (no storage at all, or an
+ * envelope that would not parse). A caller may trust a HIT either way, since
+ * finding the transaction is definite; only a MISS needs completeness, because
+ * the thing we failed to read is exactly where the answer might have been.
+ */
+export function readAllStoredOperations(params: {
+	deployments: TypedDeployments;
+	scopeAddress: `0x${string}`;
+}): {
+	operations: Record<string, OnchainOperation>[];
+	complete: boolean;
+} {
+	const {deployments, scopeAddress} = params;
+	if (typeof localStorage === 'undefined') {
+		return {operations: [], complete: false};
+	}
+
+	const prefix = operationsStorageKeyPrefix({
+		chainId: deployments.chain.id,
+		genesisHash: deployments.chain.genesisHash,
+		scopeAddress,
+	});
+
+	const operations: Record<string, OnchainOperation>[] = [];
+	let complete = true;
+	try {
+		for (let i = 0; i < localStorage.length; i++) {
+			const key = localStorage.key(i);
+			if (!key || !key.startsWith(prefix)) continue;
+			const parsed = parseStoredOperations(localStorage.getItem(key));
+			// An envelope under our own prefix that we cannot read is the one case
+			// that must not be silently skipped: it may be the list holding the
+			// transaction being asked about.
+			if (parsed === undefined) complete = false;
+			else operations.push(parsed);
+		}
+	} catch {
+		// Enumeration itself failed (a storage that throws on access). Whatever was
+		// gathered still counts, but a miss can no longer be trusted.
+		complete = false;
+	}
+
+	return {operations, complete};
 }
 
 /**
@@ -166,16 +266,11 @@ export function readStoredOperations(params: {
 			(found, key) => found ?? localStorage.getItem(key),
 			null,
 		);
-		if (!raw) return undefined;
-		const stored = serializer.deserialize(raw) as
-			{data?: {operations?: Record<string, OnchainOperation>}} | undefined;
-		const operations = stored?.data?.operations;
-		// Deliberately not `?? {}`: an envelope we cannot read is unknown, not empty.
-		if (!operations || typeof operations !== 'object') return undefined;
-		return operations;
+		// Deliberately not `?? {}`: an envelope we cannot read is unknown, not
+		// empty. Saying "no operations" here would be inventing evidence that the
+		// app never saw a transaction.
+		return parseStoredOperations(raw);
 	} catch {
-		// Unreadable is not empty: saying "no operations" here would be inventing
-		// evidence that the app never saw a transaction.
 		return undefined;
 	}
 }

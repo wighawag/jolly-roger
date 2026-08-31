@@ -2,10 +2,14 @@ import {describe, it, expect, vi} from 'vitest';
 import {writable} from 'svelte/store';
 import {
 	checkPayerFunds,
+	fundSignerFromAccount,
 	getCredits,
 	TRANSFER_GAS,
 } from '$lib/ui/credits/get-credits';
-import type {GetCreditsDeps} from '$lib/ui/credits/get-credits';
+import type {
+	FundFromAccountDeps,
+	GetCreditsDeps,
+} from '$lib/ui/credits/get-credits';
 
 const SIGNER = '0x00000000000000000000000000000000000000aA' as const;
 const PAYER = '0x00000000000000000000000000000000000000bB' as const;
@@ -55,8 +59,52 @@ describe('getCredits', () => {
 			account: PAYER,
 			to: SIGNER,
 			value: 1234n,
+			metadata: {type: 'unknown', name: 'topUp', data: []},
 		});
 		expect(ensureConnected).toHaveBeenCalled();
+	});
+
+	it('names the payment the same way whichever wallet paid', async () => {
+		// The rail's client is TRACKED (see context/core), so what goes through it
+		// becomes an operation in the user's transaction list. Only `writeContract`
+		// auto-populates metadata; a transfer has no function name to read one from,
+		// so a payment sent without any is filed nameless, which is barely better
+		// than the state this replaced, where it was not filed at all.
+		//
+		// And the SAME name as paying from the account, because these are the two
+		// ways of paying for one thing: which wallet the user picked is not a
+		// difference their transaction list should show.
+		type Sent = {metadata?: {name?: string}};
+		const viaRail: Sent[] = [];
+		const viaAccount: Sent[] = [];
+
+		const {deps: d} = deps({
+			sendTransaction: (async (args: Sent) => {
+				viaRail.push(args);
+				return '0xhash';
+			}) as never,
+		});
+		await getCredits(d, {to: SIGNER, value: 1n});
+
+		await fundSignerFromAccount(
+			{
+				accountExecutor: writable({
+					status: 'ready',
+					address: PAYER,
+					account: PAYER,
+					client: {
+						sendTransaction: async (args: Sent) => {
+							viaAccount.push(args);
+							return '0xhash';
+						},
+					},
+				}),
+			} as unknown as FundFromAccountDeps,
+			{to: SIGNER, value: 1n},
+		);
+
+		expect(viaRail[0]?.metadata?.name).toBeTruthy();
+		expect(viaRail[0]?.metadata?.name).toBe(viaAccount[0]?.metadata?.name);
 	});
 
 	it('refreshes the balance the user is watching', async () => {

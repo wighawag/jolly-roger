@@ -1,7 +1,7 @@
 import {get} from 'svelte/store';
 import type {AccountStore, TypedDeployments} from '$lib/core/connection/types';
 import {
-	readStoredOperations,
+	readAllStoredOperations,
 	type MultiAccountDataStore,
 	type OnchainOperation,
 } from './AccountData';
@@ -17,27 +17,67 @@ import {
  * TWO SOURCES, because the question outlives the session. The live store is
  * authoritative for the account that is CONNECTED: it may hold writes that have
  * not reached storage yet, and it has a loading state that must be waited out
- * rather than read as "nothing recorded". For any OTHER account, including the
- * ordinary case of a reload where no wallet has connected yet, storage is read
- * directly (see `readStoredOperations`): the key is derived from the chain, the
- * deployment and the address, all of which the in-flight record carries.
+ * rather than read as "nothing recorded". Storage covers everything else,
+ * including the ordinary case of a reload where no wallet has connected yet.
  *
  * Before that second source existed, a reload with a locked wallet could not
  * answer the question at all, so the app fell back to guessing from the chain
  * and told users a transaction might have been sent while it sat in their list.
  * Reported exactly that way: "no reconciliation happens on reload".
  *
+ * THE SENDER IS NOT THE SCOPE, and conflating the two was this reader's own
+ * version of the same bug. It used to look the sender up as though they owned a
+ * list: connected account, read the live store; anyone else, read storage under
+ * THEIR address. That was accurate exactly while one account sent everything.
+ * It stopped being true with the local signer and again with the payment rail,
+ * both of whose transactions are filed under the PLAYER (account data is keyed
+ * by the authenticated account, see `account/connectors.ts`), so looking them up
+ * under their own address read a scope that is never written and answered NOT
+ * KNOWN about a transaction the user can see in their list.
+ *
+ * So the scope is no longer guessed at all. Every stored list is searched and
+ * the answer is filtered by `from`, which is exact rather than approximate: a
+ * nonce belongs to the account that signs, so "sender S at nonce N" names one
+ * transaction slot on this chain whoever's list recorded it.
+ *
  * `undefined` still means NOT KNOWN, and is still distinct from an empty list.
+ * It is returned when something that could hold the answer could not be read:
+ * account data still restoring, or a stored envelope that would not parse.
  */
 
-/** Every nonce across every attempt of every recorded operation. */
+/**
+ * Every nonce this SENDER has a recorded attempt at, across every operation.
+ *
+ * FILTERED BY `from`, and that is the whole point of the parameter. A nonce is
+ * per account, and an operation list is not: account data is keyed by the
+ * authenticated player and holds whatever any of this app's senders did on their
+ * behalf, each transaction carrying the address that signed it. Pooling them
+ * meant the signer's nonce 4 could answer a question about the account's nonce
+ * 4, and `reconcileRequest` checks this list BEFORE it compares against the node
+ * and returns `recorded` outright, at which point the ledger deletes the record
+ * as settled. So the failure was silent and in the dangerous direction: a
+ * request nobody could account for, dropped because a different account happened
+ * to have used that number.
+ *
+ * STRICT about a missing `from`: an attempt that does not say who sent it is not
+ * evidence about this sender. Operations carry `from` from the moment they are
+ * filed (`addOperationFromTrackedTransaction`) and the observer's own
+ * `BroadcastedTransaction` declares it readonly-required, so it survives the
+ * merge in `updateOperationFromTransactionStateUpdated` and there is no ordinary
+ * path that produces one without it.
+ */
 export function collectRecordedNonces(
 	operations: Record<string, OnchainOperation>,
+	sender: `0x${string}`,
 ): number[] {
+	const from = sender.toLowerCase();
 	const nonces: number[] = [];
 	for (const operation of Object.values(operations)) {
 		for (const tx of operation.transactionIntent.transactions) {
-			if (typeof tx.nonce === 'number') nonces.push(tx.nonce);
+			if (typeof tx.nonce !== 'number') continue;
+			if (typeof tx.from !== 'string') continue;
+			if (tx.from.toLowerCase() !== from) continue;
+			nonces.push(tx.nonce);
 		}
 	}
 	return nonces;
@@ -77,30 +117,25 @@ export function createRecordedNonceReader(params: {
 
 	const operations = accountData.watchField('operations');
 
-	function readNow(): number[] {
-		return collectRecordedNonces(get(operations));
-	}
+	/**
+	 * The connected player's own list, which storage may not have caught up with.
+	 *
+	 * `{}` when nobody is connected: there is no live list to be behind, so
+	 * storage is the whole of the answer and an empty result there is a real
+	 * empty. `undefined` only when a list EXISTS and we could not read it yet,
+	 * which is genuinely not knowing rather than knowing nothing.
+	 */
+	function liveOperations(): Promise<
+		Record<string, OnchainOperation> | undefined
+	> {
+		if (!get(account)) return Promise.resolve({});
+		if (accountData.isReady()) return Promise.resolve(get(operations));
 
-	return async (address) => {
-		const current = get(account);
-		if (!current || current.toLowerCase() !== address.toLowerCase()) {
-			// Not the connected account, or nothing is connected at all. Storage
-			// still knows, and this is the common case on a reload.
-			const stored = readStoredOperations({
-				deployments,
-				scopeAddress,
-				account: address,
-			});
-			return stored ? collectRecordedNonces(stored) : undefined;
-		}
-
-		if (accountData.isReady()) return readNow();
-
-		return new Promise<readonly number[] | undefined>((resolve) => {
+		return new Promise((resolve) => {
 			let settled = false;
 			let unsubscribe: (() => void) | undefined;
 
-			const finish = (value: readonly number[] | undefined) => {
+			const finish = (value: Record<string, OnchainOperation> | undefined) => {
 				if (settled) return;
 				settled = true;
 				clearTimeout(timer);
@@ -114,18 +149,44 @@ export function createRecordedNonceReader(params: {
 			// precisely when "not ready" becomes "ready" (see watchOverlayOperation,
 			// which re-reads readiness on every emission for the same reason).
 			unsubscribe = operations.subscribe((current) => {
-				if (!accountData.isReady()) return;
-				// The account can change while we wait; data for somebody else is not
-				// an answer about this address.
-				const now = get(account);
-				if (!now || now.toLowerCase() !== address.toLowerCase()) {
-					finish(undefined);
+				// A disconnect while we wait is an answer too: there is no longer a
+				// live list to be waiting for, and storage still holds what it held.
+				if (!get(account)) {
+					finish({});
 					return;
 				}
-				finish(collectRecordedNonces(current));
+				if (!accountData.isReady()) return;
+				finish(current);
 			});
 
 			if (settled) unsubscribe?.();
 		});
+	}
+
+	return async (address) => {
+		const live = await liveOperations();
+		if (live === undefined) return undefined;
+
+		const stored = readAllStoredOperations({deployments, scopeAddress});
+		// ANY unread list makes the whole answer NOT KNOWN, even though the nonces
+		// we did gather are perfectly good. This reader answers with a LIST and is
+		// never told which nonce is being asked about, so it cannot say "the one you
+		// want is in here" while admitting the rest is incomplete: a caller looking
+		// for a nonce that is missing could not tell a real absence from a list we
+		// failed to finish. Reporting NOT KNOWN costs a fallthrough to the nonce
+		// comparison; the alternative tells a user their transaction was never
+		// recorded on the strength of a file we could not open.
+		if (!stored.complete) return undefined;
+
+		// Deduped, because the connected player's list is in both sources: storage
+		// lags the live store by synqable's debounce, so the two overlap rather
+		// than one superseding the other.
+		const nonces = new Set<number>();
+		for (const source of [live, ...stored.operations]) {
+			for (const nonce of collectRecordedNonces(source, address)) {
+				nonces.add(nonce);
+			}
+		}
+		return [...nonces];
 	};
 }
