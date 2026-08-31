@@ -77,6 +77,18 @@ export async function installStallingWallet(
 	await page.addInitScript(
 		({nodeUrl, account, name}) => {
 			const held: {resolve?: () => Promise<void>} = {};
+			// A REAL WALLET ANSWERS `eth_accounts` WITH NOTHING WHEN IT IS LOCKED, and
+			// tells listeners so. This used to be a constant and `on` was a no-op, which
+			// made one whole class of behaviour untestable: everything that happens when
+			// wallet state is REBUILT under a request that is still outstanding. That is
+			// the transition that erased `pendingRequests` in @etherplay/connect before
+			// 0.10.0, and the reason the bug reached real users is that no test could
+			// stand in it. See lockWallet/unlockWallet below.
+			let locked = false;
+			const listeners = new Map<string, Set<(payload: unknown) => void>>();
+			const emit = (event: string, payload: unknown) => {
+				for (const listener of listeners.get(event) ?? []) listener(payload);
+			};
 			// Node calls this wallet is waiting on RIGHT NOW, by method, with the
 			// moment each started. Everything except the parked send and the
 			// signatures is forwarded to the node with a bare `fetch`, so a node that
@@ -101,6 +113,24 @@ export async function installStallingWallet(
 				approve: async () => {
 					if (!held.resolve) throw new Error('no transaction is being held');
 					await held.resolve();
+				},
+				/**
+				 * The user locked their wallet. Accounts go away and listeners are told,
+				 * which is what makes the connection library rebuild its wallet state.
+				 *
+				 * Anything already parked STAYS PARKED, exactly as a real wallet does: a
+				 * request the wallet is holding does not evaporate because the user
+				 * locked the screen, and the whole point of the transition is that the
+				 * app must not forget it either.
+				 */
+				lock: () => {
+					locked = true;
+					emit('accountsChanged', []);
+				},
+				/** The user unlocked it again. */
+				unlock: () => {
+					locked = false;
+					emit('accountsChanged', [account]);
 				},
 				/** Hashes this wallet has actually broadcast. */
 				sent: [] as string[],
@@ -134,10 +164,26 @@ export async function installStallingWallet(
 			}
 
 			const provider = {
-				on() {},
-				removeListener() {},
+				on(event: string, listener: (payload: unknown) => void) {
+					let set = listeners.get(event);
+					if (!set) listeners.set(event, (set = new Set()));
+					set.add(listener);
+				},
+				removeListener(event: string, listener: (payload: unknown) => void) {
+					listeners.get(event)?.delete(listener);
+				},
 				async request({method, params}: {method: string; params?: unknown[]}) {
-					if (method === 'eth_requestAccounts' || method === 'eth_accounts') {
+					if (method === 'eth_accounts') {
+						return locked ? [] : [account];
+					}
+					if (method === 'eth_requestAccounts') {
+						// Asking to connect is what unlocks a real wallet: the extension
+						// puts up its password prompt and the user answers it. Modelling
+						// that as "the request succeeds" is what makes the reconnect path
+						// reachable at all, and it is the honest behaviour rather than a
+						// shortcut: a locked wallet that refused forever could never be
+						// driven past this point by any test.
+						locked = false;
 						return [account];
 					}
 					if (method === 'wallet_switchEthereumChain') return null;
@@ -201,6 +247,28 @@ export function isHoldingTransaction(page: Page): Promise<boolean> {
 /** The user finally approves in their wallet. The transaction really is sent. */
 export async function approveHeldTransaction(page: Page): Promise<void> {
 	await page.evaluate(() => (window as any).__stallingWallet.approve());
+}
+
+/**
+ * The user locks their wallet, WITHOUT the wallet dropping what it is holding.
+ *
+ * The way into the transition that erased `pendingRequests` upstream. A send
+ * against a locked wallet raises the connection flow, so `connect()` runs while
+ * the wallet is still holding the transaction and rebuilds wallet state
+ * underneath it; every rebuild used to assert `pendingRequests: []`, and it
+ * erased the request permanently because the list is only written on request
+ * events and the next event for a request is the one that ends it.
+ *
+ * Nothing here is a mock of that bug: this drives a real wallet through a real
+ * lock, and what the app then believes is the library's answer.
+ */
+export async function lockStallingWallet(page: Page): Promise<void> {
+	await page.evaluate(() => (window as any).__stallingWallet.lock());
+}
+
+/** The user unlocks it again, still without dropping the parked request. */
+export async function unlockStallingWallet(page: Page): Promise<void> {
+	await page.evaluate(() => (window as any).__stallingWallet.unlock());
 }
 
 /** Hashes this wallet has broadcast, for asserting a transaction was real. */

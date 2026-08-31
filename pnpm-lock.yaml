@@ -151,8 +151,8 @@ importers:
         specifier: ^0.0.9
         version: 0.0.9(viem@2.55.19(typescript@6.0.3)(zod@4.4.3))
       '@etherplay/connect':
-        specifier: ^0.7.1
-        version: 0.7.1(svelte@5.56.9)
+        specifier: ^0.11.2
+        version: 0.11.2
       '@etherplay/dev-wallet-host':
         specifier: ^0.1.1
         version: 0.1.1
@@ -484,16 +484,11 @@ packages:
     peerDependencies:
       viem: ^2.46.3
 
-  '@etherplay/connect-core@0.7.0':
-    resolution: {integrity: sha512-Z3dDK3wVMEORovLz7509ekfd7NlGAOb6HiZkfE922vPVxKp4KKyjTWumtBQZin3V95JkLcwHj/Cgf0iS+/YNcA==}
+  '@etherplay/connect-core@0.7.2':
+    resolution: {integrity: sha512-V4Gj7kAQFxPLWSZU3dX7NDmCg7DMPU/B+vg4OnlBddvUE+3+TconfCGJxdVCiNVGKNpL5T0T4BzUluR2J4nbMw==}
 
-  '@etherplay/connect@0.7.1':
-    resolution: {integrity: sha512-YLfMFLTJQjfYWqLWg1GpTGxQ6acW52NhmNJzDmYipQagVSpRnxhW9xJKXEHO5wu6FhJMuzboaIqcA4fIi6gP+A==}
-    peerDependencies:
-      svelte: ^5.0.0
-
-  '@etherplay/delegation@0.1.0':
-    resolution: {integrity: sha512-K48jxs+QPCwQ5JjjLlVdL+D/1bBjPuhrVN2J6ZC3x4wkgnHKjZpOxoRDFbkmKZXHAmYbzEaZdGDxTAxd2ytNjQ==}
+  '@etherplay/connect@0.11.2':
+    resolution: {integrity: sha512-vPINgpkNazUrlPzNtLuUIVk6VLF/zdOF2op4IdAJ80yKsow8wzMoPCh4kH8awP+MQmmWdsZOLfeu0e+kxW0Ogg==}
 
   '@etherplay/delegation@0.1.1':
     resolution: {integrity: sha512-NGHZzPdUrpGiQxK936bru+Yqrpu+xmzhOCWKWTKxVmQQCMa137161tlaxfuR/DkwXiuvGt0zFk2x+fU3y6VSjQ==}
@@ -503,11 +498,11 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
-  '@etherplay/wallet-connector-ethereum@0.0.12':
-    resolution: {integrity: sha512-woNXPi5+oSy6vBbFlx5D4zHaPC/dENaHYObdqw0zUteU1xDhPMbxyCNgU/hjzMkGbR9abaJ0Rp44kMwTkOfE1Q==}
+  '@etherplay/wallet-connector-ethereum@0.1.0':
+    resolution: {integrity: sha512-svhiGlmyTlgbRUKsMr3Uh8xvrPwYwbJB6WtRvuqGg3aOZkJ5j6Nh1suHzpCoHFUxfN4YCZ7M7Oq4CjQMe12c2Q==}
 
-  '@etherplay/wallet-connector@0.0.5':
-    resolution: {integrity: sha512-P9wMxN4HelrL+/56g4IjkVAjuIhz0Bhq/CFxAOWUQ2cwpFsdrVSQ0s1PCxR2+gsBca+RTxgsfQhOcYqjTbEhOQ==}
+  '@etherplay/wallet-connector@0.1.0':
+    resolution: {integrity: sha512-qEtPyXqWAfdUI0pIaaKGs4PJpE2PmebQz9YqN/uXHjpD2o/efeVjvSaRncwCh+DHDYGdgy/rG0o1PYs43+k4bg==}
 
   '@floating-ui/core@1.8.0':
     resolution: {integrity: sha512-0CIZ5itps/8x7BG8dEIhs53BvCUH2PCoogtakwRTut+Arm58sJooJ0AuZhLw2HJYIR5cMLNPBSS728sPho2khQ==}
@@ -2636,6 +2631,10 @@ packages:
     resolution: {integrity: sha512-VT8kSnlEg8069w7AiCcAk3Yf5xvMnrGTagVOmU/OpOLHaHnNqXhWZCH/4EVga/bT/HtWhvE6/fHrXLErx7OnJA==}
     engines: {node: '>=18'}
 
+  sveltore@1.0.0:
+    resolution: {integrity: sha512-e+A+Yv/mMl8d/ZjkMQ0J88PYgJEFKyDrFxLYjS4dbnrbmIfUdrVQWgGfTGfO07uFm6BQEq088YsvIpnfiWIi4w==}
+    engines: {node: '>=18'}
+
   svgo@3.3.4:
     resolution: {integrity: sha512-GsNRis4e8jxn2Y9ENz/8lbJ93CstG8svtMnuRaHbiF2LTJ5tK0/q3t/URPq9Zc7zVWBJnNnJMIp6bevK7bSmNg==}
     engines: {node: '>=14.0.0'}
@@ -3085,26 +3084,22 @@ snapshots:
       radiate: 0.3.2
       viem: 2.55.19(typescript@6.0.3)(zod@4.4.3)
 
-  '@etherplay/connect-core@0.7.0':
+  '@etherplay/connect-core@0.7.2':
     dependencies:
-      '@etherplay/delegation': 0.1.0
-      '@etherplay/wallet-connector': 0.0.5
+      '@etherplay/delegation': 0.1.1
+      '@etherplay/wallet-connector': 0.1.0
       '@noble/curves': 1.9.7
       '@noble/hashes': 1.8.0
       '@noble/secp256k1': 2.3.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
 
-  '@etherplay/connect@0.7.1(svelte@5.56.9)':
+  '@etherplay/connect@0.11.2':
     dependencies:
-      '@etherplay/connect-core': 0.7.0
-      '@etherplay/wallet-connector': 0.0.5
-      '@etherplay/wallet-connector-ethereum': 0.0.12
-      svelte: 5.56.9
-
-  '@etherplay/delegation@0.1.0':
-    dependencies:
-      '@noble/hashes': 1.8.0
+      '@etherplay/connect-core': 0.7.2
+      '@etherplay/wallet-connector': 0.1.0
+      '@etherplay/wallet-connector-ethereum': 0.1.0
+      sveltore: 1.0.0
 
   '@etherplay/delegation@0.1.1':
     dependencies:
@@ -3112,9 +3107,9 @@ snapshots:
 
   '@etherplay/dev-wallet-host@0.1.1': {}
 
-  '@etherplay/wallet-connector-ethereum@0.0.12':
+  '@etherplay/wallet-connector-ethereum@0.1.0':
     dependencies:
-      '@etherplay/wallet-connector': 0.0.5
+      '@etherplay/wallet-connector': 0.1.0
       '@noble/curves': 1.8.1
       '@noble/hashes': 1.8.0
       '@noble/secp256k1': 2.3.0
@@ -3122,7 +3117,7 @@ snapshots:
       '@scure/bip39': 1.6.0
       remote-procedure-call: 0.1.2
 
-  '@etherplay/wallet-connector@0.0.5': {}
+  '@etherplay/wallet-connector@0.1.0': {}
 
   '@floating-ui/core@1.8.0':
     dependencies:
@@ -5321,6 +5316,8 @@ snapshots:
       zimmerframe: 1.1.4
     transitivePeerDependencies:
       - '@typescript-eslint/types'
+
+  sveltore@1.0.0: {}
 
   svgo@3.3.4:
     dependencies:

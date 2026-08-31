@@ -5,6 +5,7 @@ import {
 	executeButton,
 	installStallingWallet,
 	isHoldingTransaction,
+	lockStallingWallet,
 	sendAndStall as stallARequest,
 	sentHashes,
 	writeForm,
@@ -57,6 +58,63 @@ describe('Stopping waiting for the wallet', () => {
 		page.locator('#--layer-system [role="dialog"]', {hasText});
 
 	/**
+	 * The modal that says the wallet is holding a transaction.
+	 *
+	 * Matched on the transaction wording rather than the old fixed title "Wallet
+	 * Action Required": since @etherplay/connect 0.10.0 a pending request carries
+	 * what it is FOR and WHO is expected to answer it, so the modal names what is
+	 * being asked (see `walletPromptCopy`). Named here once because it is this
+	 * suite's entry point, not its subject.
+	 */
+	const waitingModal = (page: Page) =>
+		dialog(page, 'Confirm the transaction in your wallet');
+
+	const escapeHatch = (page: Page) =>
+		waitingModal(page).getByRole('button', {name: 'Stop waiting'});
+
+	/**
+	 * The library's own count, read where it lives SINCE 0.11.0.
+	 *
+	 * `connection.pendingRequests`, not `connection.wallet.pendingRequests`. The
+	 * mirror on the wallet is deprecated and, more to the point here, absent from
+	 * exactly the states these tests drive into: a flow resting with no wallet
+	 * while the user's wallet is still holding a prompt. Reading the mirror would
+	 * make the assertion below pass for the wrong reason on one path and fail for
+	 * the wrong reason on the other.
+	 */
+	const pendingRequestCount = (page: Page) =>
+		page.evaluate(
+			() =>
+				((globalThis as any).get((globalThis as any).context.connection)
+					.pendingRequests?.length ?? 0) as number,
+		);
+
+	const walletStatus = (page: Page) =>
+		page.evaluate(
+			() =>
+				(globalThis as any).get((globalThis as any).context.connection).wallet
+					?.status,
+		);
+
+	/**
+	 * THE BROWSER'S ANSWER, NOT THE APP'S OPINION OF IT: a real cancelable
+	 * `beforeunload`, through whatever listener is actually installed.
+	 *
+	 * Dispatched here rather than through the `appNavigation.simulateUnload()`
+	 * debug handle, which does exactly this and is `import.meta.env.DEV` only, so
+	 * it is absent from the production build the e2e suite runs and this read
+	 * silently threw. Asking the browser directly needs no dev affordance and tests
+	 * the same wiring: `navigation-driver` calls `preventDefault()` and sets
+	 * `returnValue`, and only a registered guard returning true does that.
+	 */
+	const wouldBlockUnload = (page: Page) =>
+		page.evaluate(() => {
+			const event = new Event('beforeunload', {cancelable: true});
+			window.dispatchEvent(event);
+			return event.defaultPrevented;
+		});
+
+	/**
 	 * Send, leave the wallet holding it, and check the app says so.
 	 *
 	 * The walk itself is `sendAndStall` in the fixture, shared with the sending
@@ -75,14 +133,14 @@ describe('Stopping waiting for the wallet', () => {
 	async function sendAndStall(page: Page, message: string) {
 		await installStallingWallet(page, {nodeUrl});
 		await stallARequest(page, {input: message});
-		await expect(dialog(page, 'Wallet Action Required')).toBeVisible({
+		await expect(waitingModal(page)).toBeVisible({
 			timeout: 30_000,
 		});
 	}
 
 	/** Take the escape hatch: the trigger, then the confirmation. */
 	async function stopWaiting(page: Page) {
-		await dialog(page, 'Wallet Action Required')
+		await waitingModal(page)
 			.getByRole('button', {name: 'Stop waiting'})
 			.click();
 		const confirmation = dialog(page, 'Your wallet still has this transaction');
@@ -93,7 +151,7 @@ describe('Stopping waiting for the wallet', () => {
 	test('tells the truth, and never offers to cancel', async ({page}) => {
 		await sendAndStall(page, 'escape hatch copy');
 
-		await dialog(page, 'Wallet Action Required')
+		await waitingModal(page)
 			.getByRole('button', {name: 'Stop waiting'})
 			.click();
 
@@ -118,7 +176,7 @@ describe('Stopping waiting for the wallet', () => {
 		await stopWaiting(page);
 
 		// The blocking modal is gone, which is what the user asked for.
-		await expect(dialog(page, 'Wallet Action Required')).toHaveCount(0);
+		await expect(waitingModal(page)).toHaveCount(0);
 
 		// And nothing else moved. Disconnecting here is what destroyed the app's
 		// ability to record the transaction when it eventually landed.
@@ -162,6 +220,245 @@ describe('Stopping waiting for the wallet', () => {
 		).toHaveValue(message);
 		// Released without withdrawing anything: the wallet still has the request.
 		expect(await isHoldingTransaction(page)).toBe(true);
+	});
+
+	test('survives the reconnect that used to erase the request', async ({
+		page,
+	}) => {
+		// THE BUG THIS SUITE COULD NOT SEE UNTIL NOW, driven end to end from the
+		// consumer side.
+		//
+		// A send against a LOCKED wallet raises the connection flow, so `connect()`
+		// runs while the wallet is still holding the transaction and rebuilds wallet
+		// state underneath it. Every rebuild in @etherplay/connect used to assert
+		// `pendingRequests: []`, which erased the outstanding request PERMANENTLY:
+		// the list is only written on request events, and the next event for a
+		// request is the one that ends it, so nothing ever put it back. A real
+		// locked-Rabby session logged `pendingRequests: 0` with
+		// `inFlight.dispatching: 1`
+		// (work/notes/observations/wallet-action-required-modal-not-seen.md on
+		// `work`). 0.10.0 copies the live list from the provider wrapper at every
+		// rebuild instead.
+		//
+		// Asserted on BOTH layers on purpose. The three affordances staying up is
+		// what the user experiences, but this app also keeps its own dispatch ledger,
+		// which would hold all three up on its own and hide an upstream regression
+		// completely. So the library's list is read directly too: that number is the
+		// one that was 0.
+		await sendAndStall(page, 'reconnect under a parked transaction');
+
+		expect(await pendingRequestCount(page)).toBe(1);
+		await expect(escapeHatch(page)).toBeVisible();
+		expect(await wouldBlockUnload(page)).toBe(true);
+
+		// The user locks their wallet. It is still holding the transaction, exactly
+		// as a real one would be.
+		await lockStallingWallet(page);
+		await expect
+			.poll(() => walletStatus(page), {timeout: 15_000})
+			.toBe('locked');
+
+		// And the flow is raised again, which IS the transition.
+		//
+		// `ensureConnected()`, not `connect()`, and the difference is deliberate on
+		// both sides now. `ensureConnected` promises a TARGET, so it is the one that
+		// reconnects a locked wallet by replaying the existing mechanism; `connect()`
+		// drives the flow from the user's CHOICE and opens the picker. Upstream made
+		// that asymmetry explicit in 0.11.0 rather than removing it, and the picker
+		// path is covered by the next test. This is also the app's own send path: the
+		// first thing `routes/demo/lib/setGreeting.ts` does is await this, so pressing
+		// Send against a locked wallet runs exactly this line.
+		await page.evaluate(() =>
+			(globalThis as any).context.connection.ensureConnected(),
+		);
+		await expect
+			.poll(() => walletStatus(page), {timeout: 30_000})
+			.toBe('connected');
+
+		// Nothing was withdrawn: the wallet still has it.
+		expect(await isHoldingTransaction(page)).toBe(true);
+
+		// FIRST, THE LIBRARY'S OWN ANSWER, because it is the one that regressed and
+		// it fails with a readable number rather than "element not found". Pinning
+		// @etherplay/connect back to 0.7.1 turns this into `expected 1, received 0`.
+		// It is also the reason this test is not merely re-testing the app's ledger,
+		// which would hold all three affordances below up on its own and hide an
+		// upstream regression completely.
+		expect(await pendingRequestCount(page)).toBe(1);
+
+		// THEN ALL THREE STAY UP. Every one of them used to go silent here, which
+		// left the user holding a wallet popup the app believed did not exist, with
+		// no explanation, no exit, and no warning before a reload threw the answer
+		// away.
+		//
+		// The modal is matched on the TRANSACTION wording, which makes this stricter
+		// than "a modal is up": with the list erased, the app still blocks on the
+		// strength of its own dispatch but says "Getting your transaction ready"
+		// instead, because an empty list can no longer be read as a wallet request
+		// (see `walletPromptCopy`). So this asserts the app is speaking for the
+		// WALLET, which it may only do when the wallet really is holding something.
+		await expect(waitingModal(page)).toBeVisible();
+		await expect(escapeHatch(page)).toBeVisible();
+		expect(await wouldBlockUnload(page)).toBe(true);
+
+		// AND THEY STILL GO AWAY WHEN THE WALLET ANSWERS. A modal that never closes
+		// is a worse bug than the one being fixed, and "copy the live list at every
+		// rebuild" is exactly the shape of change that could strand one.
+		await approveHeldTransaction(page);
+
+		await expect(waitingModal(page)).toHaveCount(0, {timeout: 30_000});
+		await expect
+			.poll(() => pendingRequestCount(page), {timeout: 30_000})
+			.toBe(0);
+		await expect
+			.poll(() => wouldBlockUnload(page), {timeout: 30_000})
+			.toBe(false);
+
+		// And it really landed, from the account it started under.
+		await expect
+			.poll(() => sentHashes(page), {timeout: 30_000})
+			.toHaveLength(1);
+	});
+
+	test('keeps announcing a request through a state with NO wallet', async ({
+		page,
+	}) => {
+		// THE SECOND HOLE, closed by @etherplay/connect 0.11.0, and the reason the
+		// list no longer lives on the wallet object.
+		//
+		// 0.10.0's rule was "copy the live list at every `wallet: {...}` rebuild",
+		// which does nothing for the paths that build NO wallet: a failed reconnect,
+		// a mechanism picker, and this one. The list survived inside the provider
+		// wrapper and there was simply nowhere left to read it from. 0.11.0 moved
+		// `pendingRequests` up beside `wallet` and stamps it on every publish, so a
+		// state with no wallet still reports what the user's wallet is holding.
+		//
+		// Driven through `connect()` on a locked wallet, which is NOT a bug and was
+		// reported as one from here. It opens the wallet picker, because `connect`
+		// means "the user wants to connect something" while `ensureConnected` promises
+		// a target; the picker drops the wallet, which is its contract. That is
+		// reachable in this app today, since the navbar's Connect button is
+		// `connection.connect()`. What made it look destructive was this hole, not the
+		// asymmetry: the teardown also erased the announcement. Now it costs a click.
+		await sendAndStall(page, 'announced with no wallet in state');
+		expect(await pendingRequestCount(page)).toBe(1);
+
+		await lockStallingWallet(page);
+		await expect
+			.poll(() => walletStatus(page), {timeout: 15_000})
+			.toBe('locked');
+
+		await page.evaluate(() => (globalThis as any).context.connection.connect());
+
+		// The flow comes to rest showing NO wallet at all. That is the state the
+		// announcement used to disappear in, so it is asserted rather than assumed:
+		// without it this test would silently become a second copy of the one above.
+		await expect
+			.poll(
+				() =>
+					page.evaluate(() => {
+						const c = (globalThis as any).get(
+							(globalThis as any).context.connection,
+						);
+						return {step: c.step, hasWallet: !!c.wallet};
+					}),
+				{timeout: 30_000},
+			)
+			.toEqual({step: 'WalletToChoose', hasWallet: false});
+
+		// The wallet is still holding it, and the app can still say so.
+		expect(await isHoldingTransaction(page)).toBe(true);
+		expect(await pendingRequestCount(page)).toBe(1);
+		await expect(waitingModal(page)).toBeVisible();
+		await expect(escapeHatch(page)).toBeVisible();
+		expect(await wouldBlockUnload(page)).toBe(true);
+
+		// And it still clears when the wallet answers, from a state that never got
+		// its wallet back.
+		await approveHeldTransaction(page);
+		await expect
+			.poll(() => pendingRequestCount(page), {timeout: 30_000})
+			.toBe(0);
+		await expect(waitingModal(page)).toHaveCount(0, {timeout: 30_000});
+		await expect
+			.poll(() => sentHashes(page), {timeout: 30_000})
+			.toHaveLength(1);
+	});
+
+	test('offers Unlock, and says so, when the wallet has gone to sleep', async ({
+		page,
+	}) => {
+		// A LOCKED WALLET IS NOT SHOWING THE USER THE REQUEST, so telling them to
+		// approve it there is a false instruction in the most literal way available.
+		//
+		// Measured before this existed, in exactly this state: the modal said
+		// "Confirm the transaction in your wallet", the navbar showed `~10000 ETH`,
+		// and the only buttons on the page were Send and Stop waiting. Locking keeps
+		// `step: 'WalletConnected'`, so every `isTargetStepReached` branch rendered a
+		// wallet that was refusing everything as a working one, and the app's only
+		// suggestion was to give up.
+		await sendAndStall(page, 'locked while holding it');
+		await lockStallingWallet(page);
+
+		// The words change, and they change to the truth.
+		const lockedModal = dialog(page, 'Your wallet is locked');
+		await expect(lockedModal).toBeVisible({timeout: 15_000});
+		await expect(lockedModal).toContainText('still there waiting');
+		// It must NOT still be telling them to go and approve it.
+		await expect(waitingModal(page)).toHaveCount(0);
+
+		// The remedy is on screen, where the user is stuck.
+		await expect(
+			lockedModal.getByRole('button', {name: 'Unlock'}),
+		).toBeVisible();
+
+		// AND NOWHERE ELSE, which is the decision rather than an omission. A wallet
+		// prompts for its password ON DEMAND, so chrome that sprouts an Unlock button
+		// whenever a wallet auto-locks on a timer is noise about a state that resolves
+		// itself the next time anything needs signing. The bar keeps showing the
+		// account, which is still connected and whose balance is read through the
+		// always-on provider rather than the wallet: only signing is asleep.
+		//
+		// Asserted because the opposite was built first and looked reasonable. Without
+		// this, the next reader finds `walletLockState` used only by the modal and
+		// helpfully wires it up here too.
+		const bar = page.getByTestId('wallet-status');
+		await expect(bar.getByRole('button', {name: 'Unlock'})).toHaveCount(0);
+		await expect(bar).toContainText('ETH');
+		await expect(bar).toHaveAttribute('data-connected', 'true');
+
+		// Nothing was withdrawn while the wallet slept, which is the promise the
+		// copy makes: the request is still announced and still guarded.
+		expect(await pendingRequestCount(page)).toBe(1);
+		expect(await isHoldingTransaction(page)).toBe(true);
+		expect(await wouldBlockUnload(page)).toBe(true);
+		await expect(escapeHatch(page)).toHaveCount(0);
+		await expect(
+			lockedModal.getByRole('button', {name: 'Stop waiting'}),
+		).toBeVisible();
+
+		// And it WORKS, rather than merely being present. `unlock()` keeps the step,
+		// the account and the wallet, where `connect()` would open the picker and
+		// rebuild all three.
+		await lockedModal.getByRole('button', {name: 'Unlock'}).click();
+		await expect
+			.poll(() => walletStatus(page), {timeout: 30_000})
+			.toBe('connected');
+		await expect(waitingModal(page)).toBeVisible({timeout: 15_000});
+		expect(await pendingRequestCount(page)).toBe(1);
+
+		// The account survived the round trip, which is the point of using unlock.
+		expect(
+			await page.evaluate(
+				() =>
+					(globalThis as any).get((globalThis as any).context.connection).step,
+			),
+		).toBe('WalletConnected');
+
+		await approveHeldTransaction(page);
+		await expect
+			.poll(() => sentHashes(page), {timeout: 30_000})
+			.toHaveLength(1);
 	});
 
 	test('records the transaction when the user approves it later', async ({
