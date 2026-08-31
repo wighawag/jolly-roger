@@ -94,6 +94,8 @@ export type ConnectionStateSnapshot = Partial<
 			 */
 			status: 'connected' | 'locked' | 'disconnected';
 			unlocking: boolean;
+			/** Which chain prompt is up. See {@link chainSwitchCopy}. */
+			switchingChain: 'addingChain' | 'switchingChain' | false;
 		}>;
 	}
 >;
@@ -203,6 +205,57 @@ export function walletLockState(
 ): WalletLockState {
 	if (state.wallet?.status !== 'locked') return 'unlocked';
 	return state.wallet.unlocking ? 'unlocking' : 'locked';
+}
+
+/**
+ * The words for a chain switch, which is TWO prompts rather than one.
+ *
+ * A wallet that has never seen this chain is asked to ADD it before it can be
+ * asked to switch, and those are different questions: adding writes a network
+ * the user keeps, switching just moves. `wallet.switchingChain` publishes which
+ * one is up (`'addingChain'` or `'switchingChain'`) precisely so an app can say
+ * so, and @etherplay/connect 0.11.2 documents that a consumer wording them the
+ * same way asks the user to approve something other than what the wallet is
+ * showing them.
+ *
+ * This app said "Switching..." for both, and the same sentence about approving
+ * "the network switch" while the wallet was in fact offering to add a network.
+ * Same class of untruth as telling someone to confirm a request in a wallet that
+ * has not been asked, arriving from a third direction.
+ */
+export type ChainSwitchCopy = {
+	/** The action button's label. */
+	action: string;
+	/** What to expect from the wallet, under the button. */
+	hint: string;
+	/** Whether a prompt is up, so the controls should be inert. */
+	busy: boolean;
+};
+
+export function chainSwitchCopy(
+	state: ConnectionStateSnapshot,
+): ChainSwitchCopy {
+	if (state.wallet?.switchingChain === 'addingChain') {
+		return {
+			action: 'Adding network...',
+			hint: 'Your wallet has not seen this network before, so it is asking you to add it first.',
+			busy: true,
+		};
+	}
+	if (state.wallet?.switchingChain === 'switchingChain') {
+		return {
+			action: 'Switching...',
+			hint: 'Your wallet is asking you to approve the network switch.',
+			busy: true,
+		};
+	}
+	return {
+		action: 'Switch Network',
+		// Hedged, because nothing has been asked yet and a wallet already on this
+		// network may not prompt at all.
+		hint: 'Your wallet might prompt you to approve the network switch.',
+		busy: false,
+	};
 }
 
 /**

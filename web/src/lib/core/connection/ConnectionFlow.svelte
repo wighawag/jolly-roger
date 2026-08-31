@@ -17,6 +17,7 @@
 		signInToAccount,
 		combinesAccountChoiceWithSignIn,
 		effectiveAccountSelection,
+		chainSwitchCopy,
 	} from './connection-flow';
 	import {
 		createWalletActivity,
@@ -172,6 +173,9 @@
 	let dismissable = $derived($walletActivity.dismissable);
 	const dismiss = () => connection.cancel();
 	let swappedAccount = $derived(hasSwappedAccount($connection));
+
+	// The network-switch modal's words. Two prompts, not one: see chainSwitchCopy.
+	let chainSwitch = $derived(chainSwitchCopy($connection));
 
 	// What a failed attempt should say. Under @etherplay/connect 0.6.0 the wallet
 	// host's own refusals reach the app instead of being flattened into a
@@ -774,9 +778,12 @@
 			</div>
 		</div>
 
-		<!-- Info Text -->
+		<!-- Info Text. Says which of the TWO chain prompts is up: a wallet that has
+		     never seen this network is asked to ADD it before it can be asked to
+		     switch, and calling both "the network switch" describes something other
+		     than what the wallet is showing (see chainSwitchCopy). -->
 		<p class="text-center text-sm text-muted-foreground">
-			Your wallet might prompt you to approve the network switch
+			{chainSwitch.hint}
 		</p>
 	</div>
 
@@ -784,15 +791,15 @@
 		<Button
 			variant="outline"
 			onclick={() => connection.cancel()}
-			disabled={!!$connection.wallet?.switchingChain}
+			disabled={chainSwitch.busy}
 		>
 			Cancel
 		</Button>
 		<Button
 			onclick={() => connection.switchWalletChain()}
-			disabled={!!$connection.wallet?.switchingChain}
+			disabled={chainSwitch.busy}
 		>
-			{#if $connection.wallet?.switchingChain}
+			{#if chainSwitch.busy}
 				<svg class="mr-2 h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
 					<circle
 						class="opacity-25"
@@ -808,10 +815,8 @@
 						d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
 					/>
 				</svg>
-				Switching...
-			{:else}
-				Switch Network
 			{/if}
+			{chainSwitch.action}
 		</Button>
 	</Modal.Footer>
 

@@ -11,6 +11,7 @@ import {
 	effectiveAccountSelection,
 	canDismissConnection,
 	walletLockState,
+	chainSwitchCopy,
 } from '../../../../src/lib/core/connection/connection-flow';
 
 const wallet = (name: string) => ({info: {name, icon: ''}});
@@ -443,5 +444,43 @@ describe('walletLockState: a locked wallet is not a connected one', () => {
 		// Every wallet-less step: nothing to unlock, and the Connect path is right.
 		expect(walletLockState({step: 'Idle'})).toBe('unlocked');
 		expect(walletLockState({step: 'WalletToChoose'})).toBe('unlocked');
+	});
+});
+
+describe('chainSwitchCopy: adding a network is not switching to one', () => {
+	// @etherplay/connect 0.11.2 publishes WHICH of the two chain prompts is up,
+	// and documents that a consumer wording them the same way asks the user to
+	// approve something other than what their wallet is showing. This app said
+	// "Switching..." for both, over one sentence about "the network switch".
+	it('names adding while the wallet is asking to add', () => {
+		const copy = chainSwitchCopy({
+			step: 'WalletConnected',
+			wallet: {switchingChain: 'addingChain'},
+		});
+		expect(copy.action).toContain('Adding');
+		expect(copy.hint).toContain('add it first');
+		expect(copy.busy).toBe(true);
+	});
+
+	it('names switching while the wallet is asking to switch', () => {
+		const copy = chainSwitchCopy({
+			step: 'WalletConnected',
+			wallet: {switchingChain: 'switchingChain'},
+		});
+		expect(copy.action).toBe('Switching...');
+		expect(copy.hint).toContain('approve the network switch');
+		expect(copy.busy).toBe(true);
+	});
+
+	it('hedges before anything has been asked', () => {
+		// Nothing is up yet, and a wallet already on this network may not prompt at
+		// all, so this is the one place "might" is the honest word.
+		const copy = chainSwitchCopy({
+			step: 'WalletConnected',
+			wallet: {switchingChain: false},
+		});
+		expect(copy.action).toBe('Switch Network');
+		expect(copy.hint).toContain('might prompt');
+		expect(copy.busy).toBe(false);
 	});
 });
