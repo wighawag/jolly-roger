@@ -392,9 +392,15 @@ describe('Stopping waiting for the wallet', () => {
 		// Asserted because the opposite was built first and looked reasonable. Without
 		// this, the next reader finds `walletLockState` used only by the modal and
 		// helpfully wires it up here too.
+		//
+		// Asserted on `data-connected` and the ABSENCE of the button, rather than on
+		// whatever the bar happens to render. A descendant showed `Needs funds` there
+		// instead of a balance and failed this on a presentation detail that has
+		// nothing to do with the decision being pinned. What every app in this tree
+		// agrees on is that a locked wallet still reads as connected here and grows no
+		// remedy of its own.
 		const bar = page.getByTestId('wallet-status');
 		await expect(bar.getByRole('button', {name: 'Unlock'})).toHaveCount(0);
-		await expect(bar).toContainText('ETH');
 		await expect(bar).toHaveAttribute('data-connected', 'true');
 
 		// Nothing was withdrawn while the wallet slept, which is the promise the
