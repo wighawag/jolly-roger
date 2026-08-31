@@ -368,6 +368,15 @@ describe('Stopping waiting for the wallet', () => {
 		// wallet that was refusing everything as a working one, and the app's only
 		// suggestion was to give up.
 		await sendAndStall(page, 'locked while holding it');
+		// Captured rather than named. The claim is that `unlock()` KEEPS the step
+		// where re-running the flow would rebuild it, and which step that is depends
+		// on the app's target (`WalletConnected` here, `SignedIn` in a descendant
+		// that signs in). Hard-coding it made this fail in a sibling for a reason
+		// that had nothing to do with locking.
+		const stepBeforeLock = await page.evaluate(
+			() =>
+				(globalThis as any).get((globalThis as any).context.connection).step,
+		);
 		await lockStallingWallet(page);
 
 		// The words change, and they change to the truth.
@@ -429,7 +438,7 @@ describe('Stopping waiting for the wallet', () => {
 				() =>
 					(globalThis as any).get((globalThis as any).context.connection).step,
 			),
-		).toBe('WalletConnected');
+		).toBe(stepBeforeLock);
 
 		await approveHeldTransaction(page);
 		await expect
