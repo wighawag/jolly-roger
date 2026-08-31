@@ -46,12 +46,19 @@ function setup(executorInitial: unknown) {
 	const executor = writable(executorInitial);
 	const {added, accountData} = makeFakeAccountData();
 	const connector = createTrackedWalletConnector({
-		walletClient: walletClient as never,
+		clients: [walletClient as never],
 		executors: [executor as never],
 		accountData,
 	});
 	return {walletClient, executor, connector, added};
 }
+
+const ready = (client: unknown, address = '0x1') => ({
+	status: 'ready',
+	address,
+	account: address,
+	client,
+});
 
 const tx = (hash: string) => ({hash, metadata: {}});
 
@@ -76,7 +83,7 @@ describe('createTrackedWalletConnector', () => {
 		});
 		const {added, accountData} = makeFakeAccountData();
 		const connector = createTrackedWalletConnector({
-			walletClient: walletClient as never,
+			clients: [walletClient as never],
 			executors: [executor as never],
 			accountData,
 		});
@@ -146,14 +153,99 @@ describe('createTrackedWalletConnector', () => {
 	});
 });
 
-describe('createTrackedWalletConnector with two executors', () => {
-	const ready = (client: unknown, address = '0x1') => ({
-		status: 'ready',
-		address,
-		account: address,
-		client,
+/**
+ * The senders that are built once with the context and never swapped: the app's
+ * wallet client, and the payment rail's.
+ *
+ * The rail is the reason this is a LIST. It is neither the app's wallet client
+ * nor an executor, so under the old `walletClient` + `executors` shape it had
+ * nowhere to go and was simply left out: every silent move the signer made was
+ * listed, and the one transaction the user consciously paid money for was not.
+ */
+describe('createTrackedWalletConnector with several fixed clients', () => {
+	it('records what a second fixed client broadcasts', () => {
+		// The payment rail. Nobody's executor, nobody's signer, and the only client
+		// whose transactions cost the user real money.
+		const walletClient = makeFakeClient();
+		const paymentClient = makeFakeClient();
+		const {added, accountData} = makeFakeAccountData();
+		const connector = createTrackedWalletConnector({
+			clients: [walletClient as never, paymentClient as never],
+			executors: [],
+			accountData,
+		});
+		connector.connect();
+
+		paymentClient.emit('transaction:broadcasted', tx('0x01'));
+		expect(added).toHaveLength(1);
+
+		connector.disconnect();
+		expect(paymentClient.listenerCount('transaction:broadcasted')).toBe(0);
+		expect(walletClient.listenerCount('transaction:broadcasted')).toBe(0);
 	});
 
+	it('hands a payment account data cannot take to the fallback', () => {
+		// The fallback covers EVERY client, not just the app's wallet one: a
+		// purchase that cannot be filed is lost exactly the same way, and the
+		// in-flight ledger already holds a record the hash can be attached to.
+		const paymentClient = makeFakeClient();
+		const seen: unknown[] = [];
+		const connector = createTrackedWalletConnector({
+			clients: [makeFakeClient() as never, paymentClient as never],
+			executors: [],
+			accountData: makeUnavailableAccountData(),
+			onUnrecordedBroadcast: ((params: unknown) => seen.push(params)) as never,
+		});
+		connector.connect();
+
+		expect(() =>
+			paymentClient.emit('transaction:broadcasted', broadcastTx),
+		).not.toThrow();
+		expect(seen).toHaveLength(1);
+
+		connector.disconnect();
+	});
+
+	it('attaches the same client once when it is listed twice', () => {
+		const client = makeFakeClient();
+		const {added, accountData} = makeFakeAccountData();
+		const connector = createTrackedWalletConnector({
+			clients: [client as never, client as never],
+			executors: [],
+			accountData,
+		});
+		connector.connect();
+
+		expect(client.listenerCount('transaction:broadcasted')).toBe(1);
+		client.emit('transaction:broadcasted', tx('0x01'));
+		expect(added).toHaveLength(1);
+
+		connector.disconnect();
+		expect(client.listenerCount('transaction:broadcasted')).toBe(0);
+	});
+
+	it('does not double-attach when an executor exposes a later fixed client', () => {
+		// The skip must consider the whole list, not just its first entry.
+		const walletClient = makeFakeClient();
+		const paymentClient = makeFakeClient();
+		const {added, accountData} = makeFakeAccountData();
+		const connector = createTrackedWalletConnector({
+			clients: [walletClient as never, paymentClient as never],
+			executors: [writable(ready(paymentClient, '0x9')) as never],
+			accountData,
+		});
+		connector.connect();
+
+		expect(paymentClient.listenerCount('transaction:broadcasted')).toBe(1);
+		paymentClient.emit('transaction:broadcasted', tx('0x01'));
+		expect(added).toHaveLength(1);
+
+		connector.disconnect();
+		expect(paymentClient.listenerCount('transaction:broadcasted')).toBe(0);
+	});
+});
+
+describe('createTrackedWalletConnector with two executors', () => {
 	it('records transactions from both accounts into one list', () => {
 		// Operations belong to the player, not to the key that signed. The
 		// signer's silent work and the user's own prompted transactions land in
@@ -162,7 +254,7 @@ describe('createTrackedWalletConnector with two executors', () => {
 		const signerClient = makeFakeClient();
 		const {added, accountData} = makeFakeAccountData();
 		const connector = createTrackedWalletConnector({
-			walletClient: walletClient as never,
+			clients: [walletClient as never],
 			executors: [
 				writable(ready(walletClient, '0x1')) as never,
 				writable(ready(signerClient, '0x2')) as never,
@@ -187,7 +279,7 @@ describe('createTrackedWalletConnector with two executors', () => {
 		const signerClient = makeFakeClient();
 		const {added, accountData} = makeFakeAccountData();
 		const connector = createTrackedWalletConnector({
-			walletClient: walletClient as never,
+			clients: [walletClient as never],
 			executors: [
 				writable(ready(signerClient, '0x2')) as never,
 				writable(ready(signerClient, '0x2')) as never,
@@ -211,7 +303,7 @@ describe('createTrackedWalletConnector with two executors', () => {
 		const {accountData} = makeFakeAccountData();
 		const signerExecutor = writable(ready(signerClient, '0x2'));
 		const connector = createTrackedWalletConnector({
-			walletClient: walletClient as never,
+			clients: [walletClient as never],
 			executors: [
 				writable(ready(walletClient, '0x1')) as never,
 				signerExecutor as never,
@@ -266,7 +358,7 @@ describe('createTrackedWalletConnector: a broadcast account data cannot take', (
 	function setupUnavailable(onUnrecordedBroadcast?: (params: unknown) => void) {
 		const walletClient = makeFakeClient();
 		const connector = createTrackedWalletConnector({
-			walletClient: walletClient as never,
+			clients: [walletClient as never],
 			// No executors: this is about the always-present wallet client, and an
 			// executor would only add a second client saying the same thing.
 			executors: [],
@@ -310,7 +402,7 @@ describe('createTrackedWalletConnector: a broadcast account data cannot take', (
 		const {added, accountData} = makeFakeAccountData();
 		const seen: unknown[] = [];
 		const connector = createTrackedWalletConnector({
-			walletClient: walletClient as never,
+			clients: [walletClient as never],
 			executors: [],
 			accountData,
 			onUnrecordedBroadcast: (() => seen.push(true)) as never,

@@ -48,6 +48,24 @@ export type WalletClient = TrackedWalletClientAutoPopulate<
 	Account | undefined
 >;
 
+/**
+ * The payment rail as THIS APP holds it: the rail `createPaymentRail` builds,
+ * with its wallet client tracked and dispatch-guarded.
+ *
+ * A type of its own rather than a change to `PaymentRail`, because the rail is a
+ * core building block (see core/connection/remote) and neither the tracker nor
+ * the in-flight ledger is core's to reach for. `createPaymentRail` keeps handing
+ * back plain viem clients, and the app that composes one wraps it - which is the
+ * same arrangement, and the same reasoning, as the app's own wallet client.
+ *
+ * The difference is not cosmetic and call sites feel it: a tracked client takes
+ * `metadata`, and a plain transfer through it must say what it is or land in the
+ * user's list unnamed (see ui/credits/get-credits).
+ */
+export type TrackedPaymentRail = Omit<PaymentRail, 'walletClient'> & {
+	walletClient: WalletClient;
+};
+
 export type Clock = ClockStore;
 
 export type TxObserverDebugState = {
@@ -104,8 +122,12 @@ export type Context = {
 	 * The payment rail (buying credits): a second, wallet-only connection plus
 	 * its clients. The payer is not necessarily the player. Dormant until
 	 * something calls `ensureConnected` on it. See core/connection/remote.
+	 *
+	 * Its wallet client is TRACKED and GUARDED like every other sender in this
+	 * app, so what the user bought is in their transaction list and survives a
+	 * reload mid-purchase. See TrackedPaymentRail and context/core.
 	 */
-	payment: PaymentRail;
+	payment: TrackedPaymentRail;
 	/**
 	 * Funding the local signer, as a flow the user is walked through.
 	 *

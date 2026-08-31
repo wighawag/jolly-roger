@@ -35,16 +35,16 @@ export type UnrecordedBroadcast = (params: {
 
 /**
  * Attach the broadcast/fetched listeners that feed tracked transactions into
- * Account Data. Returns a teardown. Reused for both the wallet-mode client and
- * any signer-mode client the executor builds.
+ * Account Data. Returns a teardown. Reused for every client the connector is
+ * given, fixed or executor-derived.
  */
 function attachTrackedClient(
-	walletClient: TrackedTxSource,
+	client: TrackedTxSource,
 	accountData: MultiAccountDataStore,
 	onUnrecordedBroadcast?: UnrecordedBroadcast,
 ): () => void {
 	return combineTeardowns([
-		walletClient.on('transaction:broadcasted', (tx) => {
+		client.on('transaction:broadcasted', (tx) => {
 			// NOTHING MAY THROW OUT OF HERE.
 			//
 			// This runs inside the tracker's `emit`, which is fail-fast (no error
@@ -81,7 +81,7 @@ function attachTrackedClient(
 			}
 		}),
 		// if needed we can also update on getting the full tx data
-		walletClient.on('transaction:fetched', (tx) => {
+		client.on('transaction:fetched', (tx) => {
 			// Same reasoning, milder consequence: the tracker already wraps this emit
 			// in a try/catch, so a throw here is swallowed and logged as "could not
 			// fetch tx", which is a misleading thing to print about a fetch that
@@ -103,17 +103,28 @@ function attachTrackedClient(
 
 /// Listen for broadcasted transactions and save them in the Account Data.
 ///
-/// Attaches to the always-present wallet-mode client, and to every executor's
-/// client, so a transaction is recorded whichever account signed it. That is
-/// what puts the signer's silent work and the user's own prompted transactions
-/// in ONE list: Account Data is keyed by the authenticated account, not by the
-/// sender, so they belong to the same player and a consumer that wants them
-/// apart filters on `from`.
+/// Attaches to every client it is given, so a transaction is recorded whichever
+/// account signed it. That is what puts the signer's silent work, the user's own
+/// prompted transactions and anything a payer sends in ONE list: Account Data is
+/// keyed by the authenticated account, not by the sender, so they belong to the
+/// same player and a consumer that wants them apart filters on `from`.
 ///
-/// Clients are attached by IDENTITY, and at most one per executor at a time:
-/// - the wallet client is attached once and never swapped (in account execution
-///   the sender is always the current account);
-/// - an executor whose client IS the wallet client adds nothing;
+/// TWO KINDS OF SOURCE, and the split is by LIFETIME rather than by role.
+/// `clients` are built once with the context and never replaced; an executor's
+/// client is derived per identity and can be swapped underneath it. That is the
+/// only difference the connector cares about, which is why `clients` is a LIST
+/// rather than the one wallet client it used to be plus special cases. It began
+/// as a single client because there was a single one, and the second fixed
+/// sender to arrive (the payment rail, which is neither the app's wallet client
+/// nor an executor) had nowhere to go: it was left off, and the one transaction
+/// the user consciously paid money for was the one missing from their list.
+/// Anything that sends and is not swapped goes in the list, and there is no
+/// third case to forget.
+///
+/// Clients are attached by IDENTITY, at most once each:
+/// - a fixed client is attached once and never swapped, and the same object
+///   handed in twice is still attached once;
+/// - an executor whose client is one of the fixed ones adds nothing;
 /// - two executors sharing one client (both pointed at the same signer) attach
 ///   it once;
 /// - when an executor exposes a DIFFERENT client (re-sign-in as another
@@ -121,7 +132,12 @@ function attachTrackedClient(
 ///   correctness, not hygiene: `accountData` follows the CURRENT account, so a
 ///   stale client's late events would be written into the wrong account's data.
 export function createTrackedWalletConnector(params: {
-	walletClient: TrackedTxSource;
+	/**
+	 * The senders that exist for the app's lifetime: the app's wallet client, and
+	 * any other tracked client built alongside it (the payment rail). Order is
+	 * irrelevant, and duplicates are harmless.
+	 */
+	clients: readonly TrackedTxSource[];
 	executors: readonly ExecutorStore[];
 	accountData: MultiAccountDataStore;
 	/**
@@ -132,16 +148,19 @@ export function createTrackedWalletConnector(params: {
 	 */
 	onUnrecordedBroadcast?: UnrecordedBroadcast;
 }) {
-	const {accountData, walletClient, executors, onUnrecordedBroadcast} = params;
+	const {accountData, clients, executors, onUnrecordedBroadcast} = params;
 
 	return createConnector(() => {
-		// The fallback goes to EVERY client, not just the wallet one. A signer
-		// broadcast that cannot be filed is lost exactly the same way, and the
-		// ledger already holds a record for it that the hash can be attached to.
-		const walletTeardown = attachTrackedClient(
-			walletClient,
-			accountData,
-			onUnrecordedBroadcast,
+		// Deduped by reference, because attaching one client twice would record
+		// every transaction through it twice. Same rule the executors below follow.
+		const fixed = [...new Set(clients)];
+
+		// The fallback goes to EVERY client, not just the app's wallet one. A signer
+		// broadcast or a payment that cannot be filed is lost exactly the same way,
+		// and the ledger already holds a record for it that the hash can be attached
+		// to.
+		const fixedTeardowns = fixed.map((client) =>
+			attachTrackedClient(client, accountData, onUnrecordedBroadcast),
 		);
 
 		// Per-executor, so one executor swapping its client never detaches
@@ -166,7 +185,7 @@ export function createTrackedWalletConnector(params: {
 				// REPLACEMENT client triggers a swap.
 				if ($executor.status !== 'ready') return;
 				const client = $executor.client;
-				if (client === walletClient || client === attached[i]) return;
+				if (fixed.includes(client) || client === attached[i]) return;
 				teardowns[i]?.();
 				attached[i] = client;
 				teardowns[i] = attachedElsewhere(client, i)
@@ -178,7 +197,7 @@ export function createTrackedWalletConnector(params: {
 		return () => {
 			for (const u of unsubscribes) u();
 			for (const t of teardowns) t?.();
-			walletTeardown();
+			for (const t of fixedTeardowns) t();
 		};
 	});
 }
