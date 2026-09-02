@@ -45,8 +45,21 @@ describe('txErrorSummary', () => {
 	});
 
 	it('falls back for non-Error values', () => {
+		// A thrown PRIMITIVE stays hidden, deliberately. `throw 'boom'` is a
+		// developer's stray string and this summary goes in a toast; the
+		// diagnostic reader that does want it verbatim is `errorMessage`.
 		expect(txErrorSummary('boom')).toBe('Transaction failed');
 		expect(txErrorSummary(undefined)).toBe('Transaction failed');
+	});
+
+	it('takes the message off a failure that is not an Error', () => {
+		// A rejected JSON-RPC payload handed straight to a catch block: not an
+		// `Error`, not a viem `BaseError`, and carrying the only explanation
+		// anyone is going to get. It used to fall through to "Transaction
+		// failed", which told the user nothing the node had not already said.
+		expect(
+			txErrorSummary({code: -32000, message: 'nonce too low\ntrace...'}),
+		).toBe('nonce too low');
 	});
 
 	it('names an account that cannot pay, instead of repeating the node', () => {
@@ -83,6 +96,24 @@ describe('txErrorDetails', () => {
 
 	it('stringifies non-Error values', () => {
 		expect(txErrorDetails('boom')).toBe('boom');
+	});
+
+	it('serialises a plain object instead of printing [object Object]', () => {
+		// This is the "show details" panel: the user opened it precisely because
+		// the summary was not enough, so `[object Object]` is the least useful
+		// thing it could possibly contain.
+		const details = txErrorDetails({code: -32000, message: 'nonce too low'});
+		expect(details).not.toContain('object Object');
+		expect(details).toContain('nonce too low');
+		expect(details).toContain('-32000');
+	});
+
+	it('still says something when the object will not serialise', () => {
+		// A cycle. `JSON.stringify` throws, and falling back to `String()` would
+		// put us right back at `[object Object]`.
+		const cyclic: {message: string; self?: unknown} = {message: 'reverted'};
+		cyclic.self = cyclic;
+		expect(txErrorDetails(cyclic)).toBe('reverted');
 	});
 });
 
