@@ -1,4 +1,5 @@
 import {get, writable, type Readable} from 'svelte/store';
+import {errorMessage} from '$lib/core/utils/format/error';
 
 /**
  * The value of a polling store: either not-yet-loaded, or loaded with a payload.
@@ -101,7 +102,15 @@ export function createPollingStore<T, S = unknown>(
 			setStatus({
 				loading: false,
 				error: {
-					message: err instanceof Error ? err.message : 'fetch failed',
+					// `errorMessage`, not an `instanceof Error` guard. A great many
+					// fetch failures arrive as plain objects (a viem request error, a
+					// JSON-RPC payload passed straight through), and the guard threw
+					// away the wording every one of them carried, replacing it with
+					// this constant. Whatever reads this - a health banner, a
+					// diagnostic trace - then reported a generic failure for a node
+					// that had said exactly what was wrong. `cause` still carries the
+					// whole value for anything that wants to expand it.
+					message: errorMessage(err, 'fetch failed'),
 					cause: err,
 				},
 				lastSuccessfulFetch: $status.lastSuccessfulFetch,

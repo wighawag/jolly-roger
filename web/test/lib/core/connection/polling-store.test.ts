@@ -89,6 +89,43 @@ describe('createPollingStore', () => {
 		off();
 	});
 
+	it('keeps the wording of a failure that is not an Error', async () => {
+		// THE PLAIN-OBJECT CASE, and it is most of them: viem request errors and
+		// raw JSON-RPC payloads are objects, not `Error`s. The old guard here was
+		// `err instanceof Error ? err.message : 'fetch failed'`, so the node's own
+		// explanation was dropped and every consumer - the RPC-health banner, a
+		// diagnostic trace - reported a generic failure for a node that had said
+		// exactly what was wrong.
+		const fetch = vi.fn(async () => {
+			throw {code: -32005, message: 'request rate limited'};
+		});
+		const store = createPollingStore(fetch, {fetchInterval: INTERVAL});
+		const off = activate(store);
+
+		await vi.waitFor(() => expect(get(store.status).error).toBeDefined());
+		expect(get(store.status).error?.message).toBe('request rate limited');
+		// The whole value is still carried, so a console can expand it.
+		expect(get(store.status).error?.cause).toEqual({
+			code: -32005,
+			message: 'request rate limited',
+		});
+		off();
+
+		// And an object with NO wording still gets the caller's fallback rather
+		// than `[object Object]`. Asserted here rather than as its own test
+		// because on its own it does not discriminate: the code this replaced
+		// returned `fetch failed` for every plain object, so a standalone version
+		// passed with the fix deleted and was worth nothing.
+		const blank = vi.fn(async () => {
+			throw {code: -32603};
+		});
+		const blankStore = createPollingStore(blank, {fetchInterval: INTERVAL});
+		const offBlank = activate(blankStore);
+		await vi.waitFor(() => expect(get(blankStore.status).error).toBeDefined());
+		expect(get(blankStore.status).error?.message).toBe('fetch failed');
+		offBlank();
+	});
+
 	it('keeps the error visible while a retry is loading (cleared only on success)', async () => {
 		let call = 0;
 		let resolveThird: ((v: {value: bigint}) => void) | undefined;
