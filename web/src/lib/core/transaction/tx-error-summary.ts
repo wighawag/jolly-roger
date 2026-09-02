@@ -1,4 +1,6 @@
 import {BaseError} from 'viem';
+import {messageOf} from '$lib/core/utils/format/error';
+import {bigIntReplacer} from '$lib/core/utils/format/json';
 import {isInsufficientFundsFailure} from './insufficient-funds-failure';
 
 /**
@@ -76,14 +78,40 @@ export function txErrorSummary(error: unknown): string {
 			return shortMessage;
 		}
 	}
-	if (error instanceof Error && error.message) {
-		return error.message.split('\n')[0].trim();
-	}
+	// A `message` off a PLAIN OBJECT counts too, not just off an `Error`. A
+	// failure that never went through viem and was never constructed as an
+	// `Error` - a rejected JSON-RPC payload handed straight to a catch block -
+	// used to fall past this to the constant below, so the node's own
+	// explanation was dropped in favour of "Transaction failed".
+	//
+	// A thrown PRIMITIVE deliberately still falls through. `throw 'boom'` is a
+	// developer's stray string, not a sentence to show a user, and this summary
+	// goes in a toast. `errorMessage` is the reader for the other case (a
+	// diagnostic trace), where seeing it verbatim is the point.
+	const message = messageOf(error);
+	if (message) return message.split('\n')[0].trim();
+
 	return 'Transaction failed';
 }
 
 /** The full error text, for a "show details" affordance. */
 export function txErrorDetails(error: unknown): string {
 	if (error instanceof Error) return error.message;
+	// `String()` on a plain object is `[object Object]`, which is the single
+	// least useful thing a "show details" panel can contain: the user opened it
+	// precisely because the summary was not enough. Serialise it instead, and
+	// fall back to the summary's own reading if it will not serialise (a cycle,
+	// a bigint, a getter that throws).
+	if (typeof error === 'object' && error !== null) {
+		try {
+			const json = JSON.stringify(error, bigIntReplacer, 2);
+			// An object whose every field is non-enumerable serialises to `{}`,
+			// which is no better than what this branch exists to avoid.
+			if (json && json !== '{}') return json;
+		} catch {
+			// A cycle, or a getter that throws. Fall through to the message.
+		}
+		return messageOf(error) ?? String(error);
+	}
 	return String(error);
 }
