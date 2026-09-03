@@ -217,23 +217,50 @@ describe('setGreeting, when the send fails', () => {
 
 	describe('a connection that never happened', () => {
 		/**
-		 * SILENT HERE, because it is reported somewhere better.
+		 * SILENT ONLY FOR A DECISION, because only a decision is already answered.
 		 *
-		 * Every one of these rests on the connection with its own reason, where
+		 * A cancellation rests on the connection with its own reason, where
 		 * core/connection/ConnectionFlow renders it in the app's own words, and that
-		 * component is mounted for the life of the app. Before this, all three fell
-		 * through to the same toast - "Transaction failed: Connection cancelled" -
-		 * about a transaction that was never built, stacked on top of the modal that
-		 * had just explained the real reason.
+		 * component is mounted for the life of the app. Before this, those fell
+		 * through to a toast - "Transaction failed: Connection cancelled" - about a
+		 * transaction that was never built, stacked on top of the modal that had
+		 * just explained the real reason.
+		 *
+		 * THE RULE NARROWED WITH @etherplay/connect 0.13.0, and these tests narrowed
+		 * with it. When every refusal was silent, the reasons that are NOT the user's
+		 * doing were silent too, and `unreachable` in particular is an answer the
+		 * library produces instead of hanging: swallowing it turns that work back
+		 * into a button that does nothing.
 		 */
-		const refusals = {
-			'a closed popup': new ConnectionFailure('Connection cancelled'),
+		const decisions = {
+			'a closed popup': new ConnectionFailure(
+				'Connection cancelled',
+				undefined,
+				'cancelled',
+			),
+			'a dismissed account instruction': new ConnectionFailure(
+				'Connection cancelled',
+				undefined,
+				'address-unavailable-acknowledged',
+			),
+		};
+
+		for (const [what, error] of Object.entries(decisions)) {
+			it(`says nothing about ${what}`, async () => {
+				const result = await setGreeting(deps({connectFails: error}), 'hello');
+
+				expect(result.status).toBe('cancelled');
+			});
+		}
+
+		const reported = {
 			'a declined required permission': new ConnectionFailure(
 				'a required permission was denied',
 				{
 					type: 'permission-denied',
 					message: 'a required permission was denied',
 				},
+				'host-refused',
 			),
 			'a blocked cross-origin request': new ConnectionFailure(
 				'https://game.example may not request an account for https://wallet.example',
@@ -242,14 +269,20 @@ describe('setGreeting, when the send fails', () => {
 					windowOrigin: 'https://game.example',
 					signingOrigin: 'https://wallet.example',
 				},
+				'cross-origin-blocked',
+			),
+			'a connection that could not get there': new ConnectionFailure(
+				'unreachable',
+				undefined,
+				'unreachable',
 			),
 		};
 
-		for (const [what, error] of Object.entries(refusals)) {
-			it(`says nothing about ${what}`, async () => {
+		for (const [what, error] of Object.entries(reported)) {
+			it(`reports ${what}, which nobody decided`, async () => {
 				const result = await setGreeting(deps({connectFails: error}), 'hello');
 
-				expect(result.status).toBe('cancelled');
+				expect(result.status).toBe('error');
 			});
 		}
 

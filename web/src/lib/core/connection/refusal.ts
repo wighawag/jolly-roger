@@ -1,54 +1,47 @@
-import {ConnectionFailure, type PermissionOutcome} from '@etherplay/connect';
+import {
+	ConnectionFailure,
+	type ConnectionFailureReason,
+	type PermissionOutcome,
+} from '@etherplay/connect';
 
 /**
- * Why a connection attempt came back with nothing.
+ * Why a connection attempt came back with nothing, in THIS APP's terms.
  *
- * A REFUSAL IS NOT A CANCELLATION, and until @etherplay/connect 0.6.0 the app
- * could not tell: everything coming back from the wallet popup was flattened on
- * the way to `Idle`, so `connection.error` stayed unset and `ensureConnected`
- * rejected with a generic `ConnectionFailure('Connection cancelled')` whatever
- * had happened. Now the host's own reason travels with it, and the remedies are
- * genuinely different - one is a prompt to answer differently, one cannot
- * succeed however many times it is tried - so they are told apart here, once,
- * and every surface reads the answer rather than the object.
+ * READ OFF `reason`, NOT GUESSED AT. @etherplay/connect 0.13.0 says why a
+ * failure happened in a closed vocabulary it controls, on both the thrown
+ * `ConnectionFailure` and the resting `connection.error`, and it copies one to
+ * the other so the banner and the caught error cannot tell different stories.
+ * Before that this module inferred intent: it matched the host's refusal shapes
+ * on `cause.type`, and decided "the user cancelled" from the ABSENCE of a
+ * `cause`. That was the best available signal and it was wrong at the edges, by
+ * its own admission: `could not get any accounts` carries no cause and so read
+ * as a cancellation, and once 0.12.0 started answering honestly instead of
+ * hanging, its `unreachable` and `superseded` answers arrived carrying no cause
+ * either and were silently rendered as "the user chose not to".
  *
- * The two refusal shapes are the HOST's, not this library's, which is why they
- * are matched structurally on `type` rather than by class: they are posted
- * across an origin boundary and arrive as plain JSON.
+ * So `kind` IS the library's `reason`, unchanged. This module no longer decides
+ * what happened; it decides what to SAY about it, which is the part that is
+ * genuinely this app's.
+ *
+ * The structured extras are still read from `cause`, because they are the wallet
+ * HOST's payload rather than the library's: posted across an origin boundary,
+ * arriving as plain JSON, and typed by nobody. `reason` says which shape to
+ * expect, so they are no longer used to work out what happened.
  */
-export type ConnectionRefusal =
+export type ConnectionRefusal = {
+	kind: ConnectionFailureReason;
+	/** The host's own words, for the reasons where they are the best available. */
+	message: string;
 	/**
-	 * A permission the app declared `required` was declined, so the host refused
-	 * to hand the account over at all.
-	 *
-	 * Only ever reachable for a REQUIRED entry: the host reports an optional
-	 * refusal as a `granted: false` outcome on an account it still delivers (see
-	 * ui/delegation/registration), and sign-in succeeds. This app declares its
-	 * one permission optional, so this arrives only in a descendant that chose
-	 * otherwise.
+	 * Which declared permissions the host answered for, when it refused a
+	 * required one. Empty for every other reason.
 	 */
-	| {kind: 'permission-denied'; permissions: PermissionOutcome[]}
-	/**
-	 * The page asked for the account of an origin that is not its own, and the
-	 * wallet host did not consent to that pairing.
-	 *
-	 * NOTHING THE USER OR THE APP CAN DO FROM HERE, which is what makes it worth
-	 * its own kind: the consent lives in the host's allowlist, so a retry cannot
-	 * succeed and a retry button would be a lie. It only arises for an app that
-	 * passes a `signingOrigin` pointing elsewhere; this one passes none, so the
-	 * host resolves it as same-origin and never reaches the decision.
-	 */
-	| {
-			kind: 'cross-origin-blocked';
-			/** The page that asked. */
-			windowOrigin: string;
-			/** The origin whose account it asked for. */
-			signingOrigin: string;
-	  }
-	/** The user backed out: closed the popup, or cancelled the flow. */
-	| {kind: 'cancelled'}
-	/** Something else failed, and its own words are the best available. */
-	| {kind: 'other'; message: string};
+	permissions: PermissionOutcome[];
+	/** The page that asked, when a cross-origin request was blocked. */
+	windowOrigin: string;
+	/** The origin whose account it asked for, when that was blocked. */
+	signingOrigin: string;
+};
 
 /** A refusal object as the wallet host posts it, before anything is known about it. */
 type HostRefusal = {
@@ -70,60 +63,51 @@ function textOrEmpty(value: unknown): string {
 }
 
 /**
- * Read the reason out of whatever a failed attempt left behind.
+ * Build this app's view of a failure from the library's `reason` plus whatever
+ * structured payload the host attached.
  *
- * ONE CLASSIFIER FOR BOTH SURFACES, because it is literally one object: the
- * library sets `connection.error = {message, cause}` at the moment it falls
- * back to a resting step, and `ensureConnected` rejects with
- * `new ConnectionFailure(error.message, error.cause)`. So the `cause` a
- * component reads off the store and the `cause` a call site catches are the
- * same value, and telling them apart twice would be two chances to disagree.
- *
- * A `cause` this app does not recognise is `other`, carrying the host's own
- * words, and NEVER `cancelled`: a reason we cannot interpret is no evidence
- * that anybody backed out of anything, and silence is the one response that
- * cannot be corrected later.
+ * ONE CLASSIFIER FOR BOTH SURFACES, because it is one vocabulary: the resting
+ * `connection.error` and the thrown `ConnectionFailure` carry the same `reason`
+ * for the same event, so telling them apart twice would be two chances to
+ * disagree.
  */
-function classify(cause: unknown, message: string): ConnectionRefusal {
+function classify(
+	reason: ConnectionFailureReason,
+	cause: unknown,
+	message: string,
+): ConnectionRefusal {
 	const refusal = asHostRefusal(cause);
+	return {
+		kind: reason,
+		message: textOrEmpty(refusal?.message) || message,
+		permissions: Array.isArray(refusal?.permissions)
+			? (refusal.permissions as PermissionOutcome[])
+			: [],
+		windowOrigin: textOrEmpty(refusal?.windowOrigin),
+		signingOrigin: textOrEmpty(refusal?.signingOrigin),
+	};
+}
 
-	if (refusal?.type === 'permission-denied') {
-		return {
-			kind: 'permission-denied',
-			// Whatever the host answered for, in the order it was asked. Not
-			// currently rendered - the sentence below does not depend on which
-			// entry it was - but carried rather than dropped, so a descendant with
-			// several declared permissions can name the one that blocked it.
-			permissions: Array.isArray(refusal.permissions)
-				? (refusal.permissions as PermissionOutcome[])
-				: [],
-		};
-	}
-
-	if (refusal?.type === 'cross-origin-blocked') {
-		return {
-			kind: 'cross-origin-blocked',
-			windowOrigin: textOrEmpty(refusal.windowOrigin),
-			signingOrigin: textOrEmpty(refusal.signingOrigin),
-		};
-	}
-
-	// NO UNDERLYING ERROR MEANS NOBODY FAILED. Every failure path in the library
-	// attaches the thing that went wrong; the cancellation paths have nothing to
-	// attach, because closing a popup is an answer rather than a fault. That is
-	// the whole of the distinction, and it is read off the absence rather than
-	// off the wording, which would break the moment upstream rephrased it.
-	//
-	// One library failure shares the shape (`could not get any accounts`, which
-	// sets a message and no cause) and so reads as a cancellation here. The
-	// mistake is in the harmless direction: it costs the details link, and every
-	// surface below answers it with "sign in again", which is the right advice
-	// for it anyway.
-	if (cause === undefined || cause === null) {
-		return {kind: 'cancelled'};
-	}
-
-	return {kind: 'other', message: textOrEmpty(refusal?.message) || message};
+/**
+ * Whether the user DECIDED this, as opposed to something going wrong.
+ *
+ * Two reasons mean it, and they are told apart by `reason` rather than by
+ * shape: an acknowledged `addressUnavailable` deliberately still carries
+ * `message: 'Connection cancelled'` so that no surface paints a red error over
+ * a decision. Both are answered with silence, which is why this predicate
+ * exists rather than each call site listing the members: adding a third
+ * decision must not require finding every `if` that means "they chose not to".
+ *
+ * EVERYTHING ELSE IS REPORTABLE, including the reasons that used to look like
+ * this one. `unreachable` in particular is an outcome the library went to some
+ * trouble to produce instead of hanging, and swallowing it turns that back into
+ * silence.
+ */
+export function isUserDecision(refusal: ConnectionRefusal): boolean {
+	return (
+		refusal.kind === 'cancelled' ||
+		refusal.kind === 'address-unavailable-acknowledged'
+	);
 }
 
 /**
@@ -139,7 +123,7 @@ export function connectionRefusal(
 	error: unknown,
 ): ConnectionRefusal | undefined {
 	if (!(error instanceof ConnectionFailure)) return undefined;
-	return classify(error.cause, error.message);
+	return classify(error.reason, error.cause, error.message);
 }
 
 /**
@@ -151,10 +135,12 @@ export function connectionRefusal(
  * both would classify every thrown error in the app as a connection refusal.
  */
 export function restingRefusal(
-	error: {message: string; cause?: unknown} | undefined,
+	error:
+		| {message: string; cause?: unknown; reason: ConnectionFailureReason}
+		| undefined,
 ): ConnectionRefusal | undefined {
 	if (!error) return undefined;
-	return classify(error.cause, error.message);
+	return classify(error.reason, error.cause, error.message);
 }
 
 /**
@@ -175,8 +161,14 @@ export function restingRefusal(
  */
 export function refusalExplanation(refusal: ConnectionRefusal): string {
 	switch (refusal.kind) {
-		case 'permission-denied':
-			return 'You declined a permission this app cannot work without, so you are not signed in. Sign in again and allow it if you want to carry on.';
+		case 'host-refused':
+			// The HOST picks its own vocabulary and the library passes it through
+			// rather than claiming to understand it, so the payload is what says
+			// which refusal this is. A required permission declined is the one this
+			// app has words for; anything else keeps the host's own.
+			return refusal.permissions.length
+				? 'You declined a permission this app cannot work without, so you are not signed in. Sign in again and allow it if you want to carry on.'
+				: refusal.message;
 		case 'cross-origin-blocked':
 			// Named as somebody else's mistake, deliberately: the user did nothing
 			// wrong and can do nothing about it, and a message implying otherwise
@@ -185,8 +177,30 @@ export function refusalExplanation(refusal: ConnectionRefusal): string {
 				? `This site is not allowed to ask for the account held by ${refusal.signingOrigin}, and trying again will not change that. It is the app's configuration that needs fixing, not anything you did.`
 				: "This site is not allowed to ask for the account it tried to use, and trying again will not change that. It is the app's configuration that needs fixing, not anything you did.";
 		case 'cancelled':
+		case 'address-unavailable-acknowledged':
 			return 'You are not signed in.';
-		case 'other':
+		case 'wallet-rejected':
+			return 'Your wallet declined the request. Try again if you meant to allow it.';
+		case 'wallet-unavailable':
+			// Retrying cannot help: the wallet is refusing to authorise accounts at
+			// all, so the remedy is in the wallet rather than in this page.
+			return 'Your wallet would not authorise an account. Unlock it, or check which sites it is allowed to talk to, then try again.';
+		case 'no-accounts':
+			// Looks like a refusal and is not one, which is why it gets its own
+			// sentence rather than "you are not signed in": nobody declined
+			// anything, the wallet simply has no account to offer.
+			return 'Your wallet did not offer any account. Create or import one in your wallet, then try again.';
+		case 'superseded':
+			return 'Another account was requested before this one finished. Try again.';
+		case 'unreachable':
+			// The outcome 0.12.0 added rather than hanging. Reporting it is the
+			// entire point; swallowing it turns the fix back into silence.
+			return 'The connection could not get there, and nothing is in progress. Try again.';
+		default:
+			// NEW MEMBERS ARRIVE IN MINOR VERSIONS, which the library states plainly
+			// and accepts as the price of a union the compiler can exhaust. Falling
+			// back to the library's own words is always safe; falling through to
+			// "you are not signed in" would invent a diagnosis.
 			return refusal.message;
 	}
 }
@@ -212,30 +226,28 @@ export type ConnectionFailureView = {
  * for a developer reading a console, so they are answered here instead.
  */
 export function connectionFailureView(
-	error: {message: string; cause?: unknown} | undefined,
+	error:
+		| {message: string; cause?: unknown; reason: ConnectionFailureReason}
+		| undefined,
 ): ConnectionFailureView | undefined {
 	const refusal = restingRefusal(error);
 	if (!refusal) return undefined;
 
-	switch (refusal.kind) {
-		case 'permission-denied':
-			return {title: 'Not signed in', message: refusalExplanation(refusal)};
-		case 'cross-origin-blocked':
-			return {
-				title: 'This site cannot use that account',
-				message: refusalExplanation(refusal),
-				// BOTH ORIGINS, side by side, which the library notes is the whole
-				// diagnosis: an app landing here has almost always misconfigured
-				// `signingOrigin`, and the two strings together say which way round.
-				detail:
-					refusal.windowOrigin && refusal.signingOrigin
-						? `${refusal.windowOrigin} requesting ${refusal.signingOrigin}`
-						: undefined,
-			};
-		case 'cancelled':
-		case 'other':
-			// Unchanged from before 0.6.0: a wallet's own words about a wallet's own
-			// problem are better than anything this app could substitute for them.
-			return {title: 'Connection Failed', message: error?.message ?? ''};
+	if (refusal.kind === 'cross-origin-blocked') {
+		return {
+			title: 'This site cannot use that account',
+			message: refusalExplanation(refusal),
+			// BOTH ORIGINS, side by side, which the library notes is the whole
+			// diagnosis: an app landing here has almost always misconfigured
+			// `signingOrigin`, and the two strings together say which way round.
+			detail:
+				refusal.windowOrigin && refusal.signingOrigin
+					? `${refusal.windowOrigin} requesting ${refusal.signingOrigin}`
+					: undefined,
+		};
 	}
+	if (refusal.kind === 'host-refused' && refusal.permissions.length) {
+		return {title: 'Not signed in', message: refusalExplanation(refusal)};
+	}
+	return {title: 'Connection Failed', message: refusalExplanation(refusal)};
 }

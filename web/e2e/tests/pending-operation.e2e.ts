@@ -18,7 +18,7 @@ describe('Transaction inspector', () => {
 	test.use({walletAccountIndex: 2});
 
 	// And serially WITHIN the file, for the same reason: `fullyParallel` applies
-	// to tests, not just files, so these three would otherwise race each other
+	// to tests, not just files, so these four would otherwise race each other
 	// from that one account. Same rule, same cause, as the demo suite.
 	describe.configure({mode: 'serial'});
 
@@ -74,6 +74,43 @@ describe('Transaction inspector', () => {
 		);
 	}
 
+	/**
+	 * The `source` of every operation this browser has stored.
+	 *
+	 * Reads storage rather than the DOM, because the point is what SURVIVES: the
+	 * replacement path runs against a stored operation, possibly sessions later,
+	 * and a value that only ever existed in memory would not be there for it.
+	 *
+	 * `{$version, data: {operations}}` is synqable's shape, read here without
+	 * going through it, exactly as `readStoredOperations` does and with the same
+	 * caveat: it is not a public contract. This asserting nothing found is
+	 * ambiguous between "the source is missing" and "the shape moved", so if this
+	 * ever fails, check the shape before believing the feature is broken. (It
+	 * failed that way once already, during the change that added it.)
+	 */
+	async function storedTxSources(page: Page): Promise<unknown[]> {
+		return page.evaluate(() => {
+			type StoredOperation = {metadata?: {tx?: {source?: unknown}}};
+			const found: unknown[] = [];
+			for (let i = 0; i < localStorage.length; i++) {
+				const key = localStorage.key(i);
+				if (!key?.startsWith('__private__')) continue;
+				try {
+					const blob = JSON.parse(localStorage.getItem(key) ?? '') as {
+						data?: {operations?: Record<string, StoredOperation>};
+					};
+					for (const operation of Object.values(blob?.data?.operations ?? {})) {
+						const source = operation?.metadata?.tx?.source;
+						if (source !== undefined) found.push(source);
+					}
+				} catch {
+					// Other things share the prefix; only account data parses this way.
+				}
+			}
+			return found;
+		});
+	}
+
 	test('opens the inspector and puts the operation in the URL', async ({
 		connectedPage,
 		authoriseBrowser,
@@ -126,6 +163,37 @@ describe('Transaction inspector', () => {
 		await expect(
 			page.getByRole('heading', {name: 'Transactions'}),
 		).toBeVisible();
+	});
+
+	test('records WHICH ROUTE signed it, so it can be replaced later', async ({
+		connectedPage,
+	}) => {
+		// THE ONE LINK NOTHING ELSE CHECKS END TO END. `source` is stamped by a
+		// thunk handed to the tracker at construction, carried through the
+		// broadcast event, and written into account data. Every step is unit-tested
+		// and every step is in a different file, so the only thing that proves the
+		// chain is joined up is reading it back out of storage after a real send.
+		//
+		// Without it, replacing a stuck transaction cannot tell which key to reopen,
+		// and the transaction stays stuck forever. The failure is silent: the send
+		// works, the operation is listed, and nothing looks wrong until somebody
+		// needs to unstick one.
+		const page = connectedPage;
+		await submitAndOpenTransactions(page, `Source test ${Date.now()}`);
+
+		await expect
+			.poll(() => storedTxSources(page), {timeout: 15000})
+			.not.toHaveLength(0);
+
+		// The route the app connection sends from, with the wallet named so a later
+		// reconnection can ask for THAT wallet instead of opening a picker.
+		expect((await storedTxSources(page))[0]).toMatchObject({
+			route: 'account',
+			// The wallet too, not just the route: naming it is what lets a later
+			// reconnection reopen THAT wallet instead of raising a picker. Asserting
+			// only the route would let `walletIdentityOf` silently return undefined.
+			wallet: {name: expect.any(String)},
+		});
 	});
 
 	test('survives a reload, because it is in the URL', async ({

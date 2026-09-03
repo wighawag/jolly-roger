@@ -1496,7 +1496,7 @@ export function createTopUpFlow(
 					});
 					return;
 				}
-				if (refusal?.kind === 'permission-denied') {
+				if (refusal?.kind === 'host-refused') {
 					// Stays on `re-authorise`, which keeps the button that is already
 					// there. Nothing is added: the remedy for a declined permission is the
 					// person answering differently, and this button is how they say so by

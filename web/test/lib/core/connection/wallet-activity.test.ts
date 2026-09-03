@@ -549,8 +549,8 @@ describe('walletPromptCopy: saying WHAT the wallet is asking', () => {
 			new Set(),
 		);
 		expect(copy.title).toContain('different account');
-		expect(copy.body).toContain('0x2222...2222');
-		expect(copy.body).toContain('0x1111...1111');
+		expect(copy.body).toContain('0x2222…2222');
+		expect(copy.body).toContain('0x1111…1111');
 		// It must not lose the escape hatch's promise on the way.
 		expect(copy.body).toContain('approved later it still acts');
 	});

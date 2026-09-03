@@ -1164,8 +1164,13 @@ describe('createTopUpFlow: the first top-up is the registration', () => {
 			// `ConnectionFailure` carrying no 4001 and not saying "user cancelled", so
 			// it used to fall through and be reported as a failure, with a stack trace
 			// behind a Details link, for someone who had simply changed their mind.
+			//
+			// THE REASON IS NOW STATED, not inferred from a missing cause: since
+			// 0.13.0 the library says `cancelled` outright, which is what makes this
+			// distinguishable from `unreachable`, an answer that carries no cause
+			// either and used to be read as somebody changing their mind.
 			const state = await refusedBy(
-				new ConnectionFailure('Connection cancelled'),
+				new ConnectionFailure('Connection cancelled', undefined, 'cancelled'),
 			);
 
 			expect(state.phase).toBe('re-authorise');
@@ -1175,11 +1180,18 @@ describe('createTopUpFlow: the first top-up is the registration', () => {
 
 		it('says a declined permission was declined, and leaves the way back open', async () => {
 			const state = await refusedBy(
-				new ConnectionFailure('a required permission was denied', {
-					type: 'permission-denied',
-					message: 'a required permission was denied',
-					permissions: [refusedDelegation('denied')],
-				}),
+				new ConnectionFailure(
+					'a required permission was denied',
+					{
+						type: 'permission-denied',
+						message: 'a required permission was denied',
+						permissions: [refusedDelegation('denied')],
+					},
+					// The library's word for it. The host's own payload still says WHICH
+					// permission, because that vocabulary is the host's and not the
+					// library's.
+					'host-refused',
+				),
 			);
 
 			// STAYS on the step that already carries "Sign in again". Nothing is added
@@ -1206,6 +1218,7 @@ describe('createTopUpFlow: the first top-up is the registration', () => {
 						windowOrigin: 'https://game.example',
 						signingOrigin: 'https://wallet.example',
 					},
+					'cross-origin-blocked',
 				),
 			);
 
