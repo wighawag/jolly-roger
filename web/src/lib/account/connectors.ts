@@ -1,23 +1,43 @@
+import type {Account, Chain, Transport} from 'viem';
 import type {TrackedWalletClientType} from '@etherkit/viem-tx-tracker';
 import type {
 	ExtendedTransactionMetadata,
 	MultiAccountDataStore,
 	TransactionMetadata,
 } from './AccountData';
+import type {TxSource} from '$lib/core/connection/tx-source';
 import type {TransactionObserver} from '@etherkit/tx-observer';
 import {hookTxObserverToAccountData} from '$lib/core/utils/data/synqable-transactions';
 import type {OnchainStateStore} from '$lib/onchain/state';
 import {createConnector, combineTeardowns} from './connector';
 
-type TrackedClient = TrackedWalletClientType<TransactionMetadata, true>;
+/**
+ * The transport/chain/account arguments are all spelled out at their defaults,
+ * for the sole purpose of reaching TSource, which the tracker appended LAST.
+ * Naming it is what makes `tx.source` typed on the events below, and therefore
+ * what makes it reach storage; leaving it defaulted silently yields
+ * `source: undefined` and the operations file no route at all.
+ */
+type TrackedClient = TrackedWalletClientType<
+	TransactionMetadata,
+	true,
+	Transport,
+	Chain | undefined,
+	Account | undefined,
+	TxSource
+>;
 
 /**
  * The only surface this connector needs from a tracked client: its event
  * subscription. Both the wallet-mode client and any signer-mode client satisfy
  * this regardless of their transport/chain generics (which `on` does not
  * mention), so no casting is needed to attach to either.
+ *
+ * NOT to be confused with {@link TxSource}, which is a transaction's signing
+ * ROUTE. This is an emitter of tracked-transaction events, and it was called
+ * `TrackedTxSource` until the two names in one file became a liability.
  */
-type TrackedTxSource = Pick<TrackedClient, 'on'>;
+type TrackedTxEmitter = Pick<TrackedClient, 'on'>;
 
 /**
  * Told when a transaction was broadcast and could NOT be filed as an operation.
@@ -38,7 +58,7 @@ export type UnrecordedBroadcast = (params: {
  * Account Data. Returns a teardown.
  */
 function attachTrackedClient(
-	walletClient: TrackedTxSource,
+	walletClient: TrackedTxEmitter,
 	accountData: MultiAccountDataStore,
 	onUnrecordedBroadcast?: UnrecordedBroadcast,
 ): () => void {
@@ -112,7 +132,7 @@ function attachTrackedClient(
 /// detached and replaced when the identity changes, or a stale client's late
 /// events get written into the wrong account's data. See the signer variant.
 export function createTrackedWalletConnector(params: {
-	walletClient: TrackedTxSource;
+	walletClient: TrackedTxEmitter;
 	accountData: MultiAccountDataStore;
 	/**
 	 * Where a broadcast goes when account data cannot take it. Optional so this

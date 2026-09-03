@@ -9,7 +9,7 @@ import {
 	txErrorSummary,
 } from '$lib/core/transaction/tx-error-summary';
 import type {Context} from '$lib/context/types';
-import {connectionRefusal} from '$lib/core/connection/refusal';
+import {connectionRefusal, isUserDecision} from '$lib/core/connection/refusal';
 
 export type SetGreetingResult =
 	| {status: 'submitted'}
@@ -106,7 +106,14 @@ export async function setGreeting(
 		// Falling through said all of them the same way, as "Transaction failed:
 		// Connection cancelled", about a transaction that was never built, on top of
 		// the modal that had just explained it properly.
-		if (connectionRefusal(error)) return {status: 'cancelled'};
+		// ONLY A DECISION IS SILENT. This used to swallow every refusal, which was
+		// right when the alternative was a raw "Connection cancelled" in a red
+		// alert. Since @etherplay/connect 0.13.0 a failure says WHY, and two of
+		// the reasons (`unreachable`, `superseded`) are answers the library went
+		// to some trouble to produce instead of hanging: reporting them as a
+		// cancellation turns that work back into silence.
+		const refusal = connectionRefusal(error);
+		if (refusal && isUserDecision(refusal)) return {status: 'cancelled'};
 		console.error('Failed to set greeting:', error);
 		return {
 			status: 'error',

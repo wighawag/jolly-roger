@@ -10,6 +10,19 @@ import {
 } from '$lib/core/transaction';
 import type {Context} from '$lib/context/types';
 import type {ExecutorState} from '$lib/core/connection/executor';
+import {
+	selectSender,
+	walletOf,
+	type Sender,
+} from '$lib/core/connection/senders';
+import type {TxSource} from '$lib/core/connection/tx-source';
+import {isUserRejectionError} from '$lib/core/transaction/user-rejection';
+import {
+	connectionRefusal,
+	isUserDecision,
+	refusalExplanation,
+} from '$lib/core/connection/refusal';
+import {shortAddress} from '$lib/core/utils/ethereum/address';
 
 type GasParameters = {
 	maxFeePerGas?: bigint;
@@ -86,9 +99,9 @@ export type ReplacementResult =
 	| {status: 'submitted'}
 	| {status: 'cancelled'}
 	/**
-	 * The current accountExecutor account differs from the account that sent the
-	 * original tx. Replacements reuse the original nonce, and nonces are
-	 * per-account, so sending from another account would not replace anything.
+	 * No route here can produce this signature. Replacements reuse the original
+	 * nonce, and nonces are per-account, so sending from another account would
+	 * not replace anything.
 	 */
 	| {status: 'wrong-account'; expected: `0x${string}`}
 	| {status: 'error'; message: string};
@@ -97,28 +110,99 @@ export type ReplacementResult =
 export function wrongAccountMessage(expected: `0x${string}`): string {
 	return (
 		'This transaction was sent from a different account ' +
-		`(${expected.slice(0, 6)}…${expected.slice(-4)}). ` +
+		`(${shortAddress(expected)}). ` +
 		'Reconnect with that account to replace or cancel it.'
 	);
 }
 
 /**
- * A replacement (resubmit/cancel) must be sent from the same account as the
- * original tx. Returns the ready accountExecutor when it matches, or a
- * ReplacementResult to bail out with.
+ * The route that sent the original must be the one that replaces it, at the same
+ * address: replacements reuse the nonce and nonces are per-account.
  *
- * A not-ready accountExecutor is reported as an `error` (not `cancelled`): the user
- * explicitly clicked resubmit/cancel, so silently doing nothing would look
- * like a dead button. `cancelled` stays reserved for deliberate dismissal.
+ * ENSURES FIRST, ASKS AFTER. The route is selected from the recorded source and
+ * then told to make itself able to sign, which is a no-op when it already can
+ * and raises the connection flow when it cannot. That is the same shape as every
+ * other send here (`setGreeting`, `contractCall` both open with
+ * `ensureConnected`), and it is why there is no "disconnected" state for the UI
+ * to render: a route that is merely asleep is not a different answer, it is the
+ * same answer with a wallet prompt in front of it.
+ *
+ * The executor, not the connection, is the authority on whether that worked. A
+ * wallet can come back holding a different account than the one asked for, and
+ * that cannot sign the replacement however willingly it connected.
  */
-function requireSameAccountExecutor(
-	accountExecutor: Context['accountExecutor'],
-	originalFrom: `0x${string}`,
-):
-	| {ok: true; accountExecutor: Extract<ExecutorState, {status: 'ready'}>}
-	| {ok: false; result: ReplacementResult} {
-	const $accountExecutor = get(accountExecutor);
-	if ($accountExecutor.status !== 'ready') {
+async function requireSenderFor(
+	senders: Context['senders'],
+	originalTx: {from: `0x${string}`; source?: TxSource},
+): Promise<
+	| {
+			ok: true;
+			executor: Extract<ExecutorState, {status: 'ready'}>;
+			balance: Sender['balance'];
+	  }
+	| {ok: false; result: ReplacementResult}
+> {
+	const selection = selectSender(senders, originalTx);
+	if (selection.status === 'unavailable') {
+		return {
+			ok: false,
+			result: {status: 'wrong-account', expected: selection.address},
+		};
+	}
+
+	const sender = selection.sender;
+	try {
+		await sender.ensureCanSign?.({
+			address: originalTx.from,
+			wallet: walletOf(originalTx.source),
+		});
+	} catch (err) {
+		// Refusing or dismissing the wallet prompt is a cancellation, not a
+		// failure. NARROWED TO THE CANCELLED KIND, unlike `setGreeting` and
+		// `contractCall`, which treat ANY refusal that way: they can, because they
+		// leave the reason resting on the connection where `ConnectionFlow` renders
+		// it. This runs inside a modal stack on top of that, and `cancelled` shows
+		// the user nothing, so a declined permission or a blocked origin would
+		// leave a dialog sitting there having visibly done nothing.
+		const refusal = connectionRefusal(err);
+		if (isUserRejectionError(err) || (refusal && isUserDecision(refusal))) {
+			return {ok: false, result: {status: 'cancelled'}};
+		}
+		if (refusal) {
+			return {
+				ok: false,
+				result: {status: 'error', message: refusalExplanation(refusal)},
+			};
+		}
+		return {
+			ok: false,
+			result: {
+				status: 'error',
+				message:
+					toReplacementErrorMessage(
+						err,
+						'Could not reach the account that sent this transaction.',
+					) ?? 'Could not reach the account that sent this transaction.',
+			},
+		};
+	}
+
+	// TWO OUTCOMES, NOT ONE, and they must not be merged. "Nothing here can send
+	// at all" and "what can send is not the account that sent this" look the same
+	// from the code and read completely differently to the user: telling someone
+	// their own address belongs to a different account, and asking them to
+	// reconnect to the account they are already on, is worse than saying nothing.
+	// Only the second is actionable, and only it gets the wrong-account wording.
+	//
+	// KEPT DELIBERATELY THOUGH IT SHOULD NO LONGER FIRE. Since
+	// @etherplay/connect 0.12.0 a resolved `ensureCanSign` means the address was
+	// reached, so the second branch is an assertion rather than a routine
+	// outcome. It stays because the failure it guards is silent and expensive: a
+	// replacement sent from the wrong account is not a replacement, it is a NEW
+	// transaction at that account's next nonce, spending real gas and leaving the
+	// stuck one exactly where it was.
+	const executor = get(sender.executor);
+	if (executor.status !== 'ready') {
 		return {
 			ok: false,
 			result: {
@@ -128,19 +212,16 @@ function requireSameAccountExecutor(
 			},
 		};
 	}
-	if ($accountExecutor.address.toLowerCase() !== originalFrom.toLowerCase()) {
+	if (executor.address.toLowerCase() !== originalTx.from.toLowerCase()) {
 		return {
 			ok: false,
-			result: {status: 'wrong-account', expected: originalFrom},
+			result: {status: 'wrong-account', expected: originalTx.from},
 		};
 	}
-	return {ok: true, accountExecutor: $accountExecutor};
+	return {ok: true, executor, balance: sender.balance};
 }
 
-type ResubmitDeps = Pick<
-	Context,
-	'accountExecutor' | 'deployments' | 'balanceCheck' | 'accountBalance'
->;
+type ResubmitDeps = Pick<Context, 'senders' | 'deployments' | 'balanceCheck'>;
 
 /**
  * Resubmit a stuck operation with a new gas price, reusing the original nonce
@@ -154,29 +235,29 @@ export async function resubmitOperation(
 		gasPrice: GasPrice;
 	},
 ): Promise<ReplacementResult> {
-	const {accountExecutor, deployments, balanceCheck, accountBalance} = deps;
+	const {senders, deployments, balanceCheck} = deps;
 	const {operation, operationKey, gasPrice} = params;
 	const $deployments = get(deployments);
 	const originalTx = operation.metadata.tx;
 
-	const guarded = requireSameAccountExecutor(accountExecutor, originalTx.from);
+	const guarded = await requireSenderFor(senders, originalTx);
 	if (!guarded.ok) return guarded.result;
-	const $accountExecutor = guarded.accountExecutor;
+	const $executor = guarded.executor;
 
 	try {
 		const txRequest = await balanceCheck.ensureCanAfford(
 			{
 				transaction: {
-					account: $accountExecutor.account,
+					account: $executor.account,
 					to: originalTx.to as `0x${string}`,
 					data: originalTx.data,
 					value: originalTx.value,
 				},
 			},
 			// Measured against the account that is actually replacing the transaction,
-			// which requireSameAccountExecutor has just established is the one that
-			// sent the original.
-			{balance: accountBalance, sender: $accountExecutor.address},
+			// and against the balance that travels with it: requireSenderFor has just
+			// established that this is the route that sent the original.
+			{balance: guarded.balance, sender: $executor.address},
 		);
 
 		// operationId links this resubmit to the existing operation.
@@ -193,7 +274,7 @@ export async function resubmitOperation(
 			);
 		}
 
-		await $accountExecutor.client.sendTransaction({
+		await $executor.client.sendTransaction({
 			...txRequest,
 			chain: $deployments.chain,
 			nonce: originalTx.nonce,
@@ -216,11 +297,7 @@ export async function resubmitOperation(
 
 type CancelDeps = Pick<
 	Context,
-	| 'accountExecutor'
-	| 'deployments'
-	| 'balanceCheck'
-	| 'gasFee'
-	| 'accountBalance'
+	'senders' | 'deployments' | 'balanceCheck' | 'gasFee'
 >;
 
 /**
@@ -231,15 +308,14 @@ export async function cancelOperation(
 	deps: CancelDeps,
 	params: {operation: OnchainOperation},
 ): Promise<ReplacementResult> {
-	const {accountExecutor, deployments, balanceCheck, gasFee, accountBalance} =
-		deps;
+	const {senders, deployments, balanceCheck, gasFee} = deps;
 	const {operation} = params;
 	const $deployments = get(deployments);
 	const originalTx = operation.metadata.tx;
 
-	const guarded = requireSameAccountExecutor(accountExecutor, originalTx.from);
+	const guarded = await requireSenderFor(senders, originalTx);
 	if (!guarded.ok) return guarded.result;
-	const $accountExecutor = guarded.accountExecutor;
+	const $executor = guarded.executor;
 
 	try {
 		const gasFeeValue = get(gasFee);
@@ -253,12 +329,12 @@ export async function cancelOperation(
 		const txRequest = await balanceCheck.ensureCanAfford(
 			{
 				transaction: {
-					account: $accountExecutor.account,
+					account: $executor.account,
 					to: originalTx.from,
 					value: 0n,
 				},
 			},
-			{balance: accountBalance, sender: $accountExecutor.address},
+			{balance: guarded.balance, sender: $executor.address},
 		);
 
 		if (originalTx.chainId && originalTx.chainId !== $deployments.chain.id) {
@@ -267,7 +343,7 @@ export async function cancelOperation(
 			);
 		}
 
-		await $accountExecutor.client.sendTransaction({
+		await $executor.client.sendTransaction({
 			...txRequest,
 			chain: $deployments.chain,
 			nonce: originalTx.nonce,

@@ -1,6 +1,7 @@
 import type {Context, TxObserverDebugState} from './types.js';
-import {writable, derived, type Readable} from 'svelte/store';
+import {writable, derived, get, type Readable} from 'svelte/store';
 import {createAccountData} from '$lib/account/AccountData.js';
+import type {TransactionMetadata} from '$lib/account/AccountData.js';
 import {establishRemoteConnection} from '$lib/core/connection';
 import {createBalanceStore} from '$lib/core/connection/balance';
 import {createGasFeeStore} from '$lib/core/connection/gasFee';
@@ -39,6 +40,12 @@ import {
 	inactiveNonceCacheStore,
 } from '$lib/core/connection/nonce-cache-store.js';
 import {createExecutor} from '$lib/core/connection/executor.js';
+import {
+	walletIdentityOf,
+	type TxSource,
+} from '$lib/core/connection/tx-source.js';
+import type {SenderRegistry} from '$lib/core/connection/senders.js';
+import {ensureCanSignAs} from '$lib/core/connection/ensure-can-sign.js';
 import {nodeNonceReader} from '$lib/core/connection/nonce-cache.js';
 import {
 	createInFlightLedger,
@@ -379,11 +386,12 @@ function buildInFlight(params: {
 /** The tracked, dispatch-guarded wallet client. AFTER the ledger it guards. */
 function buildWalletClient(params: {
 	clock: ReturnType<typeof buildChainConfig>['clock'];
+	connection: ReturnType<typeof buildConnection>['connection'];
 	rawWalletClient: ReturnType<typeof buildConnection>['rawWalletClient'];
 	publicClient: ReturnType<typeof buildConnection>['publicClient'];
 	inFlight: ReturnType<typeof buildInFlight>['inFlight'];
 }) {
-	const {clock, rawWalletClient, publicClient, inFlight} = params;
+	const {clock, connection, rawWalletClient, publicClient, inFlight} = params;
 
 	// ----------------------------------------------------------------------------
 	// TRACKED WALLET CLIENT
@@ -392,9 +400,23 @@ function buildWalletClient(params: {
 	// Wrap the raw wallet client with tracking capabilities
 	// This is exposed as `walletClient` for drop-in compatibility
 	// Use `walletClient.walletClient` to access the underlying viem WalletClient if needed
-	const trackerBuilder = createTrackedWalletClient({
+	// A THUNK, NOT A VALUE, and read at each broadcast rather than here. This
+	// client is built once and lives for the session, while the wallet behind it
+	// does not: the user can connect a different one, or switch account inside
+	// the one they have, between now and any given send. A source captured at
+	// construction would name the wallet that happened to be connected at page
+	// load, which is precisely the transaction-to-wallet mapping this exists to
+	// get right. See core/connection/tx-source.
+	const trackerBuilder = createTrackedWalletClient<
+		TransactionMetadata,
+		TxSource
+	>({
 		populateMetadata: true,
 		clock: () => clock.now(),
+		source: () => ({
+			route: 'account',
+			wallet: walletIdentityOf(get(connection)),
+		}),
 	});
 	// GUARDED HERE, ONCE, so every send in the app records itself before dispatch:
 	// the account executor below is handed this client, and so is anything using
@@ -684,6 +706,7 @@ export function createCoreContext<App extends AppContext>(params: {
 
 	const {walletClient} = buildWalletClient({
 		clock,
+		connection,
 		rawWalletClient,
 		publicClient,
 		inFlight,
@@ -710,6 +733,24 @@ export function createCoreContext<App extends AppContext>(params: {
 
 	const {accountBalance, gasFee, balanceCheck, offline, txObserverDebug} =
 		buildBalances({publicClient, accountAddress, chainFetchGate});
+
+	// EVERY ROUTE THIS APP CAN SEND FROM. One here, because this app has one; a
+	// variant that adds a local signer or a payment rail registers those too, and
+	// a route that can send but is not registered can never replace its own stuck
+	// transactions. See core/connection/senders.
+	const senders: SenderRegistry = [
+		{
+			route: 'account',
+			executor: accountExecutor,
+			balance: accountBalance,
+			// `remember: true`: this is the user's own wallet, and the app connection
+			// auto-connects to whichever it saw last. Recovering it must leave that
+			// intact, or unsticking one transaction costs them the remembered wallet.
+			// A payment rail, whose payer is chosen per purchase, passes false.
+			ensureCanSign: (target) =>
+				ensureCanSignAs(connection, target, {remember: true}),
+		},
+	];
 
 	// ----------------------------------------------------------------------------
 	// THE APP'S OWN HALF
@@ -812,6 +853,7 @@ export function createCoreContext<App extends AppContext>(params: {
 		connection,
 		walletClient,
 		accountExecutor,
+		senders,
 		accountCannotSend,
 		errorDetails,
 		publicClient,

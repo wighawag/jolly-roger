@@ -3,6 +3,7 @@ import type {Account, Transport} from 'viem';
 import type {TrackedWalletClientAutoPopulate} from '@etherkit/viem-tx-tracker';
 import type {TransactionMetadata} from '$lib/account/AccountData';
 import {isDispatchGuarded} from '$lib/core/transaction/dispatch-guard';
+import type {TxSource} from './tx-source';
 import type {ChainConnection, ChainInfo} from './types';
 
 /**
@@ -44,12 +45,16 @@ import type {ChainConnection, ChainInfo} from './types';
  * chain stays pinned to the app's `ChainInfo`, so viem's
  * `writeContract`/`sendTransaction` generics (abitype inference, optional
  * `chain`) apply unchanged at call sites.
+ *
+ * Carries a {@link TxSource}, so every transaction records WHICH ROUTE signed
+ * it. That is what lets a stuck one be replaced later: see tx-source.
  */
 export type ExecutorClient = TrackedWalletClientAutoPopulate<
 	TransactionMetadata,
 	Transport,
 	ChainInfo,
-	Account | undefined
+	Account | undefined,
+	TxSource
 >;
 
 export type ExecutorState =

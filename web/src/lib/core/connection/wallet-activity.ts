@@ -1,4 +1,5 @@
 import {derived, get, readable, writable, type Readable} from 'svelte/store';
+import {shortAddress} from '$lib/core/utils/ethereum/address';
 import {
 	canDismissConnection,
 	isBurnerWalletInSelectionPhase,
@@ -400,13 +401,6 @@ export type WalletPromptCopy = {
 	title: string;
 	body: string;
 };
-
-/** `0x1234...cdef`, for naming an account in a sentence. */
-function shortAddress(address: string): string {
-	return address.length <= 12
-		? address
-		: `${address.slice(0, 6)}...${address.slice(-4)}`;
-}
 
 /**
  * The request whose words the modal should use, among those still live.

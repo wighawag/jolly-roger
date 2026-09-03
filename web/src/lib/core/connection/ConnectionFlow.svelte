@@ -26,6 +26,7 @@
 	} from './wallet-activity';
 	import {stopWaitingPromptFor} from './overlays';
 	import {connectionFailureView} from './refusal';
+	import {addressUnavailableView} from './address-unavailable';
 	import {untrack} from 'svelte';
 	import {dev, getAppContext} from '$lib';
 
@@ -184,6 +185,16 @@
 	// printed raw. Undefined when nothing is resting on the connection.
 	let failure = $derived(connectionFailureView($connection.error));
 
+	// The wallet cannot act as the account some action needs. Since
+	// @etherplay/connect 0.12.0 this RESTS on the connection instead of throwing,
+	// so it is rendered here beside the failure modal but deliberately NOT as one:
+	// nothing failed, the user is just on another account. See
+	// ./address-unavailable for the wording and for why `available` is not a
+	// picker.
+	let addressNeeded = $derived(
+		addressUnavailableView($connection.addressUnavailable),
+	);
+
 	// Combined choose+sign-in modal (multi-account wallet under a sign-in
 	// target): which row the user explicitly picked (undefined = follow the
 	// wallet's active account), and whether an adopt-then-sign action is in
@@ -283,6 +294,28 @@
 		     reading it, so it is quieter and separate rather than folded into the
 		     sentence above. -->
 		<p class="mt-2 text-xs text-muted-foreground">{failure.detail}</p>
+	{/if}
+</BasicModal>
+
+<!-- THE WALLET IS ON THE WRONG ACCOUNT, and this is an instruction, not a
+     failure. Two ways out and the user is owed both: switch account in the
+     wallet, which the library notices so the pending request carries on with
+     nothing to press here, or dismiss, which the library settles as a
+     cancellation. Rendered at any step, because the request that raised it can
+     come from a connected app (replacing a stuck transaction) rather than from
+     the connection flow. -->
+<BasicModal
+	layer="system"
+	title={addressNeeded?.title ?? 'Switch account'}
+	openWhen={!!addressNeeded}
+	cancel={{
+		label: 'Dismiss',
+		onclick: () => connection.acknowledgeAddressUnavailable(),
+	}}
+>
+	<p class="text-sm text-muted-foreground">{addressNeeded?.message}</p>
+	{#if addressNeeded?.detail}
+		<p class="mt-2 text-xs text-muted-foreground">{addressNeeded.detail}</p>
 	{/if}
 </BasicModal>
 
