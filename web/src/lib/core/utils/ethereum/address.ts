@@ -25,3 +25,21 @@ export function sameAddress(
 	if (!a || !b) return false;
 	return a.toLowerCase() === b.toLowerCase();
 }
+
+/**
+ * `0x1234…cdef`, for naming an account in a sentence.
+ *
+ * HERE because three copies had appeared (the wallet-activity modal, the
+ * replacement messages, the address-unavailable instruction) and they had
+ * already drifted: two spelled the gap `...` and one `…`. A user who sees the
+ * same account named two ways in two dialogs has no way to tell whether it is
+ * the same account.
+ *
+ * Returns short input unchanged rather than mangling it, so a name or an ENS
+ * label passed here by mistake stays readable.
+ */
+export function shortAddress(address: string): string {
+	return address.length <= 12
+		? address
+		: `${address.slice(0, 6)}…${address.slice(-4)}`;
+}
