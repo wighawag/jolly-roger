@@ -10,6 +10,7 @@ import type {
 	PopulatedMetadata,
 	TrackedTransaction,
 } from '@etherkit/viem-tx-tracker';
+import type {TxSource} from '$lib/core/connection/tx-source';
 import {
 	createLocalStorageAdapter,
 	createMultiAccountStore,
@@ -57,8 +58,17 @@ export type ExtendedTransactionMetadata = TransactionMetadata & {
 	operationId?: string;
 };
 
+/**
+ * `tx` keeps the tracker's own record: the facts observed at dispatch, minus
+ * the metadata (which is spread alongside it rather than nested twice).
+ *
+ * That is why `source` is PERSISTED FOR FREE. It is a field of
+ * `TrackedTransaction`, so naming {@link TxSource} here is the whole of what
+ * makes "which route signed this" survive a reload, and it lands beside `from`
+ * and `nonce`, which is exactly where the replacement path already looks.
+ */
 export type OnchainOperationMetadata = TransactionMetadata & {
-	tx: Omit<TrackedTransaction<PopulatedMetadata>, 'metadata'>;
+	tx: Omit<TrackedTransaction<PopulatedMetadata, TxSource>, 'metadata'>;
 };
 
 export type OnchainOperation = {
@@ -241,7 +251,7 @@ export function createAccountData(params: {
 	}
 
 	function addOperationFromTrackedTransaction(
-		transaction: TrackedTransaction<TransactionMetadata>,
+		transaction: TrackedTransaction<TransactionMetadata, TxSource>,
 	) {
 		const accountData = store.get();
 		if (accountData) {
@@ -270,7 +280,7 @@ export function createAccountData(params: {
 	}
 
 	function updateOperationFromFetchedTransaction(
-		transaction: KnownTrackedTransaction<TransactionMetadata>,
+		transaction: KnownTrackedTransaction<TransactionMetadata, TxSource>,
 	) {
 		const accountData = store.get();
 		if (accountData) {
@@ -345,7 +355,7 @@ export function createAccountData(params: {
 	 */
 	function addTransactionToOperation(
 		operationId: string,
-		transaction: TrackedTransaction<TransactionMetadata>,
+		transaction: TrackedTransaction<TransactionMetadata, TxSource>,
 	) {
 		const accountData = store.get();
 		if (accountData) {
