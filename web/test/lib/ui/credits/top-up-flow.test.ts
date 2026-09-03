@@ -522,32 +522,6 @@ const PURPOSE = {
 	explanation: 'This buys one tin, which the cat then eats.',
 } as const;
 
-/**
- * Switch which accounts a wallet will act as, the way a user switching account
- * in Rabby does: the connection keeps naming who it connected as, and only the
- * wallet's own list moves.
- */
-function setWalletAccounts(
-	flowDeps: TopUpFlowDeps,
-	which: 'owner' | 'payer',
-	accounts: readonly `0x${string}`[],
-) {
-	const store = (
-		which === 'owner'
-			? flowDeps.connection
-			: (flowDeps.payment as unknown as {connection: unknown}).connection
-	) as {
-		subscribe: (run: (v: unknown) => void) => () => void;
-		set: (v: unknown) => void;
-	};
-	let current: Record<string, unknown> = {};
-	store.subscribe((v) => (current = v as Record<string, unknown>))();
-	store.set({
-		...current,
-		wallet: {...(current.wallet as object), accounts},
-	});
-}
-
 describe('createTopUpFlow: what the payment is for', () => {
 	/**
 	 * THE BUG THIS GROUP EXISTS FOR.
@@ -1750,7 +1724,26 @@ describe('createTopUpFlow: a wallet that holds one account at a time', () => {
 	 * then no longer on the account that has to SIGN. Neither failure announces
 	 * itself: a signature comes back from the wrong key, and a transaction is
 	 * refused, both as an opaque wallet error.
+	 *
+	 * WHAT IS TESTED HERE CHANGED WITH @etherplay/connect 0.12.0, and the tests
+	 * changed with it rather than being deleted. The flow used to read the
+	 * wallet's account list itself, decide the answer was no, and park on a
+	 * `switch-account` step with a Retry button. It now NAMES THE ADDRESS in
+	 * `ensureConnected`, and the library owns everything that follows: it parks on
+	 * `connection.addressUnavailable`, the app renders that as an instruction, and
+	 * when the user switches account the original request carries on by itself.
+	 *
+	 * So the app's remaining responsibility is exactly the ASK, and that is what
+	 * these assert: the right address, on the right connection, before anything is
+	 * signed or sent. Asserting the parking here instead would be testing the
+	 * library through a fake that cannot park.
 	 */
+
+	/** The address each `ensureConnected` call asked to act as, in order. */
+	const addressesAsked = (fn: ReturnType<typeof vi.fn>) =>
+		fn.mock.calls.map(
+			(call) => (call[1] as {address?: `0x${string}`} | undefined)?.address,
+		);
 	const unregistered = (extra: Partial<DepsParams> = {}) =>
 		deps({
 			payerBalance: ETH,
@@ -1760,7 +1753,7 @@ describe('createTopUpFlow: a wallet that holds one account at a time', () => {
 			...extra,
 		});
 
-	it('stops and names the account to switch back to, instead of signing with the wrong one', async () => {
+	it('asks the wallet for the OWNER before signing as the owner', async () => {
 		const {flowDeps, signMessage} = unregistered({
 			// The user switched to the payer to choose it, so the wallet will now only
 			// act as the payer - including when asked to sign as the owner.
@@ -1772,16 +1765,18 @@ describe('createTopUpFlow: a wallet that holds one account at a time', () => {
 		await flow.choose('wallet');
 		await flow.confirm();
 
-		const state = get(flow);
-		expect(state.phase).toBe('switch-account');
-		expect(state.switchReason).toBe('sign');
-		expect(state.switchTo).toBe(OWNER);
-		expect(state.switchFrom).toBe(PAYER);
-		// Nothing was signed by the wrong key.
-		expect(signMessage).not.toHaveBeenCalled();
+		// The ask names the OWNER, which is what lets the library park rather than
+		// letting a wallet on the payer sign with the wrong key. Asking with no
+		// address would resolve instantly against the wrong account, which is the
+		// bug `ensureCanSignAs` exists to prevent.
+		const asked = addressesAsked(
+			flowDeps.connection.ensureConnected as ReturnType<typeof vi.fn>,
+		);
+		expect(asked).toContain(OWNER);
+		expect(signMessage).toHaveBeenCalledTimes(1);
 	});
 
-	it('signs once the wallet is back on the owner, and does not ask twice', async () => {
+	it('asks the PAYMENT connection for the payer, and only after the signature', async () => {
 		const {flowDeps, signMessage, paymentWriteContract} = unregistered({
 			ownerWalletAccounts: [PAYER],
 			// ...and the payment wallet is left on the owner after that switch, so the
@@ -1793,25 +1788,23 @@ describe('createTopUpFlow: a wallet that holds one account at a time', () => {
 		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 		await flow.confirm();
-		expect(get(flow).switchReason).toBe('sign');
 
-		// The user switches back to the owner and continues.
-		setWalletAccounts(flowDeps, 'owner', [OWNER]);
-		await flow.retry();
+		// EACH CONNECTION IS ASKED FOR ITS OWN ACCOUNT. Asking the app connection
+		// for the payer, or the rail for the owner, would each be a wallet parked
+		// forever on an address it has never held.
+		const payment = flowDeps.payment as unknown as {
+			connection: {ensureConnected: ReturnType<typeof vi.fn>};
+		};
+		expect(
+			addressesAsked(
+				flowDeps.connection.ensureConnected as ReturnType<typeof vi.fn>,
+			),
+		).toContain(OWNER);
+		expect(addressesAsked(payment.connection.ensureConnected)).toContain(PAYER);
 
-		// Signed, and now stopped on the OTHER side of the same problem: the payer
-		// has to be selected before its transaction can be sent.
-		expect(signMessage).toHaveBeenCalledTimes(1);
-		expect(get(flow).phase).toBe('switch-account');
-		expect(get(flow).switchReason).toBe('pay');
-		expect(get(flow).switchTo).toBe(PAYER);
-		expect(paymentWriteContract).not.toHaveBeenCalled();
-
-		// Switch to the payer and continue: the signature already in hand is used
-		// rather than asked for again.
-		setWalletAccounts(flowDeps, 'payer', [PAYER]);
-		await flow.retry();
-
+		// Signed once, then sent. The order is the point: the signature is obtained
+		// while the wallet is on the owner, so a one-account wallet makes one switch
+		// each way rather than a dance the user has to work out.
 		expect(signMessage).toHaveBeenCalledTimes(1);
 		expect(paymentWriteContract).toHaveBeenCalledTimes(1);
 		expect(paymentWriteContract.mock.calls[0][0].functionName).toBe(
@@ -1819,16 +1812,14 @@ describe('createTopUpFlow: a wallet that holds one account at a time', () => {
 		);
 	});
 
-	it('says nothing about switching when the wallet offers every account at once', async () => {
-		// MetaMask exposes every account the user connected, so switching the ACTIVE
-		// one changes nothing about what it will sign or send. Here it is active on
-		// the payer, having just been used to pick it, and neither the signature nor
-		// the transaction needs anything from the user.
-		const {flowDeps, signMessage, paymentWriteContract} = unregistered({
-			ownerWalletAccounts: [PAYER, OWNER],
-			ownerWalletActive: PAYER,
-			payerWalletAccounts: [PAYER, OWNER],
-			payerWalletActive: PAYER,
+	it('remembers the app wallet and deliberately forgets the payer', async () => {
+		// THE TWO CONNECTIONS WANT OPPOSITE THINGS, and getting this backwards is
+		// silent both ways: persisting the payer reintroduces the sticky payer that
+		// the rail's disconnect exists to prevent, and failing to persist the app
+		// wallet costs the user the wallet it auto-connects to next load.
+		const {flowDeps} = unregistered({
+			ownerWalletAccounts: [PAYER],
+			payerWalletAccounts: [OWNER],
 		});
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
@@ -1836,9 +1827,79 @@ describe('createTopUpFlow: a wallet that holds one account at a time', () => {
 		await flow.choose('wallet');
 		await flow.confirm();
 
-		expect(get(flow).phase).not.toBe('switch-account');
-		expect(signMessage).toHaveBeenCalledTimes(1);
-		expect(paymentWriteContract).toHaveBeenCalledTimes(1);
+		const optionsOf = (fn: ReturnType<typeof vi.fn>, address: `0x${string}`) =>
+			fn.mock.calls.find(
+				(call) =>
+					(call[1] as {address?: string} | undefined)?.address === address,
+			)?.[2] as {doNotStoreLocally?: boolean} | undefined;
+
+		const payment = flowDeps.payment as unknown as {
+			connection: {ensureConnected: ReturnType<typeof vi.fn>};
+		};
+		expect(
+			optionsOf(
+				flowDeps.connection.ensureConnected as ReturnType<typeof vi.fn>,
+				OWNER,
+			)?.doNotStoreLocally,
+		).toBe(false);
+		expect(
+			optionsOf(payment.connection.ensureConnected, PAYER)?.doNotStoreLocally,
+		).toBe(true);
+	});
+
+	it('treats a dismissed account instruction as a decision, not a failure', async () => {
+		// Dismissing the "switch account" instruction settles as
+		// `address-unavailable-acknowledged`. The user said no, and they said it to
+		// a dialog that already explained itself, so the flow goes quietly back to
+		// `ready`. Reporting it in red would be the app arguing with an answer.
+		const {flowDeps, signMessage} = unregistered({
+			ownerWalletAccounts: [PAYER],
+		});
+		(
+			flowDeps.connection.ensureConnected as unknown as {
+				mockRejectedValueOnce: (e: unknown) => void;
+			}
+		).mockRejectedValueOnce(
+			new ConnectionFailure(
+				'Connection cancelled',
+				undefined,
+				'address-unavailable-acknowledged',
+			),
+		);
+		const flow = createTopUpFlow(flowDeps, CONFIG);
+
+		await flow.start(PURPOSE);
+		await flow.choose('wallet');
+		await flow.confirm();
+
+		expect(get(flow).phase).toBe('ready');
+		expect(get(flow).error).toBeUndefined();
+		expect(signMessage).not.toHaveBeenCalled();
+	});
+
+	it('reports a refusal that is NOT a decision', async () => {
+		// `unreachable` is an answer the library went to some trouble to produce
+		// instead of hanging. Swallowing it the way a cancellation is swallowed
+		// would leave the user pressing Confirm on a dialog that does nothing.
+		const {flowDeps, signMessage} = unregistered({
+			ownerWalletAccounts: [PAYER],
+		});
+		(
+			flowDeps.connection.ensureConnected as unknown as {
+				mockRejectedValueOnce: (e: unknown) => void;
+			}
+		).mockRejectedValueOnce(
+			new ConnectionFailure('nope', undefined, 'unreachable'),
+		);
+		const flow = createTopUpFlow(flowDeps, CONFIG);
+
+		await flow.start(PURPOSE);
+		await flow.choose('wallet');
+		await flow.confirm();
+
+		expect(get(flow).phase).toBe('ready');
+		expect(get(flow).error).toBeTruthy();
+		expect(signMessage).not.toHaveBeenCalled();
 	});
 });
 
