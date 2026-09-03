@@ -12,7 +12,7 @@ import {
 	isStoppedWaitingError,
 } from '$lib/core/transaction';
 import {isUserRejectionError} from '$lib/core/transaction/user-rejection';
-import {connectionRefusal} from '$lib/core/connection/refusal';
+import {connectionRefusal, isUserDecision} from '$lib/core/connection/refusal';
 import {convertInputValues} from './utils';
 
 /**
@@ -97,7 +97,14 @@ export async function executeContractWrite(params: {
 		// there by ConnectionFlow. Rethrowing put the raw text ("Connection
 		// cancelled") in this page's red alert as though the contract had refused
 		// the call.
-		if (connectionRefusal(e)) return {status: 'cancelled'};
+		// ONLY A DECISION IS SILENT. This used to swallow every refusal, which was
+		// right when the alternative was a raw "Connection cancelled" in a red
+		// alert. Since @etherplay/connect 0.13.0 a failure says WHY, and two of
+		// the reasons (`unreachable`, `superseded`) are answers the library went
+		// to some trouble to produce instead of hanging: reporting them as a
+		// cancellation turns that work back into silence.
+		const refusal = connectionRefusal(e);
+		if (refusal && isUserDecision(refusal)) return {status: 'cancelled'};
 		throw e;
 	}
 

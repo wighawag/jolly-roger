@@ -134,36 +134,6 @@
 			<p class="text-muted-foreground">
 				Nothing was charged. You can close this and try again.
 			</p>
-		{:else if $topUp.phase === 'switch-account'}
-			<!-- Some wallets (Rabby) expose ONE account at a time, so the account the
-			     app is connected as and the account the wallet will act as can drift
-			     apart. Saying which one is needed, and which one it is on, is the
-			     difference between an instruction and a guess. -->
-			<p class="text-muted-foreground" data-testid="switch-account">
-				{#if $topUp.switchReason === 'sign'}
-					Your wallet needs to be on the account you signed in with to authorise
-					this browser.
-				{:else}
-					Your wallet needs to be on the account that is paying.
-				{/if}
-			</p>
-			<div class="space-y-2 rounded-lg bg-muted p-4">
-				<div class="flex items-center justify-between">
-					<span class="text-muted-foreground">Switch to:</span>
-					{#if $topUp.switchTo}
-						<Address value={$topUp.switchTo} size="xs" mono />
-					{/if}
-				</div>
-				{#if $topUp.switchFrom}
-					<div class="flex items-center justify-between">
-						<span class="text-muted-foreground">Currently on:</span>
-						<Address value={$topUp.switchFrom} size="xs" mono />
-					</div>
-				{/if}
-			</div>
-			<p class="text-sm text-muted-foreground">
-				Switch account in your wallet, then continue. Nothing has been sent.
-			</p>
 		{:else if $topUp.phase === 'empty'}
 			<p class="text-muted-foreground">
 				The account you chose to pay from is empty, so there is nothing to
@@ -381,22 +351,6 @@
 		{:else if $topUp.phase === 'failed'}
 			<Button variant="outline" class="w-full" onclick={() => topUp.cancel()}>
 				Close
-			</Button>
-		{:else if $topUp.phase === 'switch-account'}
-			<Button
-				class="flex-1"
-				onclick={() => topUp.retry()}
-				disabled={$topUp.busy}
-				data-testid="retry-after-switch"
-			>
-				I have switched
-			</Button>
-			<Button
-				variant="outline"
-				onclick={() => topUp.cancel()}
-				disabled={$topUp.busy}
-			>
-				Cancel
 			</Button>
 		{:else if $topUp.phase === 'ready' || $topUp.phase === 'sending'}
 			<Button

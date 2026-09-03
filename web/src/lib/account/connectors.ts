@@ -1,23 +1,43 @@
+import type {Account, Chain, Transport} from 'viem';
 import type {TrackedWalletClientType} from '@etherkit/viem-tx-tracker';
 import type {
 	ExtendedTransactionMetadata,
 	MultiAccountDataStore,
 	TransactionMetadata,
 } from './AccountData';
+import type {TxSource} from '$lib/core/connection/tx-source';
 import type {TransactionObserver} from '@etherkit/tx-observer';
 import {hookTxObserverToAccountData} from '$lib/core/utils/data/synqable-transactions';
 import type {ExecutorStore} from '$lib/core/connection/executor';
 import {createConnector, combineTeardowns} from './connector';
 
-type TrackedClient = TrackedWalletClientType<TransactionMetadata, true>;
+/**
+ * The transport/chain/account arguments are all spelled out at their defaults,
+ * for the sole purpose of reaching TSource, which the tracker appended LAST.
+ * Naming it is what makes `tx.source` typed on the events below, and therefore
+ * what makes it reach storage; leaving it defaulted silently yields
+ * `source: undefined` and the operations file no route at all.
+ */
+type TrackedClient = TrackedWalletClientType<
+	TransactionMetadata,
+	true,
+	Transport,
+	Chain | undefined,
+	Account | undefined,
+	TxSource
+>;
 
 /**
  * The only surface this connector needs from a tracked client: its event
  * subscription. Both the wallet-mode client and any signer-mode client satisfy
  * this regardless of their transport/chain generics (which `on` does not
  * mention), so no casting is needed to attach to either.
+ *
+ * NOT to be confused with {@link TxSource}, which is a transaction's signing
+ * ROUTE. This is an emitter of tracked-transaction events, and it was called
+ * `TrackedTxSource` until the two names in one file became a liability.
  */
-type TrackedTxSource = Pick<TrackedClient, 'on'>;
+type TrackedTxEmitter = Pick<TrackedClient, 'on'>;
 
 /**
  * Told when a transaction was broadcast and could NOT be filed as an operation.
@@ -39,7 +59,7 @@ export type UnrecordedBroadcast = (params: {
  * given, fixed or executor-derived.
  */
 function attachTrackedClient(
-	client: TrackedTxSource,
+	client: TrackedTxEmitter,
 	accountData: MultiAccountDataStore,
 	onUnrecordedBroadcast?: UnrecordedBroadcast,
 ): () => void {
@@ -137,7 +157,7 @@ export function createTrackedWalletConnector(params: {
 	 * any other tracked client built alongside it (the payment rail). Order is
 	 * irrelevant, and duplicates are harmless.
 	 */
-	clients: readonly TrackedTxSource[];
+	clients: readonly TrackedTxEmitter[];
 	executors: readonly ExecutorStore[];
 	accountData: MultiAccountDataStore;
 	/**
@@ -166,7 +186,7 @@ export function createTrackedWalletConnector(params: {
 		// Per-executor, so one executor swapping its client never detaches
 		// another's. Keyed by position rather than by the executor object, which
 		// keeps this independent of how many there are.
-		const attached: (TrackedTxSource | undefined)[] = executors.map(
+		const attached: (TrackedTxEmitter | undefined)[] = executors.map(
 			() => undefined,
 		);
 		const teardowns: ((() => void) | undefined)[] = executors.map(
@@ -174,7 +194,7 @@ export function createTrackedWalletConnector(params: {
 		);
 
 		/** Whether some OTHER slot already listens to this exact client. */
-		const attachedElsewhere = (client: TrackedTxSource, self: number) =>
+		const attachedElsewhere = (client: TrackedTxEmitter, self: number) =>
 			attached.some((c, i) => i !== self && c === client);
 
 		const unsubscribes = executors.map((executor, i) =>

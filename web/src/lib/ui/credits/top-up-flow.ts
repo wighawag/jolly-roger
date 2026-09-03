@@ -35,11 +35,12 @@ import {
 	type RegistrationWriter,
 } from '$lib/ui/delegation/register-delegate';
 import {
-	walletCanActAs,
-	walletSelectedInstead,
-} from '$lib/core/connection/wallet-account';
+	ensureCanSignAs,
+	type SignableConnection,
+} from '$lib/core/connection/ensure-can-sign';
 import {
 	connectionRefusal,
+	isUserDecision,
 	refusalExplanation,
 } from '$lib/core/connection/refusal';
 import {
@@ -196,13 +197,6 @@ export type TopUpPhase =
 	 * it a step of its own only added a click between reading and acting.
 	 */
 	| 'ready'
-	/**
-	 * The wallet is on a different account than the one about to be asked to act.
-	 *
-	 * Its own step because it is the user's to resolve, in their wallet, and
-	 * nothing the app can do moves it along.
-	 */
-	| 'switch-account'
 	| 'sending'
 	/** Stopped before there was anything to act on, e.g. no payer connected. */
 	| 'failed';
@@ -288,14 +282,6 @@ export type TopUpState = {
 	 */
 	explanation: string | undefined;
 	/**
-	 * The account the wallet has to be switched back to, on `switch-account`,
-	 * and the one it is on instead.
-	 */
-	switchTo: `0x${string}` | undefined;
-	switchFrom: `0x${string}` | undefined;
-	/** What that account is needed FOR, so the ask is not a bare instruction. */
-	switchReason: 'sign' | 'pay' | undefined;
-	/**
 	 * Whether the wallet that will sign does so without showing anything.
 	 *
 	 * Wording only: the development burner signs silently, and promising a prompt
@@ -326,9 +312,6 @@ const CLOSED: Omit<TopUpState, 'purpose' | 'consent'> = {
 	dispensed: undefined,
 	fundsPending: false,
 	explanation: undefined,
-	switchTo: undefined,
-	switchFrom: undefined,
-	switchReason: undefined,
 	silentSigner: false,
 	error: undefined,
 	details: undefined,
@@ -393,8 +376,6 @@ export type TopUpFlow = Readable<TopUpState> & {
 	/** Re-read the payer's balance. */
 	refresh(): Promise<void>;
 	confirm(): Promise<void>;
-	/** Try again once the user says they have switched account in their wallet. */
-	retry(): Promise<void>;
 	/**
 	 * Sign in again, to be handed a fresh credential, and carry on.
 	 *
@@ -758,31 +739,61 @@ export function createTopUpFlow(
 	});
 
 	/**
-	 * Stop unless the wallet can act as `address` right now.
+	 * Get the wallet onto `address`, or stop.
 	 *
 	 * The wallet decides who it will act as, and the app's connection is only its
 	 * record of who it last agreed to. A wallet exposing one account at a time
 	 * (Rabby) leaves those two disagreeing the moment the user switches, and then
 	 * a signature comes back from the wrong key or a transaction is refused, both
-	 * as an opaque wallet error. Asking first turns that into an instruction.
+	 * as an opaque wallet error.
 	 *
-	 * Returns whether to carry on; when it stops, the flow is parked on the
-	 * switch-account step with a Retry that resumes exactly here.
+	 * ASKS THE CONNECTION RATHER THAN INSPECTING IT, which is the change 0.12.0
+	 * made possible and the reason the `switch-account` step is gone. This used to
+	 * read the wallet's accounts itself, decide the answer was no, and park the
+	 * flow on a step whose only content was an instruction and a Retry button that
+	 * re-ran the same check. Naming the address in `ensureConnected` hands the
+	 * whole exchange to the library: it parks on `connection.addressUnavailable`,
+	 * ConnectionFlow renders that as an instruction, and when the user switches
+	 * account the ORIGINAL request carries on by itself. There is no retry to
+	 * wire, because there is nothing to re-run.
+	 *
+	 * `remember` is the caller's, and the two callers want opposite things: the
+	 * app connection persists the wallet it last used, the payment rail clears
+	 * that slot before every payment so the payer is chosen afresh.
+	 *
+	 * Returns whether to carry on; when it stops, it has already said why.
 	 */
 	const ensureWalletIsOn = async (
-		target: {subscribe: Readable<unknown>['subscribe']},
+		target: SignableConnection,
 		address: `0x${string}`,
-		reason: 'sign' | 'pay',
+		options: {remember: boolean},
 	): Promise<boolean> => {
-		const $target = get(target);
-		if (walletCanActAs($target, address)) return true;
-		set({
-			phase: 'switch-account',
-			switchTo: address,
-			switchFrom: walletSelectedInstead($target, address),
-			switchReason: reason,
-		});
-		return false;
+		try {
+			await ensureCanSignAs(target, {address}, options);
+			return true;
+		} catch (error) {
+			const refusal = connectionRefusal(error);
+			// ONLY A DECISION IS SILENT. Dismissing the instruction settles as
+			// `address-unavailable-acknowledged`, which is the user saying no and
+			// needs no words; `unreachable` and `superseded` are real answers, and
+			// reporting them as a quiet return to `ready` would leave the user
+			// pressing a button that appears to do nothing.
+			if (isUserRejectionError(error) || (refusal && isUserDecision(refusal))) {
+				set({phase: 'ready', error: undefined, details: undefined});
+				return false;
+			}
+			if (refusal) {
+				set({phase: 'ready', error: refusalExplanation(refusal)});
+				return false;
+			}
+			console.error('Could not reach the account that has to act', error);
+			set({
+				phase: 'ready',
+				error: 'Could not reach the account this needs. Try again.',
+				details: error instanceof Error ? error.stack : String(error),
+			});
+			return false;
+		}
 	};
 
 	/**
@@ -931,9 +942,12 @@ export function createTopUpFlow(
 		const needsCredential = asksLive || route?.kind === 'pre-signed';
 
 		if (needsCredential && !credential) {
+			// `remember: true`: this is the user's own wallet on the app connection,
+			// which auto-connects to whichever it saw last. Getting it onto the owner
+			// account to sign must not cost them that memory.
 			if (
 				asksLive &&
-				!(await ensureWalletIsOn(connection, account.owner, 'sign'))
+				!(await ensureWalletIsOn(connection, account.owner, {remember: true}))
 			) {
 				return;
 			}
@@ -971,7 +985,15 @@ export function createTopUpFlow(
 		// after the signature rather than before is what makes that one switch each
 		// way instead of a dance the user has to work out for themselves.
 		if (state.method === 'wallet' && state.payer) {
-			if (!(await ensureWalletIsOn(payment.connection, state.payer, 'pay'))) {
+			// `remember: false`, the opposite of the signing call above: the rail
+			// disconnects after every payment so the user re-picks a payer, and
+			// persisting one here would put it straight back into the slot that
+			// clearing exists to empty.
+			if (
+				!(await ensureWalletIsOn(payment.connection, state.payer, {
+					remember: false,
+				}))
+			) {
 				return;
 			}
 		}
@@ -1389,25 +1411,6 @@ export function createTopUpFlow(
 		},
 
 		/**
-		 * The user says they have switched account in their wallet.
-		 *
-		 * Re-runs the same checks rather than trusting the claim: the wallet is the
-		 * authority on which account it holds, and if it still disagrees the user
-		 * lands back here instead of on a failure they cannot read.
-		 */
-		async retry() {
-			if (state.phase !== 'switch-account' || state.busy) return;
-			set({
-				switchTo: undefined,
-				switchFrom: undefined,
-				switchReason: undefined,
-				error: undefined,
-				details: undefined,
-			});
-			await perform();
-		},
-
-		/**
 		 * Sign in again, then pick the flow up where it stopped.
 		 *
 		 * Signing OUT first, because a connection that is already signed in has
@@ -1472,7 +1475,10 @@ export function createTopUpFlow(
 				// modal: `disconnect` is part of the remedy, so however this ends the
 				// user is signed out, with this flow still open in front of them.
 				const refusal = connectionRefusal(error);
-				if (isUserRejectionError(error) || refusal?.kind === 'cancelled') {
+				if (
+					isUserRejectionError(error) ||
+					(refusal && isUserDecision(refusal))
+				) {
 					// Now reached by a CLOSED POPUP too, which it was not before 0.6.0:
 					// `ConnectionFailure('Connection cancelled')` carries no 4001 and does
 					// not say "user cancelled", so backing out of a hosted sign-in used to
@@ -1496,7 +1502,7 @@ export function createTopUpFlow(
 					});
 					return;
 				}
-				if (refusal?.kind === 'permission-denied') {
+				if (refusal?.kind === 'host-refused') {
 					// Stays on `re-authorise`, which keeps the button that is already
 					// there. Nothing is added: the remedy for a declined permission is the
 					// person answering differently, and this button is how they say so by

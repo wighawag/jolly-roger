@@ -10,10 +10,20 @@ import type {
 import {deployments as deploymentsStore} from '$lib/deployments-store';
 import {createWalletClient, custom, http} from 'viem';
 import {privateKeyToAccount} from 'viem/accounts';
-import {writable, derived, type Readable, type Writable} from 'svelte/store';
+import {
+	writable,
+	derived,
+	get,
+	type Readable,
+	type Writable,
+} from 'svelte/store';
 import {createAccountData} from '$lib/account/AccountData.js';
+import type {TransactionMetadata} from '$lib/account/AccountData.js';
 import {establishRemoteConnection} from '$lib/core/connection';
-import {createPaymentRail} from '$lib/core/connection/remote.js';
+import {
+	createPaymentRail,
+	payerAddressOf,
+} from '$lib/core/connection/remote.js';
 import {createBalanceStore} from '$lib/core/connection/balance';
 import {createGasFeeStore} from '$lib/core/connection/gasFee';
 import {createRpcHealthStore} from '$lib/core/connection/rpcHealth';
@@ -61,6 +71,13 @@ import {
 	memoiseSignerClient,
 	type ExecutorStore,
 } from '$lib/core/connection/executor.js';
+import {createSenderRegistry} from './sender-registry.js';
+import {
+	walletIdentityOf,
+	type TxSource,
+} from '$lib/core/connection/tx-source.js';
+import type {SenderRegistry} from '$lib/core/connection/senders.js';
+import {ensureCanSignAs} from '$lib/core/connection/ensure-can-sign.js';
 import {nodeNonceReader} from '$lib/core/connection/nonce-cache.js';
 import {
 	createInFlightLedger,
@@ -482,11 +499,19 @@ function buildInFlight(params: {
 function buildWalletClient(params: {
 	rawPayment: ReturnType<typeof buildConnection>['rawPayment'];
 	clock: ReturnType<typeof buildChainConfig>['clock'];
+	connection: ReturnType<typeof buildConnection>['connection'];
 	rawWalletClient: ReturnType<typeof buildConnection>['rawWalletClient'];
 	publicClient: ReturnType<typeof buildConnection>['publicClient'];
 	inFlight: ReturnType<typeof buildInFlight>['inFlight'];
 }) {
-	const {clock, rawWalletClient, publicClient, inFlight, rawPayment} = params;
+	const {
+		clock,
+		connection,
+		rawWalletClient,
+		publicClient,
+		inFlight,
+		rawPayment,
+	} = params;
 
 	// ----------------------------------------------------------------------------
 	// TRACKED WALLET CLIENT
@@ -495,9 +520,73 @@ function buildWalletClient(params: {
 	// Wrap the raw wallet client with tracking capabilities
 	// This is exposed as `walletClient` for drop-in compatibility
 	// Use `walletClient.walletClient` to access the underlying viem WalletClient if needed
-	const trackerBuilder = createTrackedWalletClient({
+	//
+	// ONE BUILDER PER ROUTE, AND THAT IS WHY THERE ARE THREE OF THEM BELOW.
+	//
+	// `source` is a BUILDER option, so every client a builder makes carries the
+	// same one. This app sends from three places (the app wallet, the payment
+	// rail, the local signer), and it used to make all three from a single
+	// builder, which after `source` arrived would have stamped `route: 'account'`
+	// on all of them. That is WORSE than leaving them unstamped: `selectSender`
+	// trusts the route, so a stuck rail payment would be routed with total
+	// confidence to the account executor, and the recovery would ask the user's
+	// identity wallet to sign for the payer's address. Unstamped at least falls
+	// back to matching an address among ready executors.
+	//
+	// `test/tracked-clients-declare-source.test.ts` counts CLIENTS against
+	// builders for exactly this reason, so the split is enforced rather than
+	// remembered. (Its counter is a deliberately crude text scan, so this comment
+	// says "clients" rather than spelling the call it looks for.)
+	//
+	// A THUNK, NOT A VALUE, on both WALLET routes, and read at each broadcast
+	// rather than here. These clients are built once and live for the session,
+	// while the wallets behind them do not: the user can connect a different one,
+	// or switch account inside the one they have, between now and any given send.
+	// A source captured at construction would name the wallet that happened to be
+	// connected at page load, which is precisely the transaction-to-wallet mapping
+	// this exists to get right. The signer is the exception and says why at its
+	// own builder. See core/connection/tx-source.
+	const accountTrackerBuilder = createTrackedWalletClient<
+		TransactionMetadata,
+		TxSource
+	>({
 		populateMetadata: true,
 		clock: () => clock.now(),
+		source: () => ({
+			route: 'account',
+			wallet: walletIdentityOf(get(connection)),
+		}),
+	});
+
+	// THE RAIL'S OWN CONNECTION, not the app's, and reading the app's here would
+	// be the same bug as sharing one builder: the payer is a wallet chosen per
+	// payment on a SECOND connection, and is routinely not the wallet the user is
+	// signed in with. Recording the app's wallet against a rail payment would send
+	// the recovery to the wrong wallet while looking entirely correct.
+	const railTrackerBuilder = createTrackedWalletClient<
+		TransactionMetadata,
+		TxSource
+	>({
+		populateMetadata: true,
+		clock: () => clock.now(),
+		source: () => ({
+			route: 'rail',
+			wallet: walletIdentityOf(get(rawPayment.connection)),
+		}),
+	});
+
+	// A PLAIN VALUE, and the only one of the three that can be. There is no wallet
+	// to name, and `memoiseSignerClient` binds one client OBJECT per private key,
+	// so a client built here can never outlive the key it signs with the way the
+	// wallet clients outlive the wallets behind them. A thunk would have nothing
+	// to read.
+	const signerTrackerBuilder = createTrackedWalletClient<
+		TransactionMetadata,
+		TxSource
+	>({
+		populateMetadata: true,
+		clock: () => clock.now(),
+		source: {route: 'signer'},
 	});
 	// GUARDED HERE so every send through it records itself before dispatch: the
 	// account executor below is handed this client, and so is anything using
@@ -514,7 +603,7 @@ function buildWalletClient(params: {
 	// instruction. The signer's passes `{prompts: false}`, because it signs with a
 	// key the app already holds and nobody is waiting on anything.
 	const walletClient = guardDispatch(
-		trackerBuilder.using(rawWalletClient, publicClient),
+		accountTrackerBuilder.using(rawWalletClient, publicClient),
 		inFlight,
 	);
 
@@ -572,12 +661,15 @@ function buildWalletClient(params: {
 	const payment: TrackedPaymentRail = {
 		...rawPayment,
 		walletClient: guardDispatch(
-			trackerBuilder.using(rawPayment.walletClient, rawPayment.publicClient),
+			railTrackerBuilder.using(
+				rawPayment.walletClient,
+				rawPayment.publicClient,
+			),
 			inFlight,
 		),
 	};
 
-	return {walletClient, payment, trackerBuilder};
+	return {walletClient, payment, signerTrackerBuilder};
 }
 
 /** Who signs, what watches the result, and the connectors that file it. */
@@ -588,7 +680,9 @@ function buildExecution(params: {
 	publicClient: ReturnType<typeof buildConnection>['publicClient'];
 	signerRpcUrl: ReturnType<typeof buildChainConfig>['signerRpcUrl'];
 	chainFetchGate: ReturnType<typeof buildChainConfig>['chainFetchGate'];
-	trackerBuilder: ReturnType<typeof buildWalletClient>['trackerBuilder'];
+	signerTrackerBuilder: ReturnType<
+		typeof buildWalletClient
+	>['signerTrackerBuilder'];
 	connection: ReturnType<typeof buildConnection>['connection'];
 	walletClient: ReturnType<typeof buildWalletClient>['walletClient'];
 	payment: ReturnType<typeof buildWalletClient>['payment'];
@@ -609,7 +703,7 @@ function buildExecution(params: {
 		publicClient,
 		signerRpcUrl,
 		chainFetchGate,
-		trackerBuilder,
+		signerTrackerBuilder,
 	} = params;
 
 	// ----------------------------------------------------------------------------
@@ -688,9 +782,13 @@ function buildExecution(params: {
 				: custom(connection.provider),
 		});
 		return {
-			client: guardDispatch(trackerBuilder.using(raw, publicClient), inFlight, {
-				prompts: false,
-			}),
+			client: guardDispatch(
+				signerTrackerBuilder.using(raw, publicClient),
+				inFlight,
+				{
+					prompts: false,
+				},
+			),
 			account,
 		};
 	});
@@ -1039,8 +1137,9 @@ export function createCoreContext<App extends AppContext>(params: {
 		deployments,
 	});
 
-	const {walletClient, payment, trackerBuilder} = buildWalletClient({
+	const {walletClient, payment, signerTrackerBuilder} = buildWalletClient({
 		clock,
+		connection,
 		rawWalletClient,
 		publicClient,
 		inFlight,
@@ -1070,7 +1169,7 @@ export function createCoreContext<App extends AppContext>(params: {
 		publicClient,
 		signerRpcUrl,
 		chainFetchGate,
-		trackerBuilder,
+		signerTrackerBuilder,
 		finality,
 		inFlight,
 	});
@@ -1090,6 +1189,40 @@ export function createCoreContext<App extends AppContext>(params: {
 		signerExecutor,
 		addressOf,
 		chainFetchGate,
+	});
+
+	// WHAT THE PAYER HOLDS, on the payer's own node.
+	//
+	// Only ever read when a rail payment is being REPLACED, to price the
+	// replacement against the account that will actually pay it. It has to be the
+	// rail's public client for the same reason the rail's tracked client is: the
+	// payer connects their own wallet, wherever it happens to be pointed, and the
+	// app's node has no standing to answer for it.
+	//
+	// Idle while the rail is dormant, which is its normal state: `payerAddressOf`
+	// is undefined with nobody connected, and a polling store with a falsy source
+	// fetches nothing. So this costs nothing until the user is actually paying.
+	const payerBalance = createBalanceStore({
+		publicClient: payment.publicClient,
+		account: derived(payment.connection, ($payment) =>
+			payerAddressOf($payment),
+		),
+	});
+
+	// EVERY ROUTE THIS APP CAN SEND FROM. Three of them: the authenticated
+	// account, the local signer, and whichever wallet paid on the rail. A route
+	// that can send but is not registered can never replace its own stuck
+	// transactions, and that is not hypothetical, it is the bug this whole
+	// mechanism exists for. Composed in ./sender-registry, which is a file of its
+	// own so the composition can be tested without building a chain.
+	const senders: SenderRegistry = createSenderRegistry({
+		connection,
+		payment,
+		accountExecutor,
+		signerExecutor,
+		accountBalance,
+		signerBalance,
+		payerBalance,
 	});
 
 	// ----------------------------------------------------------------------------
@@ -1245,6 +1378,7 @@ export function createCoreContext<App extends AppContext>(params: {
 		connection,
 		walletClient,
 		accountExecutor,
+		senders,
 		accountCannotSend,
 		errorDetails,
 		publicClient,

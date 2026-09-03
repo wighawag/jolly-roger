@@ -16,6 +16,8 @@ import type {
 import type {CreditsConfig} from '$lib/core/connection/credits';
 import type {SignerGrant} from '$lib/ui/delegation/grant';
 import type {ExecutorStore} from '$lib/core/connection/executor';
+import type {SenderRegistry} from '$lib/core/connection/senders';
+import type {TxSource} from '$lib/core/connection/tx-source';
 import type {TrackedWalletClientAutoPopulate} from '@etherkit/viem-tx-tracker';
 import type {
 	MultiAccountDataStore,
@@ -40,12 +42,19 @@ import type {OverlayRegistry} from '$lib/core/ui/overlay';
  * TrackedWalletClient with chain info from deployments.
  * This allows writeContract calls to have optional `chain` parameter
  * since the client already has a chain associated.
+ *
+ * `TxSource` is the LAST type argument, which is where the tracker appended it
+ * (`TrackedWalletClientAutoPopulate<TMetadata, TTransport, TChain, TAccount,
+ * TSource>`). On `TrackedTransaction` it is the SECOND, since that type has no
+ * transport or chain to name. Getting the two the wrong way round type-checks
+ * for a while and then fails somewhere unrelated, so it is worth saying once.
  */
 export type WalletClient = TrackedWalletClientAutoPopulate<
 	TransactionMetadata,
 	CustomTransport,
 	ChainInfo,
-	Account | undefined
+	Account | undefined,
+	TxSource
 >;
 
 /**
@@ -208,6 +217,17 @@ export type Context = {
 	 * wallet-only sign-in has no host and still derives a signer.
 	 */
 	hasLocalSigner: boolean;
+	/**
+	 * EVERY route this app can send from, and reopen.
+	 *
+	 * The list a stuck transaction is replaced through: it is looked up by the
+	 * route recorded on the transaction, not by searching for an address among
+	 * whichever executors happen to be connected. A route that can send and is
+	 * not registered here can never replace its own transactions, which is a
+	 * silent failure, so register a sender in the same change that adds a way to
+	 * send. See core/connection/senders.
+	 */
+	senders: SenderRegistry;
 	/** Notice shown when the connected account cannot send. */
 	accountCannotSend: AccountCannotSendStore;
 	/** Full transaction-error text shown on demand (the toast shows a summary). */

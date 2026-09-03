@@ -84,7 +84,19 @@ describe('the local signer client', () => {
 	it('is built inside the memoisation, so one key yields one object', () => {
 		// Guards the guard: if this stopped finding the tracked-client
 		// construction, every assertion below would be about the wrong text.
-		expect(factory).toContain('trackerBuilder.using(');
+		expect(factory).toContain('signerTrackerBuilder.using(');
+	});
+
+	it('is built from the SIGNER\u2019s builder, not another route\u2019s', () => {
+		// `source` is fixed per builder, so building the signer's client from the
+		// account or rail builder would stamp every silent, app-initiated
+		// transaction with somebody else's route. That is worse than leaving them
+		// unstamped: replacement would route them to a wallet executor with total
+		// confidence, and ask a wallet to sign for a key it has never held.
+		expect(
+			factory,
+			'the signer client must come from the signer route\u2019s builder',
+		).not.toMatch(/\b(account|rail)TrackerBuilder\.using\(/);
 	});
 
 	it('is wrapped by guardDispatch', () => {
