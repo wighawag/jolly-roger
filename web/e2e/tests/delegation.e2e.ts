@@ -168,11 +168,18 @@ describe('Delegation - authorising this browser', () => {
 		// underneath, unclickable.
 		await page.locator('[data-testid="open-top-up"]').click();
 		// Located BY ITS LAYER, which is the invariant itself: the dialog has to be
-		// in the modal layer, not in `body` where a portal with no target lands, and
-		// not in the panel's own. Neither its title nor the button that opens it can
-		// be matched on text, both being deployment-dependent (credits or native
+		// in a layer, not in `body` where a portal with no target lands, and not in
+		// the panel's own. Neither its title nor the button that opens it can be
+		// matched on text, both being deployment-dependent (credits or native
 		// currency), and the panel is itself a role=dialog containing the word.
-		const topUp = page.locator('#--layer-modals [role="dialog"]');
+		//
+		// `system`, NOT `modal`. TopUpModal can also be raised BY the
+		// insufficient-funds modal, which is a system overlay, so it has to be able
+		// to cover it; a layer is a stacking context, so sitting one rank below
+		// would put it underneath the dialog whose button opened it. That was a real
+		// bug, fixed by making `layer` a required prop, and this locator was left
+		// pointing at the layer the modal used to default into.
+		const topUp = page.locator('#--layer-system [role="dialog"]');
 		await expect(topUp).toBeVisible({timeout: 15_000});
 		await topUp.getByRole('button', {name: 'Cancel'}).click();
 		await expect(topUp).toBeHidden({timeout: 15_000});
