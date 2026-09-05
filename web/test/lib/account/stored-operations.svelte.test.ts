@@ -5,7 +5,10 @@ import {
 	readStoredOperations,
 	type TransactionMetadata,
 } from '../../../src/lib/account/AccountData';
+import {collectRecordedNonces} from '../../../src/lib/account/recorded-nonces';
+import {serializer} from '../../../src/lib/core/utils/data/serializer';
 import type {TypedDeployments} from '../../../src/lib/core/connection/types';
+import v1Record from '../../fixtures/operations-v1-record.json';
 
 /**
  * `readStoredOperations` reads synqable's ON-DISK ENVELOPE directly, without
@@ -79,11 +82,9 @@ describe('readStoredOperations, against what the real store writes', () => {
 				account: ACCOUNT,
 			})!;
 			// The nonce is the whole point: it is what reconciliation compares.
-			expect(
-				Object.values(stored).map(
-					(op) => op.transactionIntent.transactions[0]?.nonce,
-				),
-			).toEqual([7]);
+			expect(Object.values(stored).map((op) => op.attempts[0]?.nonce)).toEqual([
+				7,
+			]);
 		} finally {
 			stop();
 		}
@@ -125,12 +126,16 @@ describe('readStoredOperations and address casing', () => {
 	// transaction "may have been sent" while it sits in their list.
 	const CHECKSUMMED = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266' as const;
 	const stored = {
-		$version: 1,
+		$version: 2,
 		data: {
 			operations: {
 				'1': {
-					transactionIntent: {transactions: [{nonce: 3, hash: '0xa'}]},
 					metadata: {type: 'unknown', name: 'x'},
+					// `'0n'` is the ON-DISK form of a bigint (see utils/data/serializer),
+					// which is what this writes: the fixture is raw storage, not a value
+					// going through the store.
+					call: {from: ACCOUNT, to: null, value: '0n', data: '0x'},
+					attempts: [{nonce: 3, hash: '0xa', gasParameters: {}}],
 				},
 			},
 		},
@@ -171,5 +176,156 @@ describe('readStoredOperations and address casing', () => {
 				account: ACCOUNT,
 			}),
 		).toBeDefined();
+	});
+});
+
+/**
+ * THE MIGRATION, ON BOTH READ PATHS.
+ *
+ * There are two ways this app gets operations out of localStorage, and they do
+ * not share a code path:
+ *
+ *   1. `createSyncableStore`, which runs `migrations` on load.
+ *   2. `readStoredOperations`, which parses the envelope ITSELF, because the
+ *      question it answers ("does the app already hold an operation at this
+ *      nonce?") has to work for an account nobody is connected as.
+ *
+ * One upgrade function is used by both. Miss the second and the nonce scan
+ * keeps returning pre-migration records, `collectRecordedNonces` reads
+ * `attempts` off records that only have `transactionIntent`, finds nothing, and
+ * the user is told a transaction may have been sent while it sits in their
+ * list. That is precisely the failure `readStoredOperations` was added to fix,
+ * so it is asserted here in the terms the caller actually uses.
+ *
+ * The fixture is the same VERBATIM v1 record the migration's own unit test
+ * uses: captured out of localStorage by running the previous build.
+ */
+describe('reading a v1 record on both paths', () => {
+	const KEY = `__private__31337_0xgenesis_${SCOPE}_${ACCOUNT}`;
+
+	function seedV1() {
+		localStorage.clear();
+		localStorage.setItem(KEY, JSON.stringify(v1Record));
+	}
+
+	it('migrates on the direct localStorage path', () => {
+		seedV1();
+		const stored = readStoredOperations({
+			deployments,
+			scopeAddress: SCOPE,
+			account: ACCOUNT,
+		})!;
+
+		expect(stored).toBeDefined();
+		const op = stored['1739000000000'];
+		// The new shape, read straight off disk without the store.
+		expect(op.attempts.map((a) => a.hash)).toHaveLength(2);
+		expect(op.call.source).toEqual({route: 'account', wallet: {name: 'Rabby'}});
+		expect(op).not.toHaveProperty('transactionIntent');
+		expect(op.metadata).not.toHaveProperty('tx');
+
+		// And what the caller actually wanted: the nonces. This is the assertion
+		// that fails if the second read path is left un-migrated.
+		expect(collectRecordedNonces(stored).sort()).toEqual([12, 12, 13]);
+	});
+
+	it('migrates on the store path, and rewrites the record', async () => {
+		seedV1();
+		const accountData = createAccountData({
+			accountStore: readable<`0x${string}` | undefined>(ACCOUNT),
+			deployments,
+			clock: {now: () => 1739000000000} as never,
+			scopeAddress: SCOPE,
+		});
+		const stop = accountData.subscribe(() => {});
+		try {
+			await vi.waitFor(() => expect(accountData.isReady()).toBe(true));
+
+			const operations = (
+				accountData.get()!.get() as never as {
+					data: {operations: Record<string, never>};
+				}
+			).data.operations;
+
+			const op = operations['1739000000000'] as never as {
+				attempts: {hash: string; gasParameters: unknown}[];
+				call: {source: unknown; value: unknown};
+				state: unknown;
+			};
+			expect(op.attempts).toHaveLength(2);
+			expect(op.state).toMatchObject({
+				inclusion: 'Included',
+				outcome: 'Failure',
+				final: true,
+				blockTimestamp: 1739000100,
+				via: {kind: 'attempt', attemptIndex: 1},
+			});
+			// Through the store, the serializer has revived the bigints, so this is
+			// the shape the app actually computes with (the direct path above sees
+			// them revived too, via the same serializer).
+			expect(op.attempts[0].gasParameters).toMatchObject({
+				maxFeePerGas: 1500000000n,
+			});
+			expect(op.call.value).toBe(0n);
+
+			// SYNQABLE DOES NOT PERSIST A MIGRATION ON ITS OWN. `load()` only writes
+			// back when its cleanup pass changed something, so until the app next
+			// mutates this account's data the record on disk stays at v1 and is
+			// migrated again on every load. That is harmless because the upgrade is
+			// idempotent and both read paths apply it, but it is worth stating: the
+			// on-disk version is NOT the signal for whether the migration ran.
+			expect(
+				(JSON.parse(localStorage.getItem(KEY)!) as {$version: number}).$version,
+			).toBe(1);
+
+			// The next write settles it, in the new shape.
+			accountData.addOperationFromTrackedTransaction(trackedTransaction(21));
+			await vi.waitFor(
+				() => {
+					const raw = JSON.parse(localStorage.getItem(KEY)!) as {
+						$version: number;
+					};
+					expect(raw.$version).toBe(2);
+				},
+				{timeout: 5000},
+			);
+			expect(localStorage.getItem(KEY)).not.toContain('transactionIntent');
+		} finally {
+			stop();
+		}
+	});
+
+	it('agrees with itself: both paths produce the same records', () => {
+		// One upgrade function, so this must hold. It is asserted because the
+		// cheap way to fix a missed path is to write a second converter, and two
+		// converters drift.
+		seedV1();
+		const direct = readStoredOperations({
+			deployments,
+			scopeAddress: SCOPE,
+			account: ACCOUNT,
+		})!;
+		// The store writes the migrated envelope back; reading it again must be a
+		// no-op rather than a second conversion.
+		// Through the app's own serializer, because migrated records hold bigints
+		// and `JSON.stringify` throws on one.
+		localStorage.setItem(
+			KEY,
+			// `Serializer` allows an async implementation; this one is synchronous
+			// (see utils/data/serializer), which is why the store can be read back
+			// without awaiting anything.
+			serializer.serialize({
+				...v1Record,
+				$version: 2,
+				data: {operations: direct},
+			}) as string,
+		);
+		const second = readStoredOperations({
+			deployments,
+			scopeAddress: SCOPE,
+			account: ACCOUNT,
+		})!;
+		expect(Object.keys(second)).toEqual(Object.keys(direct));
+		expect(second['1739000000000'].attempts).toHaveLength(2);
 	});
 });

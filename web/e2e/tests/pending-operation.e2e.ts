@@ -73,10 +73,14 @@ describe('Transaction inspector', () => {
 	 * ambiguous between "the source is missing" and "the shape moved", so if this
 	 * ever fails, check the shape before believing the feature is broken. (It
 	 * failed that way once already, during the change that added it.)
+	 *
+	 * `call.source`, not `metadata.tx.source`: the route is a fact about the
+	 * DISPATCH, so it sits beside `from` rather than inside what the app says the
+	 * transaction means.
 	 */
 	async function storedTxSources(page: Page): Promise<unknown[]> {
 		return page.evaluate(() => {
-			type StoredOperation = {metadata?: {tx?: {source?: unknown}}};
+			type StoredOperation = {call?: {source?: unknown}};
 			const found: unknown[] = [];
 			for (let i = 0; i < localStorage.length; i++) {
 				const key = localStorage.key(i);
@@ -86,9 +90,35 @@ describe('Transaction inspector', () => {
 						data?: {operations?: Record<string, StoredOperation>};
 					};
 					for (const operation of Object.values(blob?.data?.operations ?? {})) {
-						const source = operation?.metadata?.tx?.source;
+						const source = operation?.call?.source;
 						if (source !== undefined) found.push(source);
 					}
+				} catch {
+					// Other things share the prefix; only account data parses this way.
+				}
+			}
+			return found;
+		});
+	}
+
+	/**
+	 * Every stored operation, as it sits on disk.
+	 *
+	 * Same envelope and same caveat as {@link storedTxSources}; this one returns
+	 * the whole record because the reload test below is about which FIELDS
+	 * survive, not about one of them.
+	 */
+	async function storedOperations(page: Page): Promise<Record<string, any>[]> {
+		return page.evaluate(() => {
+			const found: Record<string, any>[] = [];
+			for (let i = 0; i < localStorage.length; i++) {
+				const key = localStorage.key(i);
+				if (!key?.startsWith('__private__')) continue;
+				try {
+					const blob = JSON.parse(localStorage.getItem(key) ?? '') as {
+						data?: {operations?: Record<string, Record<string, any>>};
+					};
+					found.push(...Object.values(blob?.data?.operations ?? {}));
 				} catch {
 					// Other things share the prefix; only account data parses this way.
 				}
@@ -170,6 +200,81 @@ describe('Transaction inspector', () => {
 			// only the route would let `walletIdentityOf` silently return undefined.
 			wallet: {name: expect.any(String)},
 		});
+	});
+
+	/**
+	 * THE RELOAD BETWEEN BROADCAST AND INCLUSION, which is the one window where
+	 * the stored shape is all there is.
+	 *
+	 * Everything else in this file exercises an operation that stayed in memory
+	 * from the moment it was created. A reload throws that away: the record has
+	 * to come back off disk, through the store's load (and its migration), be
+	 * projected into a freshly-built observer, and be patched by whatever that
+	 * observer then reports. Every one of those steps is new in this change, and
+	 * a mistake in any of them is INVISIBLE without the reload, because the
+	 * in-memory object papers over the stored one.
+	 *
+	 * What it pins is the restructure's whole point: the observer's update writes
+	 * state and ONLY state. If the wholesale replace ever comes back, the record
+	 * that survives the reload loses its source and its calldata, and this fails.
+	 */
+	test('keeps its dispatch facts across a reload, while the observer updates it', async ({
+		connectedPage,
+	}) => {
+		const page = connectedPage;
+		await submitAndOpenTransactions(page, `Reload shape ${Date.now()}`);
+
+		// Wait for the record to actually be on disk: synqable debounces its
+		// saves, and reloading before the write tests nothing at all.
+		await expect
+			.poll(() => storedOperations(page), {timeout: 30_000})
+			.not.toHaveLength(0);
+
+		const before = (await storedOperations(page))[0];
+		// The new shape, as written by this build.
+		expect(before.call?.source).toMatchObject({route: 'account'});
+		expect(before.attempts?.length).toBeGreaterThan(0);
+		expect(before).not.toHaveProperty('transactionIntent');
+
+		const hash = before.attempts[0].hash;
+		const calldata = before.call.data;
+
+		await page.reload();
+		await expect(page.getByRole('heading', {name: 'Transactions'})).toBeVisible(
+			{
+				timeout: 30_000,
+			},
+		);
+
+		// The observer, rebuilt from storage, reaches a verdict on it. Included is
+		// the expected end state on a local chain; the operation is REMOVED once
+		// that is final, so "gone" is also a pass, and both prove the projection
+		// fed after a reload was one the observer could act on.
+		await expect
+			.poll(
+				async () => {
+					const operations = await storedOperations(page);
+					if (operations.length === 0) return 'gone';
+					return operations[0].state?.inclusion ?? 'none';
+				},
+				{timeout: 60_000},
+			)
+			.toMatch(/Included|gone/);
+
+		// AND THE DISPATCH FACTS ARE STILL THERE, if the record still is. This is
+		// the assertion the deleted merge would break: the observer never had the
+		// source or the calldata, so an update that rebuilt the record from the
+		// observer's own transactions would have dropped both.
+		const after = await storedOperations(page);
+		if (after.length > 0) {
+			expect(after[0].call.source).toMatchObject({route: 'account'});
+			expect(after[0].call.data).toBe(calldata);
+			expect(after[0].attempts[0].hash).toBe(hash);
+			expect(after[0].attempts[0].gasParameters).toBeDefined();
+			// And the metadata is still only what the transaction means.
+			expect(after[0].metadata).not.toHaveProperty('tx');
+			expect(after[0].metadata).not.toHaveProperty('operationId');
+		}
 	});
 
 	test('survives a reload, because it is in the URL', async ({

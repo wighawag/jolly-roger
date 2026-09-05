@@ -4,7 +4,7 @@ import type {
 	Schema,
 } from './AccountData';
 import {toast} from 'svelte-sonner';
-import type {TransactionIntent} from '@etherkit/tx-observer';
+import type {TransactionIntentState} from '@etherkit/tx-observer';
 import {subscribeToAccountDataMap} from '$lib/core/utils/data/account-data-subscription';
 import {pendingOperationOverlay} from '$lib/ui/pending-operation';
 import type {OverlayRegistry} from '$lib/core/ui/overlay';
@@ -25,13 +25,16 @@ function getOperationName(op: OnchainOperation): string {
 }
 
 /**
- * Gets the status type for a transaction intent
+ * Gets the status type for an operation's observer state.
+ *
+ * Takes the STATE rather than a whole intent: a toast asks one question about
+ * what the observer last said, and the observer's state is stored on the
+ * operation, so projecting an intent to read one field off it would be
+ * ceremony.
  */
 function getStatusType(
-	intent: TransactionIntent,
+	state: TransactionIntentState | undefined,
 ): 'pending' | 'success' | 'error' {
-	const state = intent.state;
-
 	if (!state || state.inclusion === 'InMemPool') {
 		return 'pending';
 	}
@@ -41,7 +44,7 @@ function getStatusType(
 	}
 
 	if (state.inclusion === 'Included') {
-		if (state.status === 'Success') {
+		if (state.outcome === 'Success') {
 			return 'success';
 		} else {
 			return 'error';
@@ -54,9 +57,7 @@ function getStatusType(
 /**
  * Gets a descriptive message for the current status
  */
-function getStatusMessage(intent: TransactionIntent): string {
-	const state = intent.state;
-
+function getStatusMessage(state: TransactionIntentState | undefined): string {
 	if (!state || state.inclusion === 'InMemPool') {
 		return 'Transaction pending...';
 	}
@@ -70,7 +71,7 @@ function getStatusMessage(intent: TransactionIntent): string {
 	}
 
 	if (state.inclusion === 'Included') {
-		if (state.status === 'Success') {
+		if (state.outcome === 'Success') {
 			return 'Transaction confirmed';
 		} else {
 			return 'Transaction failed';
@@ -131,10 +132,11 @@ export function createToastConnector(params: {
 		toastId: string,
 	) {
 		const operationName = getOperationName(operation);
-		const state = operation.transactionIntent.state;
+		const state = operation.state;
 		const inclusion = state?.inclusion ?? 'Unknown';
-		const isFinal = !!state?.final;
-		const message = getStatusMessage(operation.transactionIntent);
+		// A boolean now, not a block timestamp whose mere presence meant final.
+		const isFinal = state?.final === true;
+		const message = getStatusMessage(state);
 
 		if (inclusion === 'Dropped' && isFinal) {
 			toast.error(operationName, {
@@ -161,10 +163,11 @@ export function createToastConnector(params: {
 
 	function showToast(key: string, operation: OnchainOperation) {
 		const operationName = getOperationName(operation);
-		const statusType = getStatusType(operation.transactionIntent);
-		const message = getStatusMessage(operation.transactionIntent);
-		const currentInclusion = operation.transactionIntent.state?.inclusion ?? '';
-		const currentFinal = !!operation.transactionIntent.state?.final;
+		const state = operation.state;
+		const statusType = getStatusType(state);
+		const message = getStatusMessage(state);
+		const currentInclusion = state?.inclusion ?? '';
+		const currentFinal = state?.final === true;
 
 		const existing = operationToastStates.get(key);
 
@@ -260,7 +263,7 @@ export function createToastConnector(params: {
 				},
 				onInitialData: (operations) => {
 					for (const [key, operation] of Object.entries(operations)) {
-						const statusType = getStatusType(operation.transactionIntent);
+						const statusType = getStatusType(operation.state);
 						// Only show toasts for pending operations on initial load
 						if (statusType !== 'success' && !operationToastStates.has(key)) {
 							showToast(key, operation);

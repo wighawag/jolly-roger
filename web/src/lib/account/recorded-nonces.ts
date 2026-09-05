@@ -30,14 +30,20 @@ import {
  * `undefined` still means NOT KNOWN, and is still distinct from an empty list.
  */
 
-/** Every nonce across every attempt of every recorded operation. */
+/**
+ * Every nonce across every attempt of every recorded operation.
+ *
+ * Reads `attempts` DIRECTLY rather than through the intent projection: the
+ * question is which nonces this app has dispatched, which is a fact about what
+ * was sent, not about what the observer has since made of it.
+ */
 export function collectRecordedNonces(
 	operations: Record<string, OnchainOperation>,
 ): number[] {
 	const nonces: number[] = [];
 	for (const operation of Object.values(operations)) {
-		for (const tx of operation.transactionIntent.transactions) {
-			if (typeof tx.nonce === 'number') nonces.push(tx.nonce);
+		for (const attempt of operation.attempts ?? []) {
+			if (typeof attempt.nonce === 'number') nonces.push(attempt.nonce);
 		}
 	}
 	return nonces;

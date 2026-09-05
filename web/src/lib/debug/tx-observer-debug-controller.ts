@@ -1,5 +1,9 @@
 import {writable, type Readable} from 'svelte/store';
 import type {Context} from '$lib/context/types';
+import {
+	toTransactionIntent,
+	type ProjectableOperation,
+} from '$lib/account/operation-intent';
 
 export type DebugEvent = {timestamp: number; type: string; data: string};
 
@@ -59,8 +63,11 @@ export function createTxObserverDebugController(
 		const ops = currentAccountData.data.operations;
 		const intentsToAdd: {[id: string]: unknown} = {};
 		for (const [id, operation] of Object.entries(ops)) {
-			const op = operation as {transactionIntent: unknown};
-			intentsToAdd[id] = structuredClone(op.transactionIntent);
+			// The same projection the real connector feeds the observer, so this
+			// debug path cannot hand it a different shape than production does.
+			intentsToAdd[id] = structuredClone(
+				toTransactionIntent(operation as ProjectableOperation),
+			);
 		}
 
 		const count = Object.keys(intentsToAdd).length;
@@ -109,11 +116,11 @@ export function createTxObserverDebugController(
 	}
 
 	function start() {
-		const unsubscribeStatus = txObserver.on('intent:status', (event) => {
-			addEvent('intent:status', {
+		const unsubscribeStatus = txObserver.on('intent:state', (event) => {
+			addEvent('intent:state', {
 				id: event.id,
 				inclusion: event.intent.state?.inclusion,
-				status: event.intent.state?.status,
+				outcome: event.intent.state?.outcome,
 				final: event.intent.state?.final,
 			});
 			refresh();

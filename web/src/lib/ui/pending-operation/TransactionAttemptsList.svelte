@@ -2,22 +2,19 @@
 	import * as Collapsible from '$lib/shadcn/ui/collapsible/index.js';
 	import TransactionHash from '$lib/core/ui/ethereum/TransactionHash.svelte';
 	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
-	import type {BroadcastedTransaction} from '@etherkit/tx-observer';
+	import type {OperationAttempt} from '$lib/account/AccountData';
+	import {sortAttemptsNewestFirst} from '$lib/view/operation';
 
 	interface Props {
-		transactions: BroadcastedTransaction[];
+		/** The app's own broadcasts, newest shown first. */
+		attempts: OperationAttempt[];
 	}
 
-	let {transactions}: Props = $props();
+	let {attempts}: Props = $props();
 
 	let isOpen = $state(false);
 
-	// Sort transactions by broadcast time descending (most recent first)
-	let sortedTransactions = $derived.by(() => {
-		return [...transactions].sort((a, b) => {
-			return (b.broadcastTimestampMs || 0) - (a.broadcastTimestampMs || 0);
-		});
-	});
+	let sortedAttempts = $derived(sortAttemptsNewestFirst(attempts));
 
 	// Format relative time
 	function formatRelativeTime(timestampMs: number | undefined): string {
@@ -36,12 +33,12 @@
 	}
 </script>
 
-{#if transactions.length > 1}
+{#if attempts.length > 1}
 	<Collapsible.Root bind:open={isOpen}>
 		<Collapsible.Trigger
 			class="flex w-full items-center justify-between rounded-md border px-3 py-2 text-sm hover:bg-muted/50"
 		>
-			<span>{transactions.length} transaction attempts</span>
+			<span>{attempts.length} transaction attempts</span>
 			<span
 				class="transition-transform duration-200"
 				style:transform={isOpen ? 'rotate(180deg)' : 'rotate(0deg)'}
@@ -51,7 +48,7 @@
 		</Collapsible.Trigger>
 		<Collapsible.Content>
 			<div class="mt-2 space-y-2">
-				{#each sortedTransactions as tx, i}
+				{#each sortedAttempts as tx, i}
 					<div
 						class="flex flex-col gap-1 rounded-md border bg-muted/30 p-2 text-sm sm:flex-row sm:items-center sm:justify-between"
 					>
@@ -72,12 +69,12 @@
 			</div>
 		</Collapsible.Content>
 	</Collapsible.Root>
-{:else if transactions.length === 1}
+{:else if attempts.length === 1}
 	<div class="text-sm">
 		<span class="text-muted-foreground">Transaction Hash:</span>
 		<div class="mt-1">
 			<TransactionHash
-				value={transactions[0].hash}
+				value={attempts[0].hash}
 				truncate={{start: 8, end: 6}}
 				linkTo="auto"
 			/>

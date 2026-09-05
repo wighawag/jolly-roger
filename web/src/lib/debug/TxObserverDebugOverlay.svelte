@@ -129,18 +129,16 @@
 								metadata: {
 									functionName?: string;
 								};
-								transactionIntent: {
-									state?: {
-										inclusion?: string;
-										status?: string;
-										final?: boolean;
-									};
-									transactions: Array<{
-										hash: string;
-										nonce: number;
-										broadcastTimestampMs: number;
-									}>;
+								state?: {
+									inclusion?: string;
+									outcome?: string;
+									final?: boolean;
 								};
+								attempts: Array<{
+									hash: string;
+									nonce: number;
+									broadcastTimestampMs: number;
+								}>;
 							}}
 							<div class="rounded border border-gray-700 bg-gray-800 p-2">
 								<div class="mb-1 flex items-center justify-between">
@@ -148,22 +146,21 @@
 									<div class="flex gap-1">
 										<span
 											class="rounded px-1.5 py-0.5 text-[10px] font-bold {getInclusionBadgeColor(
-												operation.transactionIntent.state?.inclusion,
+												operation.state?.inclusion,
 											)}"
 										>
-											{operation.transactionIntent.state?.inclusion ??
-												'No State'}
+											{operation.state?.inclusion ?? 'No State'}
 										</span>
-										{#if operation.transactionIntent.state?.status}
+										{#if operation.state?.outcome}
 											<span
 												class="rounded px-1.5 py-0.5 text-[10px] font-bold {getStatusBadgeColor(
-													operation.transactionIntent.state?.status,
+													operation.state?.outcome,
 												)}"
 											>
-												{operation.transactionIntent.state?.status}
+												{operation.state?.outcome}
 											</span>
 										{/if}
-										{#if operation.transactionIntent.state?.final}
+										{#if operation.state?.final}
 											<span
 												class="rounded bg-purple-500 px-1.5 py-0.5 text-[10px] font-bold"
 											>
@@ -175,7 +172,7 @@
 								<div class="mb-1 text-[10px] text-gray-400">
 									{operation.metadata.functionName ?? 'unknown'}
 								</div>
-								{#each operation.transactionIntent.transactions as tx}
+								{#each operation.attempts as tx}
 									<div class="flex items-center gap-1 text-gray-400">
 										<button
 											type="button"

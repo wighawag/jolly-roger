@@ -31,11 +31,9 @@
 </script>
 
 {#if $operationStore}
-	{@const statusInfo = getOperationStatusInfo(
-		$operationStore.transactionIntent,
-	)}
+	{@const state = $operationStore.state}
+	{@const statusInfo = getOperationStatusInfo(state)}
 	{@const StatusIcon = statusIcons[statusInfo.kind]}
-	{@const state = $operationStore.transactionIntent.state}
 	<div class="flex items-center justify-between gap-2 px-2 py-1 text-xs">
 		<div class="flex min-w-0 items-center gap-1.5">
 			<StatusIcon class="h-3 w-3 shrink-0" />
@@ -44,7 +42,7 @@
 			>
 		</div>
 		<div class="flex items-center gap-1">
-			{#if state?.final !== undefined}
+			{#if state?.final}
 				<Badge variant="outline" class="h-4 shrink-0 px-1.5 py-0 text-[10px]">
 					Final
 				</Badge>

@@ -1,15 +1,13 @@
 import type {Account, Chain, Transport} from 'viem';
 import type {TrackedWalletClientType} from '@etherkit/viem-tx-tracker';
-import type {
-	ExtendedTransactionMetadata,
-	MultiAccountDataStore,
-	TransactionMetadata,
-} from './AccountData';
+import type {MultiAccountDataStore, TransactionMetadata} from './AccountData';
 import type {TxSource} from '$lib/core/connection/tx-source';
 import type {TransactionObserver} from '@etherkit/tx-observer';
 import {hookTxObserverToAccountData} from '$lib/core/utils/data/synqable-transactions';
 import type {OnchainStateStore} from '$lib/onchain/state';
 import {createConnector, combineTeardowns} from './connector';
+import {toTransactionIntent} from './operation-intent';
+import {takeResubmitTarget} from './resubmit-correlation';
 
 /**
  * The transport/chain/account arguments are all spelled out at their defaults,
@@ -81,13 +79,18 @@ function attachTrackedClient(
 			// something that CAN keep it: the in-flight ledger, which already holds a
 			// record for this exact request and can now attach the hash to it.
 			try {
-				// Check if this is a resubmit (has operationId in metadata)
-				const metadata = tx.metadata as ExtendedTransactionMetadata;
-				if (metadata.operationId) {
-					// Add transaction to existing operation
-					accountData.addTransactionToOperation(metadata.operationId, tx);
+				// A REPLACEMENT ATTACHES, ANYTHING ELSE CREATES. The resubmit path
+				// records `from:nonce` immediately before sending and this consumes
+				// it. Absent means "a new operation", which is the right answer for an
+				// ordinary send AND for a cancel (see resubmit-correlation for why a
+				// cancel must never attach).
+				const resubmitOf = takeResubmitTarget({
+					from: tx.from,
+					nonce: tx.nonce,
+				});
+				if (resubmitOf !== undefined) {
+					accountData.addTransactionToOperation(resubmitOf, tx);
 				} else {
-					// Create new operation
 					accountData.addOperationFromTrackedTransaction(tx);
 				}
 			} catch (reason) {
@@ -160,13 +163,16 @@ export function createTransactionObserverConnector(params: {
 
 	return createConnector(() =>
 		combineTeardowns([
-			txObserver.on('intent:status', (event) =>
+			txObserver.on('intent:state', (event) =>
 				accountData.updateOperationFromTransactionStateUpdated(event),
 			),
 			hookTxObserverToAccountData({
 				accountData,
 				mapKey: 'operations',
-				extractValue: (item) => item.transactionIntent,
+				// WHERE THE INTENT IS BUILT, and the only place it exists. The store
+				// holds the call, the attempts and the observer's state; this joins
+				// them into the shape the observer wants, on the way in.
+				extractValue: toTransactionIntent,
 				observer: txObserver,
 			}),
 		]),
@@ -181,7 +187,7 @@ export function createOnchainStateRefreshConnector(params: {
 	const {txObserver, onchainState} = params;
 
 	return createConnector(() =>
-		txObserver.on('intent:status', (event) => {
+		txObserver.on('intent:state', (event) => {
 			// Refresh onchain state when a transaction is included
 			if (event.intent.state?.inclusion === 'Included') {
 				onchainState.update();

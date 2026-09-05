@@ -3,8 +3,8 @@
  *
  * Stamped by the tx tracker at dispatch (see `source` in
  * `@etherkit/viem-tx-tracker`) and carried verbatim into the stored operation,
- * where it sits beside `from` and `nonce` rather than inside the app's
- * metadata: it is a fact observed at dispatch, not something the app said the
+ * where it sits beside `from` in `call` rather than inside the app's metadata:
+ * it is a fact observed at dispatch, not something the app said the
  * transaction means.
  *
  * IT EXISTS SO A STUCK TRANSACTION CAN BE REPLACED. Replacing or cancelling
@@ -50,8 +50,8 @@ export type TxSource =
  * sent and then neither replaced nor funded, and two vocabularies for one set of
  * accounts is how that happens without anybody noticing.
  *
- * This list is additionally PERSISTED (see `OnchainOperationMetadata.tx`), so
- * the strings are effectively permanent. Renaming a route makes every stored
+ * This list is additionally PERSISTED (see `OperationCall.source`), so the
+ * strings are effectively permanent. Renaming a route makes every stored
  * operation carry one no build recognises, which drops those transactions to the
  * no-source fallback.
  */

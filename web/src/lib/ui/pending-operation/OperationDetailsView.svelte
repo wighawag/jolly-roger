@@ -7,6 +7,9 @@
 		getTransactionResult,
 		getEarliestBroadcastMs,
 		getInclusionBadgeVariant,
+		getBlockTimestamp,
+		formatBroadcastTime,
+		formatBlockTime,
 	} from '$lib/view/operation';
 
 	interface Props {
@@ -17,34 +20,27 @@
 
 	let operationName = $derived(getOperationName(operation, 'Transaction'));
 
-	// Get status string from transaction intent state
-	let status = $derived(
-		operation.transactionIntent.state?.inclusion || 'Fetching',
+	// Get status string from the observer's state
+	let status = $derived(operation.state?.inclusion || 'Fetching');
+
+	let transactionResult = $derived(getTransactionResult(operation.state));
+
+	// Finality is a BOOLEAN. It used to be the inclusion block's timestamp, and
+	// this view printed it as "Block {final}".
+	let isFinal = $derived(operation.state?.final === true);
+
+	// The inclusion time, in the chain's own seconds, formatted next to the
+	// broadcast time below. Two clocks, two units, two formatters.
+	let minedTime = $derived(formatBlockTime(getBlockTimestamp(operation.state)));
+
+	let broadcastTime = $derived(
+		formatBroadcastTime(getEarliestBroadcastMs(operation)),
 	);
 
-	let transactionResult = $derived(
-		getTransactionResult(operation.transactionIntent),
-	);
+	// The dispatch facts, which the app owns: one call, one nonce slot.
+	let fromAddress = $derived(operation.call?.from ?? null);
 
-	// Get finality block number
-	let finalityBlock = $derived(operation.transactionIntent.state?.final);
-
-	// Format broadcast time
-	let broadcastTime = $derived.by(() => {
-		const earliestBroadcast = getEarliestBroadcastMs(
-			operation.transactionIntent,
-		);
-		if (!earliestBroadcast) return null;
-		return new Date(earliestBroadcast).toLocaleString();
-	});
-
-	// Get from address
-	let fromAddress = $derived(
-		(operation.metadata.tx.from as `0x${string}`) || null,
-	);
-
-	// Get nonce
-	let nonce = $derived(operation.metadata.tx.nonce);
+	let nonce = $derived(operation.attempts[0]?.nonce);
 
 	let statusVariant = $derived(getInclusionBadgeVariant(status));
 </script>
@@ -70,9 +66,16 @@
 			</span>
 		{/if}
 
-		{#if finalityBlock !== undefined}
+		{#if isFinal}
 			<span class="text-muted-foreground">Finality:</span>
-			<span class="font-mono">Block {finalityBlock}</span>
+			<span>
+				<Badge variant="outline">Final</Badge>
+			</span>
+		{/if}
+
+		{#if minedTime}
+			<span class="text-muted-foreground">Mined:</span>
+			<span>{minedTime}</span>
 		{/if}
 
 		{#if fromAddress}
