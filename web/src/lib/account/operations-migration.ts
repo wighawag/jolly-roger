@@ -55,6 +55,7 @@ type LegacyState = {
 
 type LegacyTransaction = {
 	hash?: string;
+	from?: string;
 	nonce?: number;
 	broadcastTimestampMs?: number;
 	state?: LegacyState;
@@ -199,7 +200,17 @@ export function upgradeOperation(stored: unknown): OnchainOperation {
 	} = legacy.metadata ?? {};
 
 	const call = {
-		from: tx.from as `0x${string}`,
+		// `from` IS RECORDED TWICE IN V1, on `metadata.tx` and on every entry of
+		// `transactionIntent.transactions`, so the second is read when the first is
+		// missing. Not defensive padding: it is the same fact from the same record,
+		// and the cost of not having it is severe and SILENT. A variant that sends
+		// from more than one route filters the nonce scan by `call.from`, so an
+		// operation that migrates without one becomes invisible to reconciliation,
+		// and the user is told a transaction may have been sent while it sits in
+		// their list. Undefined here would also make the cast below a lie.
+		from: (tx.from ??
+			legacyTransactions.find((transaction) => transaction.from)
+				?.from) as `0x${string}`,
 		to: (tx.to ?? null) as `0x${string}` | null,
 		value: tx.value ?? 0n,
 		data: (tx.data ?? '0x') as `0x${string}`,
