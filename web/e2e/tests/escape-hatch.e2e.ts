@@ -239,16 +239,35 @@ describe('Stopping waiting for the wallet', () => {
 
 		// And the flow is raised again, which IS the transition.
 		//
-		// `ensureConnected()`, not `connect()`, and the difference is deliberate on
-		// both sides now. `ensureConnected` promises a TARGET, so it is the one that
-		// reconnects a locked wallet by replaying the existing mechanism; `connect()`
-		// drives the flow from the user's CHOICE and opens the picker. Upstream made
-		// that asymmetry explicit in 0.11.0 rather than removing it, and the picker
-		// path is covered by the next test. This is also the app's own send path: the
-		// first thing `routes/demo/lib/setGreeting.ts` does is await this, so pressing
-		// Send against a locked wallet runs exactly this line.
+		// `unlock()`, because it is the ONE route into that rebuild that every app
+		// in this tree actually has. What is being pinned is the rebuild, not the
+		// call that causes it, so the call should be the one no app has to override.
+		//
+		// This used to be a bare `ensureConnected()`, and that only worked here by
+		// accident of configuration. `ensureConnected` promises the app's TARGET
+		// step, and upstream treats a locked wallet as failing that target only when
+		// the target is `WalletConnected` (ADR-0002): a SIGNED-IN app acts through
+		// its session account, which a locked wallet does not invalidate, so there
+		// the call correctly finds the target already reached and reconnects
+		// nothing. Every descendant that signs in therefore inherited a test that
+		// waited 30 seconds for a status that was never coming - which `bleeps` and
+		// `mandalas` each diagnosed and patched locally, in the same way, because
+		// the template gave them no version that worked.
+		//
+		// Naming a wallet mechanism instead (`ensureConnected('WalletConnected',
+		// {type: 'wallet', address})`) does force the reconnect, and is wrong for a
+		// different reason: from a signed-in state it routes through `connect()` and
+		// opens the WALLET PICKER, which nobody in this test is there to answer. The
+		// picker is the next test's subject, not this one's.
+		//
+		// `unlock()` is what this app puts in front of the user in exactly this
+		// state (see `walletPromptCopy`: "Your wallet is locked ... Unlock it to see
+		// the request"), it rebuilds wallet state under the parked request, and it
+		// keeps the step, the account and the wallet where re-running the flow would
+		// rebuild all three. The next test still drives `connect()`, so the harsher
+		// rebuild - the one that lands on NO wallet at all - stays covered.
 		await page.evaluate(() =>
-			(globalThis as any).context.connection.ensureConnected(),
+			(globalThis as any).context.connection.unlock(),
 		);
 		await expect
 			.poll(() => walletStatus(page), {timeout: 30_000})
