@@ -267,6 +267,52 @@ describe('records the fixture cannot cover', () => {
 		});
 	});
 
+	it('takes `from` off the transactions when metadata.tx has none', () => {
+		// v1 records the sender TWICE, on `metadata.tx` and on every entry of
+		// `transactionIntent.transactions`. Reading the second when the first is
+		// missing costs nothing and closes a silent failure: a variant that sends
+		// from more than one route filters its nonce scan by `call.from`, so an
+		// operation migrated without one disappears from reconciliation and the
+		// user is told a transaction may have been sent while it sits in
+		// their list.
+		const upgraded = upgradeOperation({
+			metadata: {type: 'unknown', name: 'x', data: [], tx: {hash: '0xaa'}},
+			transactionIntent: {
+				transactions: [
+					{
+						hash: '0xaa',
+						nonce: 1,
+						from: '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266',
+					},
+				],
+			},
+		});
+
+		expect(upgraded.call.from).toBe(
+			'0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266',
+		);
+	});
+
+	it('prefers metadata.tx when both say who sent it', () => {
+		const upgraded = upgradeOperation({
+			metadata: {
+				type: 'unknown',
+				name: 'x',
+				data: [],
+				tx: {hash: '0xaa', from: '0x1111111111111111111111111111111111111111'},
+			},
+			transactionIntent: {
+				transactions: [
+					{hash: '0xaa', from: '0x2222222222222222222222222222222222222222'},
+				],
+			},
+		});
+
+		expect(upgraded.call.from).toBe(
+			'0x1111111111111111111111111111111111111111',
+		);
+	});
+
 	it('reports an unpointable inclusion as pending rather than fabricating a `via`', () => {
 		// `attemptIndex` named a transaction that is not in the list. 0.2.0's
 		// Included arm REQUIRES a `via`, so there is no honest way to express

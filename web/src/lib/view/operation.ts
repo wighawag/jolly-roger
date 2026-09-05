@@ -76,7 +76,14 @@ export function getMainTxHash(
 	// another device, or a resubmission made in the user's wallet), so there is
 	// no hash of ours to point at. The fallback below is then correct rather than
 	// approximate: the first attempt is what this app sent.
-	if (state?.inclusion === 'Included' && state.via.kind === 'attempt') {
+	// `via?`, not `via`, THOUGH THE TYPE SAYS IT IS ALWAYS THERE. This reads
+	// data restored from localStorage, where the type is a promise about what we
+	// wrote rather than a fact about what is there, and the fallback below is
+	// already the right answer for a state that cannot point at an attempt. The
+	// alternative is a TypeError thrown during render, which does not degrade to
+	// a missing hash: it takes the whole transactions page down with it, the way
+	// a single bigint argument once did.
+	if (state?.inclusion === 'Included' && state.via?.kind === 'attempt') {
 		return attempts[state.via.attemptIndex]?.hash;
 	}
 	return attempts[0]?.hash;
@@ -94,7 +101,9 @@ export function isIncludedAttempt(
 ): boolean {
 	return (
 		state?.inclusion === 'Included' &&
-		state.via.kind === 'attempt' &&
+		// Optional for the same reason as in `getMainTxHash`: a stored state that
+		// cannot name an attempt marks none, rather than throwing mid-render.
+		state.via?.kind === 'attempt' &&
 		state.via.attemptIndex === index
 	);
 }

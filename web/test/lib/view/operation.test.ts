@@ -108,6 +108,25 @@ describe('getMainTxHash', () => {
 		});
 		expect(getMainTxHash(o)).toBe('0xa');
 	});
+
+	/**
+	 * A STORED state that says Included and cannot say which attempt.
+	 *
+	 * The type forbids it, and nothing this app writes produces it: the observer
+	 * always sets `via` and the migration downgrades an unpointable inclusion to
+	 * InMemPool. But this reads localStorage, where the type is a promise about
+	 * what was written rather than a fact about what is there, and the failure
+	 * mode is not a missing hash: it is a TypeError thrown during render, which
+	 * takes the whole transactions page down.
+	 */
+	it('falls back instead of throwing when the state cannot name an attempt', () => {
+		const o = operation({
+			attempts: [{hash: '0xa'}, {hash: '0xb'}],
+			state: {inclusion: 'Included', outcome: 'Success', final: false},
+		});
+		expect(() => getMainTxHash(o)).not.toThrow();
+		expect(getMainTxHash(o)).toBe('0xa');
+	});
 });
 
 describe('isIncludedAttempt', () => {
@@ -126,6 +145,14 @@ describe('isIncludedAttempt', () => {
 		});
 		expect(isIncludedAttempt(outOfBand, 0)).toBe(false);
 		expect(isIncludedAttempt(undefined, 0)).toBe(false);
+	});
+
+	it('marks none, rather than throwing, when the state names nothing', () => {
+		// Same reasoning as getMainTxHash above: this runs during render over
+		// restored data.
+		const noVia = state({inclusion: 'Included', outcome: 'Success'});
+		expect(() => isIncludedAttempt(noVia, 0)).not.toThrow();
+		expect(isIncludedAttempt(noVia, 0)).toBe(false);
 	});
 });
 
