@@ -76,33 +76,32 @@ export default defineConfig({
 	// workers, and the full suite flaked on five of six runs at the default.
 	// `bleeps` capped at 4 for the same reason and the same measurement.
 	//
-	// THEN LOWERED TO 2 FOR A REASON THAT TURNED OUT TO BE WRONG, left at 2, and
-	// written down here because the wrong reason was persuasive enough to cost
-	// somebody an afternoon.
+	// ONE NAME IN THAT LIST DID NOT BELONG THERE: escape-hatch. It, and the
+	// sending-indicator suite that shares its fixture, were failing on a bug in
+	// `waitUntilHolding` - a "Sign in" click with no timeout, resolved against a
+	// button the closing modal had already removed, which Playwright waits out
+	// forever instead of failing. The loop never reached its own deadline, so the
+	// test died on Playwright's 120s timeout with nothing ever dispatched.
 	//
-	// The story was: fixing the sending-indicator suite meant a SECOND suite
-	// walked all the way to a held transaction, two of those against one node was
-	// more than 4 workers could feed, and the escape-hatch and sending-indicator
-	// failures that followed were the node falling behind. The measurements were
-	// real - it did fail at 4 and pass at 2 - and the conclusion was still wrong.
+	// It is called out because that failure mode is indistinguishable from real
+	// contention at a glance (a suite that hangs, and hangs less often when the
+	// box is quieter, because worker count moves the timing of the race) and it
+	// cost an afternoon. The tell is that a genuinely starved node makes the
+	// stalling wallet's error name the RPC method it is waiting on; the fixture
+	// bug never let that error print at all.
 	//
-	// Both suites were failing on a fixture bug. `waitUntilHolding` clicked "Sign
-	// in" with no timeout, the sign-in modal closes as soon as the signature
-	// lands, and Playwright waits for a vanished button forever rather than
-	// failing - so the loop never reached its own deadline and the test died on
-	// Playwright's 120s timeout. Worker count moved the timing of the race that
-	// opened that window, which is exactly why fewer workers looked like a cure.
+	// THEN LOWERED TO 2 HERE, FOR THAT SAME WRONG REASON, and left at 2. The
+	// story was that a SECOND suite now walked all the way to a held transaction
+	// and two of those against one node was more than 4 could feed. The
+	// measurements were real - it did fail at 4 and pass at 2 - and the
+	// conclusion was still wrong, because what was failing was the bug above.
 	// The full suite failed at ONE worker too, which should have settled it.
 	//
-	// So this cap is not what makes the stalling-wallet suites pass; the fixture
-	// fix is. It is kept because the paragraph above it stands on its own
-	// evidence, and it has not been re-derived since. If you want the wall clock
-	// back, raising it is a reasonable thing to measure - just do not read a
-	// stalling-wallet failure as proof that you cannot.
-	//
-	// What node contention actually looks like, as distinct from that bug: the
-	// stalling wallet's own error names the RPC method it is waiting on and for
-	// how long. If that message says "nothing", the node is not your problem.
+	// The cap is kept because the paragraph two up stands on its own evidence
+	// (the other three suites in that list are real), and because it has not been
+	// re-derived since. If you want the wall clock back, raising it is a
+	// reasonable thing to measure - just do not read a stalling-wallet failure as
+	// proof that you cannot.
 	workers: env.CI ? 1 : 2,
 
 	// Reporter to use
