@@ -51,12 +51,28 @@ describe('Explaining a dispatch in flight', () => {
 		// deciding what a descendant's write accepts, which is how it filled a
 		// greeting into an address field and hung.
 		await sendAndStall(page);
-		const dispatchedAt = Date.now();
 
 		// The wordless rung: no delay, because this is the one that has to be on
 		// screen when the browser asks.
 		await expect(page.locator(PULSE)).toBeVisible({timeout: 10_000});
 		const pulseAt = Date.now();
+
+		// THE FLOOR, STATED WITHOUT A CLOCK. The app starts its delay when the
+		// dispatch starts, which happens inside `sendAndStall` and is invisible
+		// from out here. Timing from after that helper RETURNS measured the delay
+		// minus however long the helper took to come back, so the busier the node,
+		// the smaller the number: a 1s delay was measured at 757ms and failed a
+		// test that is about ordering, on a run where the app behaved perfectly.
+		//
+		// The pulse has no delay of its own, so it is on screen from the instant
+		// the timer started. "The words are not up yet when the pulse is" is
+		// therefore the same claim, with nothing to measure and nothing to drift.
+		//
+		// The DURATION is not this suite's to check, and duplicating it here is
+		// what made it flaky: `delayVisible` owns it, and
+		// `test/lib/ui/in-flight/sending.test.ts` pins it against a fake clock,
+		// where a millisecond means something.
+		await expect(page.locator(NOTICE)).toHaveCount(0);
 
 		// The words: only after the dispatch has gone on long enough to be worth
 		// them. Waiting for it to appear (rather than asserting it is absent now)
@@ -68,10 +84,6 @@ describe('Explaining a dispatch in flight', () => {
 			pulseAt,
 			'the pulse must not wait for the notice',
 		).toBeLessThanOrEqual(noticeAt);
-		expect(
-			noticeAt - dispatchedAt,
-			'the notice must not appear before its delay has elapsed',
-		).toBeGreaterThanOrEqual(1_000);
 
 		// It says what is being sent, in the words the transaction list uses, and
 		// what leaving would cost. That sentence is the whole reason it exists.
