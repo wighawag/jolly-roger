@@ -32,12 +32,16 @@ export interface MapObserver<T> {
  * - Incremental add/remove events for efficient updates
  * - Bulk sync when store becomes ready
  *
+ * `extractValue` is where the observed value is BUILT, not merely picked out:
+ * the caller decides what an item looks like to the observer, so a stored
+ * record need not be shaped like one (see `toTransactionIntent`).
+ *
  * @example
  * ```typescript
- * const unsubscribe = createMapToObserverSync({
+ * const unsubscribe = hookTxObserverToAccountData({
  *   accountData,
  *   mapKey: 'operations',
- *   extractValue: (item) => item.transactionIntent,
+ *   extractValue: toTransactionIntent,
  *   observer: txObserver,
  * });
  * ```

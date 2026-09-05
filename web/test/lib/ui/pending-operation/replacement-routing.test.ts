@@ -60,19 +60,22 @@ function purchase(source?: TxSource): OnchainOperation {
 			type: 'functionCall',
 			functionName: 'buyAvatar',
 			args: [],
-			tx: {
+		},
+		call: {
+			from: PAYER,
+			to: AVATARS,
+			value: 1000n,
+			data: '0x',
+			source,
+		},
+		attempts: [
+			{
 				hash: '0xdead',
-				from: PAYER,
-				to: AVATARS,
 				nonce: 4,
-				value: 1000n,
-				data: '0x',
 				broadcastTimestampMs: 1,
 				gasParameters: {maxFeePerGas: 10n, maxPriorityFeePerGas: 1n},
-				source,
 			},
-		},
-		transactionIntent: {transactions: []},
+		],
 	} as unknown as OnchainOperation;
 }
 
@@ -108,7 +111,7 @@ describe("this branch's own configuration: one account sender", () => {
 
 	function accountTx(source?: TxSource): OnchainOperation {
 		const op = purchase(source);
-		(op.metadata.tx as {from: `0x${string}`}).from = ACCOUNT;
+		(op.call as {from: `0x${string}`}).from = ACCOUNT;
 		return op;
 	}
 
@@ -166,6 +169,82 @@ describe("this branch's own configuration: one account sender", () => {
 
 		expect(result).toMatchObject({status: 'error'});
 		expect(result).not.toMatchObject({status: 'wrong-account'});
+	});
+});
+
+describe('where the route is read from', () => {
+	/**
+	 * `source` MOVED, and routing must have moved with it.
+	 *
+	 * It used to sit in `metadata.tx.source`, nested inside the field that says
+	 * what a transaction MEANS. It is now `call.source`, beside `from`, which is
+	 * the fact it qualifies: who signed this, and how to reach them again.
+	 *
+	 * Asserted separately from the cases below because those would all still
+	 * pass if routing silently fell through to the no-source path: with two
+	 * senders it matches a ready executor by address, and the rail is ready in
+	 * most of them. Here the WRONG route is the ready one, so reading the source
+	 * from anywhere but `call` picks it.
+	 */
+	it('reads the route off `call.source`, not off the metadata', async () => {
+		const operation = purchase({route: 'rail', wallet: {name: 'Rabby'}});
+		// A decoy in the old place. Nothing may look here.
+		(operation.metadata as unknown as {tx: unknown}).tx = {
+			from: PAYER,
+			source: {route: 'account'},
+			nonce: 4,
+		};
+
+		const railExecutor = ready(PAYER);
+		const accountExecutor = ready(PAYER);
+		const result = await resubmitOperation(
+			deps([sender('account', accountExecutor), sender('rail', railExecutor)]),
+			{operation, operationKey: 'op-1', gasPrice},
+		);
+
+		expect(result).toEqual({status: 'submitted'});
+		expect(
+			railExecutor.status === 'ready' && railExecutor.client.sendTransaction,
+		).toHaveBeenCalled();
+		expect(
+			accountExecutor.status === 'ready' &&
+				accountExecutor.client.sendTransaction,
+		).not.toHaveBeenCalled();
+	});
+
+	it('takes the nonce from the attempts, where it now lives', async () => {
+		const operation = purchase({route: 'rail'});
+		(operation.attempts[0] as {nonce: number}).nonce = 77;
+
+		const payerExecutor = ready(PAYER);
+		await resubmitOperation(deps([sender('rail', payerExecutor)]), {
+			operation,
+			operationKey: 'op-1',
+			gasPrice,
+		});
+
+		expect(
+			payerExecutor.status === 'ready' && payerExecutor.client.sendTransaction,
+		).toHaveBeenCalledWith(expect.objectContaining({nonce: 77}));
+	});
+
+	it('sends the ORIGINAL call again, not an empty one', async () => {
+		// The calldata and value are what make a replacement the same action. They
+		// live in `call` now; reading them from the old place would send an empty
+		// transaction at the right nonce, which replaces the transaction and
+		// silently discards what the user asked for.
+		const payerExecutor = ready(PAYER);
+		await resubmitOperation(deps([sender('rail', payerExecutor)]), {
+			operation: purchase({route: 'rail'}),
+			operationKey: 'op-1',
+			gasPrice,
+		});
+
+		expect(
+			payerExecutor.status === 'ready' && payerExecutor.client.sendTransaction,
+		).toHaveBeenCalledWith(
+			expect.objectContaining({to: AVATARS, value: 1000n, data: '0x'}),
+		);
 	});
 });
 
@@ -298,5 +377,112 @@ describe('an address this app has no route to', () => {
 		);
 
 		expect(result).toEqual({status: 'wrong-account', expected: PAYER});
+	});
+});
+
+describe('which nonce slot a replacement is for', () => {
+	/**
+	 * Every attempt shares a nonce today, so this only bites the day the shape's
+	 * deliberate allowance is used: `nonce` is per-attempt precisely so that a
+	 * dropped transaction re-sent at a FRESH nonce is still the same intent.
+	 * When that happens, replacing the earliest attempt's slot would send at a
+	 * nonce nothing is waiting on, leaving the live transaction untouched.
+	 */
+	it('reuses the latest dispatch\u2019s nonce, not the earliest', async () => {
+		const operation = purchase({route: 'rail'});
+		operation.attempts = [
+			{
+				hash: '0xaaa',
+				nonce: 4,
+				broadcastTimestampMs: 1,
+				gasParameters: {maxFeePerGas: 10n, maxPriorityFeePerGas: 1n},
+			},
+			{
+				hash: '0xbbb',
+				nonce: 5,
+				broadcastTimestampMs: 2,
+				gasParameters: {maxFeePerGas: 20n, maxPriorityFeePerGas: 2n},
+			},
+		] as never;
+
+		const payerExecutor = ready(PAYER);
+		await resubmitOperation(deps([sender('rail', payerExecutor)]), {
+			operation,
+			operationKey: 'op-1',
+			gasPrice,
+		});
+
+		expect(
+			payerExecutor.status === 'ready' && payerExecutor.client.sendTransaction,
+		).toHaveBeenCalledWith(expect.objectContaining({nonce: 5}));
+	});
+
+	it('does not depend on the attempts being in dispatch order', async () => {
+		// Nothing in the type guarantees the order, so the choice is made by
+		// broadcast time. Same two attempts, listed the other way round.
+		const operation = purchase({route: 'rail'});
+		operation.attempts = [
+			{
+				hash: '0xbbb',
+				nonce: 5,
+				broadcastTimestampMs: 2,
+				gasParameters: {maxFeePerGas: 20n, maxPriorityFeePerGas: 2n},
+			},
+			{
+				hash: '0xaaa',
+				nonce: 4,
+				broadcastTimestampMs: 1,
+				gasParameters: {maxFeePerGas: 10n, maxPriorityFeePerGas: 1n},
+			},
+		] as never;
+
+		const payerExecutor = ready(PAYER);
+		await cancelOperation(deps([sender('rail', payerExecutor)]), {operation});
+
+		expect(
+			payerExecutor.status === 'ready' && payerExecutor.client.sendTransaction,
+		).toHaveBeenCalledWith(expect.objectContaining({nonce: 5}));
+	});
+});
+
+describe('an operation with nothing recorded to replace', () => {
+	/**
+	 * Reachable, if narrowly: a record whose attempts list is empty. What must
+	 * NOT happen is sending anyway. Without a nonce the wallet picks the next
+	 * free one, so the \u201creplacement\u201d becomes a SECOND transaction that spends
+	 * real gas and leaves the stuck one exactly where it was.
+	 */
+	const empty = () => {
+		const op = purchase({route: 'rail'});
+		op.attempts = [];
+		return op;
+	};
+
+	it('refuses to resubmit rather than sending at a fresh nonce', async () => {
+		const payerExecutor = ready(PAYER);
+		const result = await resubmitOperation(
+			deps([sender('rail', payerExecutor)]),
+			{operation: empty(), operationKey: 'op-1', gasPrice},
+		);
+
+		expect(result).toMatchObject({status: 'error'});
+		expect(
+			payerExecutor.status === 'ready' && payerExecutor.client.sendTransaction,
+		).not.toHaveBeenCalled();
+	});
+
+	it('refuses to cancel, which would otherwise be a plain self-send', async () => {
+		const payerExecutor = ready(PAYER);
+		const result = await cancelOperation(
+			deps([sender('rail', payerExecutor)]),
+			{
+				operation: empty(),
+			},
+		);
+
+		expect(result).toMatchObject({status: 'error'});
+		expect(
+			payerExecutor.status === 'ready' && payerExecutor.client.sendTransaction,
+		).not.toHaveBeenCalled();
 	});
 });

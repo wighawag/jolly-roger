@@ -510,7 +510,7 @@ describe('Stopping waiting for the wallet', () => {
 									'operations',
 								),
 							),
-						).map((op: any) => op.transactionIntent.transactions[0]?.hash),
+						).map((op: any) => op.attempts[0]?.hash),
 					),
 				{timeout: 30_000},
 			)

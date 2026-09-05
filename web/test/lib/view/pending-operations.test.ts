@@ -21,7 +21,7 @@ function operation(params: {
 	nonce?: number;
 	broadcastTimestampMs?: number;
 	inclusion?: string;
-	status?: string;
+	outcome?: string;
 }): OnchainOperation {
 	const {
 		from,
@@ -30,18 +30,17 @@ function operation(params: {
 		nonce = 1,
 		broadcastTimestampMs = 1000,
 		inclusion,
-		status,
+		outcome,
 	} = params;
 	return {
 		metadata: {
 			type: 'functionCall',
 			functionName,
 			args,
-			tx: {from, nonce, broadcastTimestampMs},
 		},
-		transactionIntent: {
-			state: inclusion || status ? {inclusion, status} : undefined,
-		},
+		call: {from, to: null, value: 0n, data: '0x'},
+		attempts: [{nonce, broadcastTimestampMs, hash: '0xa', gasParameters: {}}],
+		state: inclusion || outcome ? {inclusion, outcome} : undefined,
 	} as unknown as OnchainOperation;
 }
 
@@ -145,7 +144,7 @@ describe('applyPendingOperations', () => {
 
 	it('ignores failed, dropped and not-found operations', () => {
 		expect(
-			apply({operations: {a: operation({from: owner, status: 'Failure'})}}),
+			apply({operations: {a: operation({from: owner, outcome: 'Failure'})}}),
 		).toEqual([]);
 		expect(
 			apply({operations: {a: operation({from: owner, inclusion: 'Dropped'})}}),

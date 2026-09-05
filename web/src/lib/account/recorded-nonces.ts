@@ -65,6 +65,17 @@ import {
  * `BroadcastedTransaction` declares it readonly-required, so it survives the
  * merge in `updateOperationFromTransactionStateUpdated` and there is no ordinary
  * path that produces one without it.
+ *
+ * `from` IS NOW PER OPERATION, not per attempt. The record hoists it into
+ * `call` because the replacement path's premise is that one route owns the
+ * nonce slot for the whole operation, so every attempt under an operation
+ * shares its sender and the filter moves up one level. The strictness above is
+ * unchanged: an operation that does not say who sent it is still not evidence
+ * about this sender.
+ *
+ * Reads `attempts` DIRECTLY rather than through the intent projection: the
+ * question is which nonces this app has dispatched, which is a fact about what
+ * was sent, not about what the observer has since made of it.
  */
 export function collectRecordedNonces(
 	operations: Record<string, OnchainOperation>,
@@ -73,11 +84,11 @@ export function collectRecordedNonces(
 	const from = sender.toLowerCase();
 	const nonces: number[] = [];
 	for (const operation of Object.values(operations)) {
-		for (const tx of operation.transactionIntent.transactions) {
-			if (typeof tx.nonce !== 'number') continue;
-			if (typeof tx.from !== 'string') continue;
-			if (tx.from.toLowerCase() !== from) continue;
-			nonces.push(tx.nonce);
+		const signer = operation.call?.from;
+		if (typeof signer !== 'string') continue;
+		if (signer.toLowerCase() !== from) continue;
+		for (const attempt of operation.attempts ?? []) {
+			if (typeof attempt.nonce === 'number') nonces.push(attempt.nonce);
 		}
 	}
 	return nonces;

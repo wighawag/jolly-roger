@@ -19,6 +19,10 @@
 		getOperationName,
 		getOperationStatusInfo,
 		getMainTxHash,
+		isIncludedAttempt,
+		getBlockTimestamp,
+		formatBroadcastTime,
+		formatBlockTime,
 		type OperationStatusKind,
 	} from '$lib/view/operation';
 
@@ -47,22 +51,16 @@
 	function getExplorerTxUrl(hash: string): string {
 		return route(`/explorer/tx/${hash}`);
 	}
-
-	// Format timestamp
-	function formatTimestamp(timestampMs: number): string {
-		const date = new Date(timestampMs);
-		return date.toLocaleString();
-	}
 </script>
 
 {#if $operationStore}
-	{@const statusInfo = getOperationStatusInfo(
-		$operationStore.transactionIntent,
-	)}
+	{@const state = $operationStore.state}
+	{@const statusInfo = getOperationStatusInfo(state)}
 	{@const StatusIcon = statusIcons[statusInfo.kind]}
-	{@const txHash = getMainTxHash($operationStore.transactionIntent)}
-	{@const state = $operationStore.transactionIntent.state}
-	{@const firstTx = $operationStore.transactionIntent.transactions[0]}
+	{@const txHash = getMainTxHash($operationStore)}
+	{@const attempts = $operationStore.attempts}
+	{@const firstTx = attempts[0]}
+	{@const minedTime = formatBlockTime(getBlockTimestamp(state))}
 
 	<Card.Root>
 		<Card.Header class="pb-2">
@@ -74,7 +72,7 @@
 					</Card.Title>
 				</div>
 				<div class="flex items-center gap-2">
-					{#if state?.final !== undefined}
+					{#if state?.final}
 						<Badge variant="outline">Final</Badge>
 					{/if}
 					<Badge variant={statusInfo.variant}>
@@ -84,7 +82,7 @@
 			</div>
 			{#if firstTx}
 				<Card.Description>
-					{formatTimestamp(firstTx.broadcastTimestampMs)}
+					{formatBroadcastTime(firstTx.broadcastTimestampMs)}
 				</Card.Description>
 			{/if}
 		</Card.Header>
@@ -92,19 +90,19 @@
 		<Card.Content>
 			<div class="space-y-3">
 				<!-- Transaction Details -->
-				{#if $operationStore.transactionIntent.transactions.length === 1 && txHash}
+				{#if attempts.length === 1 && txHash}
 					<div class="flex items-center gap-2 text-sm">
 						<span class="text-muted-foreground">Transaction:</span>
 						<span class="ml-2 font-mono"
 							><TransactionHash value={txHash} linkTo="auto" /></span
 						>
 					</div>
-				{:else if $operationStore.transactionIntent.transactions.length > 1}
+				{:else if attempts.length > 1}
 					<div class="text-sm text-muted-foreground">
-						{$operationStore.transactionIntent.transactions.length} transaction attempts
+						{attempts.length} transaction attempts
 					</div>
 					<div class="space-y-1">
-						{#each $operationStore.transactionIntent.transactions as tx, i}
+						{#each attempts as tx, i}
 							<div class="flex items-center gap-2 text-sm">
 								<span class="text-muted-foreground">#{i + 1}:</span>
 								<TransactionHash
@@ -113,7 +111,7 @@
 									size="sm"
 									linkTo="auto"
 								/>
-								{#if state?.inclusion === 'Included' && state.attemptIndex === i}
+								{#if isIncludedAttempt(state, i)}
 									<Badge variant="default" class="text-xs">Included</Badge>
 									<a
 										href={getExplorerTxUrl(tx.hash)}
@@ -128,10 +126,13 @@
 					</div>
 				{/if}
 
-				<!-- Finality info -->
-				{#if state?.final !== undefined}
+				<!-- When it was mined, in the chain's own clock. This used to read
+				     "Finalized at block {state.final}", where `final` was in fact the
+				     inclusion block's unix timestamp: a ten-digit number labelled as a
+				     block number. Finality is the badge above; this is the time. -->
+				{#if minedTime}
 					<div class="text-sm text-muted-foreground">
-						Finalized at block {state.final}
+						Mined {minedTime}
 					</div>
 				{/if}
 
