@@ -32,10 +32,21 @@ type Entry = {operationID: string; operation: OnchainOperation};
  * 3. Same nonce and timestamp: greater operationID, purely as a deterministic
  *    tiebreaker, so a race between two identically-stamped operations does not
  *    produce a different answer depending on iteration order.
+ *
+ * Both facts come from the FIRST attempt, which is the dispatch that claimed
+ * the nonce and the moment the user acted. A later attempt is the same greeting
+ * re-sent at a higher price, so letting it move the operation would reorder two
+ * greetings on the strength of one being harder to get mined.
  */
+function firstAttempt(entry: Entry) {
+	return entry.operation.attempts[0];
+}
+
 function isLater(current: Entry, existing: Entry): boolean {
-	const currentTx = current.operation.metadata.tx;
-	const existingTx = existing.operation.metadata.tx;
+	const currentTx = firstAttempt(current);
+	const existingTx = firstAttempt(existing);
+
+	if (!currentTx || !existingTx) return !!currentTx;
 
 	if (currentTx.nonce !== existingTx.nonce) {
 		return currentTx.nonce > existingTx.nonce;
@@ -60,9 +71,9 @@ function latestGreeting(operations: Operations): Entry | undefined {
 	let latest: Entry | undefined;
 	for (const operationID of Object.keys(operations)) {
 		const operation = operations[operationID];
-		const state = operation.transactionIntent.state;
+		const state = operation.state;
 
-		if (state?.status === 'Failure') continue;
+		if (state?.outcome === 'Failure') continue;
 		if (state && ignoredInclusions.includes(state.inclusion)) continue;
 		if (operation.metadata.type !== 'functionCall') continue;
 		if (operation.metadata.functionName !== 'setMessage') continue;
@@ -116,7 +127,7 @@ export function applyPendingOperations(params: {
 	const latest = account ? latestGreeting(operations) : undefined;
 
 	if (latest) {
-		const time = latest.operation.metadata.tx.broadcastTimestampMs;
+		const time = latest.operation.attempts[0]?.broadcastTimestampMs ?? 0;
 		const message = messageArgOf(latest.operation);
 
 		const existingIndex = views.findIndex(
@@ -138,8 +149,7 @@ export function applyPendingOperations(params: {
 				account: account!,
 				message,
 				timestamp: time,
-				pending:
-					latest.operation.transactionIntent.state?.inclusion !== 'Included',
+				pending: latest.operation.state?.inclusion !== 'Included',
 			});
 		}
 	}
