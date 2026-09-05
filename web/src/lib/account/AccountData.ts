@@ -111,8 +111,9 @@ export type OperationAttempt = {
  *
  * - `metadata` is app-owned and written once at creation: what the transaction
  *   MEANS, the tracker's metadata verbatim and nothing else. Plumbing does not
- *   travel in it (see `resubmit-correlation`, which is why there is no
- *   `operationId` here).
+ *   travel in it, which is why there is no `operationId` here: a replacement
+ *   names its operation through the tracker's `correlation`, which is carried
+ *   on the event and deliberately never stored.
  * - `call` and `attempts` are app-owned: what was asked, and each time it was
  *   sent.
  * - `state` and `attempts[].state` are OBSERVER-OWNED.
@@ -386,7 +387,20 @@ export function createAccountData(params: {
 		}
 	}
 
-	function updateOperationFromFetchedTransaction(
+	/**
+	 * Fold in the transaction's FINAL values, once the tracker has them.
+	 *
+	 * "Known", not "fetched", matching `transaction:known` and the `known: true`
+	 * discriminant on the payload: it names the promise (these values are final
+	 * rather than intended) instead of the mechanism, which is not uniform. An
+	 * ordinary send reads them back from the chain; a raw send parses them from
+	 * the signed payload and fetches nothing.
+	 *
+	 * It is NOT a mined signal. It fires while the transaction is still in the
+	 * mempool, so nothing here may treat it as inclusion; inclusion is the
+	 * observer's to report, through `state`.
+	 */
+	function updateOperationFromKnownTransaction(
 		transaction: KnownTrackedTransaction<TransactionMetadata, TxSource>,
 	) {
 		const accountData = store.get();
@@ -475,11 +489,18 @@ export function createAccountData(params: {
 	 * construction (a replacement re-sends the same bytes at a higher price) and
 	 * the metadata still says what the operation means. The observer state is
 	 * left alone; the observer recomputes it from the new attempt list.
+	 *
+	 * RETURNS WHETHER IT ATTACHED, rather than swallowing a miss. The named
+	 * operation can genuinely be gone by the time a broadcast arrives, because a
+	 * successful finalization deletes it, and the caller's remedy is to file the
+	 * transaction as a new operation instead. Reporting nothing left the caller
+	 * unable to tell that apart from success, so a replacement whose operation
+	 * had just finalized was recorded NOWHERE while being on chain.
 	 */
 	function addTransactionToOperation(
 		operationId: string,
 		transaction: TrackedTransaction<TransactionMetadata, TxSource>,
-	) {
+	): boolean {
 		const accountData = store.get();
 		if (accountData) {
 			const currentData = accountData.get();
@@ -490,14 +511,14 @@ export function createAccountData(params: {
 			// Check if operation exists
 			const operation = currentData.data.operations[operationId];
 			if (!operation) {
-				console.error(`Operation not found: ${operationId}`);
-				return;
+				return false;
 			}
 
 			accountData.patchItem('operations', operationId, (op) => ({
 				...op,
 				attempts: [...op.attempts, attemptOf(transaction)],
 			}));
+			return true;
 		} else {
 			throw new Error(`accountData not ready`);
 		}
@@ -521,7 +542,7 @@ export function createAccountData(params: {
 		isReady,
 		addOperationFromTrackedTransaction,
 		addTransactionToOperation,
-		updateOperationFromFetchedTransaction,
+		updateOperationFromKnownTransaction,
 		updateOperationFromTransactionStateUpdated,
 	};
 }

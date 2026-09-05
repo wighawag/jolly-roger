@@ -144,8 +144,8 @@ importers:
         specifier: 0.2.0
         version: 0.2.0
       '@etherkit/viem-tx-tracker':
-        specifier: ^0.1.0
-        version: 0.1.0(viem@2.55.19(typescript@6.0.3)(zod@4.4.3))
+        specifier: 0.2.0
+        version: 0.2.0(viem@2.55.19(typescript@6.0.3)(zod@4.4.3))
       '@etherplay/connect':
         specifier: ^0.13.0
         version: 0.13.0
@@ -472,8 +472,8 @@ packages:
   '@etherkit/tx-observer@0.2.0':
     resolution: {integrity: sha512-+ijdHdMR+Yu0QjBcFlbIXxPJGMy/q5X2y02HnFha6MDtAyfM+tFkYt/PWJMCQXjt6LwtTrR+HKw1Cp7pFTzm9w==}
 
-  '@etherkit/viem-tx-tracker@0.1.0':
-    resolution: {integrity: sha512-UVWwafI6LkiE8/ngskvHagCBwWY3fjjgYCP9gDmgzVsj2Sqkgkzkzsd1pd9h4acblLtABt7nWOpNnBlaVQWeJA==}
+  '@etherkit/viem-tx-tracker@0.2.0':
+    resolution: {integrity: sha512-T4QgnnV1+N7wmdIPGuyO4+G7Hemd0ik8cxDpcqj3L14SBdE4NcaSaazPm5dWuogMLUimogwerrvkZd/inzgWDw==}
     peerDependencies:
       viem: ^2.46.3
 
@@ -3067,7 +3067,7 @@ snapshots:
       named-logs: 0.4.1
       radiate: 0.3.2
 
-  '@etherkit/viem-tx-tracker@0.1.0(viem@2.55.19(typescript@6.0.3)(zod@4.4.3))':
+  '@etherkit/viem-tx-tracker@0.2.0(viem@2.55.19(typescript@6.0.3)(zod@4.4.3))':
     dependencies:
       radiate: 0.3.2
       viem: 2.55.19(typescript@6.0.3)(zod@4.4.3)

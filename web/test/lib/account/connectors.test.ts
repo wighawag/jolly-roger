@@ -34,8 +34,13 @@ function makeFakeAccountData() {
 		added,
 		accountData: {
 			addOperationFromTrackedTransaction: (tx: unknown) => added.push(tx),
-			addTransactionToOperation: (_id: string, tx: unknown) => added.push(tx),
-			updateOperationFromFetchedTransaction: () => {},
+			// Returns true, as the real one does when the operation exists: the
+			// connector falls back to creating an operation when it returns false.
+			addTransactionToOperation: (_id: string, tx: unknown) => {
+				added.push(tx);
+				return true;
+			},
+			updateOperationFromKnownTransaction: () => {},
 		} as never,
 	};
 }
@@ -65,14 +70,14 @@ describe('createTrackedWalletConnector', () => {
 		expect(walletClient.listenerCount('transaction:broadcasted')).toBe(0);
 	});
 
-	it('records fetched transactions as well as broadcasts', () => {
+	it('records known-value transactions as well as broadcasts', () => {
 		const {walletClient, connector} = setup();
 		connector.connect();
 
-		expect(walletClient.listenerCount('transaction:fetched')).toBe(1);
+		expect(walletClient.listenerCount('transaction:known')).toBe(1);
 
 		connector.disconnect();
-		expect(walletClient.listenerCount('transaction:fetched')).toBe(0);
+		expect(walletClient.listenerCount('transaction:known')).toBe(0);
 	});
 
 	/**
@@ -89,7 +94,7 @@ describe('createTrackedWalletConnector', () => {
 
 		connector.disconnect();
 		expect(walletClient.listenerCount('transaction:broadcasted')).toBe(0);
-		expect(walletClient.listenerCount('transaction:fetched')).toBe(0);
+		expect(walletClient.listenerCount('transaction:known')).toBe(0);
 	});
 
 	it('drops events once disconnected', () => {
@@ -122,7 +127,7 @@ function makeUnavailableAccountData() {
 	return {
 		addOperationFromTrackedTransaction: fail,
 		addTransactionToOperation: fail,
-		updateOperationFromFetchedTransaction: fail,
+		updateOperationFromKnownTransaction: fail,
 	} as never;
 }
 
@@ -190,16 +195,18 @@ describe('createTrackedWalletConnector: a broadcast account data cannot take', (
 		expect(seen).toHaveLength(0);
 	});
 
-	it('does not let a fetched-data failure throw either', () => {
+	it('does not let a known-transaction failure throw either', () => {
 		// Milder: the tracker already catches this one, but it then logs "could not
 		// fetch tx", which is a misleading thing to print about a fetch that worked.
+		// (`transaction:known` since tx-tracker 0.2.0: the values are final rather
+		// than intended, which is true whether they were fetched or parsed.)
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 		try {
 			const {walletClient, connector} = setupUnavailable();
 			connector.connect();
 
 			expect(() =>
-				walletClient.emit('transaction:fetched', broadcastTx),
+				walletClient.emit('transaction:known', broadcastTx),
 			).not.toThrow();
 			expect(warn).toHaveBeenCalled();
 		} finally {

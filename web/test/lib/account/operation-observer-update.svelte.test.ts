@@ -434,3 +434,130 @@ describe('a projected operation, through the real observer', () => {
 		}
 	});
 });
+
+/**
+ * `correlation` IS EPHEMERAL PLUMBING AND MUST NOT BE PERSISTED.
+ *
+ * The tracker carries it on every emitted transaction, which means it arrives
+ * on the same object the store's writers are handed. It says which caller-side
+ * REQUEST a send answers, so it is meaningless the moment that session ends: a
+ * value read back from storage refers to in-flight work that no longer exists.
+ * `hash` is the durable identity, and it is what everything here keys on.
+ *
+ * The whole reason `correlation` exists is that the previous marker travelled
+ * in `metadata` and therefore ended up in every stored record. Writing it into
+ * the record under a new name would be the same mistake with better manners,
+ * so it is asserted against the REAL store rather than trusted to review.
+ */
+describe('correlation and storage', () => {
+	it('never reaches a stored record, on either write path', async () => {
+		const {accountData, stop, operations} = await readyStore();
+		try {
+			accountData.addOperationFromTrackedTransaction(
+				broadcast({correlation: 'op-should-not-be-stored'}),
+			);
+			const id = Object.keys(operations())[0];
+			accountData.addTransactionToOperation(
+				id,
+				broadcast({
+					hash: HASH_2,
+					broadcastTimestampMs: 1739000060456,
+					correlation: 'also-not-stored',
+				}),
+			);
+
+			const op = operations()[id] as never as Record<string, unknown>;
+			expect(op).not.toHaveProperty('correlation');
+			expect(op.metadata).not.toHaveProperty('correlation');
+			expect(op.call).not.toHaveProperty('correlation');
+			for (const attempt of op.attempts as Record<string, unknown>[]) {
+				expect(attempt).not.toHaveProperty('correlation');
+			}
+
+			// And not anywhere in the serialised form either, which is the check
+			// that survives someone adding a field without updating the ones above.
+			await vi.waitFor(() => {
+				const raw = localStorage.getItem(
+					`__private__31337_0xgenesis_${SCOPE}_${ACCOUNT}`,
+				);
+				expect(raw).toContain(HASH_2);
+			});
+			const raw = localStorage.getItem(
+				`__private__31337_0xgenesis_${SCOPE}_${ACCOUNT}`,
+			)!;
+			expect(raw).not.toContain('correlation');
+			expect(raw).not.toContain('op-should-not-be-stored');
+			expect(raw).not.toContain('also-not-stored');
+		} finally {
+			stop();
+		}
+	});
+
+	it('still records the attempt it was routing', async () => {
+		// The point is that the marker is dropped, not the transaction.
+		const {accountData, stop, operations} = await readyStore();
+		try {
+			accountData.addOperationFromTrackedTransaction(
+				broadcast({correlation: 'op-x'}),
+			);
+			const op = operations()[Object.keys(operations())[0]] as never as {
+				attempts: {hash: string}[];
+			};
+			expect(op.attempts.map((a) => a.hash)).toEqual([HASH_1]);
+		} finally {
+			stop();
+		}
+	});
+});
+
+/**
+ * IDEMPOTENCE OF THE `transaction:known` HANDLER.
+ *
+ * tx-tracker 0.2.0 fixed a bug where `sendRawTransaction` emitted a different
+ * number of events depending on `populateMetadata`: under auto-populate (which
+ * this app uses) the second event was missing, and now it fires. jolly-roger
+ * does not currently issue raw sends, so nothing changes today, but the guard
+ * in `core/transaction/dispatch-guard` wraps `sendRawTransaction` and a future
+ * caller would get this event twice.
+ *
+ * The handler is safe by CONSTRUCTION rather than by luck: it locates its
+ * operation BY HASH and patches that attempt in place, so a repeat writes the
+ * same values again. It appends nothing, counts nothing, notifies nothing.
+ * Asserted, so that a future edit which makes it append is caught here rather
+ * than by a user seeing a duplicated attempt.
+ */
+describe('receiving transaction:known twice for the same transaction', () => {
+	it('changes nothing the second time', async () => {
+		const {accountData, stop, operations} = await readyStore();
+		try {
+			accountData.addOperationFromTrackedTransaction(broadcast());
+			const id = Object.keys(operations())[0];
+
+			const known = {
+				...(broadcast() as never as Record<string, unknown>),
+				known: true,
+				nonce: 12,
+				txType: 'eip1559',
+				gasParameters: {
+					gas: 90000n,
+					maxFeePerGas: 1400000000n,
+					maxPriorityFeePerGas: 900000000n,
+				},
+			};
+
+			accountData.updateOperationFromKnownTransaction(known as never);
+			const afterFirst = structuredClone(operations()[id] as never);
+
+			accountData.updateOperationFromKnownTransaction(known as never);
+			const afterSecond = operations()[id] as never as {
+				attempts: unknown[];
+			};
+
+			// One attempt, not two, and byte-for-byte the same record.
+			expect(afterSecond.attempts).toHaveLength(1);
+			expect(afterSecond).toEqual(afterFirst);
+		} finally {
+			stop();
+		}
+	});
+});

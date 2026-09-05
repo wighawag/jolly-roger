@@ -7,7 +7,6 @@ import {hookTxObserverToAccountData} from '$lib/core/utils/data/synqable-transac
 import type {OnchainStateStore} from '$lib/onchain/state';
 import {createConnector, combineTeardowns} from './connector';
 import {toTransactionIntent} from './operation-intent';
-import {takeResubmitTarget} from './resubmit-correlation';
 
 /**
  * The transport/chain/account arguments are all spelled out at their defaults,
@@ -79,18 +78,31 @@ function attachTrackedClient(
 			// something that CAN keep it: the in-flight ledger, which already holds a
 			// record for this exact request and can now attach the hash to it.
 			try {
-				// A REPLACEMENT ATTACHES, ANYTHING ELSE CREATES. The resubmit path
-				// records `from:nonce` immediately before sending and this consumes
-				// it. Absent means "a new operation", which is the right answer for an
-				// ordinary send AND for a cancel (see resubmit-correlation for why a
-				// cancel must never attach).
-				const resubmitOf = takeResubmitTarget({
-					from: tx.from,
-					nonce: tx.nonce,
-				});
-				if (resubmitOf !== undefined) {
-					accountData.addTransactionToOperation(resubmitOf, tx);
-				} else {
+				// A REPLACEMENT ATTACHES, ANYTHING ELSE CREATES.
+				//
+				// `correlation` is the tracker's per-call marker (0.2.0): the resubmit
+				// names the operation it is replacing, the value rides along with the
+				// send, and it arrives here verbatim. It is EPHEMERAL PLUMBING and is
+				// deliberately not written into the record: it says which request this
+				// send answers, not anything about the transaction. `hash` is the
+				// durable identity, and everything below this line keys on that.
+				//
+				// UNDEFINED IS ORDINARY, not an error: every normal send has no
+				// correlation, and so does a CANCEL, which must create its own
+				// operation (see the comment in `cancelOperation` for why attaching
+				// one would make the cancelled transaction report success and vanish).
+				//
+				// A correlation naming an operation that is no longer there also falls
+				// through to creating one. That is reachable: account data deletes an
+				// operation the moment it finalizes successfully, which can happen
+				// between the send and the broadcast. Recording the transaction under
+				// a new operation is imperfect; dropping it is worse, because the
+				// transaction is on chain either way and the user should be able to
+				// see it.
+				const attached =
+					tx.correlation !== undefined &&
+					accountData.addTransactionToOperation(tx.correlation, tx);
+				if (!attached) {
 					accountData.addOperationFromTrackedTransaction(tx);
 				}
 			} catch (reason) {
@@ -102,8 +114,18 @@ function attachTrackedClient(
 				});
 			}
 		}),
-		// if needed we can also update on getting the full tx data
-		walletClient.on('transaction:fetched', (tx) => {
+		// The same transaction once its values are FINAL rather than intended
+		// (`transaction:known`, called `transaction:fetched` before tx-tracker
+		// 0.2.0: the old name described the mechanism, which is not uniform, and a
+		// raw send parses rather than fetches). It is NOT a mined signal: it fires
+		// while the transaction is still in the mempool.
+		//
+		// Idempotent by construction, which matters as of 0.2.0: a raw send under
+		// `populateMetadata` now emits this event too, where it previously emitted
+		// only the broadcast. The handler finds its operation BY HASH and patches
+		// that attempt in place, so receiving it twice writes the same values
+		// twice. Nothing here appends, counts or notifies.
+		walletClient.on('transaction:known', (tx) => {
 			// Same reasoning, milder consequence: the tracker already wraps this emit
 			// in a try/catch, so a throw here is swallowed and logged as "could not
 			// fetch tx", which is a misleading thing to print about a fetch that
@@ -111,7 +133,7 @@ function attachTrackedClient(
 			// operation that a successful broadcast already filed), so it is enough
 			// not to lie about what failed.
 			try {
-				accountData.updateOperationFromFetchedTransaction(tx);
+				accountData.updateOperationFromKnownTransaction(tx);
 			} catch (reason) {
 				console.warn(
 					`[account] could not update operation for ${tx.hash} from fetched ` +

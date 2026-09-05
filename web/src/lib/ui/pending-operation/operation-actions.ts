@@ -4,10 +4,6 @@ import type {
 	OnchainOperation,
 	TransactionMetadata,
 } from '$lib/account/AccountData';
-import {
-	forgetResubmitTarget,
-	rememberResubmitTarget,
-} from '$lib/account/resubmit-correlation';
 import type {IntendedGasParameters} from '@etherkit/viem-tx-tracker';
 import {
 	InsufficientFundsError,
@@ -353,34 +349,31 @@ export async function resubmitOperation(
 			);
 		}
 
-		// THE LINK, out of band: the tracker emits `transaction:broadcasted` from
-		// inside the send below, and the handler reads this and deletes it.
-		//
-		// ONLY THE RESUBMIT PATH WRITES ONE. A cancel reuses the same nonce and so
-		// would match the same key, but a cancel MUST create its own operation:
-		// attaching it would make the stuck operation report the cancel's Success,
-		// and account data deletes an operation that reports final success, so the
-		// transaction the user was cancelling would announce that it succeeded and
-		// disappear. That is why this is an explicit marker and not a lookup of
-		// `(from, nonce)` in the store, which could not tell the two apart.
-		rememberResubmitTarget({from: call.from, nonce, operationKey});
-
-		try {
-			await $executor.client.sendTransaction({
-				...txRequest,
-				chain: $deployments.chain,
-				nonce,
-				maxFeePerGas: gasPrice.maxFeePerGas,
-				maxPriorityFeePerGas: gasPrice.maxPriorityFeePerGas,
-				metadata: resubmitMetadata,
-			});
-		} catch (err) {
-			// The send never reached the broadcast handler, so nothing consumed the
-			// marker. Left behind, it would attach the next unrelated send at this
-			// nonce to an operation it has nothing to do with.
-			forgetResubmitTarget({from: call.from, nonce});
-			throw err;
-		}
+		await $executor.client.sendTransaction({
+			...txRequest,
+			chain: $deployments.chain,
+			nonce,
+			maxFeePerGas: gasPrice.maxFeePerGas,
+			maxPriorityFeePerGas: gasPrice.maxPriorityFeePerGas,
+			metadata: resubmitMetadata,
+			// WHICH OPERATION THIS SEND IS REPLACING, travelling beside the
+			// metadata rather than inside it. The tracker carries it verbatim onto
+			// `transaction:broadcasted`, where `connectors.ts` reads it and
+			// attaches this attempt to that operation.
+			//
+			// EPHEMERAL, AND NOT STORED. Nothing writes it into the record: it says
+			// which request this send answers, not anything about the transaction.
+			// The operation key is used as the value because it IS the routing
+			// target and is already known here; see the note in the commit message
+			// on why this does not go through a generated token and a map.
+			//
+			// ONLY THE RESUBMIT SENDS ONE. A cancel reuses the same nonce but must
+			// create its own operation: attaching it would make the stuck operation
+			// report the cancel's Success, and account data deletes an operation
+			// that reports final success, so the transaction the user was
+			// cancelling would announce that it succeeded and disappear.
+			correlation: operationKey,
+		});
 
 		return {status: 'submitted'};
 	} catch (err) {
@@ -450,8 +443,12 @@ export async function cancelOperation(
 			);
 		}
 
-		// NO CORRELATION MARKER HERE, DELIBERATELY. A cancel is its own operation:
-		// see resubmit-correlation, and the comment in resubmitOperation.
+		// NO `correlation` HERE, DELIBERATELY, which is what makes the broadcast
+		// handler file this as its OWN operation. See the note in
+		// `resubmitOperation`: attaching a cancel to the operation it cancels would
+		// make that operation report the cancel's Success, and account data deletes
+		// an operation that reports final success, so the transaction the user was
+		// getting rid of would announce that it succeeded and disappear.
 		await $executor.client.sendTransaction({
 			...txRequest,
 			chain: $deployments.chain,
