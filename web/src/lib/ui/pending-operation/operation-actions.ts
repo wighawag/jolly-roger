@@ -1,9 +1,10 @@
 import {get} from 'svelte/store';
 import type {GasPrice} from '$lib/core/connection/gasFee';
 import type {
-	ExtendedTransactionMetadata,
 	OnchainOperation,
+	TransactionMetadata,
 } from '$lib/account/AccountData';
+import type {IntendedGasParameters} from '@etherkit/viem-tx-tracker';
 import {
 	InsufficientFundsError,
 	isStoppedWaitingError,
@@ -24,26 +25,50 @@ import {
 } from '$lib/core/connection/refusal';
 import {shortAddress} from '$lib/core/utils/ethereum/address';
 
-type GasParameters = {
-	maxFeePerGas?: bigint;
-	maxPriorityFeePerGas?: bigint;
-	gasPrice?: bigint;
-};
+/** The larger of the two, treating "not stated" as no constraint. */
+function higher(
+	a: bigint | undefined,
+	b: bigint | undefined,
+): bigint | undefined {
+	if (a === undefined) return b;
+	if (b === undefined) return a;
+	return a > b ? a : b;
+}
 
 /**
- * Extract the minimum gas price (the previous tx's fee) from an operation's
- * tracked-transaction metadata, used to validate a resubmit. Returns undefined
- * when the operation lacks gas parameters.
+ * The floor a replacement has to clear: the HIGHEST fee any attempt of this
+ * operation already paid.
+ *
+ * THE MAXIMUM, NOT THE LAST ONE. A replacement only replaces if it outbids
+ * every transaction already sitting at that nonce, so the constraint is the
+ * largest of them. "The last" would also be right most of the time, and only
+ * most: nothing in the type guarantees the array is in dispatch order, and a
+ * floor derived from a lower attempt is silently accepted by the UI and then
+ * rejected by the node as an underpriced replacement. Max does not care about
+ * the order.
+ *
+ * `undefined` means no attempt stated a fee, so there is nothing to clear.
  */
 export function deriveMinGasPrice(
 	operation: OnchainOperation | null,
 ): GasPrice | undefined {
 	if (!operation) return undefined;
-	const gasParams = operation.metadata.tx.gasParameters as GasParameters;
 
-	const maxFeePerGas = gasParams?.maxFeePerGas ?? gasParams?.gasPrice;
-	const maxPriorityFeePerGas =
-		gasParams?.maxPriorityFeePerGas ?? gasParams?.gasPrice;
+	let maxFeePerGas: bigint | undefined;
+	let maxPriorityFeePerGas: bigint | undefined;
+
+	for (const attempt of operation.attempts ?? []) {
+		const gasParams = attempt.gasParameters;
+		// A legacy attempt states one price that serves as both.
+		maxFeePerGas = higher(
+			maxFeePerGas,
+			gasParams?.maxFeePerGas ?? gasParams?.gasPrice,
+		);
+		maxPriorityFeePerGas = higher(
+			maxPriorityFeePerGas,
+			gasParams?.maxPriorityFeePerGas ?? gasParams?.gasPrice,
+		);
+	}
 
 	if (maxFeePerGas === undefined || maxPriorityFeePerGas === undefined) {
 		return undefined;
@@ -52,12 +77,42 @@ export function deriveMinGasPrice(
 }
 
 /**
+ * THE SLOT A REPLACEMENT IS FOR: the nonce of the most recently broadcast
+ * attempt.
+ *
+ * Every attempt of an operation shares a nonce today, because the only thing
+ * that appends one is a resubmit and a resubmit reuses it. So this is the same
+ * answer as "the first attempt" for every record this build can write, and it
+ * is chosen anyway because the SHAPE deliberately permits attempts at different
+ * nonces (a dropped transaction re-sent at a fresh one is still the same
+ * intent). Should that ever happen, the slot worth replacing is the one the
+ * latest dispatch occupies; the earliest is by then a nonce nothing is waiting
+ * on.
+ *
+ * By TIMESTAMP rather than by array position, for the same reason
+ * `deriveMinGasPrice` takes a maximum: nothing in the type guarantees the array
+ * is in dispatch order.
+ */
+function replacementNonce(operation: OnchainOperation): number | undefined {
+	let latest: {nonce: number; broadcastTimestampMs: number} | undefined;
+	for (const attempt of operation.attempts ?? []) {
+		if (
+			!latest ||
+			(attempt.broadcastTimestampMs ?? 0) > (latest.broadcastTimestampMs ?? 0)
+		) {
+			latest = attempt;
+		}
+	}
+	return latest?.nonce;
+}
+
+/**
  * The gas price to use when cancelling: the higher of the original fee + 1 wei
  * and the current network "fast" fee, so the cancel strictly replaces the
  * pending tx.
  */
 export function deriveCancelGasPrice(
-	originalGasParameters: GasParameters | undefined,
+	originalGasParameters: IntendedGasParameters | undefined,
 	fastPrice: bigint,
 ): bigint {
 	const originalGasPrice =
@@ -105,6 +160,17 @@ export type ReplacementResult =
 	 */
 	| {status: 'wrong-account'; expected: `0x${string}`}
 	| {status: 'error'; message: string};
+
+/**
+ * An operation with no recorded broadcast: there is no nonce to reuse, so there
+ * is nothing to replace. Its own constant so the resubmit and the cancel cannot
+ * word the same dead end two different ways.
+ */
+const NO_ATTEMPT_TO_REPLACE: ReplacementResult = {
+	status: 'error',
+	message:
+		'This operation has no recorded transaction, so there is nothing to replace.',
+};
 
 /** User-facing explanation for the `wrong-account` replacement result. */
 export function wrongAccountMessage(expected: `0x${string}`): string {
@@ -238,9 +304,16 @@ export async function resubmitOperation(
 	const {senders, deployments, balanceCheck} = deps;
 	const {operation, operationKey, gasPrice} = params;
 	const $deployments = get(deployments);
-	const originalTx = operation.metadata.tx;
+	const call = operation.call;
+	const nonce = replacementNonce(operation);
+	// NO SLOT, NO REPLACEMENT. Sending without a nonce is not a replacement at
+	// all: the wallet picks the next free one and the result is a SECOND
+	// transaction, spending real gas while the stuck one stays exactly where it
+	// was. Refusing is the honest answer, and this is reachable, if only through
+	// a record whose attempts list is empty.
+	if (nonce === undefined) return NO_ATTEMPT_TO_REPLACE;
 
-	const guarded = await requireSenderFor(senders, originalTx);
+	const guarded = await requireSenderFor(senders, call);
 	if (!guarded.ok) return guarded.result;
 	const $executor = guarded.executor;
 
@@ -249,9 +322,9 @@ export async function resubmitOperation(
 			{
 				transaction: {
 					account: $executor.account,
-					to: originalTx.to as `0x${string}`,
-					data: originalTx.data,
-					value: originalTx.value,
+					to: call.to as `0x${string}`,
+					data: call.data,
+					value: call.value,
 				},
 			},
 			// Measured against the account that is actually replacing the transaction,
@@ -260,27 +333,46 @@ export async function resubmitOperation(
 			{balance: guarded.balance, sender: $executor.address},
 		);
 
-		// operationId links this resubmit to the existing operation.
-		const resubmitMetadata: ExtendedTransactionMetadata = {
+		// METADATA SAYS WHAT THE TRANSACTION MEANS, AND NOTHING ELSE. The link to
+		// the operation being replaced is not part of that, so it does not travel
+		// here (it used to, as `operationId`, and was then persisted into every
+		// resubmitted record).
+		const resubmitMetadata: TransactionMetadata = {
 			type: 'unknown',
 			name: 'Resubmit Transaction',
 			data: [],
-			operationId: operationKey,
 		};
 
-		if (originalTx.chainId && originalTx.chainId !== $deployments.chain.id) {
+		if (call.chainId && call.chainId !== $deployments.chain.id) {
 			throw new Error(
-				`tx to resubmit is from a different chain (${originalTx.chainId}) than the current (${$deployments.chain.id})`,
+				`tx to resubmit is from a different chain (${call.chainId}) than the current (${$deployments.chain.id})`,
 			);
 		}
 
 		await $executor.client.sendTransaction({
 			...txRequest,
 			chain: $deployments.chain,
-			nonce: originalTx.nonce,
+			nonce,
 			maxFeePerGas: gasPrice.maxFeePerGas,
 			maxPriorityFeePerGas: gasPrice.maxPriorityFeePerGas,
 			metadata: resubmitMetadata,
+			// WHICH OPERATION THIS SEND IS REPLACING, travelling beside the
+			// metadata rather than inside it. The tracker carries it verbatim onto
+			// `transaction:broadcasted`, where `connectors.ts` reads it and
+			// attaches this attempt to that operation.
+			//
+			// EPHEMERAL, AND NOT STORED. Nothing writes it into the record: it says
+			// which request this send answers, not anything about the transaction.
+			// The operation key is used as the value because it IS the routing
+			// target and is already known here; see the note in the commit message
+			// on why this does not go through a generated token and a map.
+			//
+			// ONLY THE RESUBMIT SENDS ONE. A cancel reuses the same nonce but must
+			// create its own operation: attaching it would make the stuck operation
+			// report the cancel's Success, and account data deletes an operation
+			// that reports final success, so the transaction the user was
+			// cancelling would announce that it succeeded and disappear.
+			correlation: operationKey,
 		});
 
 		return {status: 'submitted'};
@@ -311,9 +403,13 @@ export async function cancelOperation(
 	const {senders, deployments, balanceCheck, gasFee} = deps;
 	const {operation} = params;
 	const $deployments = get(deployments);
-	const originalTx = operation.metadata.tx;
+	const call = operation.call;
+	const nonce = replacementNonce(operation);
+	// Same reasoning as the resubmit: a cancel without the original nonce is a
+	// 0-value self-send that cancels nothing.
+	if (nonce === undefined) return NO_ATTEMPT_TO_REPLACE;
 
-	const guarded = await requireSenderFor(senders, originalTx);
+	const guarded = await requireSenderFor(senders, call);
 	if (!guarded.ok) return guarded.result;
 	const $executor = guarded.executor;
 
@@ -321,8 +417,12 @@ export async function cancelOperation(
 		const gasFeeValue = get(gasFee);
 		const fastPrice =
 			gasFeeValue.step === 'Loaded' ? gasFeeValue.fast.maxFeePerGas : 0n;
+		// Against the HIGHEST fee any attempt paid, for the same reason the
+		// resubmit floor is: the cancel has to outbid every transaction already
+		// sitting at this nonce, not merely the one that happens to be listed last.
+		const floor = deriveMinGasPrice(operation);
 		const cancelGasPrice = deriveCancelGasPrice(
-			originalTx.gasParameters as GasParameters,
+			floor && {maxFeePerGas: floor.maxFeePerGas},
 			fastPrice,
 		);
 
@@ -330,23 +430,29 @@ export async function cancelOperation(
 			{
 				transaction: {
 					account: $executor.account,
-					to: originalTx.from,
+					to: call.from,
 					value: 0n,
 				},
 			},
 			{balance: guarded.balance, sender: $executor.address},
 		);
 
-		if (originalTx.chainId && originalTx.chainId !== $deployments.chain.id) {
+		if (call.chainId && call.chainId !== $deployments.chain.id) {
 			throw new Error(
-				`tx to cancel is from a different chain (${originalTx.chainId}) than the current (${$deployments.chain.id})`,
+				`tx to cancel is from a different chain (${call.chainId}) than the current (${$deployments.chain.id})`,
 			);
 		}
 
+		// NO `correlation` HERE, DELIBERATELY, which is what makes the broadcast
+		// handler file this as its OWN operation. See the note in
+		// `resubmitOperation`: attaching a cancel to the operation it cancels would
+		// make that operation report the cancel's Success, and account data deletes
+		// an operation that reports final success, so the transaction the user was
+		// getting rid of would announce that it succeeded and disappear.
 		await $executor.client.sendTransaction({
 			...txRequest,
 			chain: $deployments.chain,
-			nonce: originalTx.nonce,
+			nonce,
 			maxFeePerGas: cancelGasPrice,
 			maxPriorityFeePerGas: cancelGasPrice,
 			metadata: {

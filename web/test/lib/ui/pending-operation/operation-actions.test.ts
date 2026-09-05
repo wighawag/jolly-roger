@@ -7,9 +7,11 @@ import {
 import {InsufficientFundsError} from '../../../../src/lib/core/transaction';
 import type {OnchainOperation} from '../../../../src/lib/account/AccountData';
 
-function operationWithGasParameters(gasParameters: unknown): OnchainOperation {
+function operationWithGasParameters(
+	...gasParameters: unknown[]
+): OnchainOperation {
 	return {
-		metadata: {tx: {gasParameters}},
+		attempts: gasParameters.map((params) => ({gasParameters: params})),
 	} as unknown as OnchainOperation;
 }
 
@@ -39,6 +41,65 @@ describe('deriveMinGasPrice', () => {
 
 	it('returns undefined when no fee info is present', () => {
 		expect(deriveMinGasPrice(operationWithGasParameters({}))).toBeUndefined();
+		expect(deriveMinGasPrice(operationWithGasParameters())).toBeUndefined();
+	});
+
+	/**
+	 * THE FLOOR IS THE MAXIMUM ACROSS ATTEMPTS, NOT THE LAST ONE.
+	 *
+	 * A replacement only replaces if it outbids every transaction already at that
+	 * nonce, so the constraint is the largest fee any attempt paid. "The last
+	 * one" would agree here most of the time and only most: nothing in the type
+	 * guarantees the array is in dispatch order, and a floor taken from a cheaper
+	 * attempt is accepted by the form and then rejected by the node as an
+	 * underpriced replacement. Hence the deliberately UNSORTED fixtures below.
+	 */
+	it('takes the highest fee across attempts, whatever their order', () => {
+		expect(
+			deriveMinGasPrice(
+				operationWithGasParameters(
+					{maxFeePerGas: 100n, maxPriorityFeePerGas: 10n},
+					{maxFeePerGas: 300n, maxPriorityFeePerGas: 30n},
+					{maxFeePerGas: 200n, maxPriorityFeePerGas: 20n},
+				),
+			),
+		).toEqual({maxFeePerGas: 300n, maxPriorityFeePerGas: 30n});
+
+		// The largest is FIRST, so "the last one" would under-report it.
+		expect(
+			deriveMinGasPrice(
+				operationWithGasParameters(
+					{maxFeePerGas: 500n, maxPriorityFeePerGas: 50n},
+					{maxFeePerGas: 200n, maxPriorityFeePerGas: 20n},
+				),
+			),
+		).toEqual({maxFeePerGas: 500n, maxPriorityFeePerGas: 50n});
+	});
+
+	it('maximises the two fields independently, across mixed attempt types', () => {
+		// A legacy attempt states one price that serves as both, so the highest
+		// cap and the highest tip can come from different attempts.
+		expect(
+			deriveMinGasPrice(
+				operationWithGasParameters(
+					{maxFeePerGas: 400n, maxPriorityFeePerGas: 5n},
+					{gasPrice: 90n},
+				),
+			),
+		).toEqual({maxFeePerGas: 400n, maxPriorityFeePerGas: 90n});
+	});
+
+	it('ignores an attempt that states no fee at all', () => {
+		// A resubmit migrated from a v1 record carries no gas parameters. It must
+		// not drag the floor down to undefined for the attempts that do have one.
+		expect(
+			deriveMinGasPrice(
+				operationWithGasParameters(
+					{},
+					{maxFeePerGas: 100n, maxPriorityFeePerGas: 10n},
+				),
+			),
+		).toEqual({maxFeePerGas: 100n, maxPriorityFeePerGas: 10n});
 	});
 });
 

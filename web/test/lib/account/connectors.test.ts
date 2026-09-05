@@ -35,8 +35,13 @@ function makeFakeAccountData() {
 		added,
 		accountData: {
 			addOperationFromTrackedTransaction: (tx: unknown) => added.push(tx),
-			addTransactionToOperation: (_id: string, tx: unknown) => added.push(tx),
-			updateOperationFromFetchedTransaction: () => {},
+			// Returns true, as the real one does when the operation exists: the
+			// connector falls back to creating an operation when it returns false.
+			addTransactionToOperation: (_id: string, tx: unknown) => {
+				added.push(tx);
+				return true;
+			},
+			updateOperationFromKnownTransaction: () => {},
 		} as never,
 	};
 }
@@ -92,6 +97,18 @@ describe('createTrackedWalletConnector', () => {
 		walletClient.emit('transaction:broadcasted', tx('0x01'));
 		expect(added).toHaveLength(1); // recorded once, not twice
 		connector.disconnect();
+	});
+
+	it('records known-value transactions as well as broadcasts', () => {
+		// `transaction:known` since tx-tracker 0.2.0. The old name described the
+		// mechanism, which is not uniform: a raw send parses rather than fetches.
+		const {walletClient, connector} = setup({status: 'not-connected'});
+		connector.connect();
+
+		expect(walletClient.listenerCount('transaction:known')).toBe(1);
+
+		connector.disconnect();
+		expect(walletClient.listenerCount('transaction:known')).toBe(0);
 	});
 
 	it('detaches the previous signer client when a new one replaces it', () => {
@@ -320,6 +337,18 @@ describe('createTrackedWalletConnector with two executors', () => {
 		expect(walletClient.listenerCount('transaction:broadcasted')).toBe(1);
 
 		connector.disconnect();
+		// Both events detached, the new name included.
+		expect(walletClient.listenerCount('transaction:broadcasted')).toBe(0);
+		expect(walletClient.listenerCount('transaction:known')).toBe(0);
+	});
+
+	it('drops events once disconnected', () => {
+		const {walletClient, connector, added} = setup({status: 'not-connected'});
+		connector.connect();
+		connector.disconnect();
+
+		walletClient.emit('transaction:broadcasted', tx('0xdead'));
+		expect(added).toHaveLength(0);
 	});
 });
 
@@ -343,7 +372,7 @@ function makeUnavailableAccountData() {
 	return {
 		addOperationFromTrackedTransaction: fail,
 		addTransactionToOperation: fail,
-		updateOperationFromFetchedTransaction: fail,
+		updateOperationFromKnownTransaction: fail,
 	} as never;
 }
 
@@ -415,16 +444,18 @@ describe('createTrackedWalletConnector: a broadcast account data cannot take', (
 		expect(seen).toHaveLength(0);
 	});
 
-	it('does not let a fetched-data failure throw either', () => {
+	it('does not let a known-transaction failure throw either', () => {
 		// Milder: the tracker already catches this one, but it then logs "could not
 		// fetch tx", which is a misleading thing to print about a fetch that worked.
+		// (`transaction:known` since tx-tracker 0.2.0: the values are final rather
+		// than intended, which is true whether they were fetched or parsed.)
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 		try {
 			const {walletClient, connector} = setupUnavailable();
 			connector.connect();
 
 			expect(() =>
-				walletClient.emit('transaction:fetched', broadcastTx),
+				walletClient.emit('transaction:known', broadcastTx),
 			).not.toThrow();
 			expect(warn).toHaveBeenCalled();
 		} finally {

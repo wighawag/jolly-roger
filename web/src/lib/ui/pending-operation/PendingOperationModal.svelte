@@ -56,10 +56,8 @@
 	);
 	let operationKey = $derived(inspected.key ?? null);
 
-	// Get status string from transaction intent state
-	let status = $derived(
-		operation?.transactionIntent.state?.inclusion || 'Fetching',
-	);
+	// Get status string from the observer's state
+	let status = $derived(operation?.state?.inclusion || 'Fetching');
 
 	// Transaction is final when included or dropped - no confirmation needed for dismiss
 	let isFinal = $derived(status === 'Included' || status === 'Dropped');
@@ -208,9 +206,7 @@
 		<div class="space-y-4 py-4">
 			<OperationDetailsView {operation} />
 
-			<TransactionAttemptsList
-				transactions={operation.transactionIntent.transactions}
-			/>
+			<TransactionAttemptsList attempts={operation.attempts} />
 		</div>
 
 		<Modal.Footer>

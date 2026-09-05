@@ -1,5 +1,5 @@
 import type {OnchainOperation} from '$lib/account/AccountData';
-import type {TransactionIntent} from '@etherkit/tx-observer';
+import type {TransactionIntentState} from '@etherkit/tx-observer';
 
 export type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline';
 
@@ -31,13 +31,15 @@ export function getOperationName(
 }
 
 /**
- * Semantic status (kind + label + badge variant) for an operation's intent.
+ * Semantic status (kind + label + badge variant) for an operation.
+ *
+ * Takes the observer's STATE, which is the only thing it reads and is stored on
+ * the operation directly. Components pass `operation.state` rather than
+ * building an intent to look one field up in it.
  */
 export function getOperationStatusInfo(
-	intent: TransactionIntent,
+	state: TransactionIntentState | undefined,
 ): OperationStatusInfo {
-	const state = intent.state;
-
 	if (!state || state.inclusion === 'InMemPool') {
 		return {kind: 'pending', label: 'Pending', variant: 'secondary'};
 	}
@@ -48,7 +50,7 @@ export function getOperationStatusInfo(
 		return {kind: 'dropped', label: 'Dropped', variant: 'destructive'};
 	}
 	if (state.inclusion === 'Included') {
-		return state.status === 'Success'
+		return state.outcome === 'Success'
 			? {kind: 'success', label: 'Success', variant: 'default'}
 			: {kind: 'failed', label: 'Failed', variant: 'destructive'};
 	}
@@ -58,40 +60,118 @@ export function getOperationStatusInfo(
 /**
  * The primary transaction hash for an operation: the included attempt when
  * known, otherwise the first attempt.
+ *
+ * Reads `attempts` directly. The UI is showing what THIS app sent, which is
+ * exactly what `attempts` is; the observer's view of it adds nothing here.
  */
 export function getMainTxHash(
-	intent: TransactionIntent,
+	operation: OnchainOperation,
 ): `0x${string}` | undefined {
-	if (intent.transactions.length === 0) return undefined;
+	const attempts = operation.attempts;
+	if (attempts.length === 0) return undefined;
 
-	const state = intent.state;
-	if (state?.inclusion === 'Included' && state.attemptIndex !== undefined) {
-		return intent.transactions[state.attemptIndex]?.hash;
+	const state = operation.state;
+	// ONLY UNDER `attempt`. The other arm is an inclusion proved by an effect on
+	// chain that none of our transactions produced (the same action sent from
+	// another device, or a resubmission made in the user's wallet), so there is
+	// no hash of ours to point at. The fallback below is then correct rather than
+	// approximate: the first attempt is what this app sent.
+	if (state?.inclusion === 'Included' && state.via.kind === 'attempt') {
+		return attempts[state.via.attemptIndex]?.hash;
 	}
-	return intent.transactions[0]?.hash;
+	return attempts[0]?.hash;
+}
+
+/**
+ * Is THIS attempt the one that got included?
+ *
+ * False for an out-of-band inclusion, which is the point: no attempt of ours
+ * won it, so marking one would be a claim the state does not make.
+ */
+export function isIncludedAttempt(
+	state: TransactionIntentState | undefined,
+	index: number,
+): boolean {
+	return (
+		state?.inclusion === 'Included' &&
+		state.via.kind === 'attempt' &&
+		state.via.attemptIndex === index
+	);
 }
 
 /** 'Success' | 'Failure' once included, otherwise null. */
-export function getTransactionResult(intent: TransactionIntent): string | null {
-	const state = intent.state;
-	if (state?.inclusion === 'Included') return state.status;
+export function getTransactionResult(
+	state: TransactionIntentState | undefined,
+): string | null {
+	if (state?.inclusion === 'Included') return state.outcome;
 	return null;
 }
 
 /**
- * Earliest broadcast time (ms) across an intent's attempts, or null when none.
+ * Earliest broadcast time (ms) across an operation's attempts, or null when
+ * none.
  */
 export function getEarliestBroadcastMs(
-	intent: TransactionIntent,
+	operation: OnchainOperation,
 ): number | null {
-	const txs = intent.transactions;
-	if (txs.length === 0) return null;
-	return txs.reduce<number | null>((min, tx) => {
-		if (!tx.broadcastTimestampMs) return min;
-		return min === null || tx.broadcastTimestampMs < min
-			? tx.broadcastTimestampMs
+	const attempts = operation.attempts;
+	if (attempts.length === 0) return null;
+	return attempts.reduce<number | null>((min, attempt) => {
+		if (!attempt.broadcastTimestampMs) return min;
+		return min === null || attempt.broadcastTimestampMs < min
+			? attempt.broadcastTimestampMs
 			: min;
 	}, null);
+}
+
+/**
+ * TWO CLOCKS, TWO UNITS, AND NOTHING CONVERTS BETWEEN THEM IMPLICITLY.
+ *
+ * `broadcastTimestampMs` is OUR clock, in milliseconds: when this browser
+ * handed the transaction to the wallet. `blockTimestamp` is the CHAIN'S, in
+ * seconds: when the block that included it was mined. They are different
+ * quantities from different sources, so each gets its own named formatter and
+ * neither takes a bare number that could be the other.
+ *
+ * The pair replaces a live bug. `state.final` used to hold the inclusion
+ * block's timestamp and was rendered as "Block {final}", so the UI printed a
+ * ten-digit unix timestamp labelled as a block number. Finality is now the
+ * boolean it always meant, and the timestamp is shown as a time.
+ */
+export function formatBroadcastTime(
+	broadcastTimestampMs: number | null | undefined,
+): string | null {
+	if (!broadcastTimestampMs) return null;
+	return new Date(broadcastTimestampMs).toLocaleString();
+}
+
+export function formatBlockTime(
+	blockTimestampSeconds: number | null | undefined,
+): string | null {
+	if (!blockTimestampSeconds) return null;
+	// The one place the units meet, spelled out: chain seconds -> Date's ms.
+	return new Date(blockTimestampSeconds * 1000).toLocaleString();
+}
+
+/** The inclusion block's timestamp (chain seconds), when there is one. */
+export function getBlockTimestamp(
+	state: TransactionIntentState | undefined,
+): number | undefined {
+	return state?.inclusion === 'Included' ? state.blockTimestamp : undefined;
+}
+
+/**
+ * An operation's attempts, most recently broadcast first.
+ *
+ * Returns a copy: `attempts` is store-owned, and sorting it in place would
+ * mutate persisted data from a render.
+ */
+export function sortAttemptsNewestFirst<
+	T extends {broadcastTimestampMs: number},
+>(attempts: readonly T[]): T[] {
+	return [...attempts].sort(
+		(a, b) => (b.broadcastTimestampMs || 0) - (a.broadcastTimestampMs || 0),
+	);
 }
 
 /**
@@ -113,8 +193,11 @@ export function countPendingOperations(
 ): number {
 	let count = 0;
 	for (const id of Object.keys(operations)) {
-		const state = operations[id].transactionIntent.state;
-		if (state?.inclusion === 'Included' && state?.status === 'Success') {
+		// Read straight off the record: the observer's state is stored on the
+		// operation, and building a whole intent to ask one question about it
+		// would be ceremony.
+		const state = operations[id].state;
+		if (state?.inclusion === 'Included' && state?.outcome === 'Success') {
 			continue;
 		}
 		count++;
@@ -142,14 +225,17 @@ export function getInclusionBadgeVariant(status: string): BadgeVariant {
 /**
  * The account an operation was sent FROM.
  *
- * Read off the transaction itself rather than tracked separately, because
- * `from` is already the one fact that says whose transaction this is. It is
- * what selects the executor for a resubmit or a cancel, so filtering on it
- * means "the list you can see" and "the button that can act on it" agree by
- * construction.
+ * Read off the CALL rather than tracked separately, because `from` is already
+ * the one fact that says whose transaction this is. It is what selects the
+ * executor for a resubmit or a cancel, so filtering on it means "the list you
+ * can see" and "the button that can act on it" agree by construction.
+ *
+ * One per OPERATION, not per attempt: the record hoists `from` into `call`
+ * because the replacement path's premise is that one route owns the nonce slot,
+ * so every attempt of an operation shares its sender.
  */
 export function operationSender(op: OnchainOperation): `0x${string}` {
-	return op.metadata.tx.from;
+	return op.call.from;
 }
 
 /**

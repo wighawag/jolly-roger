@@ -29,19 +29,32 @@ const deployments = {
 	chain: {id: 31337, genesisHash: '0xgenesis'},
 } as unknown as TypedDeployments;
 
-/** One operation, as `addOperationFromTrackedTransaction` files it. */
+/**
+ * One operation, as `addOperationFromTrackedTransaction` files it.
+ *
+ * `from` sits on the CALL and the nonce on the ATTEMPT: the record hoists the
+ * sender because one route owns the nonce slot for the whole operation, while
+ * the nonce stays per attempt because a dropped transaction can be re-sent at a
+ * fresh one and still be the same intent.
+ */
 function operation(from: string | undefined, nonce: number | undefined) {
+	// Only `call.from` and the attempts' nonces matter here, and this fixture is
+	// also written to storage with a plain JSON.stringify, so it deliberately
+	// carries no bigint (`value`) to serialise.
 	return {
-		transactionIntent: {
-			transactions: [
-				{
-					hash: `0x${String(nonce).padStart(64, '0')}`,
-					...(from === undefined ? {} : {from}),
-					...(nonce === undefined ? {} : {nonce}),
-					broadcastTimestampMs: 1000,
-				},
-			],
+		call: {
+			...(from === undefined ? {} : {from}),
+			to: null,
+			data: '0x',
 		},
+		attempts: [
+			{
+				hash: `0x${String(nonce).padStart(64, '0')}`,
+				...(nonce === undefined ? {} : {nonce}),
+				broadcastTimestampMs: 1000,
+				gasParameters: {},
+			},
+		],
 		metadata: {type: 'unknown', name: 'x'},
 	} as unknown as OnchainOperation;
 }
@@ -55,7 +68,7 @@ const operations = (
 function store(account: string, ops: Record<string, OnchainOperation>) {
 	localStorage.setItem(
 		`__private__31337_0xgenesis_${SCOPE}_${account}`,
-		JSON.stringify({$version: 1, data: {operations: ops}}),
+		JSON.stringify({$version: 2, data: {operations: ops}}),
 	);
 }
 

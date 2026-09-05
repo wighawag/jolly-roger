@@ -226,7 +226,7 @@ export function createNonceCacheStore(params: {
 		};
 		offObserver = [
 			txObserver.on('intent:updated', onIntentEvent),
-			txObserver.on('intent:status', onIntentEvent),
+			txObserver.on('intent:state', onIntentEvent),
 			txObserver.on('intents:added', onIntentsAdded),
 			txObserver.on('intents:removed', onIntentsRemoved),
 			txObserver.on('intents:cleared', onIntentsCleared),
