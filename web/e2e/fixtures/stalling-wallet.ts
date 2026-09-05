@@ -437,6 +437,15 @@ export async function chooseStallingWallet(page: Page): Promise<void> {
 }
 
 /**
+ * How long ONE attempt at the sign-in click may take before the loop stops
+ * waiting on it and looks again.
+ *
+ * Generous, because a click that is merely slow should still land: this exists
+ * to bound a wait that would otherwise never end, not to hurry the app up.
+ */
+const SIGN_IN_CLICK_TIMEOUT = 5_000;
+
+/**
  * Wait until the wallet is holding the request, confirming sign-in on the way if
  * this app asks for it.
  *
@@ -461,9 +470,29 @@ async function waitUntilHolding(page: Page, timeout = 60_000): Promise<void> {
 		// it and a caller's clock starts as close to the dispatch as it can.
 		if (await isHoldingTransaction(page).catch(() => false)) return;
 		if (await signIn.isVisible().catch(() => false)) {
-			// May lose a race with the app moving on; that is fine, the next pass
-			// looks again.
-			await signIn.click().catch(() => {});
+			// BOUNDED, and that bound is the whole reason this loop terminates.
+			//
+			// Losing the race with the app moving on is NORMAL here, and this comment
+			// used to say exactly that - but an unbounded click does not lose a race,
+			// it WAITS for it. `isVisible` is a snapshot, and the modal closes the
+			// moment sign-in succeeds, so the button is routinely gone by the time the
+			// click resolves its locator. Playwright then auto-waits for a "Sign in"
+			// button to come back, and with no timeout that wait has no end: measured
+			// at `count=0, visible=false`, still waiting 117 seconds later. The
+			// `catch` never fired, because nothing ever rejected.
+			//
+			// The damage was not the lost click, which the next pass would have
+			// retried anyway. It is that the loop never got back to its own
+			// `deadline`, so the diagnostic below - the one thing that can tell a
+			// parked flow from a slow node - could never run, and the suite died on
+			// Playwright's own test timeout instead, naming `waitForTimeout` and
+			// explaining nothing. That is what made both suites that come through here
+			// look like node contention for as long as they did.
+			//
+			// It can only fire where the button exists at all, which is an app that
+			// SIGNS IN. This one never renders it, so the code is inert here and this
+			// is a descendant's fix kept in the file they share.
+			await signIn.click({timeout: SIGN_IN_CLICK_TIMEOUT}).catch(() => {});
 		}
 		await page.waitForTimeout(100);
 	}

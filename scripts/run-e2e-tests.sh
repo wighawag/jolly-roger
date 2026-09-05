@@ -123,7 +123,12 @@ WEB_DIR="$WORKTREE_DIR/web"
 # CI that burns the job timeout instead of reporting the result.
 NODE_PID=""
 NODE_PGID=""
-NODE_LOG="${TMPDIR:-/tmp}/jolly-roger-e2e-node.log"
+# Named after the REPO, like WORKTREE_DIR below, because this template is the
+# root of a tree of variants that are checked out side by side. A fixed name
+# means every one of them writes its chain's log over every other one's, so the
+# log consulted after a failure belongs to whichever repo ran last - which is
+# the opposite of what it is for, and worthless the moment two runs overlap.
+NODE_LOG="${TMPDIR:-/tmp}/$(basename "$REPO_DIR")-e2e-node.log"
 
 # Same treatment for the sign-in host, and for the same reason: `pnpm
 # wallet-host` is a wrapper and the server is its child.
