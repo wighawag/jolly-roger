@@ -79,6 +79,26 @@ export default defineConfig({
 		// This ensures tests don't inherit wallet connection state from previous runs
 		storageState: {cookies: [], origins: []},
 
+		// EVERY ACTION GETS AN END, because Playwright's default is that none of
+		// them do (`actionTimeout: 0`). An action waits for its element to be
+		// actionable, so a `click` on a locator that matches NOTHING - a button that
+		// closed between the check and the click, a row that went stale - does not
+		// fail, it waits for the element to appear, forever.
+		//
+		// The cost of that is not the lost action, it is where the failure lands: a
+		// helper that owns a deadline never gets back to it, no diagnostic it was
+		// written to print can run, and the test dies on the 120s timeout above
+		// pointing at whatever line happened to be executing. This suite has now
+		// been bitten twice - `pickSignableAccount` in e2e/fixtures/test.ts bounds
+		// its click for this exact reason, and the sign-in click in
+		// e2e/fixtures/stalling-wallet.ts cost an afternoon of blaming the node.
+		//
+		// Well above anything a working app needs (the slowest deliberate wait in
+		// the suite is 30s, and it is an `expect`, which this does not govern), so
+		// it changes no passing test: it only converts a hang into a failure that
+		// names its own line.
+		actionTimeout: 30_000,
+
 		// Collect trace when retrying the failed test
 		trace: 'on-first-retry',
 
