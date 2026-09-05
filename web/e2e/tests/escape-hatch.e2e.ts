@@ -376,9 +376,19 @@ describe('Stopping waiting for the wallet', () => {
 
 		await page.evaluate(() => (globalThis as any).context.connection.connect());
 
-		// The flow comes to rest showing NO wallet at all. That is the state the
-		// announcement used to disappear in, so it is asserted rather than assumed:
-		// without it this test would silently become a second copy of the one above.
+		// The flow comes to rest in a PICKER, showing NO wallet at all. That is the
+		// state the announcement used to disappear in, so it is asserted rather than
+		// assumed: without it this test would silently become a second copy of the
+		// one above.
+		//
+		// WHICH picker is the app's business, and naming one was this file's third
+		// version of the same mistake (see `stepBefore` and `stepBeforeLock` above,
+		// captured rather than named for exactly this reason). `connect()` opens the
+		// choice the app actually offers: `WalletToChoose` where wallets are the only
+		// way in, `MechanismToChoose` where the app also offers email or social
+		// sign-in. Both are the same fact for this test - the flow is at rest, on a
+		// choice, holding no wallet - and a descendant that offers more than wallets
+		// was failing on the name of its own picker.
 		await expect
 			.poll(
 				() =>
@@ -390,7 +400,10 @@ describe('Stopping waiting for the wallet', () => {
 					}),
 				{timeout: 30_000},
 			)
-			.toEqual({step: 'WalletToChoose', hasWallet: false});
+			.toEqual({
+				step: expect.stringMatching(/^(WalletToChoose|MechanismToChoose)$/),
+				hasWallet: false,
+			});
 
 		// The wallet is still holding it, and the app can still say so.
 		expect(await isHoldingTransaction(page)).toBe(true);
