@@ -76,18 +76,33 @@ export default defineConfig({
 	// workers, and the full suite flaked on five of six runs at the default.
 	// `bleeps` capped at 4 for the same reason and the same measurement.
 	//
-	// RE-MEASURED AT 2, because the load went up. The sending-indicator suite
-	// used to fail fast here (it drove the demo page, which this app does not
-	// send to a wallet through, so it waited thirty seconds for a wallet nobody
-	// was going to ask). Fixing it means a SECOND suite now walks all the way to
-	// a held transaction, and two of those against one node is more than 4 could
-	// feed: even a three-suite run failed at 4 and passed at 2.
+	// THEN LOWERED TO 2 FOR A REASON THAT TURNED OUT TO BE WRONG, left at 2, and
+	// written down here because the wrong reason was persuasive enough to cost
+	// somebody an afternoon.
 	//
-	// What it looks like when it bites, so the next person does not spend an
-	// evening on it: the app sits on "Executing...", the wallet-action modal is
-	// up, and nothing is ever held, because the wallet is waiting on the node for
-	// a read a busier node has not answered yet. The stalling wallet now names
-	// the call it is waiting on when it gives up.
+	// The story was: fixing the sending-indicator suite meant a SECOND suite
+	// walked all the way to a held transaction, two of those against one node was
+	// more than 4 workers could feed, and the escape-hatch and sending-indicator
+	// failures that followed were the node falling behind. The measurements were
+	// real - it did fail at 4 and pass at 2 - and the conclusion was still wrong.
+	//
+	// Both suites were failing on a fixture bug. `waitUntilHolding` clicked "Sign
+	// in" with no timeout, the sign-in modal closes as soon as the signature
+	// lands, and Playwright waits for a vanished button forever rather than
+	// failing - so the loop never reached its own deadline and the test died on
+	// Playwright's 120s timeout. Worker count moved the timing of the race that
+	// opened that window, which is exactly why fewer workers looked like a cure.
+	// The full suite failed at ONE worker too, which should have settled it.
+	//
+	// So this cap is not what makes the stalling-wallet suites pass; the fixture
+	// fix is. It is kept because the paragraph above it stands on its own
+	// evidence, and it has not been re-derived since. If you want the wall clock
+	// back, raising it is a reasonable thing to measure - just do not read a
+	// stalling-wallet failure as proof that you cannot.
+	//
+	// What node contention actually looks like, as distinct from that bug: the
+	// stalling wallet's own error names the RPC method it is waiting on and for
+	// how long. If that message says "nothing", the node is not your problem.
 	workers: env.CI ? 1 : 2,
 
 	// Reporter to use
