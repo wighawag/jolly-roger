@@ -1,5 +1,5 @@
+import {readFileSync} from 'node:fs';
 import {test, expect, describe} from '../fixtures/test';
-import {name as APP_NAME} from '../../src/web-config.json';
 
 /**
  * THE APP'S NAME COMES FROM THE APP, not from a literal here.
@@ -12,7 +12,18 @@ import {name as APP_NAME} from '../../src/web-config.json';
  * does the first thing anybody does with a template: rename it. `reveal-or-die`
  * renamed itself and inherited two failures that had nothing to do with its
  * home page, which rendered perfectly.
+ *
+ * READ, NOT IMPORTED. `import ... from './x.json'` type-checks (TypeScript has
+ * `resolveJsonModule`) and then throws at run time under Playwright's ESM
+ * loader, which wants an `import ... with {type: 'json'}` attribute. Reading the
+ * file is what `playwright.config.ts` already does for
+ * `e2e/impersonate-addresses.json`, so this is the established way to reach a
+ * JSON fact from the suite rather than a second one.
  */
+const APP_NAME: string = JSON.parse(
+	readFileSync(new URL('../../src/web-config.json', import.meta.url), 'utf8'),
+).name;
+
 describe('Home Page', () => {
 	test('should display the icon', async ({page}) => {
 		await page.goto('/');
