@@ -1,11 +1,24 @@
 import {test, expect, describe} from '../fixtures/test';
+import {name as APP_NAME} from '../../src/web-config.json';
 
+/**
+ * THE APP'S NAME COMES FROM THE APP, not from a literal here.
+ *
+ * `routes/+page.svelte` renders `src/web-config.json`'s `name` as both the
+ * icon's `alt` and the hero heading, so that file is the single fact and this
+ * suite reads the same one. Spelling "Jolly Roger" out instead made these tests
+ * assert the TEMPLATE's identity rather than the app's, which is invisible for
+ * as long as a descendant keeps the inherited name and breaks the moment one
+ * does the first thing anybody does with a template: rename it. `reveal-or-die`
+ * renamed itself and inherited two failures that had nothing to do with its
+ * home page, which rendered perfectly.
+ */
 describe('Home Page', () => {
 	test('should display the icon', async ({page}) => {
 		await page.goto('/');
 
-		// Check for the icon image
-		const icon = page.locator('img[alt="Jolly Roger"]');
+		// Check for the icon image, labelled with the app's own name.
+		const icon = page.locator(`img[alt="${APP_NAME}"]`);
 		await expect(icon).toBeVisible();
 	});
 
@@ -43,9 +56,10 @@ describe('Home Page - Navigation', () => {
 		await page.goto('/');
 		await page.waitForLoadState('load', {timeout: 15000});
 
-		// Verify we're back on home page by checking for the Jolly Roger heading
-		await expect(page.getByRole('heading', {name: /jolly roger/i})).toBeVisible(
-			{timeout: 10000},
-		);
+		// Verify we're back on the home page by checking for its heading, which is
+		// the app's own name (see the note at the top of this file).
+		await expect(
+			page.getByRole('heading', {name: APP_NAME, exact: true}),
+		).toBeVisible({timeout: 10000});
 	});
 });
