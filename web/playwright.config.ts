@@ -88,15 +88,20 @@ export default defineConfig({
 		// The cost of that is not the lost action, it is where the failure lands: a
 		// helper that owns a deadline never gets back to it, no diagnostic it was
 		// written to print can run, and the test dies on the 120s timeout above
-		// pointing at whatever line happened to be executing. This suite has now
-		// been bitten twice - `pickSignableAccount` in e2e/fixtures/test.ts bounds
-		// its click for this exact reason, and the sign-in click in
-		// e2e/fixtures/stalling-wallet.ts cost an afternoon of blaming the node.
+		// pointing at whatever line happened to be executing. The sign-in click in
+		// e2e/fixtures/stalling-wallet.ts did exactly that and cost an afternoon of
+		// blaming the hardhat node; the connect-flow clicks in e2e/fixtures/test.ts
+		// were the same bug at a second site, found only because this was added.
 		//
-		// Well above anything a working app needs (the slowest deliberate wait in
-		// the suite is 30s, and it is an `expect`, which this does not govern), so
-		// it changes no passing test: it only converts a hang into a failure that
-		// names its own line.
+		// A BACKSTOP, NOT THE FIX. Every click in those loops is bounded at its own
+		// call site, because the right timeout there is a few seconds and this is
+		// thirty. What this buys is that the NEXT unbounded action fails at its own
+		// line instead of as an unexplained test timeout.
+		//
+		// Well above anything a working app needs, and it does not govern `expect`
+		// (which has its own timeout, and is where every long deliberate wait in
+		// this suite lives, up to 60s). So it changes no passing test: it only
+		// converts a hang into a failure that names itself.
 		actionTimeout: 30_000,
 
 		// Collect trace when retrying the failed test

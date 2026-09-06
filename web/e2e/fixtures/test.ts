@@ -59,6 +59,15 @@ const RPC_ATTEMPTS = 2;
 const RPC_RETRY_DELAY_MS = 250;
 /** How far a failure message follows `cause` before it stops. Cycles are legal. */
 const MAX_CAUSE_DEPTH = 5;
+/**
+ * How long a click at a connect-flow dialog may wait for its target.
+ *
+ * These dialogs close underneath the click that answered them, so the target is
+ * routinely gone before the click resolves it. Bounded so that losing the race
+ * FAILS instead of waiting for the element to come back, which is what an
+ * unbounded Playwright click does.
+ */
+const DIALOG_CLICK_TIMEOUT = 5_000;
 
 // The app's base URL comes from playwright.config.ts (`use.baseURL`), so tests
 // navigate with relative paths and nothing here needs to duplicate it.
@@ -387,10 +396,28 @@ async function connectWalletDevMode(
 				.first()
 				.waitFor({state: 'attached', timeout: 2000})
 				.catch(() => {});
+			// BOUNDED, BOTH OF THEM, because this dialog is closing underneath them.
+			// An unbounded Playwright click does not fail when its target goes away,
+			// it waits for the target to come back - for ever, since the default
+			// `actionTimeout` is 0. This loop is the same shape as the one in
+			// stalling-wallet.ts that hung two whole suites for a fortnight while the
+			// blame went to the hardhat node, and it has the same two racy clicks:
+			// the row can detach as labels land, and Sign In is gone the moment the
+			// signature is answered.
+			//
+			// Swallowed rather than retried here, because the enclosing `while` IS
+			// the retry: it re-reads whichever dialog is now on screen and acts on
+			// that. A click that lost its race has simply nothing left to do.
 			if ((await rows.count()) > accountIndex) {
-				await rows.nth(accountIndex).click();
+				await rows
+					.nth(accountIndex)
+					.click({timeout: DIALOG_CLICK_TIMEOUT})
+					.catch(() => {});
 			}
-			await page.getByRole('button', {name: /^sign in$/i}).click();
+			await page
+				.getByRole('button', {name: /^sign in$/i})
+				.click({timeout: DIALOG_CLICK_TIMEOUT})
+				.catch(() => {});
 		} else if (/insufficient funds|funds available/i.test(text)) {
 			// Funding is handled by handleInsufficientFundsModal below.
 			break;
