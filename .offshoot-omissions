@@ -1,0 +1,22 @@
+# Files this repo deliberately does NOT carry from its template.
+#
+# WHAT THIS IS FOR. Every repo in this tree merges from a `stem` remote. A file
+# that a descendant has deleted is not a settled decision as far as git is
+# concerned: the next time the template TOUCHES that file, the cascade stops
+# with a modify/delete conflict, and whoever is running it has to work out from
+# scratch whether the deletion was deliberate. That has already happened
+# repeatedly for `sending-indicator.e2e.ts` in bleeps and mandalas, and the only
+# record of the intent was a commit message from months earlier.
+#
+# Listing the path here does not change what git does - the conflict still
+# happens - but it makes the answer a lookup instead of an excavation, and
+# `scripts/apply-omissions.sh` turns the resolution into one command.
+# `web/test/offshoot-omissions.test.ts` fails if any listed path comes back, so
+# a cascade that silently reintroduces one cannot be committed quietly.
+#
+# FORMAT. One path per line, relative to the repo root. `#` starts a comment.
+# Give every entry a reason: the next person's question is never "which file",
+# it is "why", and an unexplained list is how a deletion outlives the reason for
+# it and becomes cargo cult.
+#
+# This template omits nothing - it is where the files come from.
