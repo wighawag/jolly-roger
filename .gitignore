@@ -12,3 +12,5 @@ tmp/
 .nightshift-plan
 
 .kilo/
+# Scratch space for subagent runs (artifacts, transcripts). Never committed.
+.pi-subagents/

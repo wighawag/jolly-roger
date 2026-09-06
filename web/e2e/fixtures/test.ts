@@ -75,6 +75,15 @@ const MAX_CAUSE_DEPTH = 5;
  * nobody reads rather than fixing it.
  */
 const MAX_DIAGNOSIS_CHARS = 2000;
+/**
+ * How long a click at a connect-flow dialog may wait for its target.
+ *
+ * These dialogs close underneath the click that answered them, so the target is
+ * routinely gone before the click resolves it. Bounded so that losing the race
+ * FAILS instead of waiting for the element to come back, which is what an
+ * unbounded Playwright click does.
+ */
+const DIALOG_CLICK_TIMEOUT = 5_000;
 
 // The app's base URL comes from playwright.config.ts (`use.baseURL`), so tests
 // navigate with relative paths and nothing here needs to duplicate it.
@@ -726,8 +735,18 @@ async function connectWalletDevMode(
 			// choose+sign-in modal (multi-account wallet): select the configured
 			// account row first, then sign. With no rows (single-account confirm),
 			// just sign.
+			//
+			// `pickSignableAccount` is this branch's own row picker (it skips the
+			// impersonated accounts, which cannot sign) and bounds its own click
+			// already. The Sign In click needs the same bound for the same reason: this
+			// dialog closes underneath it the moment the signature is answered, and an
+			// unbounded Playwright click waits for the button to come back rather than
+			// failing. Swallowed because the enclosing `while` is the retry.
 			await pickSignableAccount(dialog, accountIndex);
-			await page.getByRole('button', {name: /^sign in$/i}).click();
+			await page
+				.getByRole('button', {name: /^sign in$/i})
+				.click({timeout: DIALOG_CLICK_TIMEOUT})
+				.catch(() => {});
 		} else if (/insufficient funds|funds available/i.test(text)) {
 			// Funding is handled by handleInsufficientFundsModal below.
 			break;
