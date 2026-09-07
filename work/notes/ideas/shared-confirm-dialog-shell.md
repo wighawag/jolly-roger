@@ -28,7 +28,7 @@ seam is real. Refs: `src/lib/ui/pending-operation/ConfirmCancelDialog.svelte`,
 ## Revisit (2026-08-20)
 
 The trigger condition is about to be met from two directions at once, so this
-should be re-decided during slice 1 of `work/prds/proposed/overlay-navigation-model.md`
+should be re-decided during slice 1 of `work/specs/proposed/overlay-navigation-model.md`
 rather than left incubating.
 
 - Slice 1 rewrites both of these files anyway: they become prompt overlays under

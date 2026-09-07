@@ -77,6 +77,6 @@ change, so the switch is prompt. Do both; `source` gives both.
 - `src/lib/onchain/state.ts`, `src/lib/context/index.ts`
 - `src/lib/core/connection/polling-store.ts` (`source` option, `start()` subscriber)
 - `src/lib/deployments-store.ts` (reactive set path)
-- `work/prds/proposed/reactive-deployments-without-full-reload.md`
+- `work/specs/proposed/reactive-deployments-without-full-reload.md`
 - adapter-test patterns: `test/lib/core/connection/balance.test.ts`,
   `test/lib/core/connection/signerBalance.test.ts`

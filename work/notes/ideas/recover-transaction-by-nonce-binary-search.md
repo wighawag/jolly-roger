@@ -4,7 +4,7 @@ slug: recover-transaction-by-nonce-binary-search
 type: idea
 status: incubating
 created: 2026-08-21
-relates-to: ADR-0004 (docs/adr/0004-view-and-system-overlays.md), work/prds/proposed/overlay-navigation-model.md
+relates-to: ADR-0004 (docs/adr/0004-view-and-system-overlays.md), work/specs/proposed/overlay-navigation-model.md
 ---
 
 # Recover the transaction, not just the verdict
