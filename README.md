@@ -29,7 +29,26 @@ Run it **after every cascade merge**. It compares COMMITTED refs, not working
 trees, so commit the merge first and `--amend` if it fails. That is the moment
 the failure it guards actually happens.
 
-Configurable by environment: `BASE`, `FEATURES`, `WATCH`, `ALLOWED`.
+Configurable by environment: `BASE`, `FEATURES`, `WATCH`, `ALLOWED`, `EXT`.
+
+`EXT` is the list of extensions that count as "the same logic", space-separated,
+and it defaults to `ts`. That default is this repo's answer and it is a real
+choice rather than an oversight: the connection layer's seam was drawn at `.ts`
+precisely because apps are expected to restyle their own wallet flows, so
+watching `.svelte` here would fail on the divergence the branches exist to have.
+
+It became a variable when a repo further down the tree needed the opposite.
+`template-commit-reveal@with/pixi-js` swaps a RENDERER, and the branch is only
+affordable because a shared `.svelte` route stays byte-identical across it - so
+the interesting shared files there are exactly the ones the default skips. That
+was checked by hand the first time, 158 files, which is the kind of thing nobody
+does twice.
+
+```sh
+BASE=main FEATURES=with/pixi-js EXT="ts svelte" \
+  WATCH="web/src web/test" ALLOWED="web/src/lib/placement/render/index.ts" \
+  ./check-shared-divergence.sh
+```
 
 ### What it is guarding
 
@@ -54,6 +73,14 @@ Both times `git merge` reported success and the file was still wrong. Conflicts
 get attention; clean auto-merges do not.
 
 ## What it does NOT catch
+
+**A DELETION.** It compares files both branches HAVE, so a file removed on one
+side and still imported on the other is invisible to it - there is nothing left
+to diff. That is not hypothetical: taking pixi off `template-commit-reveal@main`
+left its descendant importing a canvas that no longer exists, and the merge
+reported success on exactly that hunk while conflicting on three unrelated
+files. Same lesson as below, in the one shape this script cannot reach: what
+saves you there is the cascade's `verify` step, not this.
 
 It compares files that both branches have. It says nothing about a merge that
 breaks a file some other way. The worked example, from the merge that landed the

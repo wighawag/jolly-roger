@@ -42,9 +42,38 @@ WATCH="${WATCH:-web/src/lib/core/connection web/src/lib/core/transaction}"
 # parameterisation exists to provide, so it is expected to differ and only it.
 ALLOWED="${ALLOWED:-web/src/lib/core/connection/mode.ts}"
 
-# .svelte is deliberately NOT watched. Apps are expected to restyle their own
-# wallet flows, which is why the extraction seam was drawn at .ts in the first
-# place.
+# Which file extensions count as "the same logic", space-separated.
+#
+# .ts ALONE IS THE RIGHT DEFAULT HERE and the wrong one elsewhere, which is why
+# it is a variable now rather than a hardcoded grep. For this repo's connection
+# layer the seam was deliberately drawn at .ts, because apps are expected to
+# restyle their own wallet flows, so watching .svelte would fail on divergence
+# that is the whole point of the branch.
+#
+# That reasoning does not transfer. template-commit-reveal's `with/pixi-js`
+# swaps a RENDERER, and its affordability rests on a shared .svelte route
+# staying byte-identical across the branches - so there the interesting shared
+# files are exactly the ones this used to skip. It was checked by hand the first
+# time (158 shared .svelte files, none drifted), which is the kind of thing
+# nobody does twice. Hence: EXT="ts svelte".
+#
+# Keep the DEFAULT at ts. A repo that wants more says so.
+EXT="${EXT:-ts}"
+
+# `ts svelte` -> `\.(ts|svelte)$`, built once rather than per branch.
+#
+# The guard is for EXT set to WHITESPACE, which is the only way to reach an
+# empty pattern: `${EXT:-ts}` above already turns a genuinely empty EXT back
+# into the default, so `EXT=` is safe and falls back to `ts`. Worth having
+# anyway, because an empty pattern would match every line and the check would
+# silently start comparing lockfiles and PNGs and report drift nobody asked
+# about - a checker that quietly widens its own scope is worse than one that
+# fails.
+if [ -z "${EXT// /}" ]; then
+    echo "EXT is empty; set it to one or more extensions, e.g. EXT='ts svelte'" >&2
+    exit 2
+fi
+ext_re="\.($(echo "$EXT" | tr -s ' ' '|' | sed 's/^|//; s/|$//'))\$"
 
 red()   { printf '\033[0;31m%s\033[0m\n' "$*"; }
 green() { printf '\033[0;32m%s\033[0m\n' "$*"; }
@@ -65,8 +94,8 @@ for feature in $FEATURES; do
     # Files present in BOTH branches under the watched paths. A file only one
     # branch has is additive, which is the shape divergence is allowed to take.
     shared="$(comm -12 \
-        <(git ls-tree -r --name-only "$BASE" -- $WATCH | grep '\.ts$' | sort) \
-        <(git ls-tree -r --name-only "$feature" -- $WATCH | grep '\.ts$' | sort))"
+        <(git ls-tree -r --name-only "$BASE" -- $WATCH | grep -E "$ext_re" | sort) \
+        <(git ls-tree -r --name-only "$feature" -- $WATCH | grep -E "$ext_re" | sort))"
 
     while IFS= read -r f; do
         [ -n "$f" ] || continue
