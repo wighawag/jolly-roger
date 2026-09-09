@@ -2,6 +2,7 @@ import {defineConfig} from 'vite';
 import {execSync} from 'node:child_process';
 import devtoolsJson from 'vite-plugin-devtools-json';
 import {sveltekit} from '@sveltejs/kit/vite';
+import {extraPlugins} from './vite.plugins.js';
 
 let FIRST_COMMIT: string | undefined;
 try {
@@ -23,6 +24,11 @@ export default defineConfig({
 					}
 				: undefined,
 		),
+		// What THIS project adds, in the one slot every repo in this tree has
+		// always put it. Edit `vite.plugins.ts`, not this file: see the note
+		// there for why a descendant editing this one buys a merge conflict
+		// forever.
+		...extraPlugins(),
 		sveltekit(),
 	],
 	build: {
