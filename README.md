@@ -31,6 +31,37 @@ the failure it guards actually happens.
 
 Configurable by environment: `BASE`, `FEATURES`, `WATCH`, `ALLOWED`, `EXT`.
 
+**`ALLOWED` IS A TWO-SIDED CONTRACT.** Everything NOT on it must be identical;
+everything ON it must DIFFER. An entry that has stopped differing has had its
+reason falsified, and that is reported as `ALLOWED BUT IDENTICAL` and fails the
+run, because it is how a branch silently stops being a branch: a cascade
+resolves the one file that IS the difference in the base's favour, every other
+check stays green, and the feature is quietly gone.
+
+Measured in `template-commit-reveal`: reverting `placement/render/index.ts` - the
+file that makes `with/pixi-js` a pixi branch rather than its base - passed
+`check`, 1,491 unit tests, that repo's own render-host boundary test, its e2e
+suite, AND this script. Here the single default entry is `mode.ts`, so the same
+mistake turns `with/hosted-account` back into `with/local-signer`.
+
+Two consequences worth knowing before a run surprises you:
+
+- **Give each run the list that belongs to it.** A union list across several
+  branches will name entries that are legitimately identical for the base you
+  asked about. Judging is done ACROSS the features in one run, so an entry that
+  differs for any of them is satisfied - but a run naming one base and another
+  base's entries is making a false claim and will say so.
+- **An entry shared by NO feature is a note, not a failure.** A branch may
+  DELETE an allowed file, which is a difference this script cannot compare and
+  is legal by the same rule that makes an added file legal; a path may also
+  simply be stale after a rename.
+
+`ALLOWED=` set to empty means **nothing is allowed**, which is the run worth
+doing once alongside the real one: it proves the clean files are clean because
+they are IDENTICAL rather than because the script matched nothing. (It did not
+always mean that - `${ALLOWED:-...}` used to turn an explicitly empty value back
+into the default.)
+
 `EXT` is the list of extensions that count as "the same logic", space-separated,
 and it defaults to `ts`. That default is this repo's answer and it is a real
 choice rather than an oversight: the connection layer's seam was drawn at `.ts`
