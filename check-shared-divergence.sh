@@ -40,7 +40,35 @@ WATCH="${WATCH:-web/src/lib/core/connection web/src/lib/core/transaction}"
 # mode.ts holds TARGET_STEP, the one line that IS the difference between a
 # feature branch and the stem it builds on. It is the switch the
 # parameterisation exists to provide, so it is expected to differ and only it.
-ALLOWED="${ALLOWED:-web/src/lib/core/connection/mode.ts}"
+#
+# ALLOWED IS A TWO-SIDED CONTRACT, and it used to be enforced on one side only.
+# Everything not on it must be identical; everything ON it must DIFFER. An entry
+# that has stopped differing has had its reason falsified, and the old version of
+# this script said nothing at all about that - it only ever subtracted the entry
+# from the list of things to complain about.
+#
+# That is not hypothetical and it is the mirror image of the failure this script
+# was written for. Measured in template-commit-reveal, 2026-09-11: reverting
+# `placement/render/index.ts` - the one file that makes `with/pixi-js` a pixi
+# branch at all - to the base's version passed `check`, passed 1,491 unit tests,
+# passed that repo's own render-host boundary test, passed its e2e suite, and
+# passed THIS SCRIPT with "none drifted". A cascade resolving that one conflict
+# the wrong way would have silently turned the branch back into its base.
+#
+# Here the stakes are higher, because the single entry is mode.ts: the same
+# mistake turns with/hosted-account back into with/local-signer, which is an
+# authentication mode, with nothing anywhere reporting it.
+#
+# `${ALLOWED-...}` AND NOT `${ALLOWED:-...}`, which is a one-character difference
+# and the whole reason the documented ritual works. Every README in this tree
+# says to run it once with `ALLOWED=` empty, because that is the run which proves
+# the clean files are clean because they are IDENTICAL rather than because the
+# script matched nothing. With the colon, a set-but-empty ALLOWED falls straight
+# back to this default, so that run quietly kept an allowance nobody asked for -
+# it just never showed, because the default entry happens not to differ in the
+# repos where the ritual is run. Without the colon, an unset ALLOWED still gets
+# the default and an explicitly empty one means what it says: nothing is allowed.
+ALLOWED="${ALLOWED-web/src/lib/core/connection/mode.ts}"
 
 # Which file extensions count as "the same logic", space-separated.
 #
@@ -82,6 +110,16 @@ dim()   { printf '\033[2m%s\033[0m\n' "$*"; }
 fail=0
 checked=0
 
+# Which ALLOWED entries were seen SHARED, and which actually DIFFERED, across all
+# features. Accumulated over every feature rather than judged per feature: an
+# entry may legitimately be the switch for one branch and identical on another,
+# and a run naming several features should not fail because of that. An entry
+# that never differs ANYWHERE is the one whose reason has gone.
+allowed_shared=""
+allowed_differed=""
+
+in_list() { case " $2 " in *" $1 "*) return 0;; *) return 1;; esac; }
+
 for feature in $FEATURES; do
     if ! git rev-parse --verify --quiet "$feature" >/dev/null; then
         dim "skip $feature (no such branch here)"
@@ -101,14 +139,24 @@ for feature in $FEATURES; do
         [ -n "$f" ] || continue
         checked=$((checked + 1))
 
-        if git diff --quiet "$BASE" "$feature" -- "$f"; then
-            continue
-        fi
-
         allowed=0
         for a in $ALLOWED; do
             [ "$f" = "$a" ] && allowed=1
         done
+        # Recorded BEFORE the identical-file shortcut below, because "this entry
+        # exists on both sides" is exactly what the end-of-run check needs to
+        # know and the shortcut is where it used to be thrown away.
+        if [ "$allowed" = 1 ] && ! in_list "$f" "$allowed_shared"; then
+            allowed_shared="$allowed_shared $f"
+        fi
+
+        if git diff --quiet "$BASE" "$feature" -- "$f"; then
+            continue
+        fi
+
+        if [ "$allowed" = 1 ] && ! in_list "$f" "$allowed_differed"; then
+            allowed_differed="$allowed_differed $f"
+        fi
 
         stat="$(git diff --shortstat "$BASE" "$feature" -- "$f" | sed 's/^ *//')"
         if [ "$allowed" = 1 ]; then
@@ -123,22 +171,54 @@ for feature in $FEATURES; do
     done <<< "$shared"
 done
 
+# The other side of the contract: an ALLOWED entry that is shared and IDENTICAL
+# everywhere has lost the reason it was listed for.
+#
+# An entry that is shared NOWHERE is reported but does not fail. Two innocent
+# things produce it and neither is drift: a feature branch may DELETE an allowed
+# file, which is a difference the script cannot compare and is legal by the same
+# rule that makes an added file legal; and a path may simply be stale after a
+# rename. Both are worth a line, neither is worth a red build.
+for a in $ALLOWED; do
+    in_list "$a" "$allowed_differed" && continue
+    if in_list "$a" "$allowed_shared"; then
+        echo
+        red "  ALLOWED BUT IDENTICAL: $a"
+        echo "  It is listed as a file that SHOULD differ, and it does not."
+        echo "  Either a cascade resolved it in $BASE's favour - which silently"
+        echo "  undoes whatever the entry exists to switch - or the entry is spent"
+        echo "  and belongs off the list."
+        fail=1
+    else
+        dim "  note: allowed entry not shared by any feature (deleted, or a stale path): $a"
+    fi
+done
+
 echo
 if [ "$fail" = 0 ]; then
     green "OK: $checked shared files checked, none drifted."
 else
-    red "A file that these branches SHARE now differs between them."
+    red "These branches no longer differ in the way this repo says they should."
     echo
-    echo "That is the thing the connection layer was parameterised to prevent."
-    echo "Before 'fixing' it by editing one side, work out which branch the"
-    echo "change belongs to:"
+    echo "Two failures are reported above and they are opposite shapes. Read which"
+    echo "one you have before reaching for a fix:"
+    echo
+    echo "DRIFTED - a shared file differs and is not on ALLOWED. That is the thing"
+    echo "the connection layer was parameterised to prevent. Work out which branch"
+    echo "the change belongs to:"
     echo
     echo "  - behaviour BOTH want            -> land it on $BASE, cascade down"
     echo "  - behaviour only the feature wants -> it needs a parameter, not a fork"
     echo "  - a merge that quietly kept the old side -> re-resolve against $BASE"
     echo
-    echo "The last is the common one, and it does not announce itself: the merge"
-    echo "will have reported success."
+    echo "ALLOWED BUT IDENTICAL - a file listed as the SWITCH has stopped being"
+    echo "one. Usually a cascade resolved it in $BASE's favour, which silently"
+    echo "undoes what the branch exists to do; occasionally the entry is simply"
+    echo "spent and should come off the list. Restore the difference, or remove the"
+    echo "entry and say why."
+    echo
+    echo "Both are the same underlying hazard and neither announces itself: the"
+    echo "merge will have reported success."
     echo
     echo "Re-run with VERBOSE=1 to see the diffs."
 fi
