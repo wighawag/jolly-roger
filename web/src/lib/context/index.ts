@@ -14,13 +14,28 @@
  * wiring and RPC health then need the app's chain reads. See the injection
  * point in `core.ts`.
  */
-import {createCoreContext} from './core.js';
+import {createCoreContext, type ConnectionFactory} from './core.js';
 import {createAppContext, SIGNER_GRANT} from './app.js';
 import type {Context} from './types.js';
 
-export type {CoreServices, AppContext, AppFactory} from './core.js';
+export type {
+	CoreServices,
+	AppContext,
+	AppFactory,
+	ConnectionFactory,
+	ConnectionRequest,
+} from './core.js';
 
-export function createContext(): {
+/**
+ * @param options.establishConnection WHICH WORLD this context describes. Omit
+ * it for the app's own remote chain, which is what a single-world app wants and
+ * what every route here passes today. An app offering a second world - another
+ * network, or an execution-only node in the tab - builds a context per world and
+ * hands each one its own factory. See `ConnectionFactory` in `./core.ts`.
+ */
+export function createContext(options?: {
+	establishConnection?: ConnectionFactory;
+}): {
 	context: Context;
 	start: () => () => void;
 } {
@@ -31,5 +46,6 @@ export function createContext(): {
 	return createCoreContext({
 		createApp: createAppContext,
 		signerGrant: SIGNER_GRANT,
+		establishConnection: options?.establishConnection,
 	});
 }

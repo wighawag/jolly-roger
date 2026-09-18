@@ -88,7 +88,10 @@ import {startInFlightTracking} from '$lib/core/transaction/in-flight-tracking.js
 import {createRecordedNonceReader} from '$lib/account/recorded-nonces.js';
 import {createAccountCannotSendStore} from '$lib/core/transaction/account-cannot-send-store.js';
 import {createErrorDetailsStore} from '$lib/core/transaction/error-details-store.js';
-import type {AugmentedChainInfo} from '$lib/core/connection/types.js';
+import type {
+	AugmentedChainInfo,
+	EstablishedConnection,
+} from '$lib/core/connection/types.js';
 import {createBalanceCheckStore} from '$lib/core/transaction/balance-check-store.js';
 import {createNavigationService} from '$lib/core/navigation/index.js';
 import {createOverlayRegistry} from '$lib/core/ui/overlay/index.js';
@@ -222,13 +225,43 @@ export type AppFactory<App extends AppContext = AppContext> = (
  * delegationCheck) and its diff against this file becomes additive.
  */
 
+/**
+ * WHAT THE APP ASKS FOR, separated from WHO ANSWERS IT.
+ *
+ * The request is how this app AUTHENTICATES - how far the connection goes, and
+ * which mechanisms are on offer. That is the app's own configuration and is the
+ * same whatever chain it is pointed at (see core/connection/mode).
+ */
+export type ConnectionRequest = Parameters<typeof establishRemoteConnection>[0];
+
+/**
+ * WHO ANSWERS IT: the world.
+ *
+ * `establishRemoteConnection` is one implementation and the default, and for a
+ * long time it was hard-wired here. It is a parameter because a WORLD is a
+ * context: an app that offers a second chain - a different network, or an
+ * execution-only node running in the tab - has to replace everything that
+ * describes the world, and `EstablishedConnection` is precisely that list. Note
+ * `deployments` is part of it: a second world has its own contracts at its own
+ * addresses, so a factory that returned this app's deployment records for
+ * somebody else's chain would be lying about both.
+ *
+ * It takes the request rather than replacing it, so a world chooses the CHAIN
+ * and never the authentication: `TARGET_STEP` stays the one line that decides
+ * whether a signer exists, on every world the app can offer.
+ */
+export type ConnectionFactory = (
+	request: ConnectionRequest,
+) => EstablishedConnection;
+
 /** The chain connection. Needs only configuration, so it is first. */
 function buildConnection(params: {
+	establishConnection: ConnectionFactory;
 	targetStep: ReturnType<typeof resolveConnectionConfig>['targetStep'];
 	walletHost: ReturnType<typeof resolveConnectionConfig>['walletHost'];
 	walletOnly: ReturnType<typeof resolveConnectionConfig>['walletOnly'];
 }) {
-	const {targetStep, walletHost, walletOnly} = params;
+	const {establishConnection, targetStep, walletHost, walletOnly} = params;
 
 	/**
 	 * Whether this app has a local signer at all.
@@ -252,7 +285,7 @@ function buildConnection(params: {
 		account,
 		deployments,
 		forceRpcFailure,
-	} = establishRemoteConnection({
+	} = establishConnection({
 		nodeURL: PUBLIC_NODE_URL,
 		targetStep,
 		walletHost,
@@ -1019,11 +1052,20 @@ export function createCoreContext<App extends AppContext>(params: {
 	 * to guess this instead.
 	 */
 	signerGrant: SignerGrant;
+	/**
+	 * Which world this context describes. Defaults to the remote chain the app
+	 * was built against, which is the only world most apps have.
+	 */
+	establishConnection?: ConnectionFactory;
 }): {
 	context: Context;
 	start: () => () => void;
 } {
-	const {createApp, signerGrant} = params;
+	const {
+		createApp,
+		signerGrant,
+		establishConnection = establishRemoteConnection,
+	} = params;
 	let cleanupBurnerWallet: (() => void) | undefined;
 
 	// Reasons the app cannot run. Collected rather than thrown: the context is
@@ -1103,7 +1145,12 @@ export function createCoreContext<App extends AppContext>(params: {
 		account,
 		deployments,
 		forceRpcFailure,
-	} = buildConnection({targetStep, walletHost, walletOnly});
+	} = buildConnection({
+		establishConnection,
+		targetStep,
+		walletHost,
+		walletOnly,
+	});
 
 	const {
 		chain,
