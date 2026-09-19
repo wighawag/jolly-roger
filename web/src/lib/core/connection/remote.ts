@@ -12,6 +12,7 @@ import type {TargetStep} from './mode';
 import type {
 	Account,
 	ChainInfo,
+	DeploymentsStore,
 	EstablishedConnection,
 	OptionalSigner,
 	TypedPublicClient,
@@ -117,6 +118,24 @@ export function createPaymentConnection(
 }
 
 /**
+ * The chain a connection is made TO, which is either an endpoint or a provider.
+ *
+ * `ChainInfo` is this app's own exported chain (see deployments-store), whose
+ * `rpcUrls` is how a remote chain is reached. A chain that runs IN THE TAB has
+ * no URL: it is an object with a `request` method, and @etherplay/connect takes
+ * one (`ChainInfo<P>` is `{rpcUrls}` OR `{provider}`, and it reads the provider
+ * lazily, per request). This alias is what lets the same connection-building
+ * code serve both, so that WHERE the chain runs is not a second way to
+ * authenticate - see `ConnectionFactory` in context/core.
+ */
+export type ConnectableChainInfo =
+	| ChainInfo
+	| (Omit<ChainInfo, 'rpcUrls'> & {
+			rpcUrls?: ChainInfo['rpcUrls'];
+			provider: UnderlyingEthereumProvider;
+	  });
+
+/**
  * Create the app's connection store.
  *
  * This is the single place the connection is configured. Its return type is
@@ -125,7 +144,7 @@ export function createPaymentConnection(
  * requires touching type definitions elsewhere.
  */
 export function createChainConnection(
-	chainInfo: ChainInfo,
+	chainInfo: ConnectableChainInfo,
 	options: ChainConnectionOptions,
 ): ChainConnection {
 	const {nodeURL, targetStep, walletHost, walletOnly, permissions} = options;
@@ -317,6 +336,42 @@ export function establishRemoteConnection(options: {
 			} as ChainInfo)
 		: currentDeployments.chain;
 
+	return establishConnectionOn({
+		chainInfo,
+		deployments, // Use the imported HMR-aware store
+		nodeURL: options.nodeURL,
+		targetStep: options.targetStep,
+		walletHost: options.walletHost,
+		walletOnly: options.walletOnly,
+		permissions: options.permissions,
+	});
+}
+
+/**
+ * EVERYTHING THAT HANGS OFF A CONNECTION, given a chain and its records.
+ *
+ * This is `establishRemoteConnection` with the two world-shaped facts taken
+ * out: WHICH chain, and WHICH deployment records. It was extracted for the
+ * second implementation of `ConnectionFactory` (an embedded chain, see
+ * `$lib/embedded`), and extraction rather than a second copy is the whole
+ * point - the fault injection, the two derived stores and the exact shape of
+ * `EstablishedConnection` are things every world must get identically, or the
+ * app behaves differently depending on which world it is pointed at.
+ *
+ * It stays synchronous for the reason the caller above documents: connecting
+ * is user-interactive, so nothing here blocks on it.
+ */
+export function establishConnectionOn(options: {
+	chainInfo: ConnectableChainInfo;
+	deployments: DeploymentsStore;
+	nodeURL?: string;
+	targetStep: TargetStep;
+	walletHost?: string;
+	walletOnly: boolean;
+	permissions?: PermissionDeclaration[];
+}): EstablishedConnection {
+	const {chainInfo} = options;
+
 	const connection = createChainConnection(chainInfo, {
 		nodeURL: options.nodeURL,
 		targetStep: options.targetStep,
@@ -334,13 +389,17 @@ export function establishRemoteConnection(options: {
 		forceRpcFailure,
 	);
 
+	// viem wants a chain with rpc urls; a provider-backed one has none, and
+	// nothing here reads them - every request goes through the transport below.
+	const viemChain = chainInfo as ChainInfo;
+
 	const walletClient = createWalletClient({
-		chain: chainInfo,
+		chain: viemChain,
 		transport: custom(faultyProvider),
 	});
 
 	const publicClient = createPublicClient({
-		chain: chainInfo,
+		chain: viemChain,
 		transport: custom(faultyProvider),
 	}) as TypedPublicClient;
 
@@ -366,12 +425,12 @@ export function establishRemoteConnection(options: {
 
 	return {
 		connection,
-		chainInfo,
+		chainInfo: viemChain,
 		walletClient,
 		publicClient,
 		account,
 		signer,
-		deployments, // Use the imported HMR-aware store
+		deployments: options.deployments,
 		forceRpcFailure,
 	};
 }
