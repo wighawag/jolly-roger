@@ -6,6 +6,23 @@ export type LockData = {
 };
 
 /**
+ * WHICH ELECTION A LOCK BELONGS TO.
+ *
+ * One key per origin was right while an app had one context. It is wrong the
+ * moment it has two: a page that provides a second WORLD builds a second
+ * context, with its own transaction observer over its own chain, and both
+ * elect against the same key - so one of them wins and the other's observer
+ * never runs. Its transactions mine and stay "pending" forever, which is a
+ * failure with no error anywhere. Measured, 2026-09-19.
+ *
+ * The namespace is the CHAIN the observer watches, because that is what the
+ * election is really about: which tab polls for THIS chain's transactions.
+ */
+function keyFor(namespace?: string): string {
+	return namespace ? `${LOCK_KEY}:${namespace}` : LOCK_KEY;
+}
+
+/**
  * Attempts to acquire the leader lock for the given tab.
  *
  * Note: The read-check-write pattern here is not atomic (TOCTOU race).
@@ -14,9 +31,9 @@ export type LockData = {
  * This is intentional and safe because the BroadcastChannel conflict resolution
  * in TabLeaderService will quickly resolve any dual-leader situation.
  */
-export function acquireLock(tabId: string): boolean {
+export function acquireLock(tabId: string, namespace?: string): boolean {
 	const now = Date.now();
-	const existing = readLock();
+	const existing = readLock(namespace);
 
 	if (existing && existing.tabId !== tabId) {
 		// Another tab holds the lock — check if it's still alive
@@ -26,33 +43,33 @@ export function acquireLock(tabId: string): boolean {
 		}
 	}
 
-	writeLock({tabId, timestamp: now});
+	writeLock({tabId, timestamp: now}, namespace);
 	return true;
 }
 
-export function refreshLock(tabId: string): boolean {
-	const existing = readLock();
+export function refreshLock(tabId: string, namespace?: string): boolean {
+	const existing = readLock(namespace);
 	if (!existing || existing.tabId !== tabId) {
 		return false;
 	}
-	writeLock({tabId, timestamp: Date.now()});
+	writeLock({tabId, timestamp: Date.now()}, namespace);
 	return true;
 }
 
-export function releaseLock(tabId: string): void {
-	const existing = readLock();
+export function releaseLock(tabId: string, namespace?: string): void {
+	const existing = readLock(namespace);
 	if (existing && existing.tabId === tabId) {
 		try {
-			localStorage.removeItem(LOCK_KEY);
+			localStorage.removeItem(keyFor(namespace));
 		} catch {
 			// Ignore storage errors
 		}
 	}
 }
 
-export function readLock(): LockData | undefined {
+export function readLock(namespace?: string): LockData | undefined {
 	try {
-		const raw = localStorage.getItem(LOCK_KEY);
+		const raw = localStorage.getItem(keyFor(namespace));
 		if (!raw) return undefined;
 		return JSON.parse(raw) as LockData;
 	} catch {
@@ -60,9 +77,9 @@ export function readLock(): LockData | undefined {
 	}
 }
 
-function writeLock(data: LockData): void {
+function writeLock(data: LockData, namespace?: string): void {
 	try {
-		localStorage.setItem(LOCK_KEY, JSON.stringify(data));
+		localStorage.setItem(keyFor(namespace), JSON.stringify(data));
 	} catch {
 		// Ignore storage errors
 	}

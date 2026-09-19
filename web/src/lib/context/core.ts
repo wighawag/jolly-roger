@@ -473,10 +473,12 @@ function buildExecution(params: {
 	connection: ReturnType<typeof buildConnection>['connection'];
 	walletClient: ReturnType<typeof buildWalletClient>['walletClient'];
 	accountData: ReturnType<typeof buildChainConfig>['accountData'];
+	chain: ReturnType<typeof buildChainConfig>['chain'];
 	finality: ReturnType<typeof buildChainConfig>['finality'];
 	inFlight: ReturnType<typeof buildInFlight>['inFlight'];
 }) {
-	const {connection, walletClient, accountData, finality, inFlight} = params;
+	const {connection, walletClient, accountData, chain, finality, inFlight} =
+		params;
 
 	// ----------------------------------------------------------------------------
 	// TRANSACTION EXECUTOR
@@ -519,7 +521,16 @@ function buildExecution(params: {
 		alwaysFetchReceipt: true,
 	});
 
-	const tabLeader = createTabLeaderService();
+	// NAMESPACED BY THE CHAIN, and with one world that changes nothing.
+	//
+	// The election decides which TAB polls for a transaction's receipt. With a
+	// second context in the same tab - a second world, which is what
+	// `establishConnection` exists for - an origin-wide election makes them
+	// compete: one wins, and the loser's observer never runs at all, so its
+	// transactions mine and stay "pending" forever with no error anywhere.
+	// Measured on `with/embedded-chain`, 2026-09-19, and it took a chain dump
+	// to see, because every other signal says the transaction succeeded.
+	const tabLeader = createTabLeaderService({namespace: String(chain.id)});
 
 	const trackedWalletConnector = createTrackedWalletConnector({
 		walletClient,
@@ -768,6 +779,7 @@ export function createCoreContext<App extends AppContext>(params: {
 		connection,
 		walletClient,
 		accountData,
+		chain,
 		finality,
 		inFlight,
 	});

@@ -118,7 +118,30 @@ async function buildOfflineWorld(): Promise<OfflineWorldStatus> {
 				// move. One second is the honest floor to give anything that
 				// polls, and nothing on this branch reads it for a deadline.
 				averageBlockTimeMs: 1000,
-				finality: 1,
+				// ZERO, AND FOR A NARROWER REASON THAN THE FIRST VERSION OF THIS
+				// COMMENT CLAIMED. It said a nonzero finality was what left every
+				// transaction spinning; that was a theory, and the experiment
+				// falsified it - with the real cause fixed (see the tab-leader
+				// namespace in `context/core.ts`), three sends confirm in about a
+				// second each under `finality: 1` too, because the spinner is
+				// about INCLUSION and not about finality.
+				//
+				// What is measurably true: the observer's test is
+				// `latestBlockNumber - blockNumber >= finality`, and under automine
+				// a block exists only where a transaction happened - so the NEWEST
+				// transaction is always in the latest block and a confirmation
+				// above it never arrives. Measured: with `finality: 1` the
+				// operation sits in the account ledger forever as
+				// `{inclusion: 'Included', outcome: 'Success', final: false}`;
+				// with zero it completes and is retired. So the cost is a ledger
+				// that never finishes anything, not a UI that never moves.
+				//
+				// Zero is also the honest number rather than a workaround.
+				// Confirmations buy protection from a REORG, and a chain in one tab
+				// has no competing producer to reorg it. The only way its state
+				// goes backwards is `loadState`, an explicit rewind by the world's
+				// own owner, which no number of confirmations defends against.
+				finality: 0,
 			},
 		},
 		rocketh: {config, extensions},
@@ -165,6 +188,21 @@ async function buildOfflineWorld(): Promise<OfflineWorldStatus> {
 	const context = createContext({
 		establishConnection: world.establishConnection,
 	});
+
+	// Dev/debug: the world on the console, beside the `context` handle
+	// `core.ts` installs. Worth having for a world specifically, because the
+	// only way to look at a chain in a tab is to hold it: there is no RPC url
+	// to curl, no explorer, and no second process that can see it.
+	if (typeof window !== 'undefined') {
+		try {
+			(globalThis as unknown as Record<string, unknown>).offlineWorld = {
+				world,
+				context: context.context,
+			};
+		} catch {
+			// A console convenience is never worth failing a boot for.
+		}
+	}
 
 	const ready: OfflineWorldStatus = {step: 'Ready', world, context};
 	status.set(ready);
