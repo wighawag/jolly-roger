@@ -13,13 +13,15 @@
  * merge), so anything world-building written inside a route is thrown away by
  * the repos that most want it. The route is the demo; this is the thing.
  */
-export {createEmbeddedWorld} from './world.js';
+export {createEmbeddedWorld, restoreIsCoherent} from './world.js';
 export type {
 	EmbeddedWorld,
 	EmbeddedWorldSpec,
 	ProvisionParams,
 } from './world.js';
 export {startEmbeddedNode} from './node.js';
+export {announceEmbeddedWallet} from './wallet.js';
+export type {EmbeddedWallet} from './wallet.js';
 export type {EmbeddedNode, StartEmbeddedNodeParams} from './node.js';
 export {deployWorldContracts, composeWorldConfig} from './deploy.js';
 export {

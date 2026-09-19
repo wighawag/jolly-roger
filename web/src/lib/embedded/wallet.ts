@@ -1,4 +1,13 @@
-import {initBurnerWallet} from '@etherkit/burner-wallet';
+import {
+	initBurnerWallet,
+	BURNER_WALLET_ICON_DATA_URI,
+} from '@etherkit/burner-wallet';
+import {
+	EthereumWalletConnector,
+	EthereumWalletProvider,
+	type UnderlyingEthereumProvider,
+} from '@etherplay/wallet-connector-ethereum';
+import type {WalletConnector, WalletHandle} from '@etherplay/wallet-connector';
 import type {EIP1193ProviderLike} from './types.js';
 
 /**
@@ -42,11 +51,95 @@ function asNodeURL(provider: EIP1193ProviderLike): string {
 export type EmbeddedWallet = {
 	/** The accounts it holds, first one selected. */
 	accounts: `0x${string}`[];
+	/**
+	 * THE WALLET THIS WORLD HAS, as the only one it has.
+	 *
+	 * Handed to `createConnection` so the connection's universe of wallets is
+	 * exactly this one, instead of whatever the page happens to be announcing.
+	 * That is what stops the player being ASKED: an offline world did not
+	 * inherit the player's wallet choice, it made one for them, so offering
+	 * them MetaMask and the app's own dev burner beside it is offering two
+	 * wrong answers and one right one.
+	 */
+	connector: WalletConnector<UnderlyingEthereumProvider>;
 	cleanup: () => void;
 };
 
 /**
- * Announce a wallet bound to the chain in the tab.
+ * A connector whose entire world is one wallet.
+ *
+ * Everything except the wallet LIST is inherited, and that is the point:
+ * `createAlwaysOnProvider` (the whole request-tracking provider wrapper) and
+ * the account generator are the default connector's, so this cannot drift from
+ * how the app talks to any other chain.
+ */
+class SoleWalletConnector extends EthereumWalletConnector {
+	constructor(private readonly only: WalletHandle<UnderlyingEthereumProvider>) {
+		super();
+	}
+
+	fetchWallets(
+		walletAnnounced: (handle: WalletHandle<UnderlyingEthereumProvider>) => void,
+	): void {
+		walletAnnounced(this.only);
+	}
+}
+
+/**
+ * ONE ACCOUNT, because ten is a question nobody asked.
+ *
+ * The burner derives `ACCOUNT_COUNT` accounts from its mnemonic, and a wallet
+ * offering several makes the connection show an account picker - the second
+ * dialog between a player and a game they have already chosen to play. An
+ * offline world has no reason to have more than one player on it, so the
+ * provider handed to the connection reports the first and hides the rest.
+ *
+ * They still EXIST: the mnemonic is unchanged and a hotseat world, which is
+ * the one thing that would want several, can announce them deliberately rather
+ * than inheriting them by accident.
+ */
+function firstAccountOnly<T extends object>(provider: T): T {
+	// A PROXY RATHER THAN A `{request}` OBJECT, and the difference is a bug
+	// that only shows up at the second click. `EthereumWalletProvider` also
+	// calls `on` and `removeListener` on whatever it is given, to follow
+	// account and chain changes, and a wrapper that forwarded only `request`
+	// therefore threw `removeListener is not a function` - from inside the
+	// connection, as a failed transaction, with the send already signed.
+	// Forwarding everything and intercepting one method is the shape that
+	// cannot go stale when the interface grows.
+	return new Proxy(provider, {
+		get(target, prop, receiver) {
+			if (prop === 'request') {
+				return async (args: {method: string; params?: unknown}) => {
+					const result = await (
+						target as unknown as {
+							request(a: {method: string; params?: unknown}): Promise<unknown>;
+						}
+					).request(args);
+					if (
+						args.method === 'eth_accounts' ||
+						args.method === 'eth_requestAccounts'
+					) {
+						return (result as `0x${string}`[]).slice(0, 1);
+					}
+					return result;
+				};
+			}
+			const value = Reflect.get(target, prop, receiver);
+			return typeof value === 'function' ? value.bind(target) : value;
+		},
+	});
+}
+
+/**
+ * Build (and announce) a wallet bound to the chain in the tab.
+ *
+ * IT IS STILL ANNOUNCED over EIP-6963, even though the world's own connection
+ * is handed the connector directly and never looks at the announcements. Two
+ * reasons, both small: a player who opens the app's ordinary wallet picker
+ * should be able to SEE the thing their offline game is using rather than
+ * wonder what signed, and the announcement is what makes the wallet reachable
+ * from a console or a test without holding the world object.
  *
  * `storagePrefix` is namespaced by the world's chain id rather than shared,
  * for the same reason the connection is: two worlds are two chains, and a
@@ -86,9 +179,24 @@ export async function announceEmbeddedWallet(params: {
 	// ASKED OF THE WALLET, NOT OF THE CHAIN, which is the distinction this whole
 	// file is about: the node answers `eth_accounts` with a real -32601, and the
 	// wallet in front of it is what has accounts at all.
-	const accounts = (await walletProvider.request({
+	const single = firstAccountOnly(
+		walletProvider as object,
+	) as EIP1193ProviderLike;
+	const accounts = (await single.request({
 		method: 'eth_requestAccounts',
 	})) as `0x${string}`[];
 
-	return {accounts, cleanup};
+	const connector = new SoleWalletConnector({
+		walletProvider: new EthereumWalletProvider(
+			single as never,
+		) as unknown as WalletHandle<UnderlyingEthereumProvider>['walletProvider'],
+		info: {
+			uuid: `embedded-${chainId}`,
+			name: params.name ?? 'Offline Wallet',
+			icon: BURNER_WALLET_ICON_DATA_URI,
+			rdns: 'dev.etherkit.burner.embedded',
+		},
+	});
+
+	return {accounts, connector, cleanup};
 }

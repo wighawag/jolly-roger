@@ -63,3 +63,48 @@ describe('the deployment records of the world in the tab', () => {
 		expect(expectedContractNames().length).toBeGreaterThan(0);
 	});
 });
+
+// ---------------------------------------------------------------------------
+
+import {restoreIsCoherent} from '$lib/embedded';
+
+describe('whether a restored world is still a world', () => {
+	const chainAt = (blockNumber: number) => ({
+		request: async () => `0x${blockNumber.toString(16)}`,
+	});
+	const store = (paths: string[]) => ({paths: () => paths});
+
+	it('accepts a first run: no records, no chain', async () => {
+		await expect(
+			restoreIsCoherent({provider: chainAt(0), vfs: store([])}),
+		).resolves.toBe(true);
+	});
+
+	it('accepts a real restore: records and a chain', async () => {
+		await expect(
+			restoreIsCoherent({
+				provider: chainAt(5),
+				vfs: store(['deployments/embedded/GreetingsRegistry.json']),
+			}),
+		).resolves.toBe(true);
+	});
+
+	it('REFUSES records that outlived their chain', async () => {
+		// The dangerous one, and the reason this is checked BEFORE deploying:
+		// rocketh skips a deploy it believes it has done, and the script then
+		// reads a contract that is not there. Measured: the boot throws while
+		// decoding `0x`, so a check placed afterwards never runs.
+		await expect(
+			restoreIsCoherent({
+				provider: chainAt(0),
+				vfs: store(['deployments/embedded/GreetingsRegistry.json']),
+			}),
+		).resolves.toBe(false);
+	});
+
+	it('refuses a chain whose records are gone, which is only wasteful', async () => {
+		await expect(
+			restoreIsCoherent({provider: chainAt(5), vfs: store([])}),
+		).resolves.toBe(false);
+	});
+});

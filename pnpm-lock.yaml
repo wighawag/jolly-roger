@@ -149,6 +149,12 @@ importers:
       '@etherplay/connect':
         specifier: ^0.13.0
         version: 0.13.0
+      '@etherplay/wallet-connector':
+        specifier: ^0.1.0
+        version: 0.1.0
+      '@etherplay/wallet-connector-ethereum':
+        specifier: ^0.1.0
+        version: 0.1.0
       '@internationalized/date':
         specifier: ^3.12.3
         version: 3.12.3

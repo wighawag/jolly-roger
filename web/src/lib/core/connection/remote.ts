@@ -5,6 +5,7 @@ import {
 	type PermissionDeclaration,
 	type UnderlyingEthereumProvider,
 } from '@etherplay/connect';
+import type {WalletConnector} from '@etherplay/wallet-connector';
 import {derived} from 'svelte/store';
 import {createPublicClient, createWalletClient, custom} from 'viem';
 import {createRpcFaultFlag, wrapProviderWithFault} from './rpc-fault';
@@ -47,6 +48,25 @@ export type ChainConnectionOptions = {
 	 * door, and nothing minted for a contract the app never touches.
 	 */
 	permissions?: PermissionDeclaration[];
+	/**
+	 * THE WALLETS THIS CONNECTION MAY USE, when they are not the page's.
+	 *
+	 * Omit it and the connection discovers wallets over EIP-6963, which is what
+	 * an app wants: the player's wallets are the player's. A WORLD that brings
+	 * its own wallet passes a connector announcing exactly that one, and the
+	 * consequence is the point - with one wallet holding one account there is
+	 * nothing to pick, so the player is never asked to choose between a wallet
+	 * they were given and one that cannot reach the chain in question.
+	 */
+	walletConnector?: WalletConnector<UnderlyingEthereumProvider>;
+	/**
+	 * Whether to adopt the wallet's current account instead of asking.
+	 *
+	 * Deliberately NOT set by this app (see the note in createChainConnection):
+	 * a wallet holding several accounts must let the user choose. A world whose
+	 * wallet holds exactly one has no choice to offer.
+	 */
+	useCurrentAccount?: 'always' | 'whenSingle' | false;
 	/**
 	 * Namespace for this connection's persisted state.
 	 *
@@ -168,7 +188,50 @@ export function createChainConnection(
 		walletOnly,
 		permissions,
 		storagePrefix,
+		walletConnector,
+		useCurrentAccount,
 	} = options;
+
+	const persisted = storagePrefix ? {storagePrefix} : {};
+
+	// A WORLD THAT BRINGS ITS OWN WALLET, handled first and separately.
+	//
+	// Its own branch rather than two more spread-in fields, because
+	// `walletConnector` is the DISCRIMINANT between two overloads of
+	// `createConnection`: a spread that may or may not carry the key matches
+	// neither, and passing it explicitly as `undefined` picks the wrong one.
+	// Keeping it separate also leaves the three calls below exactly as they
+	// were, which is what an app with no world wants to be able to see.
+	//
+	// `walletOnly` is forced here and that is not a shortcut: a hosted wallet
+	// service authenticates a person across devices, and the wallet in question
+	// is one this tab generated for one chain in this tab. There is nobody to
+	// host.
+	if (walletConnector) {
+		if (targetStep === 'SignedIn') {
+			return createConnection({
+				targetStep: 'SignedIn',
+				walletOnly: true,
+				nodeURL,
+				chainInfo,
+				walletConnector,
+				useCurrentAccount,
+				prioritizeWalletProvider: true,
+				autoConnect: true,
+				...persisted,
+			});
+		}
+		return createConnection({
+			targetStep: 'WalletConnected',
+			nodeURL,
+			chainInfo,
+			walletConnector,
+			useCurrentAccount,
+			prioritizeWalletProvider: true,
+			autoConnect: true,
+			...persisted,
+		});
+	}
 
 	// Note: `useCurrentAccount` is intentionally omitted. Setting it would make
 	// the connection auto-pick an account and skip `ChooseWalletAccount`, so a
@@ -205,7 +268,7 @@ export function createChainConnection(
 				chainInfo,
 				prioritizeWalletProvider: true,
 				autoConnect: true,
-				...(storagePrefix ? {storagePrefix} : {}),
+				...persisted,
 			});
 		}
 		return createConnection({
@@ -216,7 +279,7 @@ export function createChainConnection(
 			permissions,
 			prioritizeWalletProvider: true,
 			autoConnect: true,
-			...(storagePrefix ? {storagePrefix} : {}),
+			...persisted,
 		});
 	}
 
@@ -228,7 +291,7 @@ export function createChainConnection(
 		chainInfo,
 		prioritizeWalletProvider: true,
 		autoConnect: true,
-		...(storagePrefix ? {storagePrefix} : {}),
+		...persisted,
 	});
 }
 
@@ -394,6 +457,8 @@ export function establishConnectionOn(options: {
 	walletOnly: boolean;
 	permissions?: PermissionDeclaration[];
 	storagePrefix?: string;
+	walletConnector?: WalletConnector<UnderlyingEthereumProvider>;
+	useCurrentAccount?: 'always' | 'whenSingle' | false;
 }): EstablishedConnection {
 	const {chainInfo} = options;
 
@@ -404,6 +469,8 @@ export function establishConnectionOn(options: {
 		walletOnly: options.walletOnly,
 		permissions: options.permissions,
 		storagePrefix: options.storagePrefix,
+		walletConnector: options.walletConnector,
+		useCurrentAccount: options.useCurrentAccount,
 	});
 
 	// Debug-only RPC fault injection: a runtime flag (exposed on the context as

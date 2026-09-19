@@ -1,9 +1,16 @@
 import {writable, type Readable} from 'svelte/store';
 import {config, extensions} from 'jolly-roger-contracts/rocketh/config.js';
 import deployGreetingsRegistry from 'jolly-roger-contracts/deploy/001_deploy_greetings_registry.js';
-import {createEmbeddedWorld, type EmbeddedWorld} from '$lib/embedded';
-import {rememberChainId} from '$lib/embedded/chain-id';
+import {
+	createEmbeddedWorld,
+	restoreIsCoherent,
+	type EmbeddedWorld,
+} from '$lib/embedded';
+import {mintChainId, rememberChainId} from '$lib/embedded/chain-id';
+import {startEmbeddedNode} from '$lib/embedded/node';
 import {announceEmbeddedWallet} from '$lib/embedded/wallet';
+import {createIndexedDBPersistence} from 'webevm';
+import {createIndexedDBDeploymentStore} from '@rocketh/web';
 import {createContext} from '$lib/context/index';
 import type {Context} from '$lib/context/types';
 
@@ -105,9 +112,93 @@ async function buildOfflineWorld(): Promise<OfflineWorldStatus> {
 		key: CHAIN_ID_STORAGE_KEY,
 	});
 
+	const world = await openWorld(chainId);
+
+	status.set({step: 'Booting', what: 'connecting'});
+
+	// SYNCHRONOUS, AND AFTER THE WORLD, which is the shape the whole design
+	// turns on. The context cannot be built first and filled in: it reads a
+	// contract address out of `deployments` while constructing, to scope the
+	// operations ledger, and before the deploy there is no address to give it.
+	// ADR-0002 is untouched - the app-level context in `+layout.svelte` is
+	// still built synchronously during prerender, because that one is the
+	// remote world.
+	const context = createContext({
+		establishConnection: world.establishConnection,
+	});
+
+	// Dev/debug: the world on the console, beside the `context` handle
+	// `core.ts` installs. Worth having for a world specifically, because the
+	// only way to look at a chain in a tab is to hold it: there is no RPC url
+	// to curl, no explorer, and no second process that can see it.
+	if (typeof window !== 'undefined') {
+		try {
+			(globalThis as unknown as Record<string, unknown>).offlineWorld = {
+				world,
+				context: context.context,
+			};
+		} catch {
+			// A console convenience is never worth failing a boot for.
+		}
+	}
+
+	const ready: OfflineWorldStatus = {step: 'Ready', world, context};
+	status.set(ready);
+	return ready;
+}
+
+/**
+ * Boot (or restore) the world for one chain id.
+ *
+ * PERSISTED BY DEFAULT, which is the answer to "should an offline game come
+ * back when you reload". Yes, and it costs nothing to say so: webevm dumps its
+ * state to IndexedDB and `@rocketh/web` keeps the deployment records the same
+ * way, so a reload restores the chain AND skips the deploy rather than
+ * building a second game beside the first. Both are namespaced by the chain
+ * id, so two worlds never share a database.
+ *
+ * It is also what makes the operations ledger honest. That ledger already
+ * persists (it always did, keyed by chain id), and without a persisted chain
+ * it would come back describing transactions on a chain that no longer exists.
+ * Persisting the chain and persisting the pending transactions are not two
+ * decisions.
+ */
+async function openWorld(chainId: number): Promise<EmbeddedWorld> {
 	status.set({step: 'Booting', what: 'starting a chain in this tab'});
 
-	const world = await createEmbeddedWorld({
+	const deploymentStore = await createIndexedDBDeploymentStore({
+		db: `offline-world-deployments:${chainId}`,
+	});
+
+	// THE RESTORE IS CHECKED BEFORE ANYTHING IS DEPLOYED. Three stores persist
+	// independently and nothing makes them atomic; records that outlive their
+	// chain make rocketh skip a deploy it believes it has done, and the script
+	// then reads a contract that is not there. Asking afterwards is too late -
+	// the boot throws first, which is how this was found.
+	//
+	// A NEW ID rather than a repair. Everything the player kept is keyed by the
+	// chain id - the operations ledger, and in a game its submissions - so
+	// reusing it would mix records describing a chain that no longer exists
+	// into one that does. Minting orphans them instead, which is what they are.
+	const probe = await startEmbeddedNode({
+		chainId,
+		persistence: createIndexedDBPersistence({
+			db: `offline-world-chain:${chainId}`,
+		}),
+	});
+	const coherent = await restoreIsCoherent({
+		provider: probe.provider,
+		vfs: deploymentStore.vfs,
+	});
+	await probe.dispose();
+	if (!coherent) {
+		status.set({step: 'Booting', what: 'starting a new world'});
+		const fresh = mintChainId();
+		localStorage.setItem(CHAIN_ID_STORAGE_KEY, String(fresh));
+		return openWorld(fresh);
+	}
+
+	return createEmbeddedWorld({
 		chainId,
 		chain: {
 			name: 'Offline',
@@ -153,6 +244,10 @@ async function buildOfflineWorld(): Promise<OfflineWorldStatus> {
 			[DEPLOYER_ADDRESS]: PLAY_MONEY,
 			[ADMIN_ADDRESS]: PLAY_MONEY,
 		},
+		persistence: createIndexedDBPersistence({
+			db: `offline-world-chain:${chainId}`,
+		}),
+		deploymentStore,
 		async provision({node}) {
 			status.set({step: 'Booting', what: 'handing the player a wallet'});
 
@@ -173,40 +268,14 @@ async function buildOfflineWorld(): Promise<OfflineWorldStatus> {
 					params: [account, `0x${PLAY_MONEY.toString(16)}`],
 				});
 			}
+
+			// HANDED BACK rather than announced-and-hoped-for. The connection
+			// this world builds will use exactly this wallet, so the player is
+			// never asked to choose one - and cannot choose a wallet that has
+			// no account on this chain, which is every other wallet they own.
+			return {walletConnector: wallet.connector};
 		},
 	});
-
-	status.set({step: 'Booting', what: 'connecting'});
-
-	// SYNCHRONOUS, AND AFTER THE WORLD, which is the shape the whole design
-	// turns on. The context cannot be built first and filled in: it reads a
-	// contract address out of `deployments` while constructing, to scope the
-	// operations ledger, and before the deploy there is no address to give it.
-	// ADR-0002 is untouched - the app-level context in `+layout.svelte` is
-	// still built synchronously during prerender, because that one is the
-	// remote world.
-	const context = createContext({
-		establishConnection: world.establishConnection,
-	});
-
-	// Dev/debug: the world on the console, beside the `context` handle
-	// `core.ts` installs. Worth having for a world specifically, because the
-	// only way to look at a chain in a tab is to hold it: there is no RPC url
-	// to curl, no explorer, and no second process that can see it.
-	if (typeof window !== 'undefined') {
-		try {
-			(globalThis as unknown as Record<string, unknown>).offlineWorld = {
-				world,
-				context: context.context,
-			};
-		} catch {
-			// A console convenience is never worth failing a boot for.
-		}
-	}
-
-	const ready: OfflineWorldStatus = {step: 'Ready', world, context};
-	status.set(ready);
-	return ready;
 }
 
 let announced: (() => void) | undefined;

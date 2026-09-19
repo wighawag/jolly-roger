@@ -59,6 +59,47 @@ export type ProvisionParams = {
 	accounts: Record<string, `0x${string}`>;
 };
 
+/**
+ * IS A RESTORED WORLD STILL A WORLD?
+ *
+ * A world persists in THREE places and they can be restored to different
+ * points: the chain (webevm's IndexedDB dump), the deployment records
+ * (`@rocketh/web`'s store) and the player's own submissions or operations
+ * (localStorage, keyed by chain id). Nothing makes them atomic.
+ *
+ * Records that outlive their chain are the dangerous shape, and the danger is
+ * not subtle: rocketh SKIPS a deploy it believes it has already done, so the
+ * deploy script runs against an address with no code at it. Measured: the
+ * boot does not limp, it THROWS - jolly-roger's own script reads the contract
+ * it just "deployed", gets `0x` back and fails to decode it. A world that
+ * checked afterwards would never reach the check.
+ *
+ * So the question is asked BEFORE anything is deployed, and it is asked of
+ * the cheapest pair of facts that can disagree: the store holds records, and
+ * the chain has no blocks beyond genesis. A caller that gets `false` should
+ * start a new world under a NEW chain id rather than repairing this one, so
+ * that storage keyed by the old id is orphaned instead of being mixed into a
+ * world it does not describe.
+ */
+export async function restoreIsCoherent(params: {
+	provider: EIP1193ProviderLike;
+	/** The deployment store's file system. Empty means nothing was restored. */
+	vfs: {paths(): string[]};
+}): Promise<boolean> {
+	const records = params.vfs.paths().length > 0;
+	const blockNumber = Number(
+		BigInt(
+			(await params.provider.request({method: 'eth_blockNumber'})) as string,
+		),
+	);
+	const chain = blockNumber > 0;
+	// Both empty is a first run, both present is a restore, and one without the
+	// other is the case this exists for. Note which way round it matters: a
+	// chain with no records would simply be deployed onto again, wasting a few
+	// blocks; records with no chain is the one that throws.
+	return records === chain;
+}
+
 export type EmbeddedWorldSpec = {
 	chainId: number;
 	/** How the chain describes itself to the app and to a wallet. */
@@ -85,8 +126,33 @@ export type EmbeddedWorldSpec = {
 	>[0]['deploymentStore'];
 	/** Which contracts must exist afterwards. Defaults to the app's own set. */
 	expectedContracts?: string[];
-	provision?: (params: ProvisionParams) => Promise<void>;
+	provision?: (params: ProvisionParams) => Promise<ProvisionResult>;
+	/**
+	 * The wallet this world plays with, if it is known before provisioning.
+	 *
+	 * Usually it is NOT: the wallet is created by `provision`, which is the
+	 * hook that gives the player everything they need, and a wallet is one of
+	 * those things. So the ordinary route is to return it from there.
+	 */
+	walletConnector?: EmbeddedWalletConnector;
 };
+
+/**
+ * WHAT PROVISIONING MAY HAND BACK.
+ *
+ * `void` is the common case. A hook that creates the player's WALLET returns
+ * it, because the world needs it strictly later than the hook runs (the
+ * connection is built last, after the deploy) and strictly after the hook
+ * decides it. Passing it in on the spec cannot work: the wallet does not exist
+ * when the spec is written.
+ */
+export type ProvisionResult = void | {
+	walletConnector?: EmbeddedWalletConnector;
+};
+
+export type EmbeddedWalletConnector = NonNullable<
+	Parameters<typeof establishConnectionOn>[0]['walletConnector']
+>;
 
 /**
  * Boot a chain, deploy onto it, provision the player, and hand back a world.
@@ -131,8 +197,14 @@ export async function createEmbeddedWorld(
 		deploymentStore: spec.deploymentStore,
 	});
 
+	let walletConnector = spec.walletConnector;
 	if (spec.provision) {
-		await spec.provision({env, node, accounts: spec.accounts});
+		const provisioned = await spec.provision({
+			env,
+			node,
+			accounts: spec.accounts,
+		});
+		walletConnector = provisioned?.walletConnector ?? walletConnector;
 	}
 
 	const deployments = createEmbeddedDeployments({
@@ -147,6 +219,10 @@ export async function createEmbeddedWorld(
 
 	const establishConnection: ConnectionFactory = (request) =>
 		establishConnectionOn({
+			// One wallet, one account, nothing to pick. A world that brings its
+			// own wallet did not inherit the player's choice, it made one.
+			walletConnector,
+			useCurrentAccount: walletConnector ? 'always' : undefined,
 			// The chain carries a PROVIDER rather than an rpc url, which is what
 			// makes it reachable at all: @etherplay/connect takes either, and reads
 			// the provider lazily, per request.
