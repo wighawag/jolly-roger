@@ -52,6 +52,7 @@ import {
 	ephemeralStorage,
 } from '$lib/core/transaction/in-flight-store.js';
 import {guardDispatch} from '$lib/core/transaction/dispatch-guard.js';
+import {resolveURLForThisPage} from '$lib/core/env/same-host.js';
 import {startInFlightTracking} from '$lib/core/transaction/in-flight-tracking.js';
 import {createRecordedNonceReader} from '$lib/account/recorded-nonces.js';
 import {createAccountCannotSendStore} from '$lib/core/transaction/account-cannot-send-store.js';
@@ -224,11 +225,22 @@ export type ConnectionFactory = (
 /** The chain connection. Needs only configuration, so it is first. */
 function buildConnection(params: {
 	establishConnection: ConnectionFactory;
+	/** Already resolved against the page. See core/env/same-host. */
+	nodeURL: string | undefined;
+	/** Already resolved against the page. See core/env/same-host. */
+	chainInfoNodeURL: string | undefined;
 	targetStep: ReturnType<typeof resolveConnectionConfig>['targetStep'];
 	walletHost: ReturnType<typeof resolveConnectionConfig>['walletHost'];
 	walletOnly: ReturnType<typeof resolveConnectionConfig>['walletOnly'];
 }) {
-	const {establishConnection, targetStep, walletHost, walletOnly} = params;
+	const {
+		establishConnection,
+		targetStep,
+		walletHost,
+		walletOnly,
+		nodeURL,
+		chainInfoNodeURL,
+	} = params;
 
 	const {
 		connection,
@@ -238,7 +250,7 @@ function buildConnection(params: {
 		deployments,
 		forceRpcFailure,
 	} = establishConnection({
-		nodeURL: PUBLIC_NODE_URL,
+		nodeURL,
 		targetStep,
 		walletHost,
 		walletOnly,
@@ -251,7 +263,7 @@ function buildConnection(params: {
 		//
 		// Deliberately NOT defaulted to PUBLIC_NODE_URL: that one may be a private
 		// or key-bearing endpoint, and this value is handed to every user's wallet.
-		chainInfoNodeURL: PUBLIC_CHAIN_INFO_NODE_URL,
+		chainInfoNodeURL,
 	});
 
 	return {
@@ -269,8 +281,10 @@ function buildChainConfig(params: {
 	deployments: ReturnType<typeof buildConnection>['deployments'];
 	connection: ReturnType<typeof buildConnection>['connection'];
 	account: ReturnType<typeof buildConnection>['account'];
+	/** Already resolved against the page. See core/env/same-host. */
+	nodeURL: string | undefined;
 }) {
-	const {deployments, connection, account} = params;
+	const {deployments, connection, account, nodeURL} = params;
 
 	// ----------------------------------------------------------------------------
 	// CHAIN CONFIGURATION
@@ -288,19 +302,13 @@ function buildChainConfig(params: {
 
 	// The app's own RPC url, when it has one. Only the nonce-cache check below
 	// needs it, to compare the wallet's idea of the nonce against a trusted node.
-	const appRpcUrl = resolveAppRpcUrl(
-		PUBLIC_NODE_URL,
-		chain.rpcUrls?.default?.http,
-	);
+	const appRpcUrl = resolveAppRpcUrl(nodeURL, chain.rpcUrls?.default?.http);
 
 	// Whether the app has an RPC of its own (PUBLIC_NODE_URL or a chain rpcUrl).
 	// When it does not, the app can only reach the chain via the connected wallet,
 	// so chain-data fetching must wait until the wallet is connected (otherwise it
 	// would fail and look like a broken RPC). Exposed so the UI can explain this.
-	const hasAppRpc = hasConfiguredRpc(
-		PUBLIC_NODE_URL,
-		chain.rpcUrls?.default?.http,
-	);
+	const hasAppRpc = hasConfiguredRpc(nodeURL, chain.rpcUrls?.default?.http);
 
 	// Whether the app can read the chain right now: it has its own RPC, or the
 	// wallet is connected (and supplies one). Always a boolean, so UI can gate
@@ -649,10 +657,24 @@ export function createCoreContext<App extends AppContext>(params: {
 	// instead of showing the user anything. See ADR-0002.
 	const fatal = writable<string | undefined>(undefined);
 
+	// SERVICE URLS ARE RESOLVED AGAINST THE PAGE, ONCE, HERE.
+	//
+	// A value like `//:8545` means "the host this page came from, port 8545",
+	// which is what makes a dev stack reachable from a phone on the LAN: one
+	// build cannot name a host that depends on who is asking. An ordinary URL
+	// passes through untouched, so this is invisible to every configuration
+	// that does not use the notation. See core/env/same-host.
+	//
+	// Resolved at the top rather than at each use, because the answer must be
+	// the same for all of them: the app's RPC, the url handed to the wallet and
+	// the burner's node are three consumers of one fact.
+	const nodeURL = resolveURLForThisPage(PUBLIC_NODE_URL);
+	const chainInfoNodeURL = resolveURLForThisPage(PUBLIC_CHAIN_INFO_NODE_URL);
+
 	const burner = resolveBurnerWallet(
 		burnerOverride,
 		PUBLIC_USE_BURNER_WALLET,
-		PUBLIC_NODE_URL,
+		nodeURL,
 	);
 	// An explicit `?burner=true` that cannot be honoured is an error rather than
 	// being silently ignored. It is raised in start() rather than here: it comes
@@ -722,6 +744,8 @@ export function createCoreContext<App extends AppContext>(params: {
 		targetStep,
 		walletHost,
 		walletOnly,
+		nodeURL,
+		chainInfoNodeURL,
 	});
 
 	const {
@@ -735,7 +759,7 @@ export function createCoreContext<App extends AppContext>(params: {
 		chainFetchGate,
 		clock,
 		accountData,
-	} = buildChainConfig({deployments, connection, account});
+	} = buildChainConfig({deployments, connection, account, nodeURL});
 
 	const {inFlight} = buildInFlight({
 		chain,
