@@ -63,17 +63,31 @@ describe('an embedded world', () => {
 	it('boots a chain and runs the app\u2019s real deploy scripts on it', async () => {
 		world = await buildWorld();
 
-		// The records come from the deploy that just ran, not from the generated
-		// file: a different chain, and a different address for the same contract.
+		// The records come from the deploy that just ran, and the chain they
+		// describe is this world's: a MINTED id, which no exporter can emit
+		// because the minted range sits above every registered chain.
 		const inTab = world.deployments.get();
 		expect(inTab.chain.id).toBe(CHAIN_ID);
 		expect(inTab.chain.id).not.toBe(buildTimeDeployments.chain.id);
 		expect(inTab.contracts.GreetingsRegistry.address).toMatch(
 			/^0x[0-9a-f]{40}$/,
 		);
-		expect(inTab.contracts.GreetingsRegistry.address).not.toBe(
-			buildTimeDeployments.contracts.GreetingsRegistry.address,
-		);
+
+		// NOT "and a different ADDRESS from the build-time one", which is false
+		// and was asserted here until the first developer ran the stack. This
+		// deploy is deterministic - same deployer, same nonces, a CREATE2
+		// implementation - so an embedded world lands its contracts at exactly
+		// the addresses a fresh LOCAL deploy does. The assertion passed only
+		// because the generated `$lib/deployments` was the install-time SEPOLIA
+		// fallback; `pnpm start` deploys locally and re-exports, and then it
+		// failed with one address diffed against itself. Two identical recipes
+		// producing one address is not the world leaking. What makes these
+		// records THIS world's is that the code is there, on this chain.
+		const code = await world.provider.request({
+			method: 'eth_getCode',
+			params: [inTab.contracts.GreetingsRegistry.address, 'latest'],
+		});
+		expect(code).toMatch(/^0x[0-9a-f]{2,}$/);
 
 		// And the chain agrees it is that chain.
 		const chainId = await world.provider.request({method: 'eth_chainId'});
