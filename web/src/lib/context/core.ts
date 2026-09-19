@@ -84,6 +84,7 @@ import {
 	ephemeralStorage,
 } from '$lib/core/transaction/in-flight-store.js';
 import {guardDispatch} from '$lib/core/transaction/dispatch-guard.js';
+import {resolveURLForThisPage} from '$lib/core/env/same-host.js';
 import {startInFlightTracking} from '$lib/core/transaction/in-flight-tracking.js';
 import {createRecordedNonceReader} from '$lib/account/recorded-nonces.js';
 import {createAccountCannotSendStore} from '$lib/core/transaction/account-cannot-send-store.js';
@@ -257,11 +258,22 @@ export type ConnectionFactory = (
 /** The chain connection. Needs only configuration, so it is first. */
 function buildConnection(params: {
 	establishConnection: ConnectionFactory;
+	/** Already resolved against the page. See core/env/same-host. */
+	nodeURL: string | undefined;
+	/** Already resolved against the page. See core/env/same-host. */
+	chainInfoNodeURL: string | undefined;
 	targetStep: ReturnType<typeof resolveConnectionConfig>['targetStep'];
 	walletHost: ReturnType<typeof resolveConnectionConfig>['walletHost'];
 	walletOnly: ReturnType<typeof resolveConnectionConfig>['walletOnly'];
 }) {
-	const {establishConnection, targetStep, walletHost, walletOnly} = params;
+	const {
+		establishConnection,
+		targetStep,
+		walletHost,
+		walletOnly,
+		nodeURL,
+		chainInfoNodeURL,
+	} = params;
 
 	/**
 	 * Whether this app has a local signer at all.
@@ -286,7 +298,7 @@ function buildConnection(params: {
 		deployments,
 		forceRpcFailure,
 	} = establishConnection({
-		nodeURL: PUBLIC_NODE_URL,
+		nodeURL,
 		targetStep,
 		walletHost,
 		walletOnly,
@@ -318,7 +330,7 @@ function buildConnection(params: {
 		//
 		// Deliberately NOT defaulted to PUBLIC_NODE_URL: that one may be a private
 		// or key-bearing endpoint, and this value is handed to every user's wallet.
-		chainInfoNodeURL: PUBLIC_CHAIN_INFO_NODE_URL,
+		chainInfoNodeURL,
 	});
 
 	// The payment rail: a SECOND connection, used only to buy credits, built here
@@ -329,7 +341,12 @@ function buildConnection(params: {
 	// Given the same chainInfo the app connection was built from, so the payer's
 	// wallet is told about the chain exactly as the player's was, including the
 	// wallet-facing RPC override.
-	const rawPayment = createPaymentRail(chainInfo, {nodeURL: PUBLIC_NODE_URL});
+	// THE RESOLVED URL, NOT THE RAW ENV VALUE, and this line merged cleanly
+	// while being wrong: main made service urls follow the page's host and this
+	// branch's payment rail was added afterwards, so nothing conflicted. A rail
+	// left on `PUBLIC_NODE_URL` would reach for `localhost` from a phone, i.e.
+	// the phone, and only when the user tried to PAY.
+	const rawPayment = createPaymentRail(chainInfo, {nodeURL});
 
 	return {
 		connection,
@@ -353,9 +370,18 @@ function buildChainConfig(params: {
 	deployments: ReturnType<typeof buildConnection>['deployments'];
 	connection: ReturnType<typeof buildConnection>['connection'];
 	account: ReturnType<typeof buildConnection>['account'];
+	/** Already resolved against the page. See core/env/same-host. */
+	nodeURL: string | undefined;
 }) {
-	const {deployments, connection, account, targetStep, walletOnly, fatal} =
-		params;
+	const {
+		deployments,
+		connection,
+		account,
+		targetStep,
+		walletOnly,
+		fatal,
+		nodeURL,
+	} = params;
 
 	// ----------------------------------------------------------------------------
 	// CHAIN CONFIGURATION
@@ -381,9 +407,14 @@ function buildChainConfig(params: {
 	// under hosted sign-in, where the account may have no wallet to fall back to.
 	// Missing is recorded as fatal and surfaced by the init-error screen; the
 	// resolved url also drives the signer client's transport below.
+	// `nodeURL` rather than PUBLIC_NODE_URL since main's same-host change: a
+	// value like `//:8545` follows the host the page was served from, and the
+	// SIGNER's broadcast endpoint needs that more than anything else here -
+	// this is where transactions go, and from a phone on the LAN `localhost`
+	// is the phone.
 	const signerRpc = resolveSignerRpc(
 		{targetStep, walletOnly},
-		PUBLIC_NODE_URL,
+		nodeURL,
 		chain.rpcUrls?.default?.http,
 		import.meta.env.DEV,
 	);
@@ -401,10 +432,7 @@ function buildChainConfig(params: {
 	// deliberately undefined when the resolution failed; this one answers "which
 	// node does the app read from". Collapsing them would tie a read the ledger
 	// depends on to a fatal condition about sending.
-	const appRpcUrl = resolveAppRpcUrl(
-		PUBLIC_NODE_URL,
-		chain.rpcUrls?.default?.http,
-	);
+	const appRpcUrl = resolveAppRpcUrl(nodeURL, chain.rpcUrls?.default?.http);
 
 	// Whether the app has an RPC of its own (PUBLIC_NODE_URL or a chain rpcUrl).
 	// When it does not, the app can only reach the chain via the connected wallet,
@@ -1073,10 +1101,24 @@ export function createCoreContext<App extends AppContext>(params: {
 	// instead of showing the user anything. See ADR-0002.
 	const fatal = writable<string | undefined>(undefined);
 
+	// SERVICE URLS ARE RESOLVED AGAINST THE PAGE, ONCE, HERE.
+	//
+	// A value like `//:8545` means "the host this page came from, port 8545",
+	// which is what makes a dev stack reachable from a phone on the LAN: one
+	// build cannot name a host that depends on who is asking. An ordinary URL
+	// passes through untouched, so this is invisible to every configuration
+	// that does not use the notation. See core/env/same-host.
+	//
+	// Resolved at the top rather than at each use, because the answer must be
+	// the same for all of them: the app's RPC, the url handed to the wallet and
+	// the burner's node are three consumers of one fact.
+	const nodeURL = resolveURLForThisPage(PUBLIC_NODE_URL);
+	const chainInfoNodeURL = resolveURLForThisPage(PUBLIC_CHAIN_INFO_NODE_URL);
+
 	const burner = resolveBurnerWallet(
 		burnerOverride,
 		PUBLIC_USE_BURNER_WALLET,
-		PUBLIC_NODE_URL,
+		nodeURL,
 	);
 	// An explicit `?burner=true` that cannot be honoured is an error rather than
 	// being silently ignored. It is raised in start() rather than here: it comes
@@ -1150,6 +1192,8 @@ export function createCoreContext<App extends AppContext>(params: {
 		targetStep,
 		walletHost,
 		walletOnly,
+		nodeURL,
+		chainInfoNodeURL,
 	});
 
 	const {
@@ -1172,6 +1216,7 @@ export function createCoreContext<App extends AppContext>(params: {
 		targetStep,
 		walletOnly,
 		fatal,
+		nodeURL,
 	});
 
 	const {inFlight} = buildInFlight({
