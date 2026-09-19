@@ -12,9 +12,22 @@ Named for the CAPABILITY and not for the library. The library has already been r
 | its tests | `web/test/lib/embedded/` (20: 18 in node, 2 in a browser) |
 | **this app's** offline world | `web/src/lib/offline.ts` |
 | the demo that shows it | `web/src/routes/offline-demo/+page.svelte` |
-| shared files edited | `web/src/lib/core/connection/remote.ts`, `web/src/routes/+page.svelte` |
+| shared files edited | five, listed below |
 
-The last row is N1's budget and it is a budget: every edit to a file `main` also has is a permanent conflict site. The home page's is one `<Button>` (the link), and the connection one is described below.
+## The shared-file budget, which is N1's and is a budget
+
+Every edit to a file `main` also has is a permanent conflict site, so the list is short on purpose and growing it needs a reason.
+
+| file | why | goes up to `main`? |
+| --- | --- | --- |
+| `core/connection/remote.ts` | `ConnectableChainInfo`, `establishConnectionOn`, `storagePrefix` | a candidate, once a second world exists upstream |
+| `core/tab-leader/TabLeaderService.ts` | the election takes a namespace | **yes, and it is a latent correctness fix** |
+| `core/tab-leader/storage-lock.ts` | the lock and channel keys carry it | with the above |
+| `context/core.ts` | passes the chain id as that namespace | with the above |
+| `routes/+page.svelte` | one `<Button>`: the link | no, it is this app's home page |
+| `test/lib/core/tab-leader/storage-lock.test.ts` | four tests for the namespace | with the fix |
+
+**The tab-leader rows are a bug fix and not a feature of this branch**, which is why they are marked to go up. The transaction observer runs only while its `TabLeaderService` says this tab leads, and that election used one channel and one lock per ORIGIN. Two contexts in one tab therefore competed, the layout's won, and the world's observer never processed a tick - so a transaction that had mined, with a receipt and a written message, stayed "pending" forever with nothing reported anywhere. An app with one context cannot reach it, which is the only reason it is not already upstream.
 
 ## What `/offline-demo` is, and what it deliberately is not
 
@@ -49,17 +62,26 @@ It is a plausible candidate to go up to `main` later, which would take this bran
 `check-shared-divergence.sh` lives on the local `tooling` orphan branch. Run it from any checkout:
 
 ```sh
-# this branch against main
+# this branch against main, over the DEFAULT watch paths
 FEATURES="with/embedded-chain" \
 ALLOWED="web/src/lib/core/connection/remote.ts" \
   bash <(git show tooling:check-shared-divergence.sh)
 
-# and the run that proves the rest are clean because they are IDENTICAL
+# and over the whole of core/, which is where this branch's other edits are
+WATCH="web/src/lib/core" FEATURES="with/embedded-chain" \
+ALLOWED="web/src/lib/core/connection/remote.ts web/src/lib/core/tab-leader/TabLeaderService.ts web/src/lib/core/tab-leader/storage-lock.ts" \
+  bash <(git show tooling:check-shared-divergence.sh)
+
+# and the runs that prove the rest are clean because they are IDENTICAL
 FEATURES="with/embedded-chain" ALLOWED= \
+  bash <(git show tooling:check-shared-divergence.sh)
+WATCH="web/src/lib/core" FEATURES="with/embedded-chain" ALLOWED= \
   bash <(git show tooling:check-shared-divergence.sh)
 ```
 
-The empty run must name exactly `web/src/lib/core/connection/remote.ts` and nothing else.
+Expected: **40 shared files** over the default paths with one allowed difference, and **100** over `core/` with three. Each empty run must name exactly those files and nothing else.
+
+WATCH THE WIDER PATH AND NOT JUST THE DEFAULT, which this branch is the reason for: the script's default watches `core/connection` and `core/transaction`, and the tab-leader edit is in neither. A branch whose edits fall outside the watched paths has a divergence check that cannot see its own budget.
 
 `ALLOWED` is a two-sided contract: everything off it must be identical, and everything ON it must DIFFER. An entry that has stopped differing fails with `ALLOWED BUT IDENTICAL`, which is the script telling you a cascade resolved the branch's own switch in `main`'s favour.
 
