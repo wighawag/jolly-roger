@@ -8,18 +8,37 @@ Named for the CAPABILITY and not for the library. The library has already been r
 
 | what | where |
 | --- | --- |
-| the mechanism | `web/src/lib/embedded/` (chain id, node, deploy, deployment records, world) |
-| its tests | `web/test/lib/embedded/` |
-| one shared-file edit | `web/src/lib/core/connection/remote.ts` |
+| the mechanism | `web/src/lib/embedded/` (chain id, node, deploy, deployment records, wallet, world) |
+| its tests | `web/test/lib/embedded/` (20: 18 in node, 2 in a browser) |
+| **this app's** offline world | `web/src/lib/offline.ts` |
+| the demo that shows it | `web/src/routes/offline-demo/+page.svelte` |
+| shared files edited | `web/src/lib/core/connection/remote.ts`, `web/src/routes/+page.svelte` |
+
+The last row is N1's budget and it is a budget: every edit to a file `main` also has is a permanent conflict site. The home page's is one `<Button>` (the link), and the connection one is described below.
+
+## What `/offline-demo` is, and what it deliberately is not
+
+It boots the world, waits, and renders the app's EXISTING `/demo` page inside a nested `<Context>`. The demo component is imported rather than copied on purpose: that the same page works against two worlds without knowing it is the whole claim a world makes, and a second copy would prove nothing.
+
+Measured in a headless chromium against the production build: **264 ms** from page load to a booted world (chain created, deploy run, wallet announced, context built), and **5.7 s** from page load to a MINED greeting, including the wallet picker.
+
+Two things it has to do that only became visible once a second world existed, and both are one line with a long reason:
+
+- **It mounts the world's own `ConnectionFlow`.** `AcrossPages` mounts one in the LAYOUT, bound to the app context, so a nested world's `ensureConnected()` waits on a wallet picker nobody renders. The symptom is a Send button that does nothing and logs nothing.
+- **The world's connection gets its own `storagePrefix`.** Both connections persist "the wallet I last used", so sharing the slot means the app auto-reconnects the player as their offline burner on the next load. This is the payment rail's recorded reason, one world further along.
+
+What it does not do is fix the chrome. In the same screenshot the page transacts on the embedded chain while the navbar offers "Connect" for the remote one and a banner reports that RPC as down. The page says so in a strip above the demo, which is honesty rather than a fix; see the trap at the end of this file.
 
 **The mechanism is in `lib/` and any route is only its demo.** This is not tidiness. A descendant of this template deletes the demo routes it inherits (`template-commit-reveal` deleted `web/src/routes/demo/` and pays for it with a recurring `CONFLICT (modify/delete)` on every merge), so anything world-building written inside a route is thrown away by the repos that most want the world. What a route may hold is the choosing: a page that says "play offline", boots a world and provides it.
 
 ## The one shared file it edits, and why it is one rather than three
 
-`core/connection/remote.ts` gains two things and changes nothing:
+`core/connection/remote.ts` gains three things and changes nothing:
 
 - `ConnectableChainInfo`, the chain a connection is made TO, which is either an endpoint or a provider. `@etherplay/connect`'s `ChainInfo<P>` has always been `{rpcUrls}` OR `{provider}`; this names the same choice in this app's own vocabulary so that WHERE the chain runs is not a second way to authenticate.
 - `establishConnectionOn({chainInfo, deployments, ...})`, which is `establishRemoteConnection` with the two world-shaped facts taken out. The remote factory is now three lines on top of it and behaves identically.
+
+- `storagePrefix` on `ChainConnectionOptions`, forwarded to `createConnection`. Not tidiness: every connection persists "the wallet I last used", and two sharing the slot reconnect as each other. `createPaymentConnection` already had its own for exactly this; a world needs one for a sharper version of it, since the two chains do not even have the same accounts.
 
 It is an EXTRACTION rather than a second copy on purpose. The fault injection, the two derived stores and the exact shape of `EstablishedConnection` are things every world has to get identically, or the app behaves differently depending on which world it is pointed at. A second copy is the input-recogniser failure this tree has already paid for twice.
 
