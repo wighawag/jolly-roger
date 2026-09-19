@@ -5,7 +5,7 @@ import {
 	type PermissionDeclaration,
 	type UnderlyingEthereumProvider,
 } from '@etherplay/connect';
-import type {WalletConnector} from '@etherplay/wallet-connector';
+import type {WalletHandle} from '@etherplay/wallet-connector';
 import {derived} from 'svelte/store';
 import {createPublicClient, createWalletClient, custom} from 'viem';
 import {createRpcFaultFlag, wrapProviderWithFault} from './rpc-fault';
@@ -53,12 +53,17 @@ export type ChainConnectionOptions = {
 	 *
 	 * Omit it and the connection discovers wallets over EIP-6963, which is what
 	 * an app wants: the player's wallets are the player's. A WORLD that brings
-	 * its own wallet passes a connector announcing exactly that one, and the
-	 * consequence is the point - with one wallet holding one account there is
-	 * nothing to pick, so the player is never asked to choose between a wallet
-	 * they were given and one that cannot reach the chain in question.
+	 * its own passes it here, and the consequence is the point - with one
+	 * wallet holding one account there is nothing to pick, so the player is
+	 * never asked to choose between a wallet they were given and one that
+	 * cannot reach the chain in question.
+	 *
+	 * A supplied wallet is also the only kind that can declare `autoApproves`,
+	 * since an EIP-6963 announcement has no field for it. That declaration is
+	 * what keeps "confirm this in your wallet" off the screen for a wallet that
+	 * asks nobody anything.
 	 */
-	walletConnector?: WalletConnector<UnderlyingEthereumProvider>;
+	wallets?: WalletHandle<UnderlyingEthereumProvider>[];
 	/**
 	 * Whether to adopt the wallet's current account instead of asking.
 	 *
@@ -188,50 +193,21 @@ export function createChainConnection(
 		walletOnly,
 		permissions,
 		storagePrefix,
-		walletConnector,
+		wallets,
 		useCurrentAccount,
 	} = options;
 
-	const persisted = storagePrefix ? {storagePrefix} : {};
-
-	// A WORLD THAT BRINGS ITS OWN WALLET, handled first and separately.
-	//
-	// Its own branch rather than two more spread-in fields, because
-	// `walletConnector` is the DISCRIMINANT between two overloads of
-	// `createConnection`: a spread that may or may not carry the key matches
-	// neither, and passing it explicitly as `undefined` picks the wrong one.
-	// Keeping it separate also leaves the three calls below exactly as they
-	// were, which is what an app with no world wants to be able to see.
-	//
-	// `walletOnly` is forced here and that is not a shortcut: a hosted wallet
-	// service authenticates a person across devices, and the wallet in question
-	// is one this tab generated for one chain in this tab. There is nobody to
-	// host.
-	if (walletConnector) {
-		if (targetStep === 'SignedIn') {
-			return createConnection({
-				targetStep: 'SignedIn',
-				walletOnly: true,
-				nodeURL,
-				chainInfo,
-				walletConnector,
-				useCurrentAccount,
-				prioritizeWalletProvider: true,
-				autoConnect: true,
-				...persisted,
-			});
-		}
-		return createConnection({
-			targetStep: 'WalletConnected',
-			nodeURL,
-			chainInfo,
-			walletConnector,
-			useCurrentAccount,
-			prioritizeWalletProvider: true,
-			autoConnect: true,
-			...persisted,
-		});
-	}
+	// SUPPLIED AS ONE OBJECT, which 0.14.0 made safe. `walletConnector` used to
+	// be the DISCRIMINANT between two overloads of `createConnection`, so a
+	// spread that may or may not carry a key matched neither and an explicit
+	// `undefined` selected the wrong one - this branch was written out by hand
+	// twice because of it. Every overload now accepts these as optional, so
+	// there is one shape again.
+	const supplied = {
+		...(storagePrefix ? {storagePrefix} : {}),
+		...(wallets ? {wallets} : {}),
+		...(useCurrentAccount ? {useCurrentAccount} : {}),
+	};
 
 	// Note: `useCurrentAccount` is intentionally omitted. Setting it would make
 	// the connection auto-pick an account and skip `ChooseWalletAccount`, so a
@@ -268,7 +244,7 @@ export function createChainConnection(
 				chainInfo,
 				prioritizeWalletProvider: true,
 				autoConnect: true,
-				...persisted,
+				...supplied,
 			});
 		}
 		return createConnection({
@@ -279,7 +255,7 @@ export function createChainConnection(
 			permissions,
 			prioritizeWalletProvider: true,
 			autoConnect: true,
-			...persisted,
+			...supplied,
 		});
 	}
 
@@ -291,7 +267,7 @@ export function createChainConnection(
 		chainInfo,
 		prioritizeWalletProvider: true,
 		autoConnect: true,
-		...persisted,
+		...supplied,
 	});
 }
 
@@ -457,7 +433,7 @@ export function establishConnectionOn(options: {
 	walletOnly: boolean;
 	permissions?: PermissionDeclaration[];
 	storagePrefix?: string;
-	walletConnector?: WalletConnector<UnderlyingEthereumProvider>;
+	wallets?: WalletHandle<UnderlyingEthereumProvider>[];
 	useCurrentAccount?: 'always' | 'whenSingle' | false;
 	/** See `EstablishedConnection.walletPrompts`. Defaults to true. */
 	walletPrompts?: boolean;
@@ -471,7 +447,7 @@ export function establishConnectionOn(options: {
 		walletOnly: options.walletOnly,
 		permissions: options.permissions,
 		storagePrefix: options.storagePrefix,
-		walletConnector: options.walletConnector,
+		wallets: options.wallets,
 		useCurrentAccount: options.useCurrentAccount,
 	});
 

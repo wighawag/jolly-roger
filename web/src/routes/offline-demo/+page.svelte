@@ -53,7 +53,20 @@
 		     world inherited the page's wallets; it stopped being true when the
 		     world started bringing its own. Both facts are worth keeping: a
 		     nested world that uses the PLAYER's wallet needs its own flow, and
-		     one that brings its own must not have it. -->
+		     one that brings its own must not have it.
+
+		     RE-TESTED against @etherplay/connect 0.14.0, which acts on the
+		     wallet's `autoApproves` declaration by not announcing a pending
+		     request for it. That removes ONE of the two: "Getting your
+		     transaction ready" is gone, because nothing is announced to be
+		     waited on. "Waiting for Wallet Connection" and "Please Accept
+		     Connection Request" still flash, because those are the flow
+		     rendering the CONNECT STEP rather than a request, and connecting a
+		     wallet that answers itself is instantaneous. So the flow stays
+		     unmounted here, and the remaining half is worth fixing where it
+		     lives: a flow could skip the connect modal for a wallet whose
+		     `walletPrompts(info)` is false, since there is nothing for the user
+		     to accept. -->
 		<Demo />
 	</Context>
 {:else if $offlineWorld.step === 'Failed'}

@@ -134,7 +134,7 @@ export type EmbeddedWorldSpec = {
 	 * hook that gives the player everything they need, and a wallet is one of
 	 * those things. So the ordinary route is to return it from there.
 	 */
-	walletConnector?: EmbeddedWalletConnector;
+	wallets?: EmbeddedWallets;
 };
 
 /**
@@ -146,12 +146,10 @@ export type EmbeddedWorldSpec = {
  * decides it. Passing it in on the spec cannot work: the wallet does not exist
  * when the spec is written.
  */
-export type ProvisionResult = void | {
-	walletConnector?: EmbeddedWalletConnector;
-};
+export type ProvisionResult = void | {wallets?: EmbeddedWallets};
 
-export type EmbeddedWalletConnector = NonNullable<
-	Parameters<typeof establishConnectionOn>[0]['walletConnector']
+export type EmbeddedWallets = NonNullable<
+	Parameters<typeof establishConnectionOn>[0]['wallets']
 >;
 
 /**
@@ -197,14 +195,14 @@ export async function createEmbeddedWorld(
 		deploymentStore: spec.deploymentStore,
 	});
 
-	let walletConnector = spec.walletConnector;
+	let wallets = spec.wallets;
 	if (spec.provision) {
 		const provisioned = await spec.provision({
 			env,
 			node,
 			accounts: spec.accounts,
 		});
-		walletConnector = provisioned?.walletConnector ?? walletConnector;
+		wallets = provisioned?.wallets ?? wallets;
 	}
 
 	const deployments = createEmbeddedDeployments({
@@ -221,8 +219,8 @@ export async function createEmbeddedWorld(
 		establishConnectionOn({
 			// One wallet, one account, nothing to pick. A world that brings its
 			// own wallet did not inherit the player's choice, it made one.
-			walletConnector,
-			useCurrentAccount: walletConnector ? 'always' : undefined,
+			wallets,
+			useCurrentAccount: wallets ? 'always' : undefined,
 			// ITS OWN SLOT, AND THIS IS NOT TIDINESS. Every connection persists
 			// "the wallet I last used" and "the account I was", and two that
 			// share one slot become each other on the next load: the app's own
@@ -240,7 +238,7 @@ export async function createEmbeddedWorld(
 			// app must not tell the player their wallet is about to. The same
 			// mechanism a local signer uses (`guardDispatch`'s `prompts`), said
 			// by the side that knows: the world brought the wallet.
-			walletPrompts: walletConnector ? false : undefined,
+			walletPrompts: wallets ? false : undefined,
 			// The chain carries a PROVIDER rather than an rpc url, which is what
 			// makes it reachable at all: @etherplay/connect takes either, and reads
 			// the provider lazily, per request.

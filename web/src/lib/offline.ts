@@ -273,7 +273,7 @@ async function openWorld(chainId: number): Promise<EmbeddedWorld> {
 			// this world builds will use exactly this wallet, so the player is
 			// never asked to choose one - and cannot choose a wallet that has
 			// no account on this chain, which is every other wallet they own.
-			return {walletConnector: wallet.connector};
+			return {wallets: [wallet.handle]};
 		},
 	});
 }
