@@ -20,7 +20,8 @@ Every edit to a file `main` also has is a permanent conflict site, so the list i
 
 | file | why | goes up to `main`? |
 | --- | --- | --- |
-| `core/connection/remote.ts` | `ConnectableChainInfo`, `establishConnectionOn`, `storagePrefix`, `walletConnector`/`useCurrentAccount` | a candidate, once a second world exists upstream |
+| `core/connection/remote.ts` | `ConnectableChainInfo`, `establishConnectionOn`, `storagePrefix`, `walletConnector`/`useCurrentAccount`, `walletPrompts` | a candidate, once a second world exists upstream |
+| `core/connection/types.ts` | `walletPrompts` on `EstablishedConnection` | with the above |
 | `core/tab-leader/TabLeaderService.ts` | the election takes a namespace | **yes, and it is a latent correctness fix** |
 | `core/tab-leader/storage-lock.ts` | the lock and channel keys carry it | with the above |
 | `context/core.ts` | passes the chain id as that namespace | with the above |
@@ -84,12 +85,12 @@ It is a plausible candidate to go up to `main` later, which would take this bran
 ```sh
 # this branch against main, over the DEFAULT watch paths
 FEATURES="with/embedded-chain" \
-ALLOWED="web/src/lib/core/connection/remote.ts" \
+ALLOWED="web/src/lib/core/connection/remote.ts web/src/lib/core/connection/types.ts" \
   bash <(git show tooling:check-shared-divergence.sh)
 
 # and over the whole of core/, which is where this branch's other edits are
 WATCH="web/src/lib/core" FEATURES="with/embedded-chain" \
-ALLOWED="web/src/lib/core/connection/remote.ts web/src/lib/core/tab-leader/TabLeaderService.ts web/src/lib/core/tab-leader/storage-lock.ts" \
+ALLOWED="web/src/lib/core/connection/remote.ts web/src/lib/core/connection/types.ts web/src/lib/core/tab-leader/TabLeaderService.ts web/src/lib/core/tab-leader/storage-lock.ts" \
   bash <(git show tooling:check-shared-divergence.sh)
 
 # and the runs that prove the rest are clean because they are IDENTICAL
@@ -99,7 +100,7 @@ WATCH="web/src/lib/core" FEATURES="with/embedded-chain" ALLOWED= \
   bash <(git show tooling:check-shared-divergence.sh)
 ```
 
-Expected: **40 shared files** over the default paths with one allowed difference, and **100** over `core/` with three. Each empty run must name exactly those files and nothing else.
+Expected: **40 shared files** over the default paths with two allowed differences, and **100** over `core/` with four. Each empty run must name exactly those files and nothing else.
 
 WATCH THE WIDER PATH AND NOT JUST THE DEFAULT, which this branch is the reason for: the script's default watches `core/connection` and `core/transaction`, and the tab-leader edit is in neither. A branch whose edits fall outside the watched paths has a divergence check that cannot see its own budget.
 
