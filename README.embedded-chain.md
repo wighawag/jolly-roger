@@ -20,7 +20,7 @@ Every edit to a file `main` also has is a permanent conflict site, so the list i
 
 | file | why | goes up to `main`? |
 | --- | --- | --- |
-| `core/connection/remote.ts` | `ConnectableChainInfo`, `establishConnectionOn`, `storagePrefix` | a candidate, once a second world exists upstream |
+| `core/connection/remote.ts` | `ConnectableChainInfo`, `establishConnectionOn`, `storagePrefix`, `walletConnector`/`useCurrentAccount` | a candidate, once a second world exists upstream |
 | `core/tab-leader/TabLeaderService.ts` | the election takes a namespace | **yes, and it is a latent correctness fix** |
 | `core/tab-leader/storage-lock.ts` | the lock and channel keys carry it | with the above |
 | `context/core.ts` | passes the chain id as that namespace | with the above |
@@ -39,6 +39,12 @@ Two things it has to do that only became visible once a second world existed, an
 
 - **It mounts the world's own `ConnectionFlow`.** `AcrossPages` mounts one in the LAYOUT, bound to the app context, so a nested world's `ensureConnected()` waits on a wallet picker nobody renders. The symptom is a Send button that does nothing and logs nothing.
 - **The world's connection gets its own `storagePrefix`.** Both connections persist "the wallet I last used", so sharing the slot means the app auto-reconnects the player as their offline burner on the next load. This is the payment rail's recorded reason, one world further along.
+
+**The player is never asked which wallet to use.** The world hands its connection a `walletConnector` announcing exactly one wallet, holding exactly one account, so there is nothing to pick. That is the honest shape rather than a suppressed dialog: an offline world did not inherit the player's wallet choice, it made one for them, and every other wallet they own has no account on this chain. The wallet is still announced over EIP-6963 so a player can SEE what is signing.
+
+**The world is persisted by default, and so are the pending transactions - which is one decision, not two.** The chain goes to IndexedDB through webevm's adapter and the deployment records through `@rocketh/web`'s store, both namespaced per world, so a reload restores the chain and SKIPS the deploy instead of building a second game beside the first. The operations ledger always persisted, keyed by chain id; what it lacked was a chain to still be about. Not persisting the chain would leave the app holding transactions on a chain that no longer exists.
+
+**Three stores, so a restore is CHECKED before anything is deployed** (`restoreIsCoherent`). Records that outlive their chain make rocketh skip a deploy it believes it has done, and the deploy script then reads a contract that is not there: the boot throws while decoding `0x`, so a check placed afterwards never runs. On a mismatch the world mints a NEW chain id and starts clean, because everything the player kept is keyed by that id.
 
 What it does not do is fix the chrome. In the same screenshot the page transacts on the embedded chain while the navbar offers "Connect" for the remote one and a banner reports that RPC as down. The page says so in a strip above the demo, which is honesty rather than a fix; see the trap at the end of this file.
 
