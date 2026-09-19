@@ -236,6 +236,7 @@ function buildConnection(params: {
 		publicClient,
 		account,
 		deployments,
+		walletPrompts,
 		forceRpcFailure,
 	} = establishConnection({
 		nodeURL: PUBLIC_NODE_URL,
@@ -256,6 +257,10 @@ function buildConnection(params: {
 
 	return {
 		connection,
+		// Defaulted HERE as well as in the remote factory, because a world is
+		// free to build an `EstablishedConnection` by hand and omitting this
+		// must mean "it prompts" rather than "it does not".
+		walletPrompts: walletPrompts ?? true,
 		rawWalletClient,
 		publicClient,
 		account,
@@ -420,11 +425,19 @@ function buildInFlight(params: {
 function buildWalletClient(params: {
 	clock: ReturnType<typeof buildChainConfig>['clock'];
 	connection: ReturnType<typeof buildConnection>['connection'];
+	walletPrompts: ReturnType<typeof buildConnection>['walletPrompts'];
 	rawWalletClient: ReturnType<typeof buildConnection>['rawWalletClient'];
 	publicClient: ReturnType<typeof buildConnection>['publicClient'];
 	inFlight: ReturnType<typeof buildInFlight>['inFlight'];
 }) {
-	const {clock, connection, rawWalletClient, publicClient, inFlight} = params;
+	const {
+		clock,
+		connection,
+		walletPrompts,
+		rawWalletClient,
+		publicClient,
+		inFlight,
+	} = params;
 
 	// ----------------------------------------------------------------------------
 	// TRACKED WALLET CLIENT
@@ -458,11 +471,15 @@ function buildWalletClient(params: {
 	// too; nothing can do it on its behalf, and it should pass `{prompts: false}`
 	// because a key the app holds sends with no dialog and nobody to instruct.
 	//
-	// This one prompts, which is the default, so it says nothing: sends here go to
-	// a wallet the user has to answer.
+	// WHETHER IT PROMPTS IS THE WORLD'S ANSWER, NOT AN ASSUMPTION. For the app's
+	// own remote chain it is a wallet the user installed, so it prompts and this
+	// is the default. A world that generated its own wallet - an embedded chain
+	// signs with a key it made and the player never sees a dialog - says false,
+	// and then "your wallet will ask you to confirm" is a sentence about nothing.
 	const walletClient = guardDispatch(
 		trackerBuilder.using(rawWalletClient, publicClient),
 		inFlight,
+		{prompts: walletPrompts},
 	);
 
 	return {walletClient};
@@ -727,6 +744,7 @@ export function createCoreContext<App extends AppContext>(params: {
 		publicClient,
 		account,
 		deployments,
+		walletPrompts,
 		forceRpcFailure,
 	} = buildConnection({
 		establishConnection,
@@ -761,6 +779,7 @@ export function createCoreContext<App extends AppContext>(params: {
 	const {walletClient} = buildWalletClient({
 		clock,
 		connection,
+		walletPrompts,
 		rawWalletClient,
 		publicClient,
 		inFlight,

@@ -223,6 +223,11 @@ export async function createEmbeddedWorld(
 			// own wallet did not inherit the player's choice, it made one.
 			walletConnector,
 			useCurrentAccount: walletConnector ? 'always' : undefined,
+			// A wallet this world generated signs without asking anybody, so the
+			// app must not tell the player their wallet is about to. The same
+			// mechanism a local signer uses (`guardDispatch`'s `prompts`), said
+			// by the side that knows: the world brought the wallet.
+			walletPrompts: walletConnector ? false : undefined,
 			// The chain carries a PROVIDER rather than an rpc url, which is what
 			// makes it reachable at all: @etherplay/connect takes either, and reads
 			// the provider lazily, per request.

@@ -5,7 +5,6 @@
 	import {Spinner} from '$lib/shadcn/ui/spinner';
 	import AlertCircleIcon from '@lucide/svelte/icons/alert-circle';
 	import {offlineWorld, startOfflineWorld} from '$lib/offline';
-	import ConnectionFlow from '$lib/core/connection/ConnectionFlow.svelte';
 	import Demo from '../demo/+page.svelte';
 
 	// THE ROUTE IS THE CHOOSING AND NOTHING ELSE. Booting a chain, running a
@@ -39,20 +38,22 @@
 			<code>{$offlineWorld.world.chainId}</code>. The navbar above is still
 			describing the remote chain.
 		</div>
-		<!-- THE WORLD'S OWN CONNECTION FLOW, and leaving it out is the first thing
-		     that breaks. `AcrossPages` mounts one of these in the LAYOUT, bound to
-		     the app context, so a nested world's `ensureConnected()` waits forever
-		     on a wallet picker that nobody renders: measured, and the symptom is a
-		     Send button that does nothing at all and logs nothing.
+		<!-- NO CONNECTION FLOW HERE, AND THAT IS THE POINT RATHER THAN AN
+		     OMISSION. A flow exists to relay a wallet's questions to the player:
+		     which wallet, which account, approve this. A wallet this world
+		     GENERATED has no questions - one wallet, one account, and it signs
+		     without asking - so mounting one produces three modals that flash
+		     past describing decisions nobody is making. Measured: with a flow,
+		     "Waiting for Wallet Connection", "Please Accept Connection Request"
+		     and "Getting your transaction ready" all appear between click and
+		     confirmation; without one, none do and the send is unaffected.
 
-		     `name` is its identity in the overlay registry, so it must differ from
-		     the layout's "connection"; `inFlight` is deliberately NOT passed, per
-		     the prop's own note - the ledger is app-wide and a second flow given it
-		     reports this wallet as busy whenever the other one is. -->
-		<ConnectionFlow
-			connection={$offlineWorld.context.context.connection}
-			name="offline-world"
-		/>
+		     An earlier version DID mount one, because without it the world's
+		     `ensureConnected()` had no picker and hung. That was true while the
+		     world inherited the page's wallets; it stopped being true when the
+		     world started bringing its own. Both facts are worth keeping: a
+		     nested world that uses the PLAYER's wallet needs its own flow, and
+		     one that brings its own must not have it. -->
 		<Demo />
 	</Context>
 {:else if $offlineWorld.step === 'Failed'}

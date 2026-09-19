@@ -101,6 +101,23 @@ export type EstablishedConnection = {
 	account: AccountStore;
 	signer: OptionalSignerStore;
 	deployments: DeploymentsStore;
+	/**
+	 * WHETHER SENDING THROUGH THIS CONNECTION NEEDS A HUMAN AT A WALLET.
+	 *
+	 * `true` for every wallet a person installed, which is why it defaults to
+	 * true and why a world that says nothing keeps the loud behaviour. `false`
+	 * only for a wallet that signs without asking - an embedded world generates
+	 * its own and the player never sees it - and then the app must not raise
+	 * "your wallet will ask you to confirm", because nothing will.
+	 *
+	 * It belongs to the WORLD rather than to the app for the same reason
+	 * `deployments` does: the app's question is "does this send prompt", and the
+	 * answer is a property of the wallet the world brought. The parallel
+	 * mechanism for a key the app holds itself is `guardDispatch`'s `prompts`
+	 * option, which this feeds; see the note there on why it is recorded at
+	 * dispatch time and never inferred from a count.
+	 */
+	walletPrompts?: boolean;
 	/** Debug-only runtime flag: when set, all RPC requests fail (see rpc-fault). */
 	forceRpcFailure: import('svelte/store').Writable<boolean>;
 };

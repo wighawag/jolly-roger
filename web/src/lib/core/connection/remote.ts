@@ -459,6 +459,8 @@ export function establishConnectionOn(options: {
 	storagePrefix?: string;
 	walletConnector?: WalletConnector<UnderlyingEthereumProvider>;
 	useCurrentAccount?: 'always' | 'whenSingle' | false;
+	/** See `EstablishedConnection.walletPrompts`. Defaults to true. */
+	walletPrompts?: boolean;
 }): EstablishedConnection {
 	const {chainInfo} = options;
 
@@ -524,6 +526,7 @@ export function establishConnectionOn(options: {
 		account,
 		signer,
 		deployments: options.deployments,
+		walletPrompts: options.walletPrompts ?? true,
 		forceRpcFailure,
 	};
 }

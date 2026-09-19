@@ -46,6 +46,20 @@ Two things it has to do that only became visible once a second world existed, an
 
 **Three stores, so a restore is CHECKED before anything is deployed** (`restoreIsCoherent`). Records that outlive their chain make rocketh skip a deploy it believes it has done, and the deploy script then reads a contract that is not there: the boot throws while decoding `0x`, so a check placed afterwards never runs. On a mismatch the world mints a NEW chain id and starts clean, because everything the player kept is keyed by that id.
 
+**No wallet UI, and no modals.** A connection flow exists to relay a wallet's questions - which wallet, which account, approve this - and a wallet this world GENERATED has none. Mounting one produced three modals that flash past describing decisions nobody was making ("Waiting for Wallet Connection", "Please Accept Connection Request", "Getting your transaction ready"); with none mounted, none appear and the send is unaffected. The rule the two states give between them: a nested world using the PLAYER's wallet needs its own flow, and one that brings its own must not have it.
+
+## Three wrappers that should not exist, and the one-line upstream fixes that delete them
+
+Every adapter in `lib/embedded` is working around a TYPE that has not caught up with what the library underneath already does, and all three libraries are ours. None of them is a design decision, so none of them should be allowed to look like one.
+
+| wrapper | why it exists | what deletes it |
+| --- | --- | --- |
+| `asNodeURL` cast in `wallet.ts` | `initBurnerWallet({nodeURL: string})`, and a chain in the tab has no URL. The implementation already takes either: it builds its RPC with `createCurriedJSONRPC`, which accepts a URL or anything with `.request`. Measured against a webevm node. | widen `nodeURL` to `string \| EIP1193Provider` in `@etherkit/burner-wallet`. No behaviour change. |
+| `firstAccountOnly` Proxy | the burner derives `ACCOUNT_COUNT` (10) accounts, and a wallet offering several makes the connection show an account picker. | an `accountCount` (or `accounts`) option on `createBurnerWalletProvider`. The derivation already takes an index. |
+| `SoleWalletConnector` | the connection's universe of wallets comes from EIP-6963 announcements on `window`, and a world's wallet is not an ambient page wallet. | let `createConnection` take the wallets directly - `wallets: WalletHandle[]`, or an `only` - so supplying one needs no connector subclass. |
+
+**And one that is NOT a wrapper but belongs in the same conversation**: a wallet that signs without asking should be able to SAY so, in `WalletInfo` next to its name and icon. Today the app infers it - this branch threads `walletPrompts` from the world to `guardDispatch` - and the inference has to be made again by every consumer that shows a "check your wallet" surface. Declared upstream, `@etherplay/connect` could also stop announcing a pending request for a wallet that cannot be waited on, and the flow's own modals would go quiet without an app having to not mount it.
+
 What it does not do is fix the chrome. In the same screenshot the page transacts on the embedded chain while the navbar offers "Connect" for the remote one and a banner reports that RPC as down. The page says so in a strip above the demo, which is honesty rather than a fix; see the trap at the end of this file.
 
 **The mechanism is in `lib/` and any route is only its demo.** This is not tidiness. A descendant of this template deletes the demo routes it inherits (`template-commit-reveal` deleted `web/src/routes/demo/` and pays for it with a recurring `CONFLICT (modify/delete)` on every merge), so anything world-building written inside a route is thrown away by the repos that most want the world. What a route may hold is the choosing: a page that says "play offline", boots a world and provides it.
