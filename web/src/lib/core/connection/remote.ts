@@ -47,6 +47,20 @@ export type ChainConnectionOptions = {
 	 * door, and nothing minted for a contract the app never touches.
 	 */
 	permissions?: PermissionDeclaration[];
+	/**
+	 * Namespace for this connection's persisted state.
+	 *
+	 * REQUIRED whenever an app builds a SECOND connection, for the reason
+	 * `createPaymentConnection` gives at length: every connection persists "the
+	 * wallet I last used", and two that share a slot auto-reconnect as each
+	 * other. The app's own connection deliberately has none, so it keeps the
+	 * unprefixed keys it has always used.
+	 *
+	 * A WORLD needs one for a sharper version of the same reason: the wallet a
+	 * player used on a chain in the tab is not the wallet they use on the remote
+	 * chain, and it cannot be - the two chains do not have the same accounts.
+	 */
+	storagePrefix?: string;
 };
 
 /**
@@ -147,7 +161,14 @@ export function createChainConnection(
 	chainInfo: ConnectableChainInfo,
 	options: ChainConnectionOptions,
 ): ChainConnection {
-	const {nodeURL, targetStep, walletHost, walletOnly, permissions} = options;
+	const {
+		nodeURL,
+		targetStep,
+		walletHost,
+		walletOnly,
+		permissions,
+		storagePrefix,
+	} = options;
 
 	// Note: `useCurrentAccount` is intentionally omitted. Setting it would make
 	// the connection auto-pick an account and skip `ChooseWalletAccount`, so a
@@ -184,6 +205,7 @@ export function createChainConnection(
 				chainInfo,
 				prioritizeWalletProvider: true,
 				autoConnect: true,
+				...(storagePrefix ? {storagePrefix} : {}),
 			});
 		}
 		return createConnection({
@@ -194,6 +216,7 @@ export function createChainConnection(
 			permissions,
 			prioritizeWalletProvider: true,
 			autoConnect: true,
+			...(storagePrefix ? {storagePrefix} : {}),
 		});
 	}
 
@@ -205,6 +228,7 @@ export function createChainConnection(
 		chainInfo,
 		prioritizeWalletProvider: true,
 		autoConnect: true,
+		...(storagePrefix ? {storagePrefix} : {}),
 	});
 }
 
@@ -369,6 +393,7 @@ export function establishConnectionOn(options: {
 	walletHost?: string;
 	walletOnly: boolean;
 	permissions?: PermissionDeclaration[];
+	storagePrefix?: string;
 }): EstablishedConnection {
 	const {chainInfo} = options;
 
@@ -378,6 +403,7 @@ export function establishConnectionOn(options: {
 		walletHost: options.walletHost,
 		walletOnly: options.walletOnly,
 		permissions: options.permissions,
+		storagePrefix: options.storagePrefix,
 	});
 
 	// Debug-only RPC fault injection: a runtime flag (exposed on the context as

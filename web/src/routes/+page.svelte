@@ -62,6 +62,17 @@
 				class="min-w-40 bg-linear-to-r from-pink-600 via-pink-500 to-rose-500 font-semibold text-white shadow-lg transition-all duration-300 hover:from-pink-700 hover:via-pink-600 hover:to-rose-600 hover:shadow-xl"
 				>Check The Demo</Button
 			>
+			<!-- The same demo, against a chain that runs in this tab: no node, no
+			     network, the app's own deploy scripts run in the browser. The word is
+			     `offline` here and `embedded-chain` in `$lib/embedded` on purpose -
+			     one is the experience the player chooses, the other is the
+			     mechanism. -->
+			<Button
+				href={route('/offline-demo/')}
+				size="lg"
+				variant="outline"
+				class="min-w-40 font-semibold">Play Offline</Button
+			>
 		</div>
 	</div>
 </div>
