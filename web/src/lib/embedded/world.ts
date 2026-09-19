@@ -223,6 +223,19 @@ export async function createEmbeddedWorld(
 			// own wallet did not inherit the player's choice, it made one.
 			walletConnector,
 			useCurrentAccount: walletConnector ? 'always' : undefined,
+			// ITS OWN SLOT, AND THIS IS NOT TIDINESS. Every connection persists
+			// "the wallet I last used" and "the account I was", and two that
+			// share one slot become each other on the next load: the app's own
+			// connection auto-reconnects as the world's generated wallet, on an
+			// account no installed wallet holds, and then asks the user to
+			// switch to a chain id that exists only in this tab. Observed
+			// exactly that way - an account in the navbar, a switch-network
+			// modal, and a Connect button again after cancelling.
+			//
+			// Namespaced by CHAIN rather than a single "embedded" prefix,
+			// because two worlds are two chains with two different accounts,
+			// and the same argument applies between them.
+			storagePrefix: `embedded:${spec.chainId}:`,
 			// A wallet this world generated signs without asking anybody, so the
 			// app must not tell the player their wallet is about to. The same
 			// mechanism a local signer uses (`guardDispatch`'s `prompts`), said
