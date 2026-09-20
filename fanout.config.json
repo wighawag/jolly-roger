@@ -8,6 +8,15 @@
     "with/hosted-account": {
       "stem": "with/local-signer"
     },
+    "with/embedded-chain": {
+      "stem": "main"
+    },
+    "integration": {
+      "stem": [
+        "with/local-signer",
+        "with/embedded-chain"
+      ]
+    },
     "website": {
       "stem": "main"
     }
