@@ -118,4 +118,43 @@ describe('storage-lock', () => {
 			expect(readLock()).toBeUndefined();
 		});
 	});
+
+	// WHY A NAMESPACE EXISTS AT ALL, and it is a bug that was found in a tab
+	// rather than here. The lock decides which TAB polls for a transaction's
+	// receipt, and one key per origin was right while an app had one context.
+	// A page that provides a SECOND world builds a second context with its own
+	// observer over its own chain; both elected against this one key, one won,
+	// and the loser's observer never ran - so its transactions mined and stayed
+	// "pending" forever, with a correct receipt on chain and no error anywhere.
+	// It took a chain dump to see, because every other signal said success.
+	describe('namespaces', () => {
+		it('lets two chains each have a leader in the same tab', () => {
+			expect(acquireLock('tab-1', 'chain-a')).toBe(true);
+			expect(acquireLock('tab-2', 'chain-b')).toBe(true);
+		});
+
+		it('still refuses a second holder WITHIN one namespace', () => {
+			// The property the lock exists for has to survive the fix.
+			expect(acquireLock('tab-1', 'chain-a')).toBe(true);
+			expect(acquireLock('tab-2', 'chain-a')).toBe(false);
+		});
+
+		it('keeps the unnamespaced key exactly where it was', () => {
+			// An app with one context must not notice this parameter, and an
+			// existing lock must not be orphaned by a rename.
+			acquireLock('tab-1');
+			expect(store['tx-observer-leader-lock']).toBeDefined();
+			acquireLock('tab-1', 'chain-a');
+			expect(store['tx-observer-leader-lock:chain-a']).toBeDefined();
+		});
+
+		it('releases and reads within its own namespace only', () => {
+			acquireLock('tab-1', 'chain-a');
+			acquireLock('tab-1', 'chain-b');
+			releaseLock('tab-1', 'chain-a');
+			expect(readLock('chain-a')).toBeUndefined();
+			expect(readLock('chain-b')?.tabId).toBe('tab-1');
+			expect(refreshLock('tab-1', 'chain-b')).toBe(true);
+		});
+	});
 });

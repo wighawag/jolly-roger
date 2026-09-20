@@ -9,7 +9,20 @@ import {
 	ELECTION_DEBOUNCE,
 } from './constants';
 
-export function createTabLeaderService(): TabLeaderService {
+/**
+ * @param options.namespace WHICH ELECTION this service takes part in.
+ *
+ * Omit it and every service in the origin elects for one leadership, which is
+ * what an app with a single context wants. An app that provides a SECOND
+ * context - a second world, with its own chain and its own transaction
+ * observer - must namespace them apart, or only one observer ever runs and the
+ * other's transactions mine and stay pending with nothing reported anywhere.
+ * See `storage-lock.ts`.
+ */
+export function createTabLeaderService(options?: {
+	namespace?: string;
+}): TabLeaderService {
+	const namespace = options?.namespace;
 	// Assigned in start(), not at construction: this service is built as part of
 	// the app context, which is also constructed during SSR / prerender, and
 	// nothing before start() needs an id. See ADR-0002 (`work` branch).
@@ -44,7 +57,7 @@ export function createTabLeaderService(): TabLeaderService {
 	}
 
 	function sendHeartbeat() {
-		if (!refreshLock(tabId)) {
+		if (!refreshLock(tabId, namespace)) {
 			// Lost the lock (e.g., another tab took it while we were paused)
 			yieldLeadership();
 			return;
@@ -96,7 +109,7 @@ export function createTabLeaderService(): TabLeaderService {
 	}
 
 	function claimLeadership() {
-		const acquired = acquireLock(tabId);
+		const acquired = acquireLock(tabId, namespace);
 		if (!acquired) {
 			// Someone else holds a valid lock, back off
 			resetTimeout();
@@ -113,7 +126,7 @@ export function createTabLeaderService(): TabLeaderService {
 	function yieldLeadership() {
 		const wasLeader = $isLeader;
 		setLeader(false);
-		releaseLock(tabId);
+		releaseLock(tabId, namespace);
 		stopHeartbeat();
 		if (wasLeader) {
 			announceResignation();
@@ -158,7 +171,7 @@ export function createTabLeaderService(): TabLeaderService {
 	function onBeforeUnload() {
 		if ($isLeader) {
 			announceResignation();
-			releaseLock(tabId);
+			releaseLock(tabId, namespace);
 		}
 	}
 
@@ -176,7 +189,11 @@ export function createTabLeaderService(): TabLeaderService {
 			return;
 		}
 
-		channel = new BroadcastChannel(CHANNEL_NAME);
+		// The channel is namespaced with the lock: two contexts that must not
+		// share a leadership must not hear each other's heartbeats either.
+		channel = new BroadcastChannel(
+			namespace ? `${CHANNEL_NAME}:${namespace}` : CHANNEL_NAME,
+		);
 		channel.onmessage = handleMessage;
 
 		if (typeof window !== 'undefined') {
@@ -197,7 +214,7 @@ export function createTabLeaderService(): TabLeaderService {
 
 		if ($isLeader) {
 			announceResignation();
-			releaseLock(tabId);
+			releaseLock(tabId, namespace);
 		}
 		setLeader(false);
 

@@ -5,6 +5,7 @@ import {
 	type PermissionDeclaration,
 	type UnderlyingEthereumProvider,
 } from '@etherplay/connect';
+import type {WalletHandle} from '@etherplay/wallet-connector';
 import {derived} from 'svelte/store';
 import {createPublicClient, createWalletClient, custom} from 'viem';
 import {createRpcFaultFlag, wrapProviderWithFault} from './rpc-fault';
@@ -12,6 +13,7 @@ import type {TargetStep} from './mode';
 import type {
 	Account,
 	ChainInfo,
+	DeploymentsStore,
 	EstablishedConnection,
 	OptionalSigner,
 	TypedPublicClient,
@@ -46,6 +48,44 @@ export type ChainConnectionOptions = {
 	 * door, and nothing minted for a contract the app never touches.
 	 */
 	permissions?: PermissionDeclaration[];
+	/**
+	 * THE WALLETS THIS CONNECTION MAY USE, when they are not the page's.
+	 *
+	 * Omit it and the connection discovers wallets over EIP-6963, which is what
+	 * an app wants: the player's wallets are the player's. A WORLD that brings
+	 * its own passes it here, and the consequence is the point - with one
+	 * wallet holding one account there is nothing to pick, so the player is
+	 * never asked to choose between a wallet they were given and one that
+	 * cannot reach the chain in question.
+	 *
+	 * A supplied wallet is also the only kind that can declare `autoApproves`,
+	 * since an EIP-6963 announcement has no field for it. That declaration is
+	 * what keeps "confirm this in your wallet" off the screen for a wallet that
+	 * asks nobody anything.
+	 */
+	wallets?: WalletHandle<UnderlyingEthereumProvider>[];
+	/**
+	 * Whether to adopt the wallet's current account instead of asking.
+	 *
+	 * Deliberately NOT set by this app (see the note in createChainConnection):
+	 * a wallet holding several accounts must let the user choose. A world whose
+	 * wallet holds exactly one has no choice to offer.
+	 */
+	useCurrentAccount?: 'always' | 'whenSingle' | false;
+	/**
+	 * Namespace for this connection's persisted state.
+	 *
+	 * REQUIRED whenever an app builds a SECOND connection, for the reason
+	 * `createPaymentConnection` gives at length: every connection persists "the
+	 * wallet I last used", and two that share a slot auto-reconnect as each
+	 * other. The app's own connection deliberately has none, so it keeps the
+	 * unprefixed keys it has always used.
+	 *
+	 * A WORLD needs one for a sharper version of the same reason: the wallet a
+	 * player used on a chain in the tab is not the wallet they use on the remote
+	 * chain, and it cannot be - the two chains do not have the same accounts.
+	 */
+	storagePrefix?: string;
 };
 
 /**
@@ -117,6 +157,24 @@ export function createPaymentConnection(
 }
 
 /**
+ * The chain a connection is made TO, which is either an endpoint or a provider.
+ *
+ * `ChainInfo` is this app's own exported chain (see deployments-store), whose
+ * `rpcUrls` is how a remote chain is reached. A chain that runs IN THE TAB has
+ * no URL: it is an object with a `request` method, and @etherplay/connect takes
+ * one (`ChainInfo<P>` is `{rpcUrls}` OR `{provider}`, and it reads the provider
+ * lazily, per request). This alias is what lets the same connection-building
+ * code serve both, so that WHERE the chain runs is not a second way to
+ * authenticate - see `ConnectionFactory` in context/core.
+ */
+export type ConnectableChainInfo =
+	| ChainInfo
+	| (Omit<ChainInfo, 'rpcUrls'> & {
+			rpcUrls?: ChainInfo['rpcUrls'];
+			provider: UnderlyingEthereumProvider;
+	  });
+
+/**
  * Create the app's connection store.
  *
  * This is the single place the connection is configured. Its return type is
@@ -125,10 +183,31 @@ export function createPaymentConnection(
  * requires touching type definitions elsewhere.
  */
 export function createChainConnection(
-	chainInfo: ChainInfo,
+	chainInfo: ConnectableChainInfo,
 	options: ChainConnectionOptions,
 ): ChainConnection {
-	const {nodeURL, targetStep, walletHost, walletOnly, permissions} = options;
+	const {
+		nodeURL,
+		targetStep,
+		walletHost,
+		walletOnly,
+		permissions,
+		storagePrefix,
+		wallets,
+		useCurrentAccount,
+	} = options;
+
+	// SUPPLIED AS ONE OBJECT, which 0.14.0 made safe. `walletConnector` used to
+	// be the DISCRIMINANT between two overloads of `createConnection`, so a
+	// spread that may or may not carry a key matched neither and an explicit
+	// `undefined` selected the wrong one - this branch was written out by hand
+	// twice because of it. Every overload now accepts these as optional, so
+	// there is one shape again.
+	const supplied = {
+		...(storagePrefix ? {storagePrefix} : {}),
+		...(wallets ? {wallets} : {}),
+		...(useCurrentAccount ? {useCurrentAccount} : {}),
+	};
 
 	// Note: `useCurrentAccount` is intentionally omitted. Setting it would make
 	// the connection auto-pick an account and skip `ChooseWalletAccount`, so a
@@ -165,6 +244,7 @@ export function createChainConnection(
 				chainInfo,
 				prioritizeWalletProvider: true,
 				autoConnect: true,
+				...supplied,
 			});
 		}
 		return createConnection({
@@ -175,6 +255,7 @@ export function createChainConnection(
 			permissions,
 			prioritizeWalletProvider: true,
 			autoConnect: true,
+			...supplied,
 		});
 	}
 
@@ -186,6 +267,7 @@ export function createChainConnection(
 		chainInfo,
 		prioritizeWalletProvider: true,
 		autoConnect: true,
+		...supplied,
 	});
 }
 
@@ -317,12 +399,56 @@ export function establishRemoteConnection(options: {
 			} as ChainInfo)
 		: currentDeployments.chain;
 
+	return establishConnectionOn({
+		chainInfo,
+		deployments, // Use the imported HMR-aware store
+		nodeURL: options.nodeURL,
+		targetStep: options.targetStep,
+		walletHost: options.walletHost,
+		walletOnly: options.walletOnly,
+		permissions: options.permissions,
+	});
+}
+
+/**
+ * EVERYTHING THAT HANGS OFF A CONNECTION, given a chain and its records.
+ *
+ * This is `establishRemoteConnection` with the two world-shaped facts taken
+ * out: WHICH chain, and WHICH deployment records. It was extracted for the
+ * second implementation of `ConnectionFactory` (an embedded chain, see
+ * `$lib/embedded`), and extraction rather than a second copy is the whole
+ * point - the fault injection, the two derived stores and the exact shape of
+ * `EstablishedConnection` are things every world must get identically, or the
+ * app behaves differently depending on which world it is pointed at.
+ *
+ * It stays synchronous for the reason the caller above documents: connecting
+ * is user-interactive, so nothing here blocks on it.
+ */
+export function establishConnectionOn(options: {
+	chainInfo: ConnectableChainInfo;
+	deployments: DeploymentsStore;
+	nodeURL?: string;
+	targetStep: TargetStep;
+	walletHost?: string;
+	walletOnly: boolean;
+	permissions?: PermissionDeclaration[];
+	storagePrefix?: string;
+	wallets?: WalletHandle<UnderlyingEthereumProvider>[];
+	useCurrentAccount?: 'always' | 'whenSingle' | false;
+	/** See `EstablishedConnection.walletPrompts`. Defaults to true. */
+	walletPrompts?: boolean;
+}): EstablishedConnection {
+	const {chainInfo} = options;
+
 	const connection = createChainConnection(chainInfo, {
 		nodeURL: options.nodeURL,
 		targetStep: options.targetStep,
 		walletHost: options.walletHost,
 		walletOnly: options.walletOnly,
 		permissions: options.permissions,
+		storagePrefix: options.storagePrefix,
+		wallets: options.wallets,
+		useCurrentAccount: options.useCurrentAccount,
 	});
 
 	// Debug-only RPC fault injection: a runtime flag (exposed on the context as
@@ -334,13 +460,17 @@ export function establishRemoteConnection(options: {
 		forceRpcFailure,
 	);
 
+	// viem wants a chain with rpc urls; a provider-backed one has none, and
+	// nothing here reads them - every request goes through the transport below.
+	const viemChain = chainInfo as ChainInfo;
+
 	const walletClient = createWalletClient({
-		chain: chainInfo,
+		chain: viemChain,
 		transport: custom(faultyProvider),
 	});
 
 	const publicClient = createPublicClient({
-		chain: chainInfo,
+		chain: viemChain,
 		transport: custom(faultyProvider),
 	}) as TypedPublicClient;
 
@@ -366,12 +496,13 @@ export function establishRemoteConnection(options: {
 
 	return {
 		connection,
-		chainInfo,
+		chainInfo: viemChain,
 		walletClient,
 		publicClient,
 		account,
 		signer,
-		deployments, // Use the imported HMR-aware store
+		deployments: options.deployments,
+		walletPrompts: options.walletPrompts ?? true,
 		forceRpcFailure,
 	};
 }
