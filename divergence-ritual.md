@@ -33,13 +33,19 @@ ALLOWED="web/src/lib/core/connection/mode.ts" \
   bash <(git show tooling:check-shared-divergence.sh)
 
 WATCH="web/src/lib/core" FEATURES="with/local-signer" \
-ALLOWED="web/src/lib/core/connection/mode.ts web/src/lib/core/ui/faucet/faucet-actions.ts" \
+ALLOWED="web/src/lib/core/connection/mode.ts" \
   bash <(git show tooling:check-shared-divergence.sh)
 ```
 
-Expected: 40 shared files at the default width with **1** allowed difference, 101 over `core/` with **2**.
+Expected: 40 shared files at the default width with **1** allowed difference, 101 over `core/` with **1**. Same list at both widths, which is the whole of this branch's shared-file budget: `mode.ts` holds `TARGET_STEP`, the one line that makes this branch sign in.
 
-`mode.ts` holds `TARGET_STEP`, which is the one line that makes this branch sign in. `faucet-actions.ts` is the second entry and it is a weaker one, recorded honestly rather than dressed up: it was found by the first run that ever watched `core/` on this branch, it had no declared budget before that, and **not all of it is this branch's.** Returning the claim's transaction and `dispensedByClaim` are general ("a wallet serves a cached balance until it sees a new block") and would be a straight improvement on `main`; only the default-target policy - fund the authenticated account and never the local signer - is a statement about a branch where a signer exists. So the entry is a **candidate to be split**, with the general half going up and the policy half staying, which would take this branch's `core/` budget back to one file. Not done here: it is a change on `main` that cascades to every node in the tree and is its own task.
+**It was two for about an hour, and what happened to the second entry is the more useful record.** The first run that ever watched `core/` here found `core/ui/faucet/faucet-actions.ts` diverging with no declared budget - outside both default paths, so no run had ever looked at it. The reflex was to add it to this list with a note that it ought to be split one day. It was fixed instead, and the fix was cheaper and better than the split:
+
+- **Every executable line of it was general.** A wallet answers `eth_getBalance` from a cache until it sees a new block, so a balance read straight after a faucet claim reports the balance from before it; handing back the transaction is the fix, and it has nothing to do with a local signer. It went to `main`.
+- **The apparent branch-specific half was comments.** `main` said the default target is "the wallet/owner in wallet mode" and the branch said "the AUTHENTICATED ACCOUNT" - and the CODE was identical on both, reading `accountExecutor`, which already answers that question per branch. So the comment says `accountExecutor` now and explains that which address that is depends on how the app signs in.
+- **`dispensedByClaim` stopped being exported on the way up**, which is what made the move free. Nothing imported it on either branch, so exporting it would have put a second entry point into a `lib/core` that every downstream inherits and nobody calls - the "parameter that exists for nobody" this tree argues against. A returned value a caller ignores costs nothing, and `main`'s `FaucetButton` ignores it.
+
+So the file is byte-identical everywhere again, its four `target` tests live on `main` with the code, and **the entry is gone rather than shrunk**. The lesson worth keeping: when a shared file diverges, check whether the split is real before writing it down as a budget. Here "half of it is general" was wrong in the useful direction - ALL of the code was general, and the rest was prose that could simply be made true on both.
 
 ## `with/hosted-account`
 
@@ -49,7 +55,7 @@ ALLOWED="web/src/lib/core/connection/mode.ts" \
   bash <(git show tooling:check-shared-divergence.sh)
 
 WATCH="web/src/lib/core" FEATURES="with/hosted-account" \
-ALLOWED="web/src/lib/core/connection/mode.ts web/src/lib/core/ui/faucet/faucet-actions.ts" \
+ALLOWED="web/src/lib/core/connection/mode.ts" \
   bash <(git show tooling:check-shared-divergence.sh)
 
 # and against its OWN stem, which is what a cascade merges from
@@ -59,7 +65,7 @@ BASE=with/local-signer WATCH="web/src/lib/core" FEATURES="with/hosted-account" A
   bash <(git show tooling:check-shared-divergence.sh)
 ```
 
-Expected against `main`: the same 1 and 2 as `with/local-signer`, because both entries are INHERITED from it and this branch changes neither. Expected against `with/local-signer`: **0 at both widths**, 42 and 104 shared files, with `ALLOWED=` empty.
+Expected against `main`: the same 1 and 1 as `with/local-signer`, because the entry is INHERITED from it and this branch changes it not at all. Expected against `with/local-signer`: **0 at both widths**, 42 and 104 shared files, with `ALLOWED=` empty.
 
 **AND THAT ZERO IS THE POINT, WHICH MEANS `mode.ts` IS NOT THIS BRANCH'S SWITCH AND THE README SAID IT WAS.** Measured 2026-09-20: `TARGET_STEP` is `SignedIn` on `with/local-signer` AND on `with/hosted-account`, so reverting `mode.ts` here in `with/local-signer`'s favour would change nothing at all. What makes this branch the hosted one is `web/.env`, which says so in its own comment ("THIS LINE IS WHAT MAKES THIS VARIANT THE HOSTED-ACCOUNT ONE"), plus a devDependency, a `wallet-host` script, 28 lines of playwright config, 101 of e2e runner and a 293-line e2e suite.
 
@@ -91,11 +97,11 @@ ALLOWED="web/src/lib/core/connection/mode.ts web/src/lib/core/connection/remote.
   bash <(git show tooling:check-shared-divergence.sh)
 
 WATCH="web/src/lib/core" FEATURES="integration" \
-ALLOWED="web/src/lib/core/connection/mode.ts web/src/lib/core/ui/faucet/faucet-actions.ts web/src/lib/core/connection/remote.ts web/src/lib/core/connection/types.ts web/src/lib/core/tab-leader/TabLeaderService.ts web/src/lib/core/tab-leader/storage-lock.ts" \
+ALLOWED="web/src/lib/core/connection/mode.ts web/src/lib/core/connection/remote.ts web/src/lib/core/connection/types.ts web/src/lib/core/tab-leader/TabLeaderService.ts web/src/lib/core/tab-leader/storage-lock.ts" \
   bash <(git show tooling:check-shared-divergence.sh)
 ```
 
-Expected: 40 shared files at the default width with **3** allowed, 101 over `core/` with **6**. Every entry is INHERITED: three from `with/local-signer`, four from `with/embedded-chain`, with `mode.ts`... counted once. This node adds none of its own and that is its acceptance criterion, not a description of it.
+Expected: 40 shared files at the default width with **3** allowed, 101 over `core/` with **5**. Every entry is INHERITED: `mode.ts` from `with/local-signer`, the other four from `with/embedded-chain`. This node adds none of its own and that is its acceptance criterion, not a description of it.
 
 **So the run that matters for `integration` is the three-way one, and it is the same shape `template-commit-reveal@with/all` uses.** Each run takes its OWN list, because `ALLOWED` is two-sided and an entry that is legitimately identical against one parent makes a false claim there:
 
@@ -143,11 +149,13 @@ Measured 2026-09-20, as `drifted / shared`:
 
 | branch | default | `core/` | wide |
 | --- | --- | --- | --- |
-| `with/local-signer` | 1 / 40 | 2 / 101 | 37 / 424 |
-| `with/hosted-account` | 1 / 40 | 2 / 101 | 37 / 424 |
+| `with/local-signer` | 1 / 40 | 1 / 101 | 35 / 424 |
+| `with/hosted-account` | 1 / 40 | 1 / 101 | 35 / 424 |
 | `with/embedded-chain` | 2 / 40 | 4 / 101 | 7 / 424 |
-| `integration` | 3 / 40 | 6 / 101 | 43 / 424 |
+| `integration` | 3 / 40 | 5 / 101 | 41 / 424 |
 | `website` | 0 / 40 | 0 / 101 | 2 / 424 |
+
+The signer branches were `2 / 101` and `37 / 424` until the faucet change went home; the two files that stopped differing are `core/ui/faucet/faucet-actions.ts` and its test.
 
 ## What the wide run means, per branch
 
@@ -155,6 +163,6 @@ The wide width is reported above rather than gated, because it does not mean the
 
 **`with/embedded-chain`, `integration` and `website` are gateable at the wide width**, at 7, 43 and 2 files. For the first and last the list is short enough to read, and for `integration` it is arithmetic on its parents rather than a budget of its own.
 
-**`with/local-signer` and `with/hosted-account` are not**, at 37 files each. That is not a finding and it is not drift: this branch changes who signs a game move, and 37 files is what that costs across `account/`, `context/`, `view/` and the e2e fixtures. It is also the shape the game tree's own plan names as the one to avoid - Decision 3 sets `with/hosted-account`'s 3 conflict events in 24 merges as the bar and `with/local-signer`'s 65 in 44 as the failure - so the honest statement is that this branch was built before that rule and is measured by it rather than held to it. What IS gateable on it is the two narrower widths, which is why they exist.
+**`with/local-signer` and `with/hosted-account` are not**, at 35 files each. That is not a finding and it is not drift: this branch changes who signs a game move, and 37 files is what that costs across `account/`, `context/`, `view/` and the e2e fixtures. It is also the shape the game tree's own plan names as the one to avoid - Decision 3 sets `with/hosted-account`'s 3 conflict events in 24 merges as the bar and `with/local-signer`'s 65 in 44 as the failure - so the honest statement is that this branch was built before that rule and is measured by it rather than held to it. What IS gateable on it is the two narrower widths, which is why they exist.
 
 **The reason to write that down rather than leave the wide column blank:** a checker that quietly widens its own scope is worse than one that fails, and a checker given a 37-entry `ALLOWED` list has done exactly that - every entry would be permanently satisfied, nothing could ever be added to the branch and be noticed, and the run would report green forever.
