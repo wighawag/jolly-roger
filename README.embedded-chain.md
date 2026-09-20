@@ -1,5 +1,7 @@
 # `with/embedded-chain`: the chain runs in the tab
 
+> **This file describes a BRANCH of the jolly-roger template tree.** If you are reading it in a repo built from the template - a game, or another template further down - it is describing where your code came from, not where it is. Nothing in it is a statement about the repo you are in.
+
 One capability added to `main`: a WORLD whose chain is an execution-only EVM in the browser, with the app's own contracts deployed onto it by the app's own deploy scripts. A sibling of `with/local-signer`, not a descendant of it.
 
 Named for the CAPABILITY and not for the library. The library has already been renamed once under this tree (`embedded-eth-node` became `webevm`), and a branch name that carries a package name is a rename waiting to happen.
@@ -12,7 +14,7 @@ Named for the CAPABILITY and not for the library. The library has already been r
 | its tests | `web/test/lib/embedded/` (20: 18 in node, 2 in a browser) |
 | **this app's** offline world | `web/src/lib/offline.ts` |
 | the demo that shows it | `web/src/routes/offline-demo/+page.svelte` |
-| shared files edited | five, listed below |
+| shared files edited | seven, listed below |
 
 ## The shared-file budget, which is N1's and is a budget
 
@@ -102,9 +104,15 @@ WATCH="web/src/lib/core" FEATURES="with/embedded-chain" ALLOWED= \
   bash <(git show tooling:check-shared-divergence.sh)
 ```
 
-Expected: **40 shared files** over the default paths with two allowed differences, and **100** over `core/` with four. Each empty run must name exactly those files and nothing else.
+Expected: **40 shared files** over the default paths with two allowed differences, and **101** over `core/` with four. Each empty run must name exactly those files and nothing else.
+
+**These are this branch's blocks; the whole tree's are on `tooling`, in `divergence-ritual.md`.** That file carries a block per branch, at three widths, with the counts each last produced - which is what this repo lacked, and what made the script's own `FEATURES` default go two branches stale without anything reporting it.
 
 WATCH THE WIDER PATH AND NOT JUST THE DEFAULT, which this branch is the reason for: the script's default watches `core/connection` and `core/transaction`, and the tab-leader edit is in neither. A branch whose edits fall outside the watched paths has a divergence check that cannot see its own budget.
+
+**And the same instruction found a second one on a branch that had never been run wide.** `with/local-signer` edits `core/ui/faucet/faucet-actions.ts`, which is in neither default path either, so it had no declared budget until 2026-09-20. Read that as evidence for the instruction rather than as a fact about that branch: the default width is not where a shared-file edit is most likely to be, it is only where the first two happened to be.
+
+**Two counts here were wrong and are corrected above, both measured 2026-09-20.** The budget line said five shared files when the table beneath it has listed seven since `types.ts` joined, and the expected `core/` total said 100 against a measured 101. Neither broke anything, which is the point worth keeping: the script counts and this file only describes, so a number in prose beside a checker is the half that rots.
 
 `ALLOWED` is a two-sided contract: everything off it must be identical, and everything ON it must DIFFER. An entry that has stopped differing fails with `ALLOWED BUT IDENTICAL`, which is the script telling you a cascade resolved the branch's own switch in `main`'s favour.
 
