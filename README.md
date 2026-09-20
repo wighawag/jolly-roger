@@ -41,8 +41,24 @@ check stays green, and the feature is quietly gone.
 Measured in `template-commit-reveal`: reverting `placement/render/index.ts` - the
 file that makes `with/pixi-js` a pixi branch rather than its base - passed
 `check`, 1,491 unit tests, that repo's own render-host boundary test, its e2e
-suite, AND this script. Here the single default entry is `mode.ts`, so the same
-mistake turns `with/hosted-account` back into `with/local-signer`.
+suite, AND this script.
+
+**THE EXAMPLE THIS PARAGRAPH USED TO GIVE FOR THIS REPO WAS FALSE, and the
+correction is worth more than the example was.** It said that because the single
+default entry is `mode.ts`, the same mistake would turn `with/hosted-account`
+back into `with/local-signer`. Measured 2026-09-20: `TARGET_STEP` is `SignedIn`
+on both of those branches, so `mode.ts` does not distinguish them and reverting
+it between them changes nothing. `TARGET_STEP` separates `main` from the
+signing branches, which is a real switch and is why the entry is here; it simply
+is not the switch for the branch the example named.
+
+What makes `with/hosted-account` hosted is `web/.env`, which says so in its own
+comment, plus a devDependency, a script, 28 lines of playwright config and a
+293-line e2e suite. **None of that is a `.ts` file under any watched path, so
+this check cannot reach it**, and a branch believed to be guarded and not
+guarded is worse off than one known to be unguarded. Recorded rather than fixed:
+widening `EXT` to `.env` would make the check compare dotfiles across every
+branch, which is a bigger decision than this note.
 
 Two consequences worth knowing before a run surprises you:
 
@@ -80,6 +96,19 @@ BASE=main FEATURES=with/pixi-js EXT="ts svelte" \
   WATCH="web/src web/test" ALLOWED="web/src/lib/placement/render/index.ts" \
   ./check-shared-divergence.sh
 ```
+
+## divergence-ritual.md
+
+The per-branch lists for THIS repo: every branch in `fanout.config.json`, at
+three `WATCH` widths, with the `ALLOWED` list each one takes, the `BASE` it
+should be read against, and the counts every run last produced. Run the block
+that belongs to the branch you just merged into.
+
+It is a separate file because the defaults in the script are only good for a
+bare run, and a bare run is the one nobody should be relying on: the script's
+`FEATURES` default had gone stale at two branches out of five before anybody
+noticed, and the failure mode of a missing branch is a green report rather than
+an error.
 
 ### What it is guarding
 

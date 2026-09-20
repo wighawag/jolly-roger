@@ -29,7 +29,16 @@
 set -euo pipefail
 
 BASE="${BASE:-main}"
-FEATURES="${FEATURES:-with/local-signer with/hosted-account}"
+
+# Every branch in fanout.config.json that is not the base. Keep it in step with
+# that file: a branch missing here is a branch whose divergence nothing checks,
+# and the script cannot tell the difference between "absent" and "clean" - it
+# prints `skip <name> (no such branch here)` and carries on green.
+#
+# This default went stale once already. It said `with/local-signer
+# with/hosted-account` while the repo had gained `website`, `with/embedded-chain`
+# and `integration`, so a bare run silently covered two branches out of five.
+FEATURES="${FEATURES:-with/local-signer with/hosted-account with/embedded-chain integration website}"
 
 # Paths whose shared files must not drift.
 WATCH="${WATCH:-web/src/lib/core/connection web/src/lib/core/transaction}"
@@ -37,9 +46,27 @@ WATCH="${WATCH:-web/src/lib/core/connection web/src/lib/core/transaction}"
 # Shared files that are ALLOWED to differ, with the reason. Anything not listed
 # here must be identical or absent.
 #
-# mode.ts holds TARGET_STEP, the one line that IS the difference between a
-# feature branch and the stem it builds on. It is the switch the
-# parameterisation exists to provide, so it is expected to differ and only it.
+# THE DEFAULTS ARE FOR THE BARE RUN ONLY. Per-branch lists, at three widths,
+# with the counts each one last produced, are in `divergence-ritual.md` beside
+# this script. Run the block that belongs to the branch you merged into; a union
+# list across branches makes a claim that is false for at least one of them, and
+# the two-sided check below will say so.
+#
+# mode.ts holds TARGET_STEP; remote.ts and types.ts are the world seam. Between
+# them they are what the branches differ by under the watched paths, which is why
+# a bare run allows exactly these three.
+#
+# ONE CLAIM THAT USED TO BE HERE WAS FALSE, and it is corrected rather than
+# deleted because it was the worked example for why the second side of the check
+# matters. It said the stakes were highest for mode.ts, since resolving it in
+# main's favour would turn with/hosted-account back into with/local-signer.
+# Measured 2026-09-20: TARGET_STEP is `SignedIn` on BOTH of those branches, so
+# mode.ts cannot distinguish them and reverting it between them changes nothing.
+# What makes with/hosted-account hosted is `web/.env`, which no WATCH path covers
+# and which is not a .ts file, so this check does not reach it at all. The second
+# side is still right and still worth having - it is what catches a cascade that
+# silently un-features a branch - it is simply not guarding that particular
+# branch, and believing it does is worse than knowing it does not.
 #
 # ALLOWED IS A TWO-SIDED CONTRACT, and it used to be enforced on one side only.
 # Everything not on it must be identical; everything ON it must DIFFER. An entry
@@ -68,7 +95,7 @@ WATCH="${WATCH:-web/src/lib/core/connection web/src/lib/core/transaction}"
 # it just never showed, because the default entry happens not to differ in the
 # repos where the ritual is run. Without the colon, an unset ALLOWED still gets
 # the default and an explicitly empty one means what it says: nothing is allowed.
-ALLOWED="${ALLOWED-web/src/lib/core/connection/mode.ts}"
+ALLOWED="${ALLOWED-web/src/lib/core/connection/mode.ts web/src/lib/core/connection/remote.ts web/src/lib/core/connection/types.ts}"
 
 # Which file extensions count as "the same logic", space-separated.
 #
