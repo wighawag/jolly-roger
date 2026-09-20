@@ -72,8 +72,12 @@ export async function claimViaApi(params: {
  *
  * Undefined when it cannot be read, which is a reason to fall back to the
  * balance rather than to fail: the money did arrive either way.
+ *
+ * NOT EXPORTED, deliberately. `claimFaucet` is the only caller and hands the
+ * answer back in its result, so this stays an implementation detail rather
+ * than becoming a second entry point every branch inherits and nobody imports.
  */
-export async function dispensedByClaim(params: {
+async function dispensedByClaim(params: {
 	publicClient: PublicClient;
 	txHash: `0x${string}` | undefined;
 }): Promise<bigint | undefined> {
@@ -101,22 +105,33 @@ export type FaucetClaimDeps = Pick<
  * flow), then refresh balance and notify the balance-check store so it can poll
  * for the balance change. Throws on failure.
  *
- * Funds the AUTHENTICATED ACCOUNT by default, and never the local signer. The
- * signer is funded by buying credits through the payment connection (see
- * lib/ui/credits), which is the flow a real deployment uses; pointing the
- * faucet at the signer would let local development take a shortcut that
- * production does not have, and hide the flow that matters.
+ * Funds the `accountExecutor` by default: the address that actually pays for
+ * transactions. Which address that IS depends on how the app signs in - the
+ * wallet/owner under wallet-only sign-in, the authenticated account where a
+ * branch derives a local signer - and this file deliberately does not need to
+ * know, because the executor already answers it.
+ *
+ * What it is NEVER is the local signer itself, on a branch that has one. Such a
+ * signer is funded by buying credits through the payment connection, which is
+ * the flow a real deployment uses; pointing the faucet at it would let local
+ * development take a shortcut production does not have, and hide the flow that
+ * matters.
  *
  * `target` OVERRIDES THAT ADDRESS, for the one account that is neither of those:
  * a PAYER on the payment connection. That happens two ways, and they are worth
- * telling apart. Buying credits needs a funded payer, and on a local chain that
- * payer is a fresh empty account, so without this the flow is impossible to
- * exercise - it still goes through the purchase, which is the point, and the
+ * telling apart. A credit purchase needs a funded payer, and on a local chain
+ * that payer is a fresh empty account, so without this the flow is impossible
+ * to exercise - it still goes through the purchase, which is the point, and the
  * faucet only supplies the money the purchase spends. The other way is that the
  * payer is what a blocked transaction is short ON, in which case this IS the
  * remedy rather than a step towards one, and the address to fund is the address
  * that is short. See `FundsRemedy` in core/transaction/insufficient-funds-view,
  * which carries it for exactly that reason.
+ *
+ * Nothing on `main` passes `target`, since there is one payer here, and it is
+ * on `main` rather than downstream for the same reason `createPaymentRail` and
+ * `core/funding` are: the rail's other half is useless if each descendant has
+ * to rediscover that the faucet was always able to do this.
  */
 export async function claimFaucet(
 	deps: FaucetClaimDeps,
