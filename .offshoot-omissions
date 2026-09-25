@@ -4,29 +4,60 @@
 # that a descendant has deleted is not a settled decision as far as git is
 # concerned: the next time the template TOUCHES that file, the cascade stops
 # with a modify/delete conflict, and whoever is running it has to work out from
-# scratch whether the deletion was deliberate. That has already happened
-# repeatedly for `sending-indicator.e2e.ts` in bleeps and mandalas, and the only
-# record of the intent was a commit message from months earlier.
+# scratch whether the deletion was deliberate.
 #
 # Listing the path here does not change what git does - the conflict still
 # happens - but it makes the answer a lookup instead of an excavation, and
 # `scripts/apply-omissions.sh` turns the resolution into one command.
-# `web/test/offshoot-omissions.test.ts` fails if any listed path comes back, so
-# a cascade that silently reintroduces one cannot be committed quietly.
 #
 # FORMAT. One path per line, relative to the repo root. `#` starts a comment.
 # Give every entry a reason: the next person's question is never "which file",
 # it is "why", and an unexplained list is how a deletion outlives the reason for
 # it and becomes cargo cult. A DIRECTORY entry covers everything under it, which
-# is usually what you want: a whole replaced directory rather than forty files.
+# is usually what you want - a whole replaced directory rather than forty files -
+# but name one only when the whole directory is what you replaced, because the
+# entry also asserts that nothing under it exists.
 #
-# AND IT IS CHECKED NOW, which is the only reason to trust it. Three guards, all
-# pointing different ways:
+# THREE GUARDS, all pointing different ways:
 #
 #   web/test/offshoot-omissions.test.ts   every LISTED path is still absent
 #   scripts/check-omissions.mjs           every ABSENT path is listed (needs the stem)
-#   scripts/apply-omissions.sh            re-drop them all, in one command
+#   scripts/apply-omissions.sh            re-drop them all, and run both checks
 #
+# ENTRIES ARE STEM-RELATIVE: what belongs in a repo's list is what IT drops from
+# ITS OWN stem. A descendant must never copy its template's entries down, because
+# those paths are already absent from the branch it merges and so cannot be
+# omissions there. This file is the one file in the set that is per-repo DATA
+# rather than shared machinery: when a cascade conflicts on it, the descendant's
+# entries win, always.
+#
+# ---------------------------------------------------------------------------
+# THE MACHINERY LIVES AT `template-svelte`, THE ROOT OF THIS TREE, and cascades
+# down from there. The other three files named above are byte-identical at every
+# node, with one stated exception inside `apply-omissions.sh` for the two repos
+# that also run a dangling-import check. It was written twice before that, once
+# on each branch of the tree, and the two copies had diverged into two variants
+# of `check-omissions.mjs` within the week - identical in behaviour, nineteen
+# lines apart in what they claimed. An ancestor is the distribution point for
+# shared machinery even when it has nothing of its own to guard; the alternative
+# is that divergence-by-copy, which is measured rather than feared.
+#
+# WHAT AN EMPTY LIST MEANS, AND IT IS NOT THE SAME THING AT EVERY NODE. At
+# `template-svelte` this file can never hold an entry: the root has no stem
+# (`fanout.config.json` there says `"stem": null`), so there is nothing above it
+# to omit FROM, and `check-omissions.mjs` run there correctly refuses rather than
+# reporting a pass it did not earn. Its emptiness follows from the shape of the
+# tree and needs no measuring. ANYWHERE ELSE an empty list is a claim about this
+# repo, and checking it is one command:
+#
+#   git fetch stem <branch> && node scripts/check-omissions.mjs FETCH_HEAD
+#
+# "This repo omits nothing" is allowed to stand only when that command says so.
+# The last file in this tree to assert it without running anything was wrong by
+# seventeen paths, and a cascade had already paid for it.
+
+# ---------------------------------------------------------------------------
+# WHY THE MIDDLE GUARD ABOVE HAD TO BE WRITTEN, from this repo's own record.
 # The middle one is the one that had to be written, and why is worth knowing.
 # THIS FILE USED TO SAY "this template omits nothing - it is where the files come
 # from", which was false: this repo is a descendant of template-svelte-shadcn like
