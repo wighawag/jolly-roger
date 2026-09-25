@@ -25,18 +25,33 @@
 	     context for THIS SUBTREE only: the page below runs against the chain in
 	     the tab while the navbar above still describes the remote one.
 
-	     THAT IS ALSO THE BUG, and it is honest to say so here rather than to
-	     leave it to be discovered: the chrome lives in `+layout.svelte`, outside
-	     every route subtree, so the account, the balance and the RPC banner up
-	     there are still the other world's. Fixing it is upstream work in
-	     `lib/core`, which every repo in this tree inherits. -->
+	     AND THE CHROME ABOVE IS THE APP'S BY CHOICE, which is what this comment
+	     used to call a bug. It is now a decision this route is entitled to make,
+	     and there are two cases to be in (see ADR-0009 on the `work` branch, and
+	     `$lib/ui/chrome`). The test is not whether a world is embedded or full
+	     screen: it is whether the chrome's CLAIMS REMAIN TRUE of the surface the
+	     player is looking at.
+
+	     THIS DEMO IS IN THE FIRST CASE, so it declares nothing. The page is still
+	     this app's, showing one panel that happens to run against a chain in the
+	     tab, and the account, the balance and the RPC state up there are the app's
+	     own and all true - the player is watching a demonstration, not playing as
+	     somebody the world invented. Replacing the chrome here would DELETE three
+	     true answers from a page that has them.
+
+	     The other case is a world that OWNS the page: the chrome then appears to
+	     describe the world, the account on screen is one the world generated, and
+	     a player who met the online version first reads it as "my account
+	     changed". That surface declares a chrome of its own.
+	     `template-commit-reveal`'s `/offline` is the worked example, and is where
+	     the first consumer of this mechanism lives. -->
 	<Context context={$offlineWorld.context}>
 		<div
 			class="border-b border-dashed border-muted-foreground/40 bg-muted/40 px-4 py-2 text-center text-sm"
 		>
 			Everything below runs against a chain inside this tab, on chain id
-			<code>{$offlineWorld.world.chainId}</code>. The navbar above is still
-			describing the remote chain.
+			<code>{$offlineWorld.world.chainId}</code>. The navbar above describes the
+			app, not this world.
 		</div>
 		<!-- NO CONNECTION FLOW HERE, AND THAT IS THE POINT RATHER THAN AN
 		     OMISSION. A flow exists to relay a wallet's questions to the player:
