@@ -14,10 +14,13 @@
  *
  * ## Why it was written
  *
- * Because the absence of it was measured, across five repos, and every single
- * list was incomplete: jolly-roger listed 0 of 3, template-commit-reveal 0 of 17
+ * Because the absence of it was measured, on 2026-09-25, across every repo in
+ * this template tree, and EVERY list in it was incomplete. On the `jolly-roger`
+ * branch of the tree: jolly-roger listed 0 of 3, template-commit-reveal 0 of 17
  * (its file said "this template omits nothing"), reveal-or-die 4 of 52, bleeps 1
- * of 21, mandalas 2 of 24. The cost is exactly what this file's header predicts:
+ * of 21, mandalas 2 of 24. On the `template-svelte-tailwind-blog` branch: two
+ * repos dropping 2 and 6 paths with no list anywhere to record either. The cost
+ * is exactly what the list's own header predicts:
  * a cascade touches a deleted path, the list says there is nothing to look up,
  * and whoever is mid-merge has to work out from scratch whether the deletion was
  * deliberate. It happened, and the deletion turned out to be recorded in NO diff
@@ -27,6 +30,48 @@
  * A hand-maintained list of deletions decays for the same reason every such list
  * decays: the moment you delete something is the moment you are thinking about
  * something else.
+ *
+ * ## Where this file lives, which is one place for the whole tree
+ *
+ * `template-svelte`, THE ROOT, from which it cascades unchanged to every node.
+ * It was written twice instead - once on each branch of the tree - and the two
+ * copies had diverged into two variants within the week, differing by nineteen
+ * lines of THIS comment while behaving identically. That is the measurement
+ * behind the rule, not a preference: a file copied into two homes is a file with
+ * two futures, and the only thing that stops the next change landing in one of
+ * them is somebody remembering.
+ *
+ * AT THE ROOT THIS SCRIPT CANNOT RUN, AND IT IS STILL RIGHT THAT IT LIVES THERE.
+ * `template-svelte` has no stem - its `fanout.config.json` says `"stem": null` -
+ * so there is no second tree to compare against and, run there, this exits
+ * non-zero with the message below rather than printing a green tick it has not
+ * earned. Its role at the root is DISTRIBUTION, not guarding: an ancestor is the
+ * distribution point for shared machinery even when it has nothing of its own to
+ * guard, and nothing at the root invokes this (no `verify` step names it, and a
+ * repo with no stem never merges one). What must never be put where it is untrue
+ * is a LIST ENTRY, and the root's list can hold none: there is nothing above the
+ * root to omit FROM. Every OTHER node in the tree has a stem, so everywhere this
+ * can run it is answering a real question.
+ *
+ * ## Why it is here rather than in `offshoot-fanout`, which runs the cascades
+ *
+ * The comparison needs only two git trees and a file at a known path, so unlike
+ * `scripts/dangling-imports.mjs` (which needs the repo's own module graph, and
+ * whose header argues the same question from the other side) there is nothing
+ * repo-shaped about it: it is a generic check about a generic convention, and
+ * the tool is where it would do the most good.
+ *
+ * Three things keep it here. `offshoot-fanout` on this host is a nix-store
+ * binary with no source checkout, so the tool version is a different change in a
+ * different repo. The HAND path is the one that needs the check most - the
+ * fanout stops at the conflicts and a human finishes the merge, which is exactly
+ * when no tool is watching - and `apply-omissions.sh` is what that human runs.
+ * And two of the three guards could not move anyway: `.offshoot-omissions` is
+ * per-repo DATA, and `web/test/offshoot-omissions.test.ts` is a suite that must
+ * run offline on every commit rather than only during a cascade. Moving this one
+ * file out would leave the convention split across the tool and the repo, which
+ * is worse than either. The tool is still where it belongs the day it can be
+ * edited.
  *
  * ## What counts as an omission, which is the one subtle part
  *
