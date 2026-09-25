@@ -49,6 +49,23 @@ Writing eighty-odd reasons turned up things the audit was not looking for, which
 
 **ENTRIES ARE STEM-RELATIVE**, which this cascade made concrete and every list now states: what belongs in a repo's list is what IT drops from ITS stem. jolly-roger's three arrived in template-commit-reveal's diff and were deliberately not copied down, because they are already absent from the stem branch it merges, so they cannot be omissions there. The guard makes that unarguable - it only ever reports a path present in the stem and absent here.
 
+## Where the mechanism belongs, measured rather than assumed
+
+It lives here, in jolly-roger, and the reason is not seniority: **jolly-roger is the first node in this chain that omits anything at all.** Every node above and beside it was checked the same way, and the answer is zero:
+
+| repo | stem | drops | has a list |
+| --- | --- | --- | --- |
+| template-svelte-tailwind | template-svelte | 0 | no, and needs none |
+| template-svelte-shadcn | template-svelte-tailwind | 0 | no, and needs none |
+| template-svelte-tailwind-blog | template-svelte-tailwind | 0 | no, and needs none |
+| conquest-demo | template-svelte-shadcn | 0 | no, and needs none |
+
+So installing `.offshoot-omissions` further up would be machinery with nothing to guard, which is its own kind of decay: a check that is always green teaches nobody anything and is the first thing deleted in a cleanup. It goes up the day one of them drops something.
+
+**Two repos on a different line DO have omissions and no machinery**, and they are outside this cascade because they descend from `template-svelte-tailwind-blog` rather than from here: `ronan-eth` drops 2 paths (the blog template's two sample posts) and `conquest-website-2` drops 6 (the sample posts plus the whole `routes/blog/` tree). Both look like sample content a real site replaces, which is the same shape as every entry above. Giving them the guard means moving it up to `template-svelte-tailwind-blog` or to `template-svelte`, which is a decision with its own cascade bill and has not been taken.
+
 ## What is still open
 
-bleeps and mandalas have correct lists and no guard: `check-omissions.mjs` reaches them on their next cascade from here, and until then their entry blocks name the by-hand audit. Their lists were written from outside those repos, so two of the reasons say what is true today rather than why it was done.
+Nothing in the jolly-roger line: all nine nodes plus bleeps and mandalas now carry the guard, and each one's list is complete against its own stem (3, 17, 52, 21 and 24 paths respectively, plus the intra-repo branches which correctly drop nothing of their own).
+
+Two of bleeps' and mandalas' reasons say what is TRUE TODAY rather than why it was done, because those lists were written from outside those repos and the original intent was not recoverable. They are flagged as such in place.
