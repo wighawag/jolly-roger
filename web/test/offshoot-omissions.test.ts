@@ -18,8 +18,21 @@ import {describe, it, expect} from 'vitest';
  * So the intent lives in `.offshoot-omissions`, next to the reason it was
  * omitted, and this asserts the repo matches it. It is deliberately a unit test
  * rather than a lint: it runs in the same command as everything else, and it
- * costs nothing when the list is empty, which is the case in the template
- * itself.
+ * costs nothing when the list is empty.
+ *
+ * WHAT THIS CANNOT CHECK, AND WHERE THAT LIVES NOW. It reads the list and looks
+ * for the files, so an EMPTY list passes forever: a path this repo deleted and
+ * nobody wrote down is invisible here, because from inside one repo
+ * "deliberately absent" and "never existed" are the same thing. Answering that
+ * needs the stem, so it is `scripts/check-omissions.mjs`, run by
+ * `scripts/apply-omissions.sh` during a merge (when `MERGE_HEAD` IS the stem
+ * commit) and by hand otherwise. It had to be written: measured across this tree
+ * on 2026-09-25, every list in it was incomplete, this repo's included - it
+ * listed none of its three - and a cascade had already paid for the gap.
+ *
+ * The two are deliberately not merged into one. This one is offline, runs in
+ * `test:unit` and always applies; that one needs a second commit to compare
+ * against and is therefore a cascade-time tool rather than a suite.
  */
 describe('offshoot omissions', () => {
 	const ROOT = new URL('../../', import.meta.url);
