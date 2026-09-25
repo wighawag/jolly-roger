@@ -23,7 +23,9 @@
 #
 # Idempotent, and safe to run when there is no merge in progress: a path that is
 # already absent is left alone and reported as such. It only ever removes paths
-# the file names, so it cannot wander.
+# the file names, and that is now ENFORCED rather than asserted - see the
+# validation below, which exists because this script runs `git rm -r` and
+# `rm -rf` on whatever the list says.
 set -e
 
 RED='\033[0;31m'
@@ -45,25 +47,64 @@ cd "$REPO_DIR"
 removed=0
 absent=0
 
-# Comments and blank lines out; everything else is a path.
+# THE WHOLE LIST IS READ AND CHECKED BEFORE ANYTHING IS REMOVED, so a bad entry
+# stops the run with nothing done instead of half-applied. Half-applied is the
+# worse failure here by a distance: it happens inside a conflicted merge, and it
+# leaves a working tree that matches neither side of it.
+paths=()
 while IFS= read -r line; do
     path="${line%%#*}"
     # Trim surrounding whitespace without a subshell per line.
     path="$(echo "$path" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
     [ -z "$path" ] && continue
 
+    # AN ENTRY IS A LITERAL PATH INSIDE THIS REPO, AND THAT IS CHECKED RATHER
+    # THAN TRUSTED, because what follows is `git rm -r` and `rm -rf` on a string
+    # read out of a text file. `*` is the one that matters: to `git rm` it is a
+    # PATHSPEC, so a single-character typo in this file would mean "remove every
+    # tracked path", recursively, inside a merge. None of the shapes below can be
+    # a real entry, so each one stops the run rather than being skipped quietly -
+    # a list this script cannot read is not a list to apply most of.
+    case "$path" in
+    /* | -* | :*) refuse="an entry is a path relative to the repo root" ;;
+    . | .. | ../* | */.. | */../*) refuse="an entry cannot point outside the repo" ;;
+    *'*'* | *'?'* | *'['*) refuse="an entry is a literal path, never a pattern" ;;
+    *) refuse="" ;;
+    esac
+    if [ -n "$refuse" ]; then
+        echo -e "${RED}✗ ${LIST} names \`${path}\`, and ${refuse}.${NC}"
+        echo -e "${RED}  Nothing has been removed. Fix the entry and run this again.${NC}"
+        exit 1
+    fi
+
+    paths+=("$path")
+done <"$LIST"
+
+for path in "${paths[@]}"; do
     if [ -e "$path" ] || git ls-files --error-unmatch "$path" >/dev/null 2>&1; then
+        # `-r` BECAUSE AN ENTRY MAY NAME A DIRECTORY, which is the form this list
+        # recommends for a whole replaced tree and which two repos in the tree
+        # already use. Without it `git rm` refuses with "not removing <dir>
+        # recursively without -r", `set -e` aborts the run on the spot, every
+        # later entry is left in place and the stem check below never runs at
+        # all - inside a merge, reading as though git itself had failed. Harmless
+        # for a file, so it is unconditional rather than a special case.
+        #
         # `--ignore-unmatch` so a path that is present in the worktree but not in
         # the index (which is exactly the state a conflicted merge leaves) does
-        # not abort the run before the rest of the list is handled.
-        git rm -q -f --ignore-unmatch "$path"
-        rm -f "$path"
+        # not abort the run before the rest of the list is handled. `--` so an
+        # entry can never be read as an option.
+        git rm -q -f -r --ignore-unmatch -- "$path"
+        # `-r` here too: `rm -f` cannot remove a directory, so an untracked one
+        # (a merge can leave that) survived the line above and was reported as
+        # dropped anyway.
+        rm -rf "$path"
         echo -e "${YELLOW}  dropped${NC} $path"
         removed=$((removed + 1))
     else
         absent=$((absent + 1))
     fi
-done <"$LIST"
+done
 
 if [ "$removed" -eq 0 ]; then
     echo -e "${GREEN}✓ Nothing to drop: all ${absent} omitted path(s) are already absent.${NC}"
