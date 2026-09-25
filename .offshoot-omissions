@@ -17,6 +17,55 @@
 # FORMAT. One path per line, relative to the repo root. `#` starts a comment.
 # Give every entry a reason: the next person's question is never "which file",
 # it is "why", and an unexplained list is how a deletion outlives the reason for
-# it and becomes cargo cult.
+# it and becomes cargo cult. A DIRECTORY entry covers everything under it, which
+# is usually what you want: a whole replaced directory rather than forty files.
 #
-# This template omits nothing - it is where the files come from.
+# AND IT IS CHECKED NOW, which is the only reason to trust it. Three guards, all
+# pointing different ways:
+#
+#   web/test/offshoot-omissions.test.ts   every LISTED path is still absent
+#   scripts/check-omissions.mjs           every ABSENT path is listed (needs the stem)
+#   scripts/apply-omissions.sh            re-drop them all, in one command
+#
+# The middle one is the one that had to be written, and why is worth knowing.
+# THIS FILE USED TO SAY "this template omits nothing - it is where the files come
+# from", which was false: this repo is a descendant of template-svelte-shadcn like
+# any other, and it drops three inherited paths. The other two guards are blind to
+# that, because a path nobody listed and a path that never existed look identical
+# from inside one repo. Measured across this tree on 2026-09-25, EVERY list was
+# incomplete - this one 0 of 3, template-commit-reveal 0 of 17, reveal-or-die 4 of
+# 52, bleeps 1 of 21, mandalas 2 of 24 - and one cascade had already paid for it.
+# See the finding of that date on the `work` branch.
+
+web/src/lib/Head.svelte
+# REPLACED, not dropped: the same component is `web/src/lib/core/metadata/Head.svelte`.
+# It moved because it reads the document's location to build a canonical URL, and
+# in `core/` it cannot ask the framework for that - it takes the
+# `documentLocation` CAPABILITY instead, which the layout provides. That is the
+# whole point of the boundary ADR-0005 draws.
+#
+# This one is already documented in a second place, deliberately:
+# `web/test/framework-boundary.test.ts` explains that the stem carries a
+# KNOWN_LEAKS entry for this path and this repo does not need one, BECAUSE of the
+# move above. That note is about the leak list; this entry is about the file. Both
+# are true and the cascade meets them at different moments.
+
+web/static/icon.png
+# This repo has its own logo and it is a VECTOR: `web/static/icon.svg`, from which
+# `pnpm generate-pwa-icons` renders every raster the PWA needs into `static/pwa/`
+# (favicons, maskable icons, apple-touch). A single stem-supplied png is both the
+# wrong artwork and the wrong format.
+#
+# MIND THE STALE SCRIPT THIS LEFT BEHIND, which is a real thing to trip over:
+# `web/package.json` still carries the stem's `generate-pwa-icons-and-tags`,
+# spelled `pwag static/icon.png ...`, so running it fails on a missing file. This
+# repo's `prepare` was re-pointed at the svg script and the old one was never
+# removed. Recorded rather than deleted here because a script is code and this is
+# a list; see the finding on the `work` branch.
+
+zellij.kdl
+# MOVED INTO `dev/`, where it is one of three layouts rather than the only one:
+# `dev/zellij.kdl`, `dev/zellij-attach.kdl` and `dev/zellij-remote-chain.kdl`.
+# This repo runs a chain as well as a web app, so "the dev layout" stopped being a
+# single thing, and `package.json` names the files in `dev/` directly. The stem
+# has one layout at the root and no reason to move it.
