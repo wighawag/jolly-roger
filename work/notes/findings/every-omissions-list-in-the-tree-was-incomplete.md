@@ -1,7 +1,7 @@
 ---
 title: Every omissions list in the tree was incomplete, because nothing could ask the only question that matters
 type: finding
-status: FIXED 2026-09-25 (guard here, lists in all five repos)
+status: FIXED 2026-09-25 (guard here, lists in all five repos); machinery moved to `template-svelte` 2026-09-25, see the corrections at the end
 spotted: 2026-09-25
 relates-to: scripts/check-omissions.mjs, .offshoot-omissions, web/test/offshoot-omissions.test.ts
 ---
@@ -70,8 +70,16 @@ So installing `.offshoot-omissions` further up would be machinery with nothing t
 
 **THE TREE NOW HAS TWO COPIES OF THE MACHINERY**, here and at `template-svelte-tailwind-blog`, identical today. The single home is `template-svelte`, the root, and moving it there is a tree-wide cascade (~18 nodes, with an add/add conflict at this repo) that nobody has paid for. Until someone does, a change to one of those three files belongs in both, and both `.offshoot-omissions` headers say so.
 
+**PAID THE SAME DAY, AND THE COPIES HAD ALREADY DIVERGED BY THEN**, which is the number worth keeping: `check-omissions.mjs` existed as two blobs, `23b3fcda` here and `5618da8b` on the blog line, nineteen lines apart in one doc-comment paragraph and identical in behaviour. Nothing had yet changed what either DOES, so that is what a second copy costs at rest, before anybody edits anything. The machinery now lives once, at `template-svelte`, across all 20 nodes of the tree: one blob for `check-omissions.mjs` and for `offshoot-omissions.test.ts`, and one for `apply-omissions.sh` everywhere except `template-commit-reveal` and `reveal-or-die`, whose variant also runs the dangling-import check and is stated as a permanent exception in the file itself.
+
+**THE SENTENCE ABOVE ABOUT BOTH HEADERS WAS NEVER TRUE**, and that is the more useful half of this correction. Only `template-svelte-tailwind-blog`'s `.offshoot-omissions` carried the "a change belongs in both copies" paragraph; this repo's never did. The obligation that was supposed to hold the two copies together was visible to one of the two people who might edit one. **An obligation recorded on one side of a duplication is not a constraint, it is a coin flip** - and the duplication it was guarding had already diverged by nineteen lines while the note said they were identical.
+
+**The root has no stem, so the check cannot run where it now lives**, and that is argued rather than waved through in `6658c7c` and in the files themselves: at `template-svelte` the role is DISTRIBUTION, not guarding, and what must never be put where it is untrue is a LIST ENTRY, not the machinery. The precedent is the blog template carrying it with an empty list for two descendants - but the root is one step further, because the blog's zero is MEASURED (it has a stem) and the root's is STRUCTURAL (nothing above it can be omitted FROM). The root's list can therefore never hold an entry, and says so.
+
 ## What is still open
 
 Nothing in either line: all nine nodes of this one plus bleeps and mandalas carry the guard, and each one's list is complete against its own stem (3, 17, 52, 21 and 24 paths respectively, plus the intra-repo branches which correctly drop nothing of their own).
+
+**THE CLAUSE ABOUT THE INTRA-REPO BRANCHES WAS REASONED AND NOT RUN, AND IT WAS WRONG.** `with/local-signer` had dropped `contracts/deployments/sepolia` on 2026-08-17 and listed none of its four paths; the guard reported them on the cascade that delivered it to that branch, five weeks later. The other six branches in the tree are measured zeroes. The audit's own table has a measured number in every REPO row and gave the branches a sentence instead of a row, which is the mistake this whole finding is about, made about the guard's own rollout. See `the-audit-reasoned-about-the-branches-instead-of-running-the-check-on-them.md`.
 
 Two of bleeps' and mandalas' reasons say what is TRUE TODAY rather than why it was done, because those lists were written from outside those repos and the original intent was not recoverable. They are flagged as such in place.
