@@ -150,19 +150,41 @@ const covers = (path) =>
 	omitted.some((entry) => path === entry || path.startsWith(`${entry}/`));
 const unlisted = deletedHere.filter((path) => !covers(path));
 
-// Guards the guard: if the comparison found NOTHING deleted at all in a repo
-// with a non-empty list, the two trees are probably not what this thinks they
-// are (a wrong ref, a shallow clone) and every assertion below is vacuous.
-if (deletedHere.length === 0 && omitted.length > 0) {
+// GUARDS THE GUARD, and the first version of this got it wrong in a way worth
+// recording, because the wrong version fired on four correct runs.
+//
+// It refused to pass when the list was non-empty and NOTHING came back as
+// deleted, on the grounds that a list of omissions with no omissions found means
+// the comparison is broken. That is true when the ref is wrong, and it is also
+// the ordinary, correct state of a SIBLING BRANCH: `with/pixi-js` checked against
+// `main` drops nothing that `main` does not already drop, because the parent's
+// deletions are already in the branch - so the paths are absent from BOTH sides,
+// which means they are not in the stem tree and are rightly not reported. Zero is
+// the honest answer there, and the check called it a failure.
+//
+// The two things that ARE unambiguous get checked instead: a stem commit that IS
+// this commit (comparing a tree with itself, which is what a mistyped ref usually
+// produces) and an empty stem tree. Neither has a legitimate reading.
+if (stem.commit === git(['rev-parse', 'HEAD'])) {
 	console.error(
-		`\x1b[31m✗ the list names ${omitted.length} omission(s) but this found no ` +
-			`deletions at all against ${stem.commit.slice(0, 8)}. That is not a pass, ` +
-			`it is a sign the comparison is wrong - check the ref.\x1b[0m`,
+		`\x1b[31m✗ ${stem.commit.slice(0, 8)} IS this commit, so there is nothing to ` +
+			`compare against. That is not a pass - check the ref.\x1b[0m`,
+	);
+	process.exit(1);
+}
+if (inStem.size === 0) {
+	console.error(
+		`\x1b[31m✗ ${stem.commit.slice(0, 8)} has no tracked files at all, so every ` +
+			`answer below would be vacuous - check the ref.\x1b[0m`,
 	);
 	process.exit(1);
 }
 
 if (unlisted.length === 0) {
+	// Says the COUNT, so "covers all 0" is visible rather than looking like a
+	// thorough pass. Zero is the right answer for a sibling branch (see above) and
+	// the wrong answer if you meant to check against the repo's own stem, and only
+	// the number tells the two apart.
 	console.log(
 		`\x1b[32m✓ .offshoot-omissions covers all ${deletedHere.length} path(s) ` +
 			`this repo drops from ${stem.commit.slice(0, 8)}\x1b[0m`,
