@@ -8,6 +8,7 @@ deployments/localhost
 deployments/hardhat*
 deployments/lan
 deployments/default
+deployments/ephemeral
 _metadata
 
 # hardhat

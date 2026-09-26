@@ -19,24 +19,36 @@
  * from the deployment records COMMITTED to this repo, which is enough because
  * a record carries the addresses and ABIs; no compiler, no node, no network.
  *
+ * AND WHEN THERE ARE NONE, IT DEPLOYS TO A CHAIN NOBODY KEEPS
+ * (`contracts/scripts/deploy-ephemeral.ts`) and exports that. Type-checking
+ * never needed a real deployment: it needs the ABIs, which the compiler makes,
+ * and each contract's `linkedData`, which the deploy scripts assemble. A repo
+ * that had deleted its records, or never had any, used to be unable to check
+ * at all on a fresh clone, so its verify failed in every temporary worktree
+ * (bomber-world after its 2026-09-26 port: 30 errors). Committed records still
+ * come first, so a clone of a repo with a live deployment gets that chain's
+ * addresses exactly as before; the throwaway deploy is only the fallback, and
+ * it costs a compile.
+ *
  * WHY THIS IS NOT A STUB. A hand-written placeholder would have to name the
  * app's contracts to satisfy the types, so it would be a second copy of the
  * deployment shape that goes stale the moment a contract changes. Exporting the
  * real records keeps one source of truth and costs about a second.
  *
- * It never fails the install. A fork that has committed no deployment records
- * is in a legitimate state, and an install that dies on it would be a worse
- * first experience than the one this exists to fix, so it explains itself and
- * gets out of the way.
+ * It never fails the install. If even the throwaway deploy cannot run, an
+ * install that dies on it would be a worse first experience than the one this
+ * exists to fix, so it explains itself and gets out of the way.
  */
 import {execFileSync} from 'node:child_process';
-import {existsSync, readdirSync, statSync} from 'node:fs';
+import {existsSync, readdirSync, rmSync, statSync} from 'node:fs';
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const target = join(root, 'web', 'src', 'lib', 'deployments.ts');
 const deploymentsDir = join(root, 'contracts', 'deployments');
+/** The throwaway deploy's environment: see `contracts/scripts/deploy-ephemeral.ts`. */
+const EPHEMERAL = 'ephemeral';
 
 if (existsSync(target)) process.exit(0);
 
@@ -55,20 +67,12 @@ if (existsSync(target)) process.exit(0);
  * reachable only when the file is absent, since an existing one wins above.
  */
 const networks = existsSync(deploymentsDir)
-	? readdirSync(deploymentsDir).filter((name) =>
-			statSync(join(deploymentsDir, name)).isDirectory(),
+	? readdirSync(deploymentsDir).filter(
+			(name) =>
+				name !== EPHEMERAL &&
+				statSync(join(deploymentsDir, name)).isDirectory(),
 		)
 	: [];
-
-if (networks.length === 0) {
-	console.warn(
-		'[ensure-deployments] No committed deployment records, so web/src/lib/deployments.ts\n' +
-			'                    was not generated. `pnpm check` and `pnpm test:unit` will fail\n' +
-			'                    until you deploy: `pnpm start`, or\n' +
-			'                    `pnpm contracts:compile && pnpm contracts:deploy <network>`.',
-	);
-	process.exit(0);
-}
 
 for (const network of networks) {
 	try {
@@ -97,8 +101,47 @@ for (const network of networks) {
 	}
 }
 
+// NO RECORDS THAT EXPORT: deploy to a chain that exists only for this process,
+// export that, and throw its records away, so they can never be mistaken for a
+// deployment by the loop above on a later run.
+const ephemeralDir = join(deploymentsDir, EPHEMERAL);
+try {
+	rmSync(ephemeralDir, {recursive: true, force: true});
+	execFileSync(
+		'pnpm',
+		['--filter', './contracts', 'exec', 'hardhat', 'run', 'scripts/deploy-ephemeral.ts'],
+		// A compile on a fresh clone, then a few transactions on an instant
+		// chain. Bounded, so a deploy that cannot finish cannot hang an install.
+		{cwd: root, stdio: 'pipe', timeout: 10 * 60 * 1000},
+	);
+	execFileSync(
+		'pnpm',
+		['--filter', './contracts', 'export', EPHEMERAL, '--ts', '../web/src/lib/deployments.ts'],
+		{cwd: root, stdio: 'pipe'},
+	);
+} catch {
+	// Reported below.
+} finally {
+	rmSync(ephemeralDir, {recursive: true, force: true});
+}
+
+if (existsSync(target)) {
+	console.log(
+		'[ensure-deployments] Generated web/src/lib/deployments.ts from a throwaway deploy, because ' +
+			(networks.length === 0
+				? 'this repo commits no deployment records'
+				: `none of the committed records (${networks.join(', ')}) exported`) +
+			'. It type-checks the app; its addresses are on no chain. Deploying overwrites it.',
+	);
+	process.exit(0);
+}
+
 console.warn(
-	'[ensure-deployments] Could not export any of the committed deployment records ' +
-		`(${networks.join(', ')}), so web/src/lib/deployments.ts was not generated. ` +
-		'`pnpm check` and `pnpm test:unit` will fail until you deploy.',
+	'[ensure-deployments] web/src/lib/deployments.ts was not generated: ' +
+		(networks.length === 0
+			? 'there are no committed deployment records'
+			: `none of the committed records (${networks.join(', ')}) exported`) +
+		', and the throwaway deploy (contracts/scripts/deploy-ephemeral.ts) failed too. ' +
+		'`pnpm check` and `pnpm test:unit` will fail until you deploy: `pnpm start`, or ' +
+		'`pnpm contracts:compile && pnpm contracts:deploy <network>`.',
 );
