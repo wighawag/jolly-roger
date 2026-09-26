@@ -241,13 +241,56 @@ fi
 # a tree that already exists. pnpm's layout survives this - every link inside
 # node_modules is relative to its real path, which is still the main checkout.
 for pkg in . web contracts; do
-    if [ -d "$REPO_DIR/$pkg/node_modules" ]; then
-        ln -s "$REPO_DIR/$pkg/node_modules" "$WORKTREE_DIR/$pkg/node_modules"
-    else
+    if [ ! -d "$REPO_DIR/$pkg/node_modules" ]; then
         echo -e "${RED}✗ ${REPO_DIR}/$pkg/node_modules is missing. Run pnpm i first.${NC}"
         exit 1
     fi
 done
+ln -s "$REPO_DIR/node_modules" "$WORKTREE_DIR/node_modules"
+ln -s "$REPO_DIR/contracts/node_modules" "$WORKTREE_DIR/contracts/node_modules"
+
+# EXCEPT the one package the worktree itself provides. When the web workspace
+# depends on the contracts package (`workspace:*`, as it does wherever the app
+# imports deploy scripts or artifacts from it, e.g. an offline world that
+# deploys in the browser), its link is `../../contracts` relative to its REAL
+# path. Through a linked web/node_modules that is the MAIN checkout's
+# contracts, so the app would import whatever `dist` was last built there
+# rather than the code under test: a contract mutation that was only compiled
+# then passed an in-browser e2e it should have failed.
+#
+# So web/node_modules is a real directory of per-entry links into the main
+# one, with the contracts package pointed at the worktree's own `contracts`
+# (whose `dist` is built after the compile below). The main checkout's
+# node_modules are only read, never modified. `.vite` is left out so the
+# build's cache stays in the worktree.
+CONTRACTS_PKG="$(node -e 'process.stdout.write(require(process.argv[1]).name)' "$CONTRACTS_DIR/package.json")"
+link_entries() { # <from dir> <to dir> <entry to leave out>
+    mkdir -p "$2"
+    for entry in "$1"/* "$1"/.[!.]*; do
+        [ -e "$entry" ] || [ -L "$entry" ] || continue
+        name="$(basename "$entry")"
+        [ "$name" = "$3" ] || [ "$name" = ".vite" ] && continue
+        ln -s "$entry" "$2/$name"
+    done
+}
+if [ -L "$REPO_DIR/web/node_modules/$CONTRACTS_PKG" ]; then
+    if [[ "$CONTRACTS_PKG" == */* ]]; then
+        # Scoped: the scope directory has to be real as well.
+        SCOPE="${CONTRACTS_PKG%%/*}"
+        link_entries "$REPO_DIR/web/node_modules" "$WEB_DIR/node_modules" "$SCOPE"
+        link_entries "$REPO_DIR/web/node_modules/$SCOPE" "$WEB_DIR/node_modules/$SCOPE" "${CONTRACTS_PKG#*/}"
+    else
+        link_entries "$REPO_DIR/web/node_modules" "$WEB_DIR/node_modules" "$CONTRACTS_PKG"
+    fi
+    ln -s "$CONTRACTS_DIR" "$WEB_DIR/node_modules/$CONTRACTS_PKG"
+    if [ "$(cd "$WEB_DIR/node_modules/$CONTRACTS_PKG" && pwd -P)" != "$(cd "$CONTRACTS_DIR" && pwd -P)" ]; then
+        echo -e "${RED}✗ web resolves ${CONTRACTS_PKG} outside the worktree.${NC}"
+        exit 1
+    fi
+else
+    # The web app does not depend on the contracts package: nothing to redirect.
+    ln -s "$REPO_DIR/web/node_modules" "$WEB_DIR/node_modules"
+fi
 
 echo -e "${GREEN}✓ Worktree ready${NC}"
 
@@ -315,6 +358,13 @@ fi
 echo -e "\n${GREEN}📋 Compiling contracts...${NC}"
 cd "$CONTRACTS_DIR"
 pnpm compile
+
+# Build the WORKTREE's contracts package: its exports (deploy scripts, rocketh
+# config, artifacts) resolve into `dist`, which a fresh worktree does not have,
+# and it must come from the artifacts just compiled. `tsc` and not
+# `pnpm typescript`, which also type-checks the tests.
+echo -e "\n${GREEN}📋 Building the contracts package...${NC}"
+pnpm exec tsc
 
 # Deploy contracts
 #
