@@ -327,10 +327,19 @@ else
 
     # Resolve the group the node actually landed in. Guard against ever
     # matching this script's own group: killing that would take the run down.
+    #
+    # WAIT FOR A GROUP THAT IS NOT OURS, not merely for an answer. Until the
+    # background child has actually run `setsid`, it is still in THIS script's
+    # group and `ps` says so; taking that first answer meant the guard below
+    # blanked it, cleanup fell back to killing the bare pnpm wrapper, and the
+    # real Hardhat process outlived the run. The next run then found a node on
+    # the port and reused a chain full of the last run's state, which failed
+    # timing-sensitive tests for as long as it lived. It happens on a loaded
+    # machine, which is when the child is slowest to get there.
     OWN_PGID="$(ps -o pgid= -p $$ 2>/dev/null | tr -d ' ')"
-    for _ in 1 2 3 4 5; do
+    for _ in $(seq 1 25); do
         NODE_PGID="$(ps -o pgid= -p "$NODE_PID" 2>/dev/null | tr -d ' ')"
-        [ -n "$NODE_PGID" ] && break
+        [ -n "$NODE_PGID" ] && [ "$NODE_PGID" != "$OWN_PGID" ] && break
         sleep 0.2
     done
     if [ -z "$NODE_PGID" ] || [ "$NODE_PGID" = "$OWN_PGID" ]; then

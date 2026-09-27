@@ -77,6 +77,27 @@ describe('The layout height shell', () => {
 		});
 	}
 
+	/**
+	 * Make the page as tall as a test needs, rather than hoping a real page is.
+	 * A PROBE, for the reason the last test in this file gives: how tall a page is
+	 * is a fact about CONTENT, and every claim here is about the SHELL. The home
+	 * page used to be tall enough by accident, and stopped being when a template
+	 * replaced it with a short game menu, which is a legitimate thing for a
+	 * descendant to do and should not be what these tests stand on.
+	 */
+	async function makeThePageTall(page: Page, regions = 3) {
+		// After start-up, or the app replaces the prerendered page and the probe
+		// with it.
+		await waitForAppReady(page);
+		await page.evaluate((regions) => {
+			const region = document.querySelector('[data-app-content]')!;
+			const probe = document.createElement('div');
+			probe.dataset.testid = 'tall-probe';
+			probe.style.height = `${region.getBoundingClientRect().height * regions}px`;
+			region.appendChild(probe);
+		}, regions);
+	}
+
 	test('the content region is exactly what the chrome leaves', async ({
 		page,
 	}) => {
@@ -109,10 +130,11 @@ describe('The layout height shell', () => {
 		// screen, and the shell is exactly `100dvh`, so a sticky navbar's travel is
 		// `100dvh - var(--navbar-height)`. The trigger is therefore NOT "a long
 		// page": it is a page taller than roughly two viewports, which a laptop
-		// window at half height or a phone in landscape reaches on the HOME page,
-		// the shortest one there is. That is why the navbar is `fixed`.
+		// window at half height or a phone in landscape reaches on quite ordinary
+		// pages. That is why the navbar is `fixed`.
 		await page.setViewportSize({width: 1280, height: 348});
 		await page.goto('/');
+		await makeThePageTall(page);
 
 		const {nav, viewportHeight} = await geometry(page);
 		const maxScroll = await page.evaluate(() => {
@@ -120,9 +142,10 @@ describe('The layout height shell', () => {
 			return doc.scrollHeight - doc.clientHeight;
 		});
 
-		// THE PRECONDITION, asserted rather than assumed. If the home page ever
-		// stops scrolling this far, the assertion below still passes while proving
-		// nothing, and the bug walks back in silently. That is exactly how it got
+		// THE PRECONDITION, asserted rather than assumed. If the page ever stops
+		// scrolling this far (the probe above is what makes it), the assertion
+		// below still passes while proving nothing, and the bug walks back in
+		// silently. That is exactly how it got
 		// in: the suite runs at 720 tall by default, where nothing comes close.
 		expect(
 			maxScroll,
@@ -285,6 +308,7 @@ describe('The layout height shell', () => {
 		await waitForAppReady(page);
 		await page.context().setOffline(true);
 		await expect(page.getByTestId('offline-banner')).toBeVisible();
+		await makeThePageTall(page);
 
 		const groupTop = () =>
 			page.evaluate(() =>
@@ -389,8 +413,13 @@ describe('The layout height shell', () => {
 		// whether a wallet is connected, on how many transactions exist, and on an
 		// empty state nobody thought of as load-bearing. The claim here is about the
 		// SHELL, so the height is supplied rather than hoped for.
+		//
+		// AFTER THE APP HAS STARTED, because a probe put into the prerendered page
+		// is gone once the app takes the page over. This passed without the wait
+		// only while the home page was tall enough to scroll with no probe at all.
 		await page.setViewportSize({width: 1280, height: 600});
 		await page.goto('/');
+		await waitForAppReady(page);
 
 		const before = await geometry(page);
 		await page.evaluate((height) => {
