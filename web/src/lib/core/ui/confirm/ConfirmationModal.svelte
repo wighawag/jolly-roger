@@ -1,6 +1,9 @@
 <script lang="ts">
 	import * as Modal from '$lib/core/ui/modal/index.js';
-	import {Button} from '$lib/shadcn/ui/button/index.js';
+	// Through the core shim, not the kit: this is the one modal in `core/` that
+	// once named `$lib/shadcn` directly, so repointing `$ui` repainted every
+	// dialog but this one. test/ui-kit-boundary.test.ts now fails on that.
+	import {Button} from '$lib/core/ui/button/index.js';
 	import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
 	import TriangleAlertIcon from '@lucide/svelte/icons/triangle-alert';
 	import {getAppContext} from '$lib';
