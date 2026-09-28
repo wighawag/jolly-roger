@@ -6,6 +6,11 @@ import {
 	isValidTxHash,
 } from '../../../../../src/lib/core/ui/faucet/faucet-actions';
 
+// The popup path opens a window, so the client is replaced. Only the popup test
+// below reaches it; every other test here claims through the API.
+const {claimFund} = vi.hoisted(() => ({claimFund: vi.fn()}));
+vi.mock('faucet-client', () => ({claimFund}));
+
 describe('buildFaucetClaimUrl', () => {
 	it('appends /api/claim without a trailing slash', () => {
 		expect(buildFaucetClaimUrl('https://faucet.example')).toBe(
@@ -131,5 +136,63 @@ describe('claimFaucet: funding an account other than the executor', () => {
 			(d as never as {accountBalance: {update: unknown}}).accountBalance.update,
 		).not.toHaveBeenCalled();
 		vi.unstubAllGlobals();
+	});
+});
+
+/**
+ * `//:34010` MEANS "THIS PAGE'S HOST, PORT 34010", and it has to be resolved
+ * before a URL parser sees it (`core/env/same-host.ts`, which makes an
+ * unresolved one throw on purpose). The link helper resolved it; the claim did
+ * not, so with the `.env.localhost` a dev stack ships, "Get ETH" threw
+ * `Invalid URL` inside `faucet-client` before any popup opened: a red cross on
+ * the button and nothing else. Both the popup link and the API base go through
+ * here, so both are resolved here.
+ */
+describe('claimFaucet: a service url that follows the page host', () => {
+	const EXECUTOR = '0x0000000000000000000000000000000000000001' as const;
+	const deps = {
+		accountExecutor: readable({status: 'ready', address: EXECUTOR}),
+		accountBalance: {...readable({step: 'Loaded', value: 5n}), update: vi.fn()},
+		deployments: readable({chain: {id: 31337}}),
+		publicClient: {
+			waitForTransactionReceipt: vi.fn(async () => ({})),
+			getTransaction: vi.fn(async () => ({value: 1n})),
+		},
+		balanceCheck: {markFundingRequested: vi.fn()},
+	} as never;
+
+	it('resolves a same-host API base against the page before fetching', async () => {
+		vi.stubGlobal('window', {
+			location: {protocol: 'http:', hostname: '192.168.1.9'},
+		});
+		const fetchMock = vi.fn(async (_url: string) => ({
+			ok: true,
+			json: async () => ({txHash: '0xabc'}),
+		}));
+		vi.stubGlobal('fetch', fetchMock);
+		try {
+			await claimFaucet(deps, {faucetApi: '//:34010', faucetLink: ''});
+			expect(fetchMock.mock.calls[0][0]).toBe(
+				'http://192.168.1.9:34010/api/claim',
+			);
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+
+	it('resolves a same-host popup link before handing it to the faucet client', async () => {
+		vi.stubGlobal('window', {
+			location: {protocol: 'https:', hostname: 'dev.example'},
+		});
+		claimFund.mockResolvedValue('0xabc');
+		try {
+			await claimFaucet(deps, {faucetLink: '//:34010'});
+			expect(claimFund.mock.calls[0][0]).toMatchObject({
+				faucetUrl: 'https://dev.example:34010',
+			});
+		} finally {
+			claimFund.mockReset();
+			vi.unstubAllGlobals();
+		}
 	});
 });
