@@ -3,6 +3,7 @@ import {claimFund} from 'faucet-client';
 import {sameAddress} from '$lib/core/utils/ethereum/address';
 import type {PublicClient} from 'viem';
 import type {Context} from '$lib/context/types';
+import {resolveURLForThisPage} from '$lib/core/env/same-host';
 
 /**
  * Build the faucet API claim endpoint URL from the configured API base,
@@ -160,16 +161,24 @@ export async function claimFaucet(
 	// know how much arrived without asking a wallet that may still be answering
 	// from cache.
 	let txHash: `0x${string}` | undefined;
-	if (config.faucetApi && config.faucetApi.trim()) {
+	// RESOLVED HERE, the one place both callers (the faucet button and the top-up
+	// flow) pass through. `//:34010` means "this page's host, port 34010"
+	// (`core/env/same-host.ts`), and an unresolved one throws in `new URL` by
+	// design: the popup client parses it before opening anything, so a raw value
+	// used to fail "Get ETH" with a red cross and no popup.
+	const faucetApi = resolveURLForThisPage(config.faucetApi);
+	const faucetLink =
+		resolveURLForThisPage(config.faucetLink) ?? config.faucetLink;
+	if (faucetApi) {
 		txHash = await claimViaApi({
 			publicClient,
-			apiBase: config.faucetApi,
+			apiBase: faucetApi,
 			address,
 			chainId,
 		});
 	} else {
 		const claimed = await claimFund(
-			{faucetUrl: config.faucetLink, chainId, address},
+			{faucetUrl: faucetLink, chainId, address},
 			{width: 600, height: 700},
 		);
 		txHash = isValidTxHash(claimed) ? claimed : undefined;
