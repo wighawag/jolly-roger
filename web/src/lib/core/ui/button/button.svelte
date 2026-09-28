@@ -23,10 +23,16 @@
 	interface Props {
 		/**
 		 * `outline` for a secondary action beside a primary one, `ghost` for one
-		 * that should not draw the eye (an icon, a dismiss). Omitted means the
-		 * kit's default, which is the primary action.
+		 * that should not draw the eye (an icon, a dismiss), `destructive` for one
+		 * that gives something up (sign out, abandon a request the wallet may still
+		 * act on). Omitted means the kit's default, which is the primary action.
+		 *
+		 * `destructive` is here because a confirmation in `core/` needs it, and a
+		 * kit that has no word for it is a kit that paints "really give up?" in the
+		 * same colour as "carry on". Every kit has one: shadcn calls it
+		 * destructive, a game's pixel kit may call it negative.
 		 */
-		variant?: 'default' | 'outline' | 'ghost';
+		variant?: 'default' | 'outline' | 'ghost' | 'destructive';
 		/** `icon` for a square control with no label. Omitted means the default. */
 		size?: 'default' | 'sm' | 'icon';
 		class?: string;
@@ -45,6 +51,12 @@
 		'aria-describedby'?: string;
 		'aria-expanded'?: boolean;
 		'aria-pressed'?: boolean;
+		/**
+		 * The handle an end-to-end test clicks. Part of the contract for the same
+		 * reason as the aria attributes: a kit that drops it does not restyle the
+		 * button, it removes it from every suite that drives the flow.
+		 */
+		'data-testid'?: string;
 	}
 
 	let {
@@ -55,7 +67,7 @@
 		type = 'button',
 		onclick,
 		children,
-		...aria
+		...attributes
 	}: Props = $props();
 </script>
 
@@ -66,7 +78,7 @@
 	{disabled}
 	{type}
 	{onclick}
-	{...aria}
+	{...attributes}
 >
 	{@render children?.()}
 </KitButton>
