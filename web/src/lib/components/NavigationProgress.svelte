@@ -105,6 +105,20 @@
 		}, EXTERNAL_SAFETY_MS);
 	}
 
+	// Leaving via an external link can put this page in the back/forward
+	// cache frozen mid-indicator (phase 'loading', timers suspended). Hitting
+	// Back restores it exactly as it was, with nothing left to end the run, so
+	// the bar and spinner would spin forever. A restore means no navigation is
+	// in flight any more: drop straight to idle.
+	function onpageshow(event: PageTransitionEvent) {
+		if (!event.persisted) return;
+		clearTimeout(showTimer);
+		clearTimeout(finishTimer);
+		clearTimeout(safetyTimer);
+		external = false;
+		phase = 'idle';
+	}
+
 	onMount(() => {
 		// Retire the pre-JS bar from app.html: from now on this component is
 		// the only thing that shows navigation feedback.
@@ -123,7 +137,7 @@
 	});
 </script>
 
-<svelte:window {onclick} />
+<svelte:window {onclick} {onpageshow} />
 
 {#if phase !== 'idle'}
 	{@const finishing = phase === 'finishing'}
