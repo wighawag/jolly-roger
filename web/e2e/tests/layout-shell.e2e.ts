@@ -52,6 +52,11 @@ describe('The layout height shell', () => {
 						: undefined;
 				})(),
 				content: rect('[data-app-content]'),
+				// A surface can declare that its chrome FLOATS over the page (see
+				// `floating` on `SurfaceChrome`), and then the contract is a
+				// different one: the page gets the whole viewport, the chrome is
+				// drawn over it. Read off the shell, which is what decides.
+				floating: !!document.querySelector('[data-app-shell-floating]'),
 				viewportHeight: window.innerHeight,
 				documentScrolls: doc.scrollHeight > doc.clientHeight,
 			};
@@ -455,17 +460,26 @@ describe('The layout height shell', () => {
 
 		for (const path of SMOKE_ROUTES) {
 			await page.goto(path);
-			const {content, nav, viewportHeight} = await geometry(page);
+			const {content, nav, viewportHeight, floating} = await geometry(page);
 
 			expect(content, `${path} renders into the region`).toBeTruthy();
-			// `>=` rather than `===`: a route may raise a bar of its own (the RPC one
-			// is gated to non-home routes), which pushes the region further down. What
-			// must hold everywhere is that the region never starts ABOVE the chrome,
-			// i.e. never paints over it.
-			expect(
-				Math.round(content!.top),
-				`${path} starts below the chrome`,
-			).toBeGreaterThanOrEqual(Math.round(nav!.bottom));
+			if (floating) {
+				// A surface that declared floating chrome gets the whole viewport,
+				// and the chrome is drawn over it. Still exactly one navbar, still on
+				// screen: floating moves who pays for the space, not whether the
+				// chrome is there.
+				expect(Math.round(content!.top), `${path} starts at the top`).toBe(0);
+				expect(nav, `${path} still has its navbar`).toBeTruthy();
+			} else {
+				// `>=` rather than `===`: a route may raise a bar of its own (the RPC
+				// one is gated to non-home routes), which pushes the region further
+				// down. What must hold everywhere is that the region never starts
+				// ABOVE the chrome, i.e. never paints over it.
+				expect(
+					Math.round(content!.top),
+					`${path} starts below the chrome`,
+				).toBeGreaterThanOrEqual(Math.round(nav!.bottom));
+			}
 			expect(Math.round(content!.bottom), `${path} ends at the fold`).toBe(
 				viewportHeight,
 			);

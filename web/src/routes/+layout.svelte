@@ -92,7 +92,11 @@
 
 		     WHICH bars exist is `ui/chrome.ts`, for the same reason. Adding one is a
 		     line there, not an edit here. -->
-		<AppShell chrome={surface.bars} routeId={() => page.route.id}>
+		<AppShell
+			chrome={surface.bars}
+			floating={surface.floating}
+			routeId={() => page.route.id}
+		>
 			{#snippet navbar()}
 				<SurfaceNavbar navbar={surface.navbar}>
 					{#snippet appNavbar()}

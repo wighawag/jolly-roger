@@ -124,6 +124,24 @@ export type SurfaceChrome = {
 	readonly navbar?: Component;
 	/** The condition bars, top to bottom. `[]` for none. */
 	readonly bars: readonly ChromeBar[];
+	/**
+	 * THE CHROME FLOATS OVER THE PAGE instead of taking space above it.
+	 *
+	 * For a surface that is a full-bleed world with its own furniture at the
+	 * edges (a game board with a countdown in one corner and a phase banner
+	 * across the top): the navbar and the bars are drawn OVER it, and the page
+	 * gets the whole viewport. Without this, such a surface draws its top edge
+	 * one band lower than the screen's, and a game whose design puts its own
+	 * boxes at the top of the screen shows two top bars.
+	 *
+	 * What does not change is that the chrome is on screen and on top: the
+	 * navbar still carries `data-app-navbar`, the bars still stack under it in
+	 * order, and nothing is hidden. What changes is who pays for the space: the
+	 * surface, which has to leave its own top edge clear where the chrome sits.
+	 * That is a real cost, and why it is opt-in: a page of text under a floating
+	 * bar is a page whose first line is covered. See `core/ui/AppShell.svelte`.
+	 */
+	readonly floating?: boolean;
 };
 
 /**

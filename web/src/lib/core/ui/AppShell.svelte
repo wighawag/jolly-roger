@@ -5,6 +5,7 @@
 	const {
 		navbar,
 		chrome,
+		floating = false,
 		routeId,
 		children,
 	}: {
@@ -28,6 +29,14 @@
 		navbar: Snippet;
 		/** The condition bars, top to bottom. See `chrome.ts`. */
 		chrome: readonly ChromeBar[];
+		/**
+		 * Draw the navbar and the bars OVER the page rather than above it, so
+		 * the content region is the whole viewport. Opt-in, per surface, for a
+		 * full-bleed world that lays out its own top edge; see `floating` on
+		 * `SurfaceChrome` in `$lib/ui/chrome` for when that is the right call and
+		 * what it costs the surface.
+		 */
+		floating?: boolean;
 		/**
 		 * The current route id, as a getter so reading it here tracks the caller's
 		 * `page` as if the caller had read it. Only `routes/**` and `lib/kit` may
@@ -110,9 +119,18 @@
      forward navigation has to be reimplemented, and `scrollbar-gutter` has to
      move off `html` or the navbar ends up misaligned with the content by a
      scrollbar's width. -->
+<!-- FLOATING (opt-in, per surface): no reserved band, and the bar group is
+     fixed under the navbar instead of sitting in the column, so the content
+     region runs from the top of the viewport to the bottom. Everything above
+     about the non-floating shell still holds for every other surface; the
+     `data-app-shell-floating` handle is what `layout-shell.e2e.ts` reads to know
+     which contract a page is under. -->
 <div
 	data-app-shell
-	class="flex h-dvh flex-col pt-[var(--navbar-height)] [&>*]:shrink-0"
+	data-app-shell-floating={floating ? '' : undefined}
+	class="flex h-dvh flex-col [&>*]:shrink-0 {floating
+		? ''
+		: 'pt-[var(--navbar-height)]'}"
 >
 	{@render navbar()}
 
@@ -143,7 +161,12 @@
 	     `data-app-content` is the region's: a test or a descendant reaching for
 	     the bars should name them rather than describe the DOM they happen to
 	     sit in today. -->
-	<div data-app-bars class="sticky top-[var(--navbar-height)] z-40">
+	<div
+		data-app-bars
+		class={floating
+			? 'fixed inset-x-0 top-[var(--navbar-height)] z-40'
+			: 'sticky top-[var(--navbar-height)] z-40'}
+	>
 		{#each chrome as bar (bar.name)}
 			{@const Bar = bar.component}
 			{#if !bar.when || bar.when({routeId: routeId()})}
