@@ -1,4 +1,4 @@
-import type {Context, TxObserverDebugState} from './types.js';
+import type {CoreContext, TxObserverDebugState} from './types.js';
 import {writable, derived, get, type Readable} from 'svelte/store';
 import {createAccountData} from '$lib/account/AccountData.js';
 import type {TransactionMetadata} from '$lib/account/AccountData.js';
@@ -70,6 +70,7 @@ import {
 	type ResolvedAppConfig,
 } from './config.js';
 import {startTxObserverLoop} from '$lib/core/tx-observer';
+import type {PollingStatus} from '$lib/core/connection/polling-store';
 import {parseImpersonateAddresses} from '$lib/dev-accounts.js';
 
 /**
@@ -95,27 +96,27 @@ import {parseImpersonateAddresses} from '$lib/dev-accounts.js';
  */
 export type CoreServices = {
 	/** The chain connection, and how far the app has authenticated to it. */
-	connection: Context['connection'];
-	publicClient: Context['publicClient'];
-	deployments: Context['deployments'];
+	connection: CoreContext['connection'];
+	publicClient: CoreContext['publicClient'];
+	deployments: CoreContext['deployments'];
 	/** The authenticated account, as the connection reports it. */
-	account: Context['account'];
-	accountData: Context['accountData'];
+	account: CoreContext['account'];
+	accountData: CoreContext['accountData'];
 	/**
 	 * Sends from the authenticated account, with a wallet prompt. Prefer it over
 	 * `walletClient`: it resolves the `from` address and the client together.
 	 */
-	accountExecutor: Context['accountExecutor'];
+	accountExecutor: CoreContext['accountExecutor'];
 	/** Already guarded by the in-flight ledger, so any send records itself. */
-	walletClient: Context['walletClient'];
+	walletClient: CoreContext['walletClient'];
 	/** Gas held by the account that pays. */
-	accountBalance: Context['accountBalance'];
+	accountBalance: CoreContext['accountBalance'];
 	/** Whether that account can cover a given call at current gas. */
-	balanceCheck: Context['balanceCheck'];
+	balanceCheck: CoreContext['balanceCheck'];
 	/** Where a failed transaction's full error text goes, for the details view. */
-	errorDetails: Context['errorDetails'];
-	txObserver: Context['txObserver'];
-	clock: Context['clock'];
+	errorDetails: CoreContext['errorDetails'];
+	txObserver: CoreContext['txObserver'];
+	clock: CoreContext['clock'];
 	/**
 	 * Chain reads only run while this is truthy, or always when it is undefined.
 	 * The app must thread it into anything that polls, or its reads will run with
@@ -123,7 +124,7 @@ export type CoreServices = {
 	 */
 	chainFetchGate: Readable<boolean> | undefined;
 	/** Whether the chain is readable right now, as a store the UI can gate on. */
-	canReadChain: Context['canReadChain'];
+	canReadChain: CoreContext['canReadChain'];
 	/** Whether the app has an RPC of its own, or reads only through the wallet. */
 	hasAppRpc: boolean;
 	/**
@@ -145,13 +146,26 @@ export type CoreServices = {
  * single-function context each of them had to insert into the middle of the
  * literal, which is where several of the recorded conflicts landed.
  *
- * The two named members are the ones CORE consumes: `onchainState` feeds the
+ * The one named member is the one CORE consumes: `onchainState` feeds the
  * refresh connector, the RPC-health inputs and `refreshChainData`. Anything
- * beyond them core neither sees nor cares about.
+ * beyond it core neither sees nor cares about.
+ *
+ * WHAT CORE NEEDS, NOT WHAT THE APP HAS. `onchainState` is typed as the two
+ * things core does with it rather than as the app's own store, so this file
+ * names no app type and a descendant whose chain reads are not the greeting
+ * demo's compiles it unedited. The app's members keep their full types anyway:
+ * the context is `CoreContext` plus whatever the app returns (see
+ * `createCoreContext`), and `Context` reads them from the app's module through
+ * the `$app-specific` alias (see svelte.config.js and `./types.ts`). A store that
+ * falls short of this is a compile error where the app is handed to core.
  */
 export type AppContext = {
-	onchainState: Context['onchainState'];
-	viewState: Context['viewState'];
+	onchainState: {
+		/** Re-read now: a transaction of ours landed, or the user asked. */
+		update: () => Promise<unknown>;
+		/** Whether the last read reached the chain, for the RPC-health banner. */
+		status: Readable<PollingStatus>;
+	};
 	/**
 	 * The app's own IO, begun when the context starts and torn down with it.
 	 * Returns its teardown, like every other `start` here.
@@ -646,7 +660,7 @@ export function createCoreContext<App extends AppContext>(params: {
 	 */
 	establishConnection?: ConnectionFactory;
 }): {
-	context: Context;
+	context: CoreContext & Omit<App, 'start'>;
 	start: () => () => void;
 } {
 	const {createApp, establishConnection = establishRemoteConnection} = params;
@@ -860,14 +874,21 @@ export function createCoreContext<App extends AppContext>(params: {
 		hasAppRpc,
 		appConfig,
 	});
-	// Core consumes exactly this one by name, and `start` is lifecycle rather
-	// than context, so it is held back from the spread below. The rest goes into
-	// the context without this file needing to know what it is.
-	const {onchainState, start: startApp, ...appContext} = app;
+	// `start` is lifecycle rather than context, so it is held back from the
+	// spread below; everything else, `onchainState` included, goes into the
+	// context without this file needing to know what it is. Core reads
+	// `onchainState` by name too, for exactly what `AppContext` says.
+	//
+	// The app's members are spread WHOLE rather than with `onchainState` taken
+	// out and put back: TypeScript cannot see `Omit<App, 'onchainState' |
+	// 'start'>` plus `onchainState` as `Omit<App, 'start'>` for a generic `App`,
+	// and the runtime object is the same either way.
+	const {start: startApp, ...appContext} = app;
+	const {onchainState} = app;
 
 	const onchainStateRefreshConnector = createOnchainStateRefreshConnector({
 		txObserver,
-		onchainState,
+		stores: [onchainState],
 	});
 
 	// Health reflects whether we can read the chain right now. All inputs share
@@ -906,7 +927,7 @@ export function createCoreContext<App extends AppContext>(params: {
 		void accountBalance.update();
 	};
 
-	const context: Context = {
+	const context: CoreContext & Omit<App, 'start'> = {
 		fatal: {subscribe: fatal.subscribe},
 		gasFee,
 		accountBalance,
@@ -937,7 +958,6 @@ export function createCoreContext<App extends AppContext>(params: {
 		// The app's half, spread so a descendant adding members never edits this
 		// literal. See AppContext.
 		...appContext,
-		onchainState,
 	};
 
 	// Dev/debug: expose the whole context on globalThis for console access
