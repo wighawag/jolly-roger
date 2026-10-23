@@ -64,6 +64,19 @@ const config = {
 			// is that the INHERITED part speaks a narrow vocabulary somebody else can
 			// implement.
 			$ui: 'src/lib/shadcn/ui',
+
+			// WHICH APP THE FRAMEWORK IS COMPOSED WITH.
+			//
+			// The framework (`src/lib/context`, and through it everything that reads
+			// the app context) imports `$app-specific` and never the app's module by
+			// path. An app on this template points this at its own module, which
+			// exports what src/lib/context/app.ts exports, and every framework file
+			// compiles against it unedited. The same mechanism as `$ui` above, for
+			// the other thing a descendant replaces.
+			//
+			// Not `$app`, which is SvelteKit's. An alias matches only itself or itself
+			// plus `/`, so `$app-specific` and `$app/navigation` never capture each other.
+			'$app-specific': 'src/lib/context/app.ts',
 		},
 		output: {
 			bundleStrategy: 'split', // code-split per route so the initial
