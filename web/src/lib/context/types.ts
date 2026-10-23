@@ -20,8 +20,7 @@ import type {
 	MultiAccountDataStore,
 	TransactionMetadata,
 } from '$lib/account/AccountData';
-import type {OnchainStateStore} from '$lib/onchain/state';
-import type {ViewStateStore} from '$lib/view';
+import type {AppMembers} from '$app-specific';
 import type {ClockStore} from '$lib/core/clock';
 import type {TransactionObserver} from '@etherkit/tx-observer';
 import type {BalanceCheckStore} from '$lib/core/transaction/balance-check-store';
@@ -60,7 +59,19 @@ export type TxObserverDebugState = {
 
 export type TxObserverDebugStore = Readable<TxObserverDebugState>;
 
-export type Context = {
+/**
+ * The app context: the framework's members, and the app's.
+ *
+ * The app's half is `AppMembers` from `$app-specific` (see svelte.config.js), so
+ * this file names no app type: a framework file reading `Context` compiles
+ * against whichever app the alias points at, and the app's own code still sees
+ * its members fully typed. It used to name the greeting demo's two stores here,
+ * and every descendant whose app was not the demo edited this file to say so.
+ */
+export type Context = CoreContext & AppMembers;
+
+/** Everything in the context that is true of any app on this template. */
+export type CoreContext = {
 	/**
 	 * Set when the app cannot run at all, with the reason to show the user
 	 * (illegal env combination, or a `?burner=true` that cannot be honoured).
@@ -140,8 +151,6 @@ export type Context = {
 	account: AccountStore;
 	deployments: DeploymentsStore;
 	accountData: MultiAccountDataStore;
-	onchainState: OnchainStateStore;
-	viewState: ViewStateStore;
 	clock: Clock;
 	txObserver: TransactionObserver;
 	txObserverDebug: TxObserverDebugStore;
