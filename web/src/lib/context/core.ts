@@ -867,7 +867,7 @@ export function createCoreContext<App extends AppContext>(params: {
 
 	const onchainStateRefreshConnector = createOnchainStateRefreshConnector({
 		txObserver,
-		onchainState,
+		stores: [onchainState],
 	});
 
 	// Health reflects whether we can read the chain right now. All inputs share
