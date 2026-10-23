@@ -4,6 +4,7 @@ import {
 	resolveCreditsConfig,
 	type CreditsConfig,
 } from '$lib/core/connection/credits.js';
+import {delegationRegistry, operationScope} from '$app-specific';
 
 // ============================================================================
 // Default configuration values
@@ -73,41 +74,29 @@ export function resolveAppConfig(chain: AugmentedChainInfo): ResolvedAppConfig {
  * The address that scopes local operation data.
  *
  * Local operations belong to a specific deployment, so the storage key
- * includes one contract's address. Which contract is app-specific: this is
- * the single place a descendant changes it, and since the deployments object
- * is typed, renaming the contract or removing it is a compile error.
- *
- * The contract should be one whose address is stable for the deployment's
- * lifetime (e.g. the main proxy), not its implementation, which changes on
- * every hot contract replacement.
+ * includes one contract's address. Which contract is app-specific, so the app
+ * names it, in `operationScope` in its own module (`$app-specific`), and this file
+ * names no contract.
  */
 export function operationScopeAddress(
 	deployments: TypedDeployments,
 ): `0x${string}` {
-	return deployments.contracts.GreetingsRegistry.address;
+	return operationScope(deployments);
 }
 
 /**
  * The contract this app's delegation lives in.
  *
- * WHICH contract adopted `UsingDelegation` is the one thing about delegation
- * that is app-specific: the entry points it exposes are fixed by the library,
- * and their ABI comes from the same package as the Solidity (see
- * onchain/delegation). So a descendant that replaces the demo points this at
- * its own contract and changes nothing else, and pointing it at a contract
- * that did not adopt the library is a compile error rather than a read that
- * answers nothing.
+ * App-specific, so the app names it, in `delegationRegistry` in its own module
+ * (`$app-specific`), and this file names no contract.
  *
  * ONE PLACE, and it feeds three: the chain read, every writer, and the
  * permission the app declares at connect time. The credential an owner signs
  * names this contract, so anything reaching for a different one gets a
  * signature the contract will not recover.
- *
- * Same rule as above about which address: the one that is stable for the
- * deployment (the proxy), not an implementation.
  */
 export function delegationRegistryAddress(
 	deployments: TypedDeployments,
 ): `0x${string}` {
-	return deployments.contracts.GreetingsRegistry.address;
+	return delegationRegistry(deployments);
 }
