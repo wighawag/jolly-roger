@@ -1,4 +1,5 @@
 import type {
+	DELEGATION_ABI,
 	Connection,
 	ConnectionStore,
 	UnderlyingEthereumProvider,
@@ -235,23 +236,24 @@ export type RegisterResult =
 	| {status: 'error'; message: string; details: string};
 
 /**
- * The minimum of a wallet client this needs; both rails satisfy it.
+ * The minimum of a wallet client this needs; both rails satisfy it, WITHOUT a
+ * cast.
  *
- * Structural rather than viem's own generic signature, because the entry point
- * and its arguments are decided at RUNTIME (see registrationRequest) and viem's
- * inference is built for a call site that names one function literally. The
- * caller casts its client to this once, which keeps the cast at the one place
- * the mismatch actually is instead of on every argument.
+ * Narrower than viem's generic `writeContract` and typed against the delegation
+ * ABI, so the request is checked against the entry point it names (see
+ * `RegistrationRequest`) and viem's own client is checked against this when it
+ * is passed in. Callers used to cast their client to a loose version of this
+ * (`abi: readonly unknown[]`, `args: readonly unknown[]`), which compiled any
+ * arguments for any function on any ABI.
  */
 type Writer = {
-	writeContract: (args: {
-		address: `0x${string}`;
-		abi: readonly unknown[];
-		functionName: string;
-		args: readonly unknown[];
-		value: bigint;
-		account: Account | `0x${string}`;
-	}) => Promise<`0x${string}`>;
+	writeContract: (
+		args: RegistrationRequest & {
+			address: `0x${string}`;
+			abi: typeof DELEGATION_ABI;
+			account: Account | `0x${string}`;
+		},
+	) => Promise<`0x${string}`>;
 };
 
 /** The minimum of a public client this needs. */
@@ -275,7 +277,14 @@ type Waiter = {
 export type RegistrationWriter = Writer;
 
 export async function submitRegistration(params: {
-	registry: {address: `0x${string}`; abi: readonly unknown[]};
+	/**
+	 * The delegation registry: its address, and THE DELEGATION ABI, not the
+	 * contract's own. The registry is whichever of the app's contracts adopted
+	 * {UsingDelegation}, and what is called on it is the delegation surface,
+	 * which is fixed and comes with the package. Passing the contract's own ABI
+	 * is a compile error, which is the point.
+	 */
+	registry: {address: `0x${string}`; abi: typeof DELEGATION_ABI};
 	client: Writer;
 	publicClient: Waiter;
 	/** What to pass as `account`: a local account, or an address for a wallet. */
@@ -286,11 +295,9 @@ export async function submitRegistration(params: {
 
 	try {
 		const hash = await client.writeContract({
+			...request,
 			address: registry.address,
 			abi: registry.abi,
-			functionName: request.functionName,
-			args: request.args,
-			value: request.value,
 			account,
 		});
 

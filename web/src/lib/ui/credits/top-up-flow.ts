@@ -32,7 +32,6 @@ import {
 	signsWithoutPrompt,
 	submitRegistration,
 	type DelegationAccount,
-	type RegistrationWriter,
 } from '$lib/ui/delegation/register-delegate';
 import {
 	ensureCanSignAs,
@@ -1112,12 +1111,10 @@ export function createTopUpFlow(
 			};
 		}
 
-		// One cast, at the one place the mismatch is: the entry point is decided at
-		// runtime, and viem's writeContract types are built for a call site that
-		// names one function literally. See RegistrationWriter.
-		const client = (viaAccount && $executor.status === 'ready'
-			? $executor.client
-			: payment.walletClient) as unknown as RegistrationWriter;
+		const client =
+			viaAccount && $executor.status === 'ready'
+				? $executor.client
+				: payment.walletClient;
 
 		const result = await submitRegistration({
 			registry: {address: registry.address, abi: registry.abi},

@@ -1,5 +1,10 @@
 import {findSavedDelegation} from '@etherplay/connect';
-import type {PermissionOutcome, SavedDelegation} from '@etherplay/connect';
+import type {
+	DELEGATION_ABI,
+	PermissionOutcome,
+	SavedDelegation,
+} from '@etherplay/connect';
+import type {ContractFunctionArgs} from 'viem';
 
 /**
  * Registering this browser's signer as a delegate of the account.
@@ -395,11 +400,23 @@ export function reauthoriseExplanation(
 	}
 }
 
+type RegistrationFunction = 'registerDelegate' | 'registerDelegateViaSignature';
+
+/**
+ * One registration call, typed against the delegation ABI.
+ *
+ * A union with one member per entry point, so `args` is checked against THAT
+ * function's inputs: swapping `owner` and `delegate`, dropping the deadline or
+ * passing it as a number is a compile error rather than a revert. It used to be
+ * `args: readonly unknown[]`, which type-checked any array at all.
+ */
 export type RegistrationRequest = {
-	functionName: 'registerDelegate' | 'registerDelegateViaSignature';
-	args: readonly unknown[];
-	value: bigint;
-};
+	[F in RegistrationFunction]: {
+		functionName: F;
+		args: ContractFunctionArgs<typeof DELEGATION_ABI, 'payable', F>;
+		value: bigint;
+	};
+}[RegistrationFunction];
 
 /**
  * The contract call that registers `delegate`, and funds it in the same
