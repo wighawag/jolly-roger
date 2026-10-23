@@ -1,6 +1,10 @@
-import {createOnchainState} from '$lib/onchain/state.js';
-import {createViewState} from '$lib/view/index.js';
-import type {CoreServices, AppContext} from './core.js';
+import {
+	createOnchainState,
+	type OnchainStateStore,
+} from '$lib/onchain/state.js';
+import {createViewState, type ViewStateStore} from '$lib/view/index.js';
+import type {TypedDeployments} from '$lib/deployments-store.js';
+import type {CoreServices} from './core.js';
 import type {SignerGrant} from '$lib/ui/delegation/grant.js';
 
 /**
@@ -41,8 +45,15 @@ export const SIGNER_GRANT: SignerGrant = {action: 'post greetings'};
  * app needs the connection and accountData, and core's refresh wiring and RPC
  * health then need the app's chain reads. Two passes in one direction, rather
  * than a cycle. See the injection point in `core.ts`.
+ *
+ * REACHED THROUGH THE `$app-specific` ALIAS, never by path (see svelte.config.js).
+ * The framework imports `$app-specific`, so an app whose half lives elsewhere (a
+ * game keeps it beside its own code) points the alias there and no framework
+ * file is edited. What the alias must provide is what this module exports:
+ * `createAppContext`, `AppMembers`, `SIGNER_GRANT`, `operationScope` and
+ * `delegationRegistry`.
  */
-export function createAppContext(core: CoreServices): AppContext {
+export function createAppContext(core: CoreServices): AppMembers {
 	const {publicClient, deployments, account, accountData, chainFetchGate} =
 		core;
 
@@ -76,4 +87,54 @@ export function createAppContext(core: CoreServices): AppContext {
 	// `config` is not returned: it is this half's own construction detail, and
 	// core neither uses it nor puts it in the context.
 	return {onchainState, viewState};
+}
+
+/**
+ * What this app adds to the app context. `Context` (see `./types.ts`) is the
+ * framework's members plus these, read through `$app-specific`, so the framework
+ * names no type of this app's.
+ *
+ * Core reads `onchainState` for refreshes and RPC health, and states what it
+ * needs of it as `AppContext`; a store that falls short is a compile error
+ * where `./index.ts` hands this factory to core.
+ */
+export type AppMembers = {
+	onchainState: OnchainStateStore;
+	viewState: ViewStateStore;
+};
+
+/**
+ * The address that scopes local operation data: which of this app's contracts
+ * a browser's operation records belong to.
+ *
+ * A FUNCTION OF THE TYPED DEPLOYMENTS, not a contract name, so naming a
+ * contract the deployment does not have is a compile error here, in the app,
+ * rather than a lookup in the framework that answers `undefined`.
+ *
+ * The contract should be one whose address is stable for the deployment's
+ * lifetime (e.g. the main proxy), not its implementation, which changes on
+ * every hot contract replacement.
+ */
+export function operationScope(deployments: TypedDeployments): `0x${string}` {
+	return deployments.contracts.GreetingsRegistry.address;
+}
+
+/**
+ * The contract this app's delegation lives in: whichever of its contracts
+ * adopted `UsingDelegation`.
+ *
+ * WHICH contract is the one thing about delegation that is app-specific: the
+ * entry points it exposes are fixed by the library, and their ABI comes from
+ * the same package as the Solidity (see onchain/delegation). So an app that
+ * replaces the demo points this at its own contract and changes nothing else.
+ * Only an address crosses into the framework; what is called on it is typed by
+ * `DELEGATION_ABI`, whichever contract implements it.
+ *
+ * Same rule as above about which address: the one that is stable for the
+ * deployment (the proxy), not an implementation.
+ */
+export function delegationRegistry(
+	deployments: TypedDeployments,
+): `0x${string}` {
+	return deployments.contracts.GreetingsRegistry.address;
 }
