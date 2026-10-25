@@ -97,6 +97,11 @@ import {createBalanceCheckStore} from '$lib/core/transaction/balance-check-store
 import {createNavigationService} from '$lib/core/navigation/index.js';
 import {createOverlayRegistry} from '$lib/core/ui/overlay/index.js';
 import {
+	borrowTabNavigation,
+	lendTabNavigation,
+	type TabNavigation,
+} from './tab.js';
+import {
 	resolveAppConfig,
 	operationScopeAddress,
 	delegationRegistryAddress,
@@ -975,8 +980,9 @@ function buildExecution(params: {
 /** Navigation, the overlay registry that follows it, and the toast connector. */
 function buildNavigation(params: {
 	accountData: ReturnType<typeof buildChainConfig>['accountData'];
+	tab?: TabNavigation;
 }) {
-	const {accountData} = params;
+	const {accountData, tab} = params;
 
 	// ----------------------------------------------------------------------------
 	// NAVIGATION AND OVERLAYS
@@ -986,8 +992,16 @@ function buildNavigation(params: {
 	// constructible on the server (ADR-0002). The registry follows the service, so
 	// closing view overlays on a route change is decided in one place rather than
 	// by each feature. See ADR-0004 (`work` branch).
-	const navigation = createNavigationService();
-	const overlays = createOverlayRegistry(navigation);
+	//
+	// A SECOND CONTEXT IN THE TAB (a world beside the app) does not build its
+	// own: the tab has one history, and only the app's navigation ever gets a
+	// driver. It takes the app's service and a SCOPE of the app's registry, so
+	// its overlays push real entries, unwind in one stack with the app's, and
+	// stay apart from the app's copies of the same overlay. See ./tab.ts.
+	const navigation = tab?.navigation ?? createNavigationService();
+	const overlays = tab
+		? tab.overlays.scope(tab.scope)
+		: createOverlayRegistry(navigation);
 
 	const toastConnector = createToastConnector({
 		accountData,
@@ -1280,7 +1294,21 @@ export function createCoreContext<App extends AppContext>(params: {
 		inFlight,
 	});
 
-	const {navigation, overlays, toastConnector} = buildNavigation({accountData});
+	// ONE NAVIGATION PER TAB. The app's own context (no `establishConnection`)
+	// lends its navigation; a world beside it borrows it. See ./tab.ts.
+	const tab = params.establishConnection ? borrowTabNavigation() : undefined;
+	const {navigation, overlays, toastConnector} = buildNavigation({
+		accountData,
+		tab,
+	});
+	// Lent at construction, because a world can be built before this context's
+	// start() runs (a child page mounts before the layout's Context does), and
+	// lent again on every start(), because teardown revokes it.
+	const lend = () =>
+		params.establishConnection
+			? undefined
+			: lendTabNavigation({navigation, overlays});
+	let revokeLend = lend();
 
 	const {
 		accountBalance,
@@ -1608,6 +1636,7 @@ export function createCoreContext<App extends AppContext>(params: {
 
 			// Last, so the app can rely on everything core started above, and torn
 			// down first below for the same reason.
+			revokeLend = lend();
 			const stopApp = startApp?.();
 
 			return () => {
@@ -1620,8 +1649,11 @@ export function createCoreContext<App extends AppContext>(params: {
 				stopTxObserverLoop();
 				stopInFlightTracking();
 				if (attachCheck !== undefined) clearTimeout(attachCheck);
+				// A scope stops only its own overlays; the app's navigation is the
+				// app's to stop, not a second context's.
 				overlays.stop();
-				navigation.stop();
+				if (!tab) navigation.stop();
+				revokeLend?.();
 				tabLeader.stop();
 				unsubscribeFromBalance();
 				unsubscribeFromGasFee();

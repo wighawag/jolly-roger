@@ -41,6 +41,25 @@ export type OverlayRegistry = {
 	): ViewOverlay<PayloadOf<Definition>>;
 	/** Labels of every open overlay, innermost last. Debug/introspection. */
 	openLabels(): string[];
+	/**
+	 * A view onto THIS registry for a second context in the same tab (a world
+	 * in the tab beside the app, see `establishConnection` in context/core.ts).
+	 *
+	 * ONE TAB HAS ONE HISTORY, so it must have one stack. Two registries on one
+	 * navigation service each read the other's tokens as "the user traversed
+	 * away" and close everything they hold; a context with a registry of its
+	 * own and no driver is inert, so its prompts push no entry and the back
+	 * gesture leaves the page instead of closing them. Sharing the registry
+	 * itself is not enough either: instances are keyed by label, so the app's
+	 * and the world's copies of the same overlay (a confirmation, a top-up)
+	 * would be ONE instance and open together.
+	 *
+	 * So a scope shares the stack and the history, and namespaces what it
+	 * defines: labels become `<name>/<label>` and a content overlay's param
+	 * `<name>.<param>`. Its `stop()` closes only its own overlays, in memory,
+	 * and leaves the registry running, because the registry is not its to stop.
+	 */
+	scope(name: string): OverlayRegistry;
 	/** Stop following navigation (context teardown). */
 	stop(): void;
 };
@@ -233,7 +252,10 @@ export function createOverlayRegistry(
 		}
 	}
 
-	return {
+	/** One scope per name, so `scope(n).use(d)` twice is one overlay. */
+	const scopes = new Map<string, OverlayRegistry>();
+
+	const registry: OverlayRegistry = {
 		use(definition) {
 			const label = definition.label;
 			const existing = instanceOf(label);
@@ -399,6 +421,15 @@ export function createOverlayRegistry(
 
 		openLabels: () => stack.map((entry) => entry.label),
 
+		scope(name) {
+			let scoped = scopes.get(name);
+			if (!scoped) {
+				scoped = scopeOf(name);
+				scopes.set(name, scoped);
+			}
+			return scoped;
+		},
+
 		stop() {
 			unsubscribe();
 			// Everything goes, not just the subscription. A registry that outlives
@@ -411,6 +442,7 @@ export function createOverlayRegistry(
 			closeFrom(0);
 			for (const instance of instances.values()) closeInstance(instance);
 			instances.clear();
+			scopes.clear();
 			stack = [];
 			pathname = undefined;
 			// Identity-checked, so tearing down an old registry never deletes the
@@ -423,4 +455,88 @@ export function createOverlayRegistry(
 			}
 		},
 	};
+
+	/**
+	 * See `OverlayRegistry.scope`. The scoped definitions are memoised per
+	 * original, so the label-collision warning in `use()` keeps meaning what
+	 * it says: the same definition used twice is one overlay, not two.
+	 */
+	function scopeOf(name: string): OverlayRegistry {
+		const prefix = `${name}/`;
+		const scoped = new WeakMap<
+			ViewOverlayDefinition<unknown>,
+			ViewOverlayDefinition<unknown>
+		>();
+
+		function scopedDefinition(
+			definition: ViewOverlayDefinition<unknown>,
+		): ViewOverlayDefinition<unknown> {
+			let result = scoped.get(definition);
+			if (!result) {
+				result =
+					definition.kind === 'content'
+						? {
+								...definition,
+								label: prefix + definition.label,
+								param: `${name}.${definition.param}`,
+							}
+						: {...definition, label: prefix + definition.label};
+				scoped.set(definition, result);
+			}
+			return result;
+		}
+
+		return {
+			use(definition) {
+				// `as never`: the scoped definition is the original with only
+				// `label` (and `param`) rewritten, so its payload type is the
+				// caller's; the generic cannot say "same definition, new label".
+				return registry.use(
+					scopedDefinition(definition as ViewOverlayDefinition<unknown>) as never,
+				);
+			},
+
+			openLabels: () =>
+				stack
+					.filter((entry) => entry.label.startsWith(prefix))
+					.map((entry) => entry.label.slice(prefix.length)),
+
+			scope(inner) {
+				return registry.scope(`${name}/${inner}`);
+			},
+
+			stop() {
+				// IN MEMORY ONLY, and the instances are KEPT.
+				//
+				// No history is touched. A scope stops when its context is torn
+				// down, which is usually a route change already in progress: going
+				// back from there would undo the user's navigation. Closing several
+				// overlays one `close()` at a time also strands entries in a real
+				// browser, because the first `go()` is asynchronous and every later
+				// one still sees the old location. So the entries this scope pushed
+				// stay where they are, the same bargain the route-change branch of
+				// the listener makes: back over them lands on an entry nobody claims.
+				//
+				// Kept, not forgotten, because a context is stopped and STARTED
+				// again on the same objects (a world outlives the route that shows
+				// it), and handles taken at construction (the toast connector's)
+				// must still be the instance a remounted renderer gets from `use()`.
+				const own = stack.findIndex((entry) => entry.label.startsWith(prefix));
+				if (own >= 0) {
+					const kept = stack.filter((entry) => !entry.label.startsWith(prefix));
+					for (const entry of stack.slice(own).reverse()) {
+						if (!entry.label.startsWith(prefix)) continue;
+						const instance = instanceOf(entry.label);
+						if (instance) closeInstance(instance);
+					}
+					stack = kept;
+				}
+				for (const [label, instance] of instances) {
+					if (label.startsWith(prefix)) closeInstance(instance);
+				}
+			},
+		};
+	}
+
+	return registry;
 }
