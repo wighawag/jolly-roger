@@ -5,6 +5,7 @@
 /// <reference types="../../.svelte-kit/ambient.d.ts" />
 
 import {build, version, prerendered, files} from '$service-worker';
+import {createFetchAndUpdateCache} from './fetch-and-update-cache';
 
 const ID = version; // + '-1';
 
@@ -85,31 +86,12 @@ sw.addEventListener('activate', (event) => {
 	);
 });
 
-async function fetchAndUpdateCache(request: Request, cache?: Response) {
-	try {
-		const response = await fetch(request);
-		try {
-			const cache_1 = await caches.open(CACHE_NAME);
-			if (request.method === 'GET' && request.url.startsWith('http')) {
-				// only on http protocol to prevent chrome-extension request to error out
-				cache_1.put(request, response.clone());
-			}
-			return response;
-		} catch (err) {
-			log(`error: ${err}`);
-			return response;
-		}
-	} catch (err_1) {
-		if (cache) {
-			return cache;
-		} else {
-			return new Response(`Could Not fetch ${request.url}`, {
-				status: 503,
-				headers: {'Content-Type': 'text/plain'},
-			});
-		}
-	}
-}
+const fetchAndUpdateCache = createFetchAndUpdateCache({
+	fetch: (request) => fetch(request),
+	put: async (request, response) =>
+		(await caches.open(CACHE_NAME)).put(request, response),
+	log,
+});
 
 const cacheFirst = {
 	method: (request: Request, cache?: Response) => {
