@@ -5,6 +5,7 @@
 /// <reference types="../../.svelte-kit/ambient.d.ts" />
 
 import {build, version, prerendered, files} from '$service-worker';
+import {createFetchAndUpdateCache} from './fetch-and-update-cache';
 
 const ID = version; // + '-1';
 
@@ -97,53 +98,42 @@ sw.addEventListener('activate', (event) => {
 	);
 });
 
-async function fetchAndUpdateCache(request: Request, cache?: Response) {
-	try {
-		const response = await fetch(request);
-		try {
-			const cache_1 = await caches.open(CACHE_NAME);
-			if (request.method === 'GET' && request.url.startsWith('http')) {
-				// only on http protocol to prevent chrome-extension request to error out
-				cache_1.put(request, response.clone());
-			}
-			return response;
-		} catch (err) {
-			log(`error: ${err}`);
-			return response;
-		}
-	} catch (err_1) {
-		if (cache) {
-			return cache;
-		} else {
-			return new Response(`Could Not fetch ${request.url}`, {
-				status: 503,
-				headers: {'Content-Type': 'text/plain'},
-			});
-		}
-	}
-}
+const fetchAndUpdateCache = createFetchAndUpdateCache({
+	fetch: (request) => fetch(request),
+	put: async (request, response) =>
+		(await caches.open(CACHE_NAME)).put(request, response),
+	log,
+});
+
+// `keepAlive` is the fetch event's waitUntil: a refresh that outlives the
+// response must say so, or the browser may stop the worker partway through.
+type KeepAlive = (promise: Promise<unknown>) => void;
 
 const cacheFirst = {
-	method: (request: Request, cache?: Response) => {
+	method: (request: Request, cache?: Response, keepAlive?: KeepAlive) => {
 		log(`Cache first: ${request.url}`);
-		const fromNetwork = fetchAndUpdateCache(request, cache);
+		const fromNetwork = fetchAndUpdateCache(request, cache, keepAlive);
+		if (cache) {
+			// served from cache: the refresh continues in the background
+			keepAlive?.(fromNetwork);
+		}
 		return cache || fromNetwork;
 	},
 	regexes: regexesCacheFirst,
 };
 
 const cacheOnly = {
-	method: (request: Request, cache?: Response) => {
+	method: (request: Request, cache?: Response, keepAlive?: KeepAlive) => {
 		log(`Cache only: ${request.url}`);
-		return cache || fetchAndUpdateCache(request, cache);
+		return cache || fetchAndUpdateCache(request, cache, keepAlive);
 	},
 	regexes: regexesCacheOnly,
 };
 
 const onlineFirst = {
-	method: (request: Request, cache?: Response) => {
+	method: (request: Request, cache?: Response, keepAlive?: KeepAlive) => {
 		log(`Online first: ${request.url}`);
-		return fetchAndUpdateCache(request, cache);
+		return fetchAndUpdateCache(request, cache, keepAlive);
 	},
 	regexes: regexesOnlineFirst,
 };
@@ -176,6 +166,7 @@ async function getResponse(event: FetchEvent): Promise<Response> {
 	// Note we could remove query param from matching
 	//  that is, if query param are used as config
 	//  we could then do: const normalizedUrl = normalizeUrl(event.request.url);
+	const keepAlive: KeepAlive = (promise) => event.waitUntil(promise);
 	const response = await caches.match(request).then((cache) => {
 		// The order matters !
 		const patterns = [onlineFirst, onlineOnly, cacheFirst, cacheOnly];
@@ -183,12 +174,12 @@ async function getResponse(event: FetchEvent): Promise<Response> {
 		for (const pattern of patterns) {
 			for (const regex of pattern.regexes) {
 				if (RegExp(regex).test(request.url)) {
-					return pattern.method(request, cache);
+					return pattern.method(request, cache, keepAlive);
 				}
 			}
 		}
 
-		return onlineFirst.method(request, cache);
+		return onlineFirst.method(request, cache, keepAlive);
 	});
 	return response;
 }
