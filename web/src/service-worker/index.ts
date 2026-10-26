@@ -105,27 +105,35 @@ const fetchAndUpdateCache = createFetchAndUpdateCache({
 	log,
 });
 
+// `keepAlive` is the fetch event's waitUntil: a refresh that outlives the
+// response must say so, or the browser may stop the worker partway through.
+type KeepAlive = (promise: Promise<unknown>) => void;
+
 const cacheFirst = {
-	method: (request: Request, cache?: Response) => {
+	method: (request: Request, cache?: Response, keepAlive?: KeepAlive) => {
 		log(`Cache first: ${request.url}`);
-		const fromNetwork = fetchAndUpdateCache(request, cache);
+		const fromNetwork = fetchAndUpdateCache(request, cache, keepAlive);
+		if (cache) {
+			// served from cache: the refresh continues in the background
+			keepAlive?.(fromNetwork);
+		}
 		return cache || fromNetwork;
 	},
 	regexes: regexesCacheFirst,
 };
 
 const cacheOnly = {
-	method: (request: Request, cache?: Response) => {
+	method: (request: Request, cache?: Response, keepAlive?: KeepAlive) => {
 		log(`Cache only: ${request.url}`);
-		return cache || fetchAndUpdateCache(request, cache);
+		return cache || fetchAndUpdateCache(request, cache, keepAlive);
 	},
 	regexes: regexesCacheOnly,
 };
 
 const onlineFirst = {
-	method: (request: Request, cache?: Response) => {
+	method: (request: Request, cache?: Response, keepAlive?: KeepAlive) => {
 		log(`Online first: ${request.url}`);
-		return fetchAndUpdateCache(request, cache);
+		return fetchAndUpdateCache(request, cache, keepAlive);
 	},
 	regexes: regexesOnlineFirst,
 };
@@ -158,6 +166,7 @@ async function getResponse(event: FetchEvent): Promise<Response> {
 	// Note we could remove query param from matching
 	//  that is, if query param are used as config
 	//  we could then do: const normalizedUrl = normalizeUrl(event.request.url);
+	const keepAlive: KeepAlive = (promise) => event.waitUntil(promise);
 	const response = await caches.match(request).then((cache) => {
 		// The order matters !
 		const patterns = [onlineFirst, onlineOnly, cacheFirst, cacheOnly];
@@ -165,12 +174,12 @@ async function getResponse(event: FetchEvent): Promise<Response> {
 		for (const pattern of patterns) {
 			for (const regex of pattern.regexes) {
 				if (RegExp(regex).test(request.url)) {
-					return pattern.method(request, cache);
+					return pattern.method(request, cache, keepAlive);
 				}
 			}
 		}
 
-		return onlineFirst.method(request, cache);
+		return onlineFirst.method(request, cache, keepAlive);
 	});
 	return response;
 }

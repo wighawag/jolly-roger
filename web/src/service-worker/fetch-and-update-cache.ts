@@ -29,9 +29,12 @@ export function createFetchAndUpdateCache(
 ) {
 	const {fetch, put, log = () => {}} = dependencies;
 
+	// `keepAlive` is the fetch event's `waitUntil`: the cache write is not
+	// awaited, and without it the browser may stop the worker mid-write.
 	return async function fetchAndUpdateCache(
 		request: Request,
 		cached?: Response,
+		keepAlive?: (promise: Promise<unknown>) => void,
 	): Promise<Response> {
 		let response: Response;
 		try {
@@ -56,7 +59,15 @@ export function createFetchAndUpdateCache(
 		// only on http(s), so chrome-extension:// requests do not error out
 		if (request.method === 'GET' && request.url.startsWith('http')) {
 			// not awaited: the page should not wait for the body to be stored
-			put(request, response.clone()).catch((err) => log(`error: ${err}`));
+			const write = put(request, response.clone()).catch((err) =>
+				log(`error: ${err}`),
+			);
+			try {
+				keepAlive?.(write);
+			} catch (err) {
+				// waitUntil throws once the event is over; the write still runs
+				log(`keepAlive: ${err}`);
+			}
 		}
 		return response;
 	};

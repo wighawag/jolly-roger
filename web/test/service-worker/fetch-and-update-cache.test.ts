@@ -45,7 +45,10 @@ describe('fetchAndUpdateCache', () => {
 		const {fetchAndUpdateCache} = setup(
 			async () => new Response('Service Unavailable', {status: 503}),
 		);
-		const response = await fetchAndUpdateCache(new Request(URL), cachedScript());
+		const response = await fetchAndUpdateCache(
+			new Request(URL),
+			cachedScript(),
+		);
 		expect(response.status).toBe(200);
 		expect(await response.text()).toBe('console.log("app")');
 	});
@@ -63,7 +66,10 @@ describe('fetchAndUpdateCache', () => {
 		const {fetchAndUpdateCache, put} = setup(async () => {
 			throw new TypeError('Failed to fetch');
 		});
-		const response = await fetchAndUpdateCache(new Request(URL), cachedScript());
+		const response = await fetchAndUpdateCache(
+			new Request(URL),
+			cachedScript(),
+		);
 		expect(response.status).toBe(200);
 		expect(put).not.toHaveBeenCalled();
 	});
@@ -94,6 +100,44 @@ describe('fetchAndUpdateCache', () => {
 			url: 'chrome-extension://abc/script.js',
 		} as Request);
 		expect(put).not.toHaveBeenCalled();
+	});
+
+	it('hands the pending cache write to keepAlive', async () => {
+		// a cache-first refresh outlives respondWith(), so the worker must be
+		// told to stay up until the write lands
+		let finishWrite!: () => void;
+		const put = vi.fn(
+			() => new Promise<void>((resolve) => (finishWrite = resolve)),
+		);
+		const fetchAndUpdateCache = createFetchAndUpdateCache({
+			fetch: async () => new Response('fresh', {status: 200}),
+			put,
+		});
+		const kept: Promise<unknown>[] = [];
+		await fetchAndUpdateCache(new Request(URL), undefined, (p) => kept.push(p));
+		expect(kept).toHaveLength(1);
+		let settled = false;
+		kept[0].then(() => (settled = true));
+		await Promise.resolve();
+		expect(settled).toBe(false);
+		finishWrite();
+		await kept[0];
+		expect(settled).toBe(true);
+	});
+
+	it('survives a keepAlive that throws', async () => {
+		// waitUntil throws InvalidStateError once the event has finished
+		const {fetchAndUpdateCache} = setup(
+			async () => new Response('fresh', {status: 200}),
+		);
+		const response = await fetchAndUpdateCache(
+			new Request(URL),
+			undefined,
+			() => {
+				throw new Error('InvalidStateError');
+			},
+		);
+		expect(await response.text()).toBe('fresh');
 	});
 
 	it('still returns the response when writing to the cache fails', async () => {
