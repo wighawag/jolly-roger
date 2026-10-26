@@ -298,8 +298,8 @@ importers:
         specifier: ^3.0.0
         version: 3.0.0(svelte@5.56.9)(vitest@4.1.11)
       webevm:
-        specifier: ^0.5.0
-        version: 0.5.0
+        specifier: ^0.9.0
+        version: 0.9.0
 
 packages:
 
@@ -323,6 +323,9 @@ packages:
 
   '@bytecodealliance/preview2-shim@0.19.0':
     resolution: {integrity: sha512-OSUlcM62fXLuzYP0DjBn/SwjKMZ/y/2PMXZ8v5cRiiFcroauntlPRl/oCnx0xYjYiqdYvE0PY50VCNutll0xOw==}
+
+  '@eip-1193/over-port@0.1.0':
+    resolution: {integrity: sha512-oU2XYcgGwOYNE57tYswoD2CJc4tPlW9xtcsgEAgipXte2v9q//ss6CzLoNBvah8Uiz0nSJOm8BvpTwWpGqPhGg==}
 
   '@emnapi/runtime@1.11.3':
     resolution: {integrity: sha512-Xz4Tpyki7XyrpbUK1jR1AhdAdaXyhhY4lZ3neLodmhpuWfy2PAQN5B46sAiU4liOXGLkHypn/qU+jvfWSCYYLA==}
@@ -1804,6 +1807,10 @@ packages:
   eip-1193@0.6.5:
     resolution: {integrity: sha512-KXCSdjFLIT5/06rMD2pMqoAZhZcTg4EofiCI70ovIOy8L/6twGJFE+RtW89S/hMFKDoNEGJ/WK8jQv7CpuGDgg==}
 
+  eip-1193@0.7.1:
+    resolution: {integrity: sha512-ERlT2lk1v8w94p1BaATtuVGCcnwbM9jn57zPxSz0CTwTKQV7N6YdXDxnkCKbQTor+RM4EVa2mY6+vax5uDbgRg==}
+    engines: {pnpm: '>=11'}
+
   enhanced-resolve@5.24.5:
     resolution: {integrity: sha512-L1l8TNvomm6UVW5B253AGxQagSQr+vGwhMlrrfRS2qmhx46AMpMVJKQYLvWYbysTMY8VoicOvzHzoHMbyzB+4A==}
     engines: {node: '>=10.13.0'}
@@ -3021,8 +3028,8 @@ packages:
     engines: {node: '>=20.0.0'}
     hasBin: true
 
-  webevm@0.5.0:
-    resolution: {integrity: sha512-vrcXT7rXSjZeH4tmlARciqlLcYniJy6opfCn+mmKNRLu4WhdCSHol1i0R0WQ4RQ2O2tZk05NldzVUEv53BG+jA==}
+  webevm@0.9.0:
+    resolution: {integrity: sha512-QXcXPa9tnQANIG6JJHeot3ecp2PZGcDzbn3+7oJGmaq6Ak02znTbc13IxhQd/sFT2etVZ67FMYY4PF5nAD7B8Q==}
     peerDependencies:
       comlink: ^4.4.2
     peerDependenciesMeta:
@@ -3105,6 +3112,10 @@ snapshots:
   '@blazediff/core@1.9.1': {}
 
   '@bytecodealliance/preview2-shim@0.19.0': {}
+
+  '@eip-1193/over-port@0.1.0':
+    dependencies:
+      eip-1193: 0.7.1
 
   '@emnapi/runtime@1.11.3':
     dependencies:
@@ -4617,6 +4628,8 @@ snapshots:
 
   eip-1193@0.6.5: {}
 
+  eip-1193@0.7.1: {}
+
   enhanced-resolve@5.24.5:
     dependencies:
       graceful-fs: 4.2.11
@@ -5861,11 +5874,14 @@ snapshots:
       - debug
       - supports-color
 
-  webevm@0.5.0:
+  webevm@0.9.0:
     dependencies:
+      '@eip-1193/over-port': 0.1.0
       '@ethereumjs/block': 10.1.3
       '@ethereumjs/common': 10.1.3
       '@ethereumjs/evm': 10.1.3
+      '@ethereumjs/mpt': 10.1.3
+      '@ethereumjs/rlp': 10.1.3
       '@ethereumjs/statemanager': 10.1.3
       '@ethereumjs/tx': 10.1.3
       '@ethereumjs/util': 10.1.3

@@ -27,6 +27,11 @@ export type StartEmbeddedNodeParams = {
 	persistence?: NodeOptions['persistence'];
 	blockGasLimit?: bigint;
 	/**
+	 * How many blocks below the head stay readable. Defaults to
+	 * `STATE_HISTORY_BLOCKS`; see there for why a world needs any at all.
+	 */
+	stateHistoryBlocks?: number;
+	/**
 	 * The node factory. Injected ONLY so a caller can supply a Worker-hosted node
 	 * (`createWorkerNode`) or a faster engine without this module knowing about
 	 * either. Defaults to the main-thread one.
@@ -63,6 +68,31 @@ export type StartEmbeddedNodeParams = {
  */
 const MINING = {type: 'auto'} as const;
 
+/**
+ * THE NODE KEEPS THE LAST 64 BLOCKS READABLE, because a reader that wants
+ * several reads to describe ONE block pins them to a block it has just been told
+ * is the head, and under automine the head moves whenever anybody sends anything:
+ * a seat the world plays, the player's own commit. The polling state store
+ * downstream does exactly that (template-commit-reveal's `onchain/state.ts`
+ * reads the head, and its games pin each `readContract` batch to it), so this is
+ * the mechanism's to answer, not each game's.
+ *
+ * Up to webevm 0.7.0 the node ignored the pin and answered from the head. Since
+ * 0.8.0 it refuses a state read below its head unless it keeps a window of
+ * history (`-32000 historical state not available`), and a refused poll backs
+ * off behind the health banner. Found reviewing the webevm 0.9.0 cascade
+ * (2026-10-26); `test/lib/embedded/node.test.ts` pins it.
+ *
+ * WHY 64. The window only has to outlast the gap between a reader learning the
+ * head and its last pinned call, which is milliseconds, in which a world mines
+ * at most a handful of blocks (one per transaction its seats and the player
+ * send). 64 is that with a wide margin. It is not free: webevm keeps, per
+ * retained block, the prior value of every key the block changed (about 300
+ * bytes each, its README's "What it costs"), and the persisted dump carries
+ * them, so a window of thousands would grow the dump written after every block.
+ */
+export const STATE_HISTORY_BLOCKS = 64;
+
 export async function startEmbeddedNode(
 	params: StartEmbeddedNodeParams,
 ): Promise<EmbeddedNode> {
@@ -71,12 +101,14 @@ export async function startEmbeddedNode(
 		initialBalances,
 		persistence,
 		blockGasLimit,
+		stateHistoryBlocks = STATE_HISTORY_BLOCKS,
 		createNode: create = createNode,
 	} = params;
 
 	const node = await create({
 		chainId,
 		miningConfig: MINING,
+		stateHistory: {blocks: stateHistoryBlocks},
 		...(initialBalances ? {initialBalances} : {}),
 		...(persistence ? {persistence} : {}),
 		...(blockGasLimit === undefined ? {} : {blockGasLimit}),
