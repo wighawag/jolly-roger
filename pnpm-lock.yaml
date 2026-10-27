@@ -141,8 +141,8 @@ importers:
   web:
     devDependencies:
       '@etherkit/burner-wallet':
-        specifier: ^0.2.1
-        version: 0.2.1(typescript@6.0.3)(viem@2.55.19(typescript@6.0.3)(zod@4.4.3))(zod@4.4.3)
+        specifier: ^0.2.2
+        version: 0.2.2(typescript@6.0.3)(viem@2.55.19(typescript@6.0.3)(zod@4.4.3))(zod@4.4.3)
       '@etherkit/tx-observer':
         specifier: 0.3.0
         version: 0.3.0
@@ -473,8 +473,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@etherkit/burner-wallet@0.2.1':
-    resolution: {integrity: sha512-IbTMTqyUN5/JOTx6iqPVwrWYmrNYeJH40qLSZqLKyZYCIFim0ruO/PSvy5Q3fhfFK57ggDt2VUqa30dREtyD+Q==}
+  '@etherkit/burner-wallet@0.2.2':
+    resolution: {integrity: sha512-8sz8M0fyhImW1jRBlaZTEM0xaEgRWDJ69ffIsW1opJUTHQYs0swVtxY0pxUo6PaX+p1el0ysJ+JHWGoDmo4Pag==}
     peerDependencies:
       viem: ^2.0.0
 
@@ -3319,7 +3319,7 @@ snapshots:
   '@esbuild/win32-x64@0.28.2':
     optional: true
 
-  '@etherkit/burner-wallet@0.2.1(typescript@6.0.3)(viem@2.55.19(typescript@6.0.3)(zod@4.4.3))(zod@4.4.3)':
+  '@etherkit/burner-wallet@0.2.2(typescript@6.0.3)(viem@2.55.19(typescript@6.0.3)(zod@4.4.3))(zod@4.4.3)':
     dependencies:
       eip-1193: 0.7.4
       eip-1193-accounts-wrapper: 0.3.0(typescript@6.0.3)(zod@4.4.3)
