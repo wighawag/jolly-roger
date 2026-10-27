@@ -31,7 +31,7 @@ importers:
     dependencies:
       '@etherplay/delegation':
         specifier: ^0.1.1
-        version: 0.1.1
+        version: 0.1.2
     devDependencies:
       '@nomicfoundation/hardhat-keystore':
         specifier: ^3.0.13
@@ -153,6 +153,12 @@ importers:
       '@etherplay/connect':
         specifier: ^0.17.0
         version: 0.17.0
+      '@etherplay/wallet-connector':
+        specifier: ^0.2.1
+        version: 0.2.1
+      '@etherplay/wallet-connector-ethereum':
+        specifier: ^0.4.0
+        version: 0.4.0
       '@internationalized/date':
         specifier: ^3.12.3
         version: 3.12.3
@@ -165,6 +171,9 @@ importers:
       '@playwright/test':
         specifier: ^1.62.1
         version: 1.62.1
+      '@rocketh/web':
+        specifier: ^0.19.27
+        version: 0.19.29(rocketh@0.25.0(typescript@6.0.3)(zod@4.4.3))(typescript@6.0.3)(zod@4.4.3)
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
         version: 3.0.10(@sveltejs/kit@2.70.3(@sveltejs/vite-plugin-svelte@7.3.0(svelte@5.56.9)(vite@8.2.1(@types/node@26.2.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)))(svelte@5.56.9)(typescript@6.0.3)(vite@8.2.1(@types/node@26.2.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)))
@@ -204,6 +213,9 @@ importers:
       ipfs-gateway-emulator:
         specifier: ^5.1.0
         version: 5.1.0
+      jolly-roger-contracts:
+        specifier: workspace:*
+        version: link:../contracts
       json-stable-stringify:
         specifier: ^1.3.0
         version: 1.3.0
@@ -285,6 +297,9 @@ importers:
       vitest-browser-svelte:
         specifier: ^3.0.0
         version: 3.0.0(svelte@5.56.9)(vitest@4.1.11)
+      webevm:
+        specifier: ^0.9.1
+        version: 0.9.1
 
 packages:
 
@@ -311,6 +326,9 @@ packages:
 
   '@eip-1193/jsonrpc-provider@0.6.0':
     resolution: {integrity: sha512-9+0lRur/WqeV1Gbx9cqnZB6oaL/Io9jkBxDc1YymT9cKdlOeOVGlvjMEtaGlMiSPE25OnX3a7OEX2BDBFJeqyQ==}
+
+  '@eip-1193/over-port@0.2.0':
+    resolution: {integrity: sha512-ni89zinQ1Kzal4wQKEdZfPAukYIfEmIs4W18ssOdVbuhZAcr4T5JT0gZ3HvBHg+l7pTVEkab9WjYI+SNA1fMUQ==}
 
   '@eip-1193/signer@0.4.1':
     resolution: {integrity: sha512-xL91MRttMgQeoTomMgBZNc01Rzb++0BwHPOyAuu86DiVGgorgJ/3m888JfW8muBEAZZWPHhGozhUMbauW+hhVw==}
@@ -473,6 +491,45 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@ethereumjs/binarytree@10.1.3':
+    resolution: {integrity: sha512-XWHuNNVZVtSfr6/2UbAhCXf848s4rNKUuVKFNG6O18lz0anuaMiIADfNQJ5DOhOfflZVIPRvGWegDMoU6xRaBA==}
+    engines: {node: '>=20'}
+
+  '@ethereumjs/block@10.1.3':
+    resolution: {integrity: sha512-6c0U1T1VMv44l7WXL6RWDiP26o/Cv53Z+9C07+5WJHNrYM7S2S/DsOCVog95Hhh0E9KCRjoCu3bzSsxQynu8Og==}
+    engines: {node: '>=20'}
+
+  '@ethereumjs/common@10.1.3':
+    resolution: {integrity: sha512-ECWwbc4s8Ji7U0mkfZP6gIDy1FxXe0ZyVOTt0adkztPQRzX2DbH2ul7a83DSS8qYAiG6//vVXMkP60TyYOnv8Q==}
+
+  '@ethereumjs/evm@10.1.3':
+    resolution: {integrity: sha512-7C6oo3f1rvtsFAQOURcmEkyUTBTePBbQUgWTfzrual8kbb0R8053rY+PolvFDETfVSK/TrPzZFhFe5sgz+Clgw==}
+    engines: {node: '>=20'}
+
+  '@ethereumjs/mpt@10.1.3':
+    resolution: {integrity: sha512-pN43KoH8V0afpIltMFJf0tSSpX9Xssp9LGAyamnYc93oe0r8bRafeizPWR9aDsS+WXSg/IWQscoZ3xTybQSYoA==}
+    engines: {node: '>=20'}
+
+  '@ethereumjs/rlp@10.1.3':
+    resolution: {integrity: sha512-d795YWkN6O8EJh/PgJ2zZKCdBMl8OlqkuVQESoidH666gaFtUuJ01jDtiuqfyOqTNcTdGhHi8LkQv1WEZzvZZw==}
+    engines: {node: '>=20'}
+    hasBin: true
+
+  '@ethereumjs/statemanager@10.1.3':
+    resolution: {integrity: sha512-d56NBae8xjh/ZY+orqvIfE30WLHOn2okacUekbM9J7VZrokjxQ2800sb6K6srffoSekcgbHxIWFJ3r+81jzrrA==}
+
+  '@ethereumjs/tx@10.1.3':
+    resolution: {integrity: sha512-5uk9qB2MjyF4axL6GGPvYODe3uR/h6k36boDbvjH81WYFphw/JAIrI1thkWQX4BCyF8bi6suxORhi+vDc3lPlg==}
+    engines: {node: '>=20'}
+
+  '@ethereumjs/util@10.1.3':
+    resolution: {integrity: sha512-PhezOVe4DFaC+QLIsnK/tiOaXjpjS2F9AH4Ez0EfWevFw9NWNSg95l7I0dWuHF0B7v9odm2Ijqwo0EnARXtUmA==}
+    engines: {node: '>=20'}
+
+  '@ethereumjs/vm@10.1.3':
+    resolution: {integrity: sha512-tnhWnQOgA6AkgWTjDg2dcF11tlTV9eOq/VJdyzo06DwN7PzKHDEacI3tge+40Izqt9KqX16Nc37Agd8dqhDYMw==}
+    engines: {node: '>=20'}
 
   '@etherkit/burner-wallet@0.2.1':
     resolution: {integrity: sha512-IbTMTqyUN5/JOTx6iqPVwrWYmrNYeJH40qLSZqLKyZYCIFim0ruO/PSvy5Q3fhfFK57ggDt2VUqa30dREtyD+Q==}
@@ -713,6 +770,9 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
+
+  '@js-sdsl/ordered-map@4.4.2':
+    resolution: {integrity: sha512-iUKgm52T8HOE/makSxjqoWhe95ZJA1/G1sYsGev2JDKUSS14KAgg1LHb+Ba+IPow0xflbnSkOsZcO08C7w1gYw==}
 
   '@libsql/client@0.17.4':
     resolution: {integrity: sha512-lYayFWasDV78A+TjlEhr6ubb3odBV6OHjb+wdp8VQcyWWAEIjuwbCHaraEUS4m4yWoo0BvZo96It4VdzZRmRWw==}
@@ -1109,6 +1169,11 @@ packages:
     resolution: {integrity: sha512-eF6laedxoiZmy5MsB8oyLGgZ/V/ck61diF/qBxpPrgp/QpDsye213A1NL1qTHQhcYCsfcg1xOCYDnUPeQMxR7w==}
     peerDependencies:
       viem: ^2.45.0
+
+  '@rocketh/web@0.19.29':
+    resolution: {integrity: sha512-JE96iwrh4C9+QuRk4dVCpsCPYDckw4WZtfO1x+Wpf9rSBC/ot5ViVkyiNFI593FkCsOPejXvxYJSq6RhSRxhXw==}
+    peerDependencies:
+      rocketh: ^0.25.0
 
   '@rolldown/binding-android-arm-eabi@1.2.5':
     resolution: {integrity: sha512-DLe/i+l8ynIBY7XEQ191TeZvCoowIGa18R+dIV30GW7DiOtp74i/xX8hs8GUjW5ARV7VZuie3d6AumSmCwbeRA==}
@@ -2193,6 +2258,10 @@ packages:
   lodash@4.18.1:
     resolution: {integrity: sha512-dMInicTPVE8d1e5otfwmmjlxkZoUpiVLwyeTdUsi/Caj/gfzzblBcCE5sRHV/AsjuCmxWrte2TNGSYuCeCq+0Q==}
 
+  lru-cache@11.0.2:
+    resolution: {integrity: sha512-123qHRfJBmo2jXDbo/a5YOQrJoHF/GNQTLzQ5+IdK5pWpceK17yRc6ozlWd25FxvGKQbIUs91fDFkXmDHTKcyA==}
+    engines: {node: 20 || >=22}
+
   lz-string@1.5.0:
     resolution: {integrity: sha512-h5bgJWpxJNswbU7qCrV0tIKQCaS3blPDrqKWx+QxzuzL1zGUzij9XCWLrSLsJPu5t+eWA/ycetzYAO5IOMcWAQ==}
     hasBin: true
@@ -2506,6 +2575,9 @@ packages:
   reusify@1.1.0:
     resolution: {integrity: sha512-g6QUff04oZpHs0eG5p83rFLhHeV00ug/Yf9nZM6fLeUrPguBTkTQOdpAWWspMh55TZfVQDPaN3NQJfbVRAxdIw==}
     engines: {iojs: '>=1.0.0', node: '>=0.10.0'}
+
+  revm-wasm@0.3.1:
+    resolution: {integrity: sha512-nUEcnoiojMSFhnGGdog3+VvJcnQZ5bbW3Shm8vycoj2E5gQlID0aSVT/Sj+DBxoWiVt2XYv4y6i2xLL2l177ow==}
 
   rfdc@1.4.1:
     resolution: {integrity: sha512-q1b3N5QkRUWUl7iyylaaj3kOpIT0N2i9MqIEQXP73GVsN9cw3fdx8X63cEmWhJGi2PPCF23Ijp7ktmd39rawIA==}
@@ -2944,6 +3016,14 @@ packages:
     engines: {node: '>=20.0.0'}
     hasBin: true
 
+  webevm@0.9.1:
+    resolution: {integrity: sha512-esC4SHLultXQ8Mc4GVUbO/wmn8Nz+DKDgXACfI3ZpedeO+K0EKojbV5rPFaECxGQTBnKgdGA1Ao9Ul7sOqcGDQ==}
+    peerDependencies:
+      comlink: ^4.4.2
+    peerDependenciesMeta:
+      comlink:
+        optional: true
+
   which@2.0.2:
     resolution: {integrity: sha512-BLI3Tl1TW3Pvl70l3yq3Y64i+awpwXqsGBYWkkqMtnbXgrMD+yj7rhW0kuEDxzJaYXGjEW5ogapKNMEKNMjibA==}
     engines: {node: '>= 8'}
@@ -3026,6 +3106,10 @@ snapshots:
       eip-1193: 0.7.4
       named-logs: 0.3.2
       promise-throttle: 1.1.2
+
+  '@eip-1193/over-port@0.2.0':
+    dependencies:
+      eip-1193: 0.7.4
 
   '@eip-1193/signer@0.4.1(typescript@6.0.3)(zod@3.25.76)':
     dependencies:
@@ -3119,6 +3203,101 @@ snapshots:
 
   '@esbuild/win32-x64@0.28.2':
     optional: true
+
+  '@ethereumjs/binarytree@10.1.3':
+    dependencies:
+      '@ethereumjs/rlp': 10.1.3
+      '@ethereumjs/util': 10.1.3
+      '@noble/hashes': 2.2.0
+      debug: 4.4.3
+      lru-cache: 11.0.2
+    transitivePeerDependencies:
+      - supports-color
+
+  '@ethereumjs/block@10.1.3':
+    dependencies:
+      '@ethereumjs/common': 10.1.3
+      '@ethereumjs/mpt': 10.1.3
+      '@ethereumjs/rlp': 10.1.3
+      '@ethereumjs/tx': 10.1.3
+      '@ethereumjs/util': 10.1.3
+      '@noble/curves': 2.2.0
+      '@noble/hashes': 2.2.0
+    transitivePeerDependencies:
+      - supports-color
+
+  '@ethereumjs/common@10.1.3':
+    dependencies:
+      '@ethereumjs/util': 10.1.3
+      eventemitter3: 5.0.1
+
+  '@ethereumjs/evm@10.1.3':
+    dependencies:
+      '@ethereumjs/common': 10.1.3
+      '@ethereumjs/statemanager': 10.1.3
+      '@ethereumjs/util': 10.1.3
+      '@noble/curves': 2.2.0
+      '@noble/hashes': 2.2.0
+      debug: 4.4.3
+      eventemitter3: 5.0.1
+    transitivePeerDependencies:
+      - supports-color
+
+  '@ethereumjs/mpt@10.1.3':
+    dependencies:
+      '@ethereumjs/rlp': 10.1.3
+      '@ethereumjs/util': 10.1.3
+      '@noble/hashes': 2.2.0
+      debug: 4.4.3
+      lru-cache: 11.0.2
+    transitivePeerDependencies:
+      - supports-color
+
+  '@ethereumjs/rlp@10.1.3': {}
+
+  '@ethereumjs/statemanager@10.1.3':
+    dependencies:
+      '@ethereumjs/binarytree': 10.1.3
+      '@ethereumjs/common': 10.1.3
+      '@ethereumjs/mpt': 10.1.3
+      '@ethereumjs/rlp': 10.1.3
+      '@ethereumjs/util': 10.1.3
+      '@js-sdsl/ordered-map': 4.4.2
+      '@noble/hashes': 2.2.0
+      debug: 4.4.3
+      lru-cache: 11.0.2
+    transitivePeerDependencies:
+      - supports-color
+
+  '@ethereumjs/tx@10.1.3':
+    dependencies:
+      '@ethereumjs/common': 10.1.3
+      '@ethereumjs/rlp': 10.1.3
+      '@ethereumjs/util': 10.1.3
+      '@noble/curves': 2.2.0
+      '@noble/hashes': 2.2.0
+
+  '@ethereumjs/util@10.1.3':
+    dependencies:
+      '@ethereumjs/rlp': 10.1.3
+      '@noble/curves': 2.2.0
+      '@noble/hashes': 2.2.0
+
+  '@ethereumjs/vm@10.1.3':
+    dependencies:
+      '@ethereumjs/block': 10.1.3
+      '@ethereumjs/common': 10.1.3
+      '@ethereumjs/evm': 10.1.3
+      '@ethereumjs/mpt': 10.1.3
+      '@ethereumjs/rlp': 10.1.3
+      '@ethereumjs/statemanager': 10.1.3
+      '@ethereumjs/tx': 10.1.3
+      '@ethereumjs/util': 10.1.3
+      '@noble/hashes': 2.2.0
+      debug: 4.4.3
+      eventemitter3: 5.0.1
+    transitivePeerDependencies:
+      - supports-color
 
   '@etherkit/burner-wallet@0.2.1(typescript@6.0.3)(viem@2.55.19(typescript@6.0.3)(zod@4.4.3))(zod@4.4.3)':
     dependencies:
@@ -3345,6 +3524,8 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  '@js-sdsl/ordered-map@4.4.2': {}
 
   '@libsql/client@0.17.4':
     dependencies:
@@ -3684,6 +3865,18 @@ snapshots:
       - utf-8-validate
       - zod
 
+  '@rocketh/core@0.25.0(typescript@6.0.3)(zod@4.4.3)':
+    dependencies:
+      abitype: 1.3.0(typescript@6.0.3)(zod@4.4.3)
+      eip-1193: 0.7.4
+      named-logs: 0.4.1
+      viem: 2.55.19(typescript@6.0.3)(zod@4.4.3)
+    transitivePeerDependencies:
+      - bufferutil
+      - typescript
+      - utf-8-validate
+      - zod
+
   '@rocketh/deploy@0.22.2(typescript@6.0.3)(zod@3.25.76)':
     dependencies:
       '@rocketh/core': 0.25.0(typescript@6.0.3)(zod@3.25.76)
@@ -3830,6 +4023,18 @@ snapshots:
       eip-1193: 0.7.4
       named-logs: 0.4.1
       viem: 2.55.19(typescript@6.0.3)(zod@3.25.76)
+    transitivePeerDependencies:
+      - bufferutil
+      - typescript
+      - utf-8-validate
+      - zod
+
+  '@rocketh/web@0.19.29(rocketh@0.25.0(typescript@6.0.3)(zod@4.4.3))(typescript@6.0.3)(zod@4.4.3)':
+    dependencies:
+      '@rocketh/core': 0.25.0(typescript@6.0.3)(zod@4.4.3)
+      ldenv: 0.6.0
+      rocketh: 0.25.0(typescript@6.0.3)(zod@4.4.3)
+      tsx: 4.23.12
     transitivePeerDependencies:
       - bufferutil
       - typescript
@@ -4178,6 +4383,11 @@ snapshots:
     optionalDependencies:
       typescript: 6.0.3
       zod: 3.25.76
+
+  abitype@1.3.0(typescript@6.0.3)(zod@4.4.3):
+    optionalDependencies:
+      typescript: 6.0.3
+      zod: 4.4.3
 
   acorn@8.18.0: {}
 
@@ -4904,6 +5114,8 @@ snapshots:
 
   lodash@4.18.1: {}
 
+  lru-cache@11.0.2: {}
+
   lz-string@1.5.0: {}
 
   magic-string@0.30.21:
@@ -5167,6 +5379,8 @@ snapshots:
 
   reusify@1.1.0: {}
 
+  revm-wasm@0.3.1: {}
+
   rfdc@1.4.1: {}
 
   rocketh@0.25.0(typescript@6.0.3)(zod@3.25.76):
@@ -5174,6 +5388,21 @@ snapshots:
       '@eip-1193/jsonrpc-provider': 0.6.0
       '@rocketh/core': 0.25.0(typescript@6.0.3)(zod@3.25.76)
       abitype: 1.3.0(typescript@6.0.3)(zod@3.25.76)
+      change-case: 5.4.4
+      eip-1193: 0.7.4
+      ldenv: 0.6.0
+      named-logs: 0.4.1
+    transitivePeerDependencies:
+      - bufferutil
+      - typescript
+      - utf-8-validate
+      - zod
+
+  rocketh@0.25.0(typescript@6.0.3)(zod@4.4.3):
+    dependencies:
+      '@eip-1193/jsonrpc-provider': 0.6.0
+      '@rocketh/core': 0.25.0(typescript@6.0.3)(zod@4.4.3)
+      abitype: 1.3.0(typescript@6.0.3)(zod@4.4.3)
       change-case: 5.4.4
       eip-1193: 0.7.4
       ldenv: 0.6.0
@@ -5628,6 +5857,23 @@ snapshots:
       rxjs: 7.8.2
     transitivePeerDependencies:
       - debug
+      - supports-color
+
+  webevm@0.9.1:
+    dependencies:
+      '@eip-1193/over-port': 0.2.0
+      '@ethereumjs/block': 10.1.3
+      '@ethereumjs/common': 10.1.3
+      '@ethereumjs/evm': 10.1.3
+      '@ethereumjs/mpt': 10.1.3
+      '@ethereumjs/rlp': 10.1.3
+      '@ethereumjs/statemanager': 10.1.3
+      '@ethereumjs/tx': 10.1.3
+      '@ethereumjs/util': 10.1.3
+      '@ethereumjs/vm': 10.1.3
+      '@noble/hashes': 2.2.0
+      revm-wasm: 0.3.1
+    transitivePeerDependencies:
       - supports-color
 
   which@2.0.2:
