@@ -1,7 +1,9 @@
+import {walletPrompts} from '@etherplay/connect';
 import type {
 	AnyConnectionStore,
 	Connection,
 	UnderlyingEthereumProvider,
+	WalletInfo,
 } from '@etherplay/connect';
 
 /**
@@ -83,7 +85,11 @@ export type ConnectionStateSnapshot = Partial<
 	Pick<ConnectionState, 'step'> & {
 		pendingRequests: readonly PendingRequestSnapshot[];
 		mechanism: Partial<{type: string; name: string; address: string}>;
+		/** The wallets on offer, read for their `info` (see {@link activeWalletInfo}). */
+		wallets: readonly {info: WalletInfo}[];
 		wallet: Partial<{
+			/** Which wallet this is, stamped by @etherplay/connect from the chosen handle. */
+			info: WalletInfo;
 			accountChanged: `0x${string}`;
 			/**
 			 * Pinned to the upstream union rather than widened to `string`, on the
@@ -421,20 +427,47 @@ function waitForConnected(
 }
 
 /**
- * A burner wallet is still in its selection phase (not yet actively connecting).
+ * The `info` of the wallet the flow is about, if it is about one.
  *
- * TODO: replace this burner-wallet-specific detection with a generic signal,
- * e.g. an `auto` mode or a provider field like `requiresNoUserConfirmation`.
+ * Once a wallet state exists, @etherplay/connect stamps the chosen handle's
+ * `info` on it, so that is read first. Before then (waiting for the wallet to
+ * answer the connection request, `wallet` is still undefined) the mechanism
+ * only carries the wallet's name, and the same handle is looked up in the
+ * offered `wallets` by that name. That is the connection naming its own
+ * handle, not the app naming a wallet it knows about.
  */
-export function isBurnerWalletInSelectionPhase(
+export function activeWalletInfo(
 	state: ConnectionStateSnapshot,
-): boolean {
-	return (
-		state.step !== 'Idle' &&
-		state.step !== 'MechanismToChoose' &&
-		state.mechanism?.type === 'wallet' &&
-		state.mechanism?.name === 'Burner Wallet'
-	);
+): WalletInfo | undefined {
+	if (state.mechanism?.type !== 'wallet') return undefined;
+	// A wallet state with no `info` is the library saying it cannot tell which
+	// handle this provider is: "not known", which must read as "prompts". Only
+	// when there is no wallet state at all is the name a fair way in.
+	if (state.wallet) return state.wallet.info;
+	const name = state.mechanism.name;
+	if (name === undefined) return undefined;
+	return state.wallets?.find((w) => w.info.name === name)?.info;
+}
+
+/**
+ * The wallet in use never prompts: it declared `info.autoApproves`, which the
+ * burner wallet (@etherkit/burner-wallet 0.2.2 and later) and any wallet the
+ * app constructs with its own key can do.
+ *
+ * Read through `walletPrompts`, so the default lives in the library: a wallet
+ * that says nothing, or one this cannot identify, is assumed to prompt. Not
+ * while no wallet has been picked yet (`Idle`, `MechanismToChoose`): a request
+ * there belongs to no wallet the user chose, so nothing is known to be silent.
+ *
+ * It replaces a match on the name "Burner Wallet". Since @etherplay/connect
+ * 0.17 the library already announces no pending request for such a wallet;
+ * what this still decides is the app's own signal (a dispatch in flight, see
+ * `shouldPromptForWalletAction`), which knows nothing about who signs.
+ */
+export function walletAutoApproves(state: ConnectionStateSnapshot): boolean {
+	if (state.step === 'Idle' || state.step === 'MechanismToChoose') return false;
+	const info = activeWalletInfo(state);
+	return info !== undefined && !walletPrompts(info);
 }
 
 /**
@@ -476,13 +509,10 @@ export function canDismissConnection(state: ConnectionStateSnapshot): boolean {
 
 /**
  * Whether to show the "confirm the request in your wallet" prompt: there is a
- * pending wallet request and we're not in the burner-wallet selection phase.
+ * pending wallet request, and the wallet in use is not one that never prompts.
  */
 export function hasPendingWalletRequest(
 	state: ConnectionStateSnapshot,
 ): boolean {
-	return (
-		(state.pendingRequests?.length ?? 0) > 0 &&
-		!isBurnerWalletInSelectionPhase(state)
-	);
+	return (state.pendingRequests?.length ?? 0) > 0 && !walletAutoApproves(state);
 }

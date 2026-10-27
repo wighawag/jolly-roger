@@ -1,6 +1,7 @@
 import {describe, it, expect} from 'vitest';
 import {
-	isBurnerWalletInSelectionPhase,
+	walletAutoApproves,
+	activeWalletInfo,
 	hasPendingWalletRequest,
 	walletEntryMode,
 	resolveSignInAddress,
@@ -18,40 +19,143 @@ const wallet = (name: string) => ({info: {name, icon: ''}});
 const addr = (n: number) =>
 	`0x${n.toString(16).padStart(40, '0')}` as `0x${string}`;
 
-describe('isBurnerWalletInSelectionPhase', () => {
-	it('is true for an active burner wallet mechanism', () => {
+/** A full `WalletInfo`, as a handle or a stamped wallet state carries it. */
+const info = (name: string, autoApproves?: boolean) => ({
+	uuid: `uuid:${name}`,
+	name,
+	icon: '',
+	rdns: `test.${name.toLowerCase().replace(/\s+/g, '-')}`,
+	...(autoApproves === undefined ? {} : {autoApproves}),
+});
+/** The offered wallets: one that never prompts, one that says nothing. */
+const silentAndLoud = [
+	{info: info('Silent Wallet', true)},
+	{info: info('MetaMask')},
+];
+
+describe('walletAutoApproves', () => {
+	it('is true once a wallet that declared autoApproves is connected', () => {
 		expect(
-			isBurnerWalletInSelectionPhase({
+			walletAutoApproves({
 				step: 'WalletConnected',
-				mechanism: {type: 'wallet', name: 'Burner Wallet'},
+				mechanism: {type: 'wallet', name: 'Silent Wallet'},
+				wallet: {info: info('Silent Wallet', true)},
 			}),
 		).toBe(true);
 	});
 
-	it('is false in Idle / MechanismToChoose or non-burner wallets', () => {
+	it('finds the chosen handle by its name before a wallet state exists', () => {
+		// WaitingForWalletConnection: `wallet` is undefined, only the mechanism
+		// names the wallet, and the offered list says what it is.
 		expect(
-			isBurnerWalletInSelectionPhase({
-				step: 'Idle',
+			walletAutoApproves({
+				step: 'WaitingForWalletConnection',
+				mechanism: {type: 'wallet', name: 'Silent Wallet'},
+				wallets: silentAndLoud,
+			}),
+		).toBe(true);
+	});
+
+	it('does not care what the wallet is called', () => {
+		// The old check matched the name "Burner Wallet". A burner announced
+		// under another name is still silent, and a wallet that merely calls
+		// itself that is not, unless it says so.
+		expect(
+			walletAutoApproves({
+				step: 'WalletConnected',
+				mechanism: {type: 'wallet', name: 'Dev Burner'},
+				wallet: {info: info('Dev Burner', true)},
+			}),
+		).toBe(true);
+		expect(
+			walletAutoApproves({
+				step: 'WalletConnected',
 				mechanism: {type: 'wallet', name: 'Burner Wallet'},
+				wallet: {info: info('Burner Wallet')},
 			}),
 		).toBe(false);
+	});
+
+	it('is false for a wallet that prompts, or one it cannot identify', () => {
 		expect(
-			isBurnerWalletInSelectionPhase({
-				step: 'MechanismToChoose',
-				mechanism: {type: 'wallet', name: 'Burner Wallet'},
-			}),
-		).toBe(false);
-		expect(
-			isBurnerWalletInSelectionPhase({
+			walletAutoApproves({
 				step: 'WalletConnected',
 				mechanism: {type: 'wallet', name: 'MetaMask'},
+				wallets: silentAndLoud,
 			}),
 		).toBe(false);
+		expect(
+			walletAutoApproves({
+				step: 'WalletConnected',
+				mechanism: {type: 'wallet', name: 'Unlisted'},
+				wallets: silentAndLoud,
+			}),
+		).toBe(false);
+		expect(
+			walletAutoApproves({
+				step: 'WalletConnected',
+				mechanism: {type: 'wallet', name: 'Silent Wallet'},
+			}),
+		).toBe(false);
+	});
+
+	it('is false before a wallet is picked, and for a non-wallet mechanism', () => {
+		for (const step of ['Idle', 'MechanismToChoose'] as const) {
+			expect(
+				walletAutoApproves({
+					step,
+					mechanism: {type: 'wallet', name: 'Silent Wallet'},
+					wallets: silentAndLoud,
+				}),
+			).toBe(false);
+		}
+		expect(
+			walletAutoApproves({
+				step: 'SignedIn',
+				mechanism: {type: 'email', name: 'Silent Wallet'},
+				wallets: silentAndLoud,
+			}),
+		).toBe(false);
+	});
+
+	it('does not guess by name when the wallet state carries no info', () => {
+		// connect leaves `wallet.info` absent when it cannot tell which handle the
+		// provider came from; borrowing a same-named handle's flag would silence a
+		// request the user is really being asked about.
+		expect(
+			walletAutoApproves({
+				step: 'WalletConnected',
+				mechanism: {type: 'wallet', name: 'Silent Wallet'},
+				wallet: {},
+				wallets: silentAndLoud,
+			}),
+		).toBe(false);
+	});
+
+	it('is false while no wallet is named yet (WalletToChoose)', () => {
+		expect(
+			walletAutoApproves({
+				step: 'WalletToChoose',
+				mechanism: {type: 'wallet'},
+				wallets: silentAndLoud,
+			}),
+		).toBe(false);
+	});
+
+	it('prefers the stamped info over the list', () => {
+		expect(
+			activeWalletInfo({
+				step: 'WalletConnected',
+				mechanism: {type: 'wallet', name: 'Silent Wallet'},
+				wallet: {info: info('Silent Wallet')},
+				wallets: silentAndLoud,
+			})?.autoApproves,
+		).toBeUndefined();
 	});
 });
 
 describe('hasPendingWalletRequest', () => {
-	it('is true when there are pending requests and not in burner selection', () => {
+	it('is true when there are pending requests and the wallet prompts', () => {
 		expect(
 			hasPendingWalletRequest({
 				step: 'WalletConnected',
@@ -70,11 +174,12 @@ describe('hasPendingWalletRequest', () => {
 		).toBe(false);
 	});
 
-	it('is suppressed during the burner selection phase', () => {
+	it('is suppressed for a wallet that never prompts', () => {
 		expect(
 			hasPendingWalletRequest({
 				step: 'WalletConnected',
-				mechanism: {type: 'wallet', name: 'Burner Wallet'},
+				mechanism: {type: 'wallet', name: 'Silent Wallet'},
+				wallets: silentAndLoud,
 				pendingRequests: [{}],
 			}),
 		).toBe(false);
@@ -366,14 +471,16 @@ describe('canDismissConnection: not losing a flow to a stray click', () => {
 		).toBe(false);
 	});
 
-	it('allows one while a burner wallet is still being selected', () => {
-		// hasPendingWalletRequest suppresses itself during the burner selection
-		// phase, so a pending request there does not freeze the flow. Nothing is
-		// waiting on a human in another window, so there is nothing to protect.
+	it('allows one while connecting to a wallet that never prompts', () => {
+		// hasPendingWalletRequest suppresses itself for a wallet that declared
+		// autoApproves, so a pending request there does not freeze the flow.
+		// Nothing is waiting on a human in another window, so there is nothing to
+		// protect.
 		expect(
 			canDismissConnection({
-				step: 'WalletToChoose',
-				mechanism: {type: 'wallet', name: 'Burner Wallet'},
+				step: 'ChooseWalletAccount',
+				mechanism: {type: 'wallet', name: 'Silent Wallet'},
+				wallet: {info: info('Silent Wallet', true)},
 				pendingRequests: [{}],
 			}),
 		).toBe(true);
