@@ -6,6 +6,7 @@ import type {
 } from '@etherplay/connect';
 import type {Account} from 'viem';
 import {isUserRejectionError} from '$lib/core/transaction';
+import {walletAutoApproves} from '$lib/core/connection/connection-flow';
 import {
 	causeChain,
 	revertedErrorNames,
@@ -56,19 +57,15 @@ export type DelegationAccount = {
 };
 
 /**
- * The wallet that signs without ever showing the user anything.
+ * Whether the owner's wallet will sign without prompting.
  *
  * The development burner keeps its key in this browser's storage and signs
  * silently, so telling the user "your wallet will ask you to sign" is simply
  * false there: nothing opens, and they sit waiting for a prompt that is not
- * coming. Matched by the name it announces over EIP-6963, which is the only
- * thing that identifies it - there is no capability flag for "prompts", and
- * inventing one for a single dev tool would be worse than naming it.
- */
-const SILENT_WALLET_NAME = 'Burner Wallet';
-
-/**
- * Whether the owner's wallet will sign without prompting.
+ * coming. It says so itself, as `info.autoApproves` in its EIP-6963
+ * announcement (@etherkit/burner-wallet 0.2.2 and later), and
+ * {@link walletAutoApproves} reads that the way the connection flow does, so
+ * any wallet that declares it gets the same wording and no wallet is named.
  *
  * Only affects WORDING. Nothing branches on it, so a wallet this fails to
  * recognise merely gets the wording that suits the overwhelming majority.
@@ -76,11 +73,7 @@ const SILENT_WALLET_NAME = 'Burner Wallet';
 export function signsWithoutPrompt(
 	$connection: Connection<UnderlyingEthereumProvider>,
 ): boolean {
-	// Not every step HAS a mechanism (the idle one does not), and this is asked
-	// wherever the flow happens to be, so it is read structurally rather than
-	// after narrowing to a step that is irrelevant to the question.
-	const mechanism = ($connection as {mechanism?: {name?: string}}).mechanism;
-	return mechanism?.name === SILENT_WALLET_NAME;
+	return walletAutoApproves($connection);
 }
 
 /**
