@@ -7,6 +7,8 @@ settings:
 overrides:
   cookie@<0.7.0: ^0.7.0
 
+packageExtensionsChecksum: sha256-urAz6cbYYuIqgYkCGdU1Kfhhxny9J/8gs0Cek8l+qqo=
+
 importers:
 
   .:
@@ -3118,6 +3120,7 @@ snapshots:
 
   '@etherkit/tx-observer@0.2.0':
     dependencies:
+      eip-1193: 0.6.5
       lodash-es: 4.18.1
       named-logs: 0.4.1
       radiate: 0.3.2
@@ -3156,6 +3159,7 @@ snapshots:
       '@noble/secp256k1': 2.3.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
+      eip-1193: 0.6.5
       remote-procedure-call: 0.1.2
 
   '@etherplay/wallet-connector@0.1.0': {}
@@ -4376,6 +4380,7 @@ snapshots:
 
   eip-1193-accounts-wrapper@0.2.0(typescript@6.0.3)(zod@4.4.3):
     dependencies:
+      eip-1193: 0.6.5
       named-logs: 0.4.1
       viem: 2.55.19(typescript@6.0.3)(zod@4.4.3)
     transitivePeerDependencies:
