@@ -1,2 +1,8 @@
 packages:
   - "web"
+
+# pnpm settings live in this file, not in package.json's "pnpm" field: pnpm 10
+# reads them from either place, pnpm 11 only from here (it ignores the field and
+# warns about it). esbuild's install script only checks its platform binary.
+onlyBuiltDependencies:
+  - esbuild
