@@ -440,7 +440,10 @@ export function activeWalletInfo(
 	state: ConnectionStateSnapshot,
 ): WalletInfo | undefined {
 	if (state.mechanism?.type !== 'wallet') return undefined;
-	if (state.wallet?.info) return state.wallet.info;
+	// A wallet state with no `info` is the library saying it cannot tell which
+	// handle this provider is: "not known", which must read as "prompts". Only
+	// when there is no wallet state at all is the name a fair way in.
+	if (state.wallet) return state.wallet.info;
 	const name = state.mechanism.name;
 	if (name === undefined) return undefined;
 	return state.wallets?.find((w) => w.info.name === name)?.info;

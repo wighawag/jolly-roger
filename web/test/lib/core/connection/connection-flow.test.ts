@@ -118,6 +118,30 @@ describe('walletAutoApproves', () => {
 		).toBe(false);
 	});
 
+	it('does not guess by name when the wallet state carries no info', () => {
+		// connect leaves `wallet.info` absent when it cannot tell which handle the
+		// provider came from; borrowing a same-named handle's flag would silence a
+		// request the user is really being asked about.
+		expect(
+			walletAutoApproves({
+				step: 'WalletConnected',
+				mechanism: {type: 'wallet', name: 'Silent Wallet'},
+				wallet: {},
+				wallets: silentAndLoud,
+			}),
+		).toBe(false);
+	});
+
+	it('is false while no wallet is named yet (WalletToChoose)', () => {
+		expect(
+			walletAutoApproves({
+				step: 'WalletToChoose',
+				mechanism: {type: 'wallet'},
+				wallets: silentAndLoud,
+			}),
+		).toBe(false);
+	});
+
 	it('prefers the stamped info over the list', () => {
 		expect(
 			activeWalletInfo({
