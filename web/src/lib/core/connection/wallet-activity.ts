@@ -2,7 +2,7 @@ import {derived, get, readable, writable, type Readable} from 'svelte/store';
 import {shortAddress} from '$lib/core/utils/ethereum/address';
 import {
 	canDismissConnection,
-	isBurnerWalletInSelectionPhase,
+	walletAutoApproves,
 	resolveSignInAddress,
 	walletLockState,
 	type ConnectionStateSnapshot,
@@ -343,10 +343,11 @@ export function shouldPromptForWalletAction(
 	stoppedWaitingFor: ReadonlySet<string>,
 	options?: DispatchActivity,
 ): boolean {
-	// Still suppressed for the burner, which needs no human confirmation: a
-	// prompt asking for one would be a lie, and its dispatch settles in
-	// milliseconds so the app's own signal would only make the modal flash.
-	if (isBurnerWalletInSelectionPhase(state)) return false;
+	// Still suppressed for a wallet that never prompts (`info.autoApproves`,
+	// e.g. the burner), which needs no human confirmation: a prompt asking for
+	// one would be a lie, and its dispatch settles in milliseconds so the app's
+	// own signal would only make the modal flash.
+	if (walletAutoApproves(state)) return false;
 
 	const outstanding = liveRequests(state, stoppedWaitingFor).length > 0;
 
