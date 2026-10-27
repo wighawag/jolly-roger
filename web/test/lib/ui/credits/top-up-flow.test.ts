@@ -206,8 +206,10 @@ type DepsParams = {
 	dispensed?: bigint;
 	/** Balance the payer reads as once the claim has gone through. */
 	setBalanceOnClaim?: bigint;
-	/** The name the wallet announces, which decides the consent wording. */
+	/** The name the wallet announces. */
 	walletName?: string;
+	/** Its `info.autoApproves`, which decides the consent wording. */
+	autoApproves?: boolean;
 };
 
 function deps(params: DepsParams) {
@@ -310,6 +312,16 @@ function deps(params: DepsParams) {
 			(params.ownerHasWallet ?? true)
 				? {
 						provider: {signMessage},
+						// What @etherplay/connect stamps from the chosen handle.
+						info: {
+							uuid: 'test-wallet',
+							name: params.walletName ?? 'Test Wallet',
+							icon: '',
+							rdns: 'test.wallet',
+							...(params.autoApproves === undefined
+								? {}
+								: {autoApproves: params.autoApproves}),
+						},
 						accounts: params.ownerWalletAccounts ?? [OWNER],
 						accountChanged: params.ownerWalletActive,
 					}
@@ -2053,14 +2065,40 @@ describe('createTopUpFlow: what the confirm step promises', () => {
 	it('does not promise one for the dev wallet, which signs silently', async () => {
 		// The burner keeps its key in this browser and signs without showing
 		// anything, so "your wallet will ask you to sign" leaves the user waiting
-		// for a window that never opens.
-		const {flowDeps} = unregistered({walletName: 'Burner Wallet'});
+		// for a window that never opens. It says so as `info.autoApproves`.
+		const {flowDeps} = unregistered({
+			walletName: 'Burner Wallet',
+			autoApproves: true,
+		});
 		const flow = createTopUpFlow(flowDeps, CONFIG);
 
 		await flow.start(PURPOSE);
 		await flow.choose('wallet');
 
 		expect(get(flow).phase).toBe('ready');
+		expect(get(flow).silentSigner).toBe(true);
+	});
+
+	it('promises a prompt for a wallet merely called "Burner Wallet"', async () => {
+		const {flowDeps} = unregistered({walletName: 'Burner Wallet'});
+		const flow = createTopUpFlow(flowDeps, CONFIG);
+
+		await flow.start(PURPOSE);
+		await flow.choose('wallet');
+
+		expect(get(flow).silentSigner).toBe(false);
+	});
+
+	it('promises none for any wallet that declares autoApproves', async () => {
+		const {flowDeps} = unregistered({
+			walletName: 'Dev Burner',
+			autoApproves: true,
+		});
+		const flow = createTopUpFlow(flowDeps, CONFIG);
+
+		await flow.start(PURPOSE);
+		await flow.choose('wallet');
+
 		expect(get(flow).silentSigner).toBe(true);
 	});
 });
