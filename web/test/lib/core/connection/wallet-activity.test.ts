@@ -12,6 +12,18 @@ import {
 	walletPromptCopy,
 } from '../../../../src/lib/core/connection/wallet-activity';
 
+/**
+ * What @etherkit/burner-wallet announces from 0.2.2: it holds its own key and
+ * declares `autoApproves`, which is what keeps it silent here, not its name.
+ */
+const BURNER_INFO = {
+	uuid: 'burner',
+	name: 'Burner Wallet',
+	icon: '',
+	rdns: 'app.etherplay.burner-wallet',
+	autoApproves: true,
+};
+
 describe('the escape hatch: an exit that does not lie', () => {
 	// The app cannot withdraw a request the wallet already has. Everything here
 	// exists so it never offers a control that implies it can.
@@ -265,7 +277,7 @@ describe('shouldPromptForWalletAction: holding vs blocking', () => {
 		).toBe(true);
 	});
 
-	it('says nothing when the wallet holds nothing, and keeps the burner silent', () => {
+	it('says nothing when the wallet holds nothing, and keeps a wallet that never prompts silent', () => {
 		expect(shouldPromptForWalletAction({pendingRequests: []}, new Set())).toBe(
 			false,
 		);
@@ -274,6 +286,7 @@ describe('shouldPromptForWalletAction: holding vs blocking', () => {
 				{
 					step: 'WalletConnected',
 					mechanism: {type: 'wallet', name: 'Burner Wallet'},
+					wallet: {info: BURNER_INFO},
 					pendingRequests: [request('a')],
 				},
 				new Set(),
@@ -329,12 +342,13 @@ describe("the app's own dispatch, which answers a different question", () => {
 		expect(offersEscapeHatch(state, {dispatchInFlight: true})).toBe(true);
 	});
 
-	it('keeps the burner silent, which has nothing to confirm', () => {
+	it('keeps a wallet that never prompts silent, which has nothing to confirm', () => {
 		expect(
 			shouldPromptForWalletAction(
 				{
 					step: 'WalletConnected',
 					mechanism: {type: 'wallet', name: 'Burner Wallet'},
+					wallet: {info: BURNER_INFO},
 				},
 				new Set(),
 				{dispatchInFlight: true},

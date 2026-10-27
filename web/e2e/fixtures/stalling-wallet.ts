@@ -5,7 +5,8 @@ import {expect, type Page} from '@playwright/test';
  *
  * WHY THE SUITE NEEDED THIS. Every other e2e drives the burner wallet, which
  * answers instantly and, worse, is deliberately suppressed from the "Wallet
- * Action Required" prompt (see `isBurnerWalletInSelectionPhase` and
+ * Action Required" prompt, because it announces `info.autoApproves` (see
+ * `walletAutoApproves` and
  * `work/notes/observations/wallet-action-required-modal-not-seen.md`). So the
  * entire window this app's in-flight machinery exists for, between dispatching
  * `eth_sendTransaction` and hearing back, could not be entered by a test at all.
