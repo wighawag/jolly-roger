@@ -9,6 +9,7 @@ import {
 import {mintChainId, rememberChainId} from '$lib/embedded/chain-id';
 import {startEmbeddedNode} from '$lib/embedded/node';
 import {announceEmbeddedWallet} from '$lib/embedded/wallet';
+import {createWorldClaim, letGoOfWorld} from '$lib/embedded/claim';
 import {createIndexedDBPersistence} from 'webevm';
 import {createIndexedDBDeploymentStore} from '@rocketh/web';
 import {createContext} from '$lib/context/index';
@@ -85,6 +86,34 @@ export const offlineWorld: Readable<OfflineWorldStatus> = {
  * performance decision in either direction.
  */
 let pending: Promise<OfflineWorldStatus> | undefined;
+
+/**
+ * ONE TAB AT A TIME, named by this app's world rather than by its chain id.
+ *
+ * This browser keeps one world (one `CHAIN_ID_STORAGE_KEY`), and the id changes
+ * inside a boot when a restore is incoherent, so the lock is the world's
+ * namespace and not the id; `$lib/embedded/claim` has the measurement. Letting go
+ * is waiting for whatever boot this tab started, then the mechanism's barrier.
+ */
+export const offlineWorldClaim = createWorldClaim({
+	name: 'offline-world',
+	letGo: () => letGoOfWorld(pending),
+});
+
+/**
+ * What a page that owns the world does on mount: claim it, and boot it only if
+ * this tab has it. A refused tab boots nothing, and the page shows the claim's
+ * refusal instead.
+ */
+export async function enterOfflineWorld(): Promise<void> {
+	if (await offlineWorldClaim.claim()) await startOfflineWorld();
+}
+
+/** Ask the tab that has the world for it, and boot it here by the ordinary restore. */
+export async function takeTheOfflineWorldOver(): Promise<void> {
+	await offlineWorldClaim.takeOver();
+	await startOfflineWorld();
+}
 
 export function startOfflineWorld(): Promise<OfflineWorldStatus> {
 	if (!pending) {

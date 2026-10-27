@@ -20,6 +20,8 @@ export type {
 	ProvisionParams,
 } from './world.js';
 export {startEmbeddedNode} from './node.js';
+export {createWorldClaim, letGoOfWorld, LET_GO} from './claim.js';
+export type {WorldClaim, WorldClaimState, WorldClaimParams} from './claim.js';
 export {announceEmbeddedWallet} from './wallet.js';
 export type {EmbeddedWallet} from './wallet.js';
 export type {EmbeddedNode, StartEmbeddedNodeParams} from './node.js';

@@ -4,7 +4,14 @@
 	import Context from '$lib/context/Context.svelte';
 	import {Spinner} from '$lib/shadcn/ui/spinner';
 	import AlertCircleIcon from '@lucide/svelte/icons/alert-circle';
-	import {offlineWorld, startOfflineWorld} from '$lib/offline';
+	import {route} from '$lib';
+	import {
+		enterOfflineWorld,
+		offlineWorld,
+		offlineWorldClaim,
+		takeTheOfflineWorldOver,
+	} from '$lib/offline';
+	import WorldInAnotherTab from '$lib/ui/embedded-chain/WorldInAnotherTab.svelte';
 	import Demo from '../demo/+page.svelte';
 
 	// THE ROUTE IS THE CHOOSING AND NOTHING ELSE. Booting a chain, running a
@@ -12,14 +19,26 @@
 	// is in turn composition over `$lib/embedded`. A descendant of this
 	// template deletes the demo routes it inherits, so anything world-building
 	// written in this file would be thrown away by the repos that most want it.
+	//
+	// ENTERED RATHER THAN STARTED: the world is claimed first, so a second tab
+	// on this page is refused instead of booting a second copy of the chain.
 	onMount(() => {
-		startOfflineWorld();
+		void enterOfflineWorld();
 	});
 </script>
 
 <DefaultHead title={'Offline Demo - a chain in this tab'} />
 
-{#if $offlineWorld.step === 'Ready'}
+<!-- THE CLAIM FIRST, AND ABOVE THE WORLD. While another tab has the world, or
+     while this tab is handing it over, the world's branch must not render: that
+     is what unmounts it, and stops its writers, before it is let go of. -->
+{#if $offlineWorldClaim.step === 'Refused' || $offlineWorldClaim.step === 'Waiting' || $offlineWorldClaim.step === 'LettingGo'}
+	<WorldInAnotherTab
+		claim={offlineWorldClaim}
+		onTakeOver={() => void takeTheOfflineWorldOver()}
+		home={route('/')}
+	/>
+{:else if $offlineWorld.step === 'Ready'}
 	<!-- A NESTED PROVIDER, which is the whole mechanism in one element.
 	     `setAppContext` is svelte's `setContext`, so this shadows the app's
 	     context for THIS SUBTREE only: the page below runs against the chain in
