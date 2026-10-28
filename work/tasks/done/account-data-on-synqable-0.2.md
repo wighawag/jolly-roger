@@ -24,3 +24,5 @@ On `main` (`s8/main`), one commit each:
 Cascaded: `with/local-signer` (one conflict in `AccountData.ts`, both sides kept: the scope-prefix reader and the generic signature), `with/hosted-account`, `with/embedded-chain`, `integration`, `website`, then template-commit-reveal and its games. No node had a write site `main` does not.
 
 **Measured** (check, unit server + client): `main` 0/0, 984 -> 1005 + 44; `with/local-signer` 1251 -> 1272 + 58; `with/hosted-account` 1251 -> 1272 + 58; `with/embedded-chain` 1022 -> 1043 + 46; `integration` 1289 -> 1310 + 60; `website` 984 -> 1005 + 44; every check 0 errors and 0 warnings.
+
+**Then, 2026-10-28, on synqable 0.2.1** (`397a322c` on `main`, cascaded): a single-account store's `idle` now carries its account, so `idle` with no account means exactly "no account connected", and `lifecycle$` is derived from the account data's `state$` alone instead of following the current store. Its type and tests are unchanged.
