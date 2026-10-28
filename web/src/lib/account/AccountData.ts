@@ -26,8 +26,11 @@ import {
 	map,
 	type DataOf,
 	type DeepReadonly,
+	type InternalStorage,
+	type StorageAdapterFactory,
 	type StoreWriter,
 } from 'synqable';
+import {createAccountDataLifecycle} from './lifecycle';
 import {PUBLIC_OPERATION_RETENTION_DAYS} from '$env/static/public';
 import {getAddress} from 'viem';
 
@@ -278,8 +281,18 @@ export function createAccountData(params: {
 	clock: Clock;
 	/** Address of the contract that scopes local operation data. */
 	scopeAddress: `0x${string}`;
+	/**
+	 * Where an account's data is persisted. `localStorage` when omitted, which
+	 * is what the app uses; a test supplies an adapter it controls (one whose
+	 * load or save fails), and a sync layer one of its own. Handed the
+	 * account's private key when the account store carries one (encryption).
+	 */
+	storageAdapter?: StorageAdapterFactory<InternalStorage<Schema>>;
 }) {
 	const {accountStore, deployments, clock, scopeAddress} = params;
+	const storageAdapter: StorageAdapterFactory<InternalStorage<Schema>> =
+		params.storageAdapter ??
+		((_privateKey) => createLocalStorageAdapter(serializer));
 
 	let lastId: number = 0;
 	function generateId() {
@@ -310,8 +323,7 @@ export function createAccountData(params: {
 				},
 				clock: () => clock.now(),
 				storage: {
-					adapterFactory: (_privateKey) =>
-						createLocalStorageAdapter(serializer),
+					adapterFactory: storageAdapter,
 					key: operationsStorageKey({
 						chainId: deployments.chain.id,
 						genesisHash: deployments.chain.genesisHash,
@@ -553,8 +565,17 @@ export function createAccountData(params: {
 		return store.writer() !== undefined;
 	}
 
+	/**
+	 * The current account's data lifecycle as ONE readable: `no-account`,
+	 * `loading`, `ready`, or `error` with the load's error. What a consumer that
+	 * must not act on data it has not got (the submission, the HUD) derives
+	 * from; see {@link createAccountDataLifecycle}.
+	 */
+	const lifecycle$ = createAccountDataLifecycle(store);
+
 	return {
 		...store,
+		lifecycle$,
 		isReady,
 		addOperationFromTrackedTransaction,
 		addTransactionToOperation,
