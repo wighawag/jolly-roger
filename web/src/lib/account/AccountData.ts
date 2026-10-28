@@ -31,6 +31,7 @@ import {
 	type StoreWriter,
 } from 'synqable';
 import {createAccountDataLifecycle} from './lifecycle';
+import {createDurableWrite} from './durable-write';
 import {PUBLIC_OPERATION_RETENTION_DAYS} from '$env/static/public';
 import {getAddress} from 'viem';
 
@@ -573,9 +574,18 @@ export function createAccountData(params: {
 	 */
 	const lifecycle$ = createAccountDataLifecycle(store);
 
+	/**
+	 * Write through the current account's handle and resolve only once the data
+	 * is ON STORAGE; for a writer that must not act before then (the
+	 * commit-reveal submission storing a secret before its commit is sent). See
+	 * {@link createDurableWrite} for what it waits for and how it rejects.
+	 */
+	const writeDurably = createDurableWrite(store);
+
 	return {
 		...store,
 		lifecycle$,
+		writeDurably,
 		isReady,
 		addOperationFromTrackedTransaction,
 		addTransactionToOperation,
