@@ -24,6 +24,9 @@ import {
 	createSyncableStore,
 	defineSchema,
 	map,
+	type DataOf,
+	type DeepReadonly,
+	type StoreWriter,
 } from 'synqable';
 import {PUBLIC_OPERATION_RETENTION_DAYS} from '$env/static/public';
 import {getAddress} from 'viem';
@@ -319,20 +322,30 @@ export function createAccountData(params: {
 			}),
 	});
 
-	function findOperationByTxHash(txHash: string) {
-		const accountData = store.get()?.get();
-		if (accountData && accountData.status === 'ready') {
-			const operations = accountData.data.operations;
-			for (const operationID of Object.keys(operations)) {
-				const txIndex = operations[operationID].attempts.findIndex(
-					(attempt) => attempt.hash === txHash,
-				);
-				if (txIndex >= 0) {
-					return {operationID, txIndex};
-				}
+	/**
+	 * The current account's write handle, OBTAINED AT EACH WRITE.
+	 *
+	 * A handle belongs to the store of the account it was obtained for and is
+	 * revoked when that store stops (an account switch, a disconnect), after
+	 * which every method throws. So nothing here keeps one: each write asks for
+	 * the current one, and `undefined` (no account, or its data not loaded yet)
+	 * is handled at the site, which is where the right answer is known.
+	 */
+	function currentWriter(): StoreWriter<Schema> | undefined {
+		return store.writer();
+	}
+
+	function findOperationByTxHash(
+		operations: DeepReadonly<DataOf<Schema>>['operations'],
+		txHash: string,
+	) {
+		for (const operationID of Object.keys(operations)) {
+			const txIndex = operations[operationID].attempts.findIndex(
+				(attempt) => attempt.hash === txHash,
+			);
+			if (txIndex >= 0) {
+				return {operationID, txIndex};
 			}
-		} else {
-			throw new Error(`accountData not ready`);
 		}
 	}
 
@@ -368,10 +381,10 @@ export function createAccountData(params: {
 	function addOperationFromTrackedTransaction(
 		transaction: TrackedTransaction<TransactionMetadata, TxSource>,
 	) {
-		const accountData = store.get();
-		if (accountData) {
+		const writer = currentWriter();
+		if (writer) {
 			const id = generateId();
-			accountData.addItem(
+			writer.addItem(
 				'operations',
 				id,
 				{
@@ -403,9 +416,12 @@ export function createAccountData(params: {
 	function updateOperationFromKnownTransaction(
 		transaction: KnownTrackedTransaction<TransactionMetadata, TxSource>,
 	) {
-		const accountData = store.get();
-		if (accountData) {
-			const txFound = findOperationByTxHash(transaction.hash);
+		const writer = currentWriter();
+		if (writer) {
+			const txFound = findOperationByTxHash(
+				writer.read().operations,
+				transaction.hash,
+			);
 			if (!txFound) {
 				console.error(`no operations found with tx: ${transaction.hash}`);
 				return;
@@ -415,7 +431,7 @@ export function createAccountData(params: {
 			// call it made. PER FIELD, not by replacing the record: the fetched
 			// transaction is one attempt, and it knows nothing about the others or
 			// about the observer state already sitting on them.
-			accountData.patchItem('operations', txFound.operationID, (operation) => ({
+			writer.patchItem('operations', txFound.operationID, (operation) => ({
 				...operation,
 				call: {...operation.call, ...callOf(transaction)},
 				attempts: operation.attempts.map((attempt, i) =>
@@ -438,7 +454,14 @@ export function createAccountData(params: {
 		event: TransactionIntentEvent,
 	) {
 		const operationID = event.id;
-		const accountData = store.get();
+		// NO HANDLE, NOTHING TO WRITE, AND NOTHING LOST. The observer is fed from
+		// this store (see `hookTxObserverToAccountData`), so an update arriving while
+		// there is no loaded store belongs to an account that went away, or comes
+		// before the new account's data has loaded, which re-feeds the observer once
+		// it has (`onInitialData`) and so re-emits the state. This was silent with
+		// no account before; a store still loading used to throw synqable's "Store
+		// is not ready" into the observer's emit, which helped nobody.
+		const accountData = currentWriter();
 		if (accountData) {
 			// tx-observer is built in a way that we can be sure that the tx belong to the current account
 			if (
@@ -501,27 +524,20 @@ export function createAccountData(params: {
 		operationId: string,
 		transaction: TrackedTransaction<TransactionMetadata, TxSource>,
 	): boolean {
-		const accountData = store.get();
-		if (accountData) {
-			const currentData = accountData.get();
-			if (currentData?.status !== 'ready') {
-				throw new Error(`accountData not ready`);
-			}
-
-			// Check if operation exists
-			const operation = currentData.data.operations[operationId];
-			if (!operation) {
-				return false;
-			}
-
-			accountData.patchItem('operations', operationId, (op) => ({
-				...op,
-				attempts: [...op.attempts, attemptOf(transaction)],
-			}));
-			return true;
-		} else {
+		// ONE CHECK for both the read and the write: the handle that says the
+		// operation is there is the one that patches it.
+		const writer = currentWriter();
+		if (!writer) {
 			throw new Error(`accountData not ready`);
 		}
+		if (!writer.read().operations[operationId]) {
+			return false;
+		}
+		writer.patchItem('operations', operationId, (op) => ({
+			...op,
+			attempts: [...op.attempts, attemptOf(transaction)],
+		}));
+		return true;
 	}
 
 	/**
@@ -534,7 +550,7 @@ export function createAccountData(params: {
 	 * internals.
 	 */
 	function isReady(): boolean {
-		return store.get()?.get()?.status === 'ready';
+		return store.writer() !== undefined;
 	}
 
 	return {
