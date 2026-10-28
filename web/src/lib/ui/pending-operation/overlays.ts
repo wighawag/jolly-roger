@@ -8,6 +8,7 @@ import type {
 	MultiAccountDataStore,
 	OnchainOperation,
 } from '$lib/account/AccountData';
+import type {AccountDataLifecycle} from '$lib/account/lifecycle';
 
 /**
  * The operation inspector, and the three questions it can ask.
@@ -39,16 +40,22 @@ export const cancelConfirmPrompt = definePromptOverlay(
 /**
  * What the inspector is currently about.
  *
- * FOUR states, not "the operation or nothing", and the distinction that matters
- * is `loading` versus `missing`. Account data is restored asynchronously (a
- * localStorage adapter, and only once an account is known), so an item that is
- * not there yet is UNKNOWN rather than gone. Collapsing the two meant that
- * reloading an addressed operation, or landing on a link to one, closed the
- * inspector during the gap and stripped the id back out of the URL.
+ * Not "the operation or nothing", and the distinction that matters is `loading`
+ * versus `missing`. Account data is restored asynchronously (a localStorage
+ * adapter, and only once an account is known), so an item that is not there yet
+ * is UNKNOWN rather than gone. Collapsing the two meant that reloading an
+ * addressed operation, or landing on a link to one, closed the inspector during
+ * the gap and stripped the id back out of the URL.
+ *
+ * `unavailable` is the third answer to "is it there": the account's data FAILED
+ * to load, so whether the operation exists cannot be known. It is not `loading`
+ * (that never ends) and not `missing` (that claims we looked).
  */
 export type InspectedOperation =
 	| {status: 'closed'; key?: undefined}
 	| {status: 'loading'; key: string}
+	/** The account data could not be loaded; `error` is the load's. */
+	| {status: 'unavailable'; key: string; error: Error}
 	/** Never seen: a stale or mistyped link. */
 	| {status: 'missing'; key: string}
 	/**
@@ -92,23 +99,52 @@ export function watchOverlayOperation(
 			// Whether this operation was ever in hand, which is what separates "it
 			// finished and was cleared" from "we never had it".
 			let everFound = false;
-			unsubscribeFromOperation = accountData
+			let watching = false;
+			let operation: OnchainOperation | undefined;
+			let lifecycle: AccountDataLifecycle = {status: 'no-account'};
+
+			const update = () => {
+				if (operation) {
+					everFound = true;
+					set({status: 'found', key, operation});
+					return;
+				}
+				if (everFound) {
+					set({status: 'cleared', key});
+					return;
+				}
+				if (lifecycle.status === 'error') {
+					set({status: 'unavailable', key, error: lifecycle.error});
+					return;
+				}
+				// Readiness is re-read on every emission rather than cached:
+				// `watchItem` also fires when the store's state changes, which is
+				// exactly when "not ready" becomes "ready".
+				set({status: accountData.isReady() ? 'missing' : 'loading', key});
+			};
+
+			// The lifecycle only for its ERROR: `watchItem` already fires on every
+			// state change, but the two listeners are not ordered, so entering or
+			// leaving `error` re-evaluates here too rather than trusting whichever
+			// fired first.
+			const unsubscribeFromLifecycle = accountData.lifecycle$.subscribe(
+				(next) => {
+					const wasError = lifecycle.status === 'error';
+					lifecycle = next;
+					if (watching && (wasError || next.status === 'error')) update();
+				},
+			);
+			const unsubscribeFromItem = accountData
 				.watchItem('operations', key)
-				.subscribe((operation) => {
-					if (operation) {
-						everFound = true;
-						set({status: 'found', key, operation});
-						return;
-					}
-					if (everFound) {
-						set({status: 'cleared', key});
-						return;
-					}
-					// Re-read readiness on every emission rather than caching it:
-					// `watchItem` also fires when the store's state changes, which is
-					// exactly when "not ready" becomes "ready".
-					set({status: accountData.isReady() ? 'missing' : 'loading', key});
+				.subscribe((next) => {
+					operation = next;
+					update();
 				});
+			watching = true;
+			unsubscribeFromOperation = () => {
+				unsubscribeFromItem();
+				unsubscribeFromLifecycle();
+			};
 		});
 
 		return () => {
