@@ -80,15 +80,19 @@ export function subscribeToAccountDataMap<
 }): () => void {
 	const {accountData, mapKey, handlers} = params;
 
+	// Keyed by the STORE, not by its account. synqable makes a new store when
+	// the account OR its private key changes (a signer rotated for the same
+	// address), and stops the old one for good, so following the address would
+	// keep listening to a stopped store and never to the live one.
 	let currentAccountSubscription:
-		{account: `0x${string}`; unsubscribe: () => void} | undefined;
+		{store: SyncableStore<S>; unsubscribe: () => void} | undefined;
 
 	const unsubscribeFromAccountData = accountData.subscribe(
 		(currentAccountData) => {
 			if (currentAccountData) {
 				if (
 					!currentAccountSubscription ||
-					currentAccountSubscription.account !== currentAccountData.account
+					currentAccountSubscription.store !== currentAccountData
 				) {
 					currentAccountSubscription?.unsubscribe();
 					handlers.onClear();
@@ -146,7 +150,7 @@ export function subscribeToAccountDataMap<
 					);
 
 					currentAccountSubscription = {
-						account: currentAccountData.account,
+						store: currentAccountData,
 						unsubscribe: () => {
 							unsubFromAdded();
 							unsubFromUpdated?.();
