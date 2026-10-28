@@ -72,12 +72,15 @@ function attachTrackedClient(
 			// chain. Observed as a "Transaction error: accountData not ready" toast
 			// over a greeting that had been posted successfully.
 			//
-			// Account data belongs to one account at a time, so it is genuinely
-			// unavailable when the account went away between dispatch and answer (a
-			// disconnect, an account switch). That is a real state, not a bug to
-			// assert against, and the honest response is to hand the transaction to
-			// something that CAN keep it: the in-flight ledger, which already holds a
-			// record for this exact request and can now attach the hash to it.
+			// Account data belongs to one account at a time and loads asynchronously,
+			// so it has no write handle (`writer()` is `undefined`) in two genuine
+			// states: the account went away between dispatch and answer (a
+			// disconnect, an account switch), or its data is NOT LOADED YET (a send
+			// right after a page load or a switch, before storage has answered).
+			// Neither is a bug to assert against, and sends are not blocked on them;
+			// the honest response is to hand the transaction to something that CAN
+			// keep it: the in-flight ledger, which already holds a record for this
+			// exact request and can now attach the hash to it.
 			try {
 				// A REPLACEMENT ATTACHES, ANYTHING ELSE CREATES.
 				//

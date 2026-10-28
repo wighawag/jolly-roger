@@ -24,7 +24,20 @@ import {
 	createSyncableStore,
 	defineSchema,
 	map,
+	type DataOf,
+	type DeepReadonly,
+	type InternalStorage,
+	type MultiAccountStore,
+	type StorageAdapterFactory,
+	type StoreWriter,
 } from 'synqable';
+import {
+	withAddedFieldDefaults,
+	type AddedFields,
+	type AddedFieldsSchema,
+} from './added-fields';
+import {createAccountDataLifecycle} from './lifecycle';
+import {createDurableWrite} from './durable-write';
 import {PUBLIC_OPERATION_RETENTION_DAYS} from '$env/static/public';
 
 /**
@@ -141,6 +154,14 @@ const schema = defineSchema({
 });
 
 export type Schema = typeof schema;
+
+/**
+ * The whole account data's schema: the framework's `operations` and the
+ * fields an app adds (see {@link AddedFields}).
+ */
+export type AccountDataSchema<F extends AddedFieldsSchema = {}> = Schema & F;
+
+export type {AddedFields, AddedFieldsSchema};
 
 /**
  * Everything in an operations key EXCEPT which account's list it is.
@@ -284,14 +305,44 @@ export function readAllStoredOperations(params: {
 	return {operations, complete};
 }
 
-export function createAccountData(params: {
+export function createAccountData<F extends AddedFieldsSchema = {}>(params: {
 	accountStore: AccountStore;
 	deployments: TypedDeployments;
 	clock: Clock;
 	/** Address of the contract that scopes local operation data. */
 	scopeAddress: `0x${string}`;
+	/**
+	 * Where an account's data is persisted. `localStorage` when omitted, which
+	 * is what the app uses; a test supplies an adapter it controls (one whose
+	 * load or save fails), and a sync layer one of its own. Handed the
+	 * account's private key when the account store carries one (encryption).
+	 */
+	storageAdapter?: StorageAdapterFactory<InternalStorage<AccountDataSchema<F>>>;
+	/**
+	 * Fields the app adds to its account data, beside `operations`, typed
+	 * through synqable's `defineSchema`: the app then reads and writes them
+	 * through the same handle (`writer()`, `ready()`, `writeDurably`) and reads
+	 * them through `watchField`, with no cast. Stored with the operations, so
+	 * they are synced and encrypted wherever the account data is.
+	 */
+	fields?: AddedFields<F>;
 }) {
-	const {accountStore, deployments, clock, scopeAddress} = params;
+	const {accountStore, deployments, clock, scopeAddress, fields} = params;
+	type S = AccountDataSchema<F>;
+
+	const fullSchema = defineSchema({
+		...fields?.schema,
+		...schema,
+	}) as S;
+	const defaultData = () =>
+		({...fields?.defaults(), operations: {}}) as DataOf<S>;
+
+	const baseAdapter: StorageAdapterFactory<InternalStorage<S>> =
+		params.storageAdapter ??
+		((_privateKey) => createLocalStorageAdapter(serializer));
+	const storageAdapter = fields
+		? withAddedFieldDefaults(baseAdapter, fields.defaults)
+		: baseAdapter;
 
 	let lastId: number = 0;
 	function generateId() {
@@ -303,27 +354,28 @@ export function createAccountData(params: {
 		return id.toString();
 	}
 
-	const store = createMultiAccountStore({
+	const store = createMultiAccountStore<S>({
 		accountStore,
-		schema,
+		schema: fullSchema,
 		factory: (account) =>
-			createSyncableStore({
-				schema,
+			createSyncableStore<S>({
+				schema: fullSchema,
 				account,
-				defaultData: () => {
-					return {operations: {}};
-				},
+				defaultData,
 				// ONE UPGRADE FUNCTION, TWO READ PATHS. This is the store's; the
 				// same function is applied in `readStoredOperations`, which parses
 				// localStorage itself and never comes through here.
 				schemaVersion: OPERATIONS_SCHEMA_VERSION,
 				migrations: {
-					[OPERATIONS_SCHEMA_VERSION]: upgradeStoredOperations,
+					// It upgrades `operations` and carries every other field of the
+					// envelope through untouched, so it is the whole schema's too.
+					[OPERATIONS_SCHEMA_VERSION]: upgradeStoredOperations as (
+						oldData: unknown,
+					) => InternalStorage<S>,
 				},
 				clock: () => clock.now(),
 				storage: {
-					adapterFactory: (_privateKey) =>
-						createLocalStorageAdapter(serializer),
+					adapterFactory: storageAdapter,
 					key: operationsStorageKey({
 						chainId: deployments.chain.id,
 						genesisHash: deployments.chain.genesisHash,
@@ -334,20 +386,39 @@ export function createAccountData(params: {
 			}),
 	});
 
-	function findOperationByTxHash(txHash: string) {
-		const accountData = store.get()?.get();
-		if (accountData && accountData.status === 'ready') {
-			const operations = accountData.data.operations;
-			for (const operationID of Object.keys(operations)) {
-				const txIndex = operations[operationID].attempts.findIndex(
-					(attempt) => attempt.hash === txHash,
-				);
-				if (txIndex >= 0) {
-					return {operationID, txIndex};
-				}
+	/**
+	 * The same store, seen through the framework's own schema, for the
+	 * framework's own writes. Sound because `operations` is one field whatever
+	 * an app adds beside it (`AddedFieldsSchema` forbids redefining it); needed
+	 * because inside this generic function the compiler cannot resolve
+	 * `operations`' item type through an unknown `F`.
+	 */
+	const operationsStore = store as unknown as MultiAccountStore<Schema>;
+
+	/**
+	 * The current account's write handle, OBTAINED AT EACH WRITE.
+	 *
+	 * A handle belongs to the store of the account it was obtained for and is
+	 * revoked when that store stops (an account switch, a disconnect), after
+	 * which every method throws. So nothing here keeps one: each write asks for
+	 * the current one, and `undefined` (no account, or its data not loaded yet)
+	 * is handled at the site, which is where the right answer is known.
+	 */
+	function currentWriter(): StoreWriter<Schema> | undefined {
+		return operationsStore.writer();
+	}
+
+	function findOperationByTxHash(
+		operations: DeepReadonly<DataOf<Schema>>['operations'],
+		txHash: string,
+	) {
+		for (const operationID of Object.keys(operations)) {
+			const txIndex = operations[operationID].attempts.findIndex(
+				(attempt) => attempt.hash === txHash,
+			);
+			if (txIndex >= 0) {
+				return {operationID, txIndex};
 			}
-		} else {
-			throw new Error(`accountData not ready`);
 		}
 	}
 
@@ -383,10 +454,10 @@ export function createAccountData(params: {
 	function addOperationFromTrackedTransaction(
 		transaction: TrackedTransaction<TransactionMetadata, TxSource>,
 	) {
-		const accountData = store.get();
-		if (accountData) {
+		const writer = currentWriter();
+		if (writer) {
 			const id = generateId();
-			accountData.addItem(
+			writer.addItem(
 				'operations',
 				id,
 				{
@@ -418,9 +489,12 @@ export function createAccountData(params: {
 	function updateOperationFromKnownTransaction(
 		transaction: KnownTrackedTransaction<TransactionMetadata, TxSource>,
 	) {
-		const accountData = store.get();
-		if (accountData) {
-			const txFound = findOperationByTxHash(transaction.hash);
+		const writer = currentWriter();
+		if (writer) {
+			const txFound = findOperationByTxHash(
+				writer.read().operations,
+				transaction.hash,
+			);
 			if (!txFound) {
 				console.error(`no operations found with tx: ${transaction.hash}`);
 				return;
@@ -430,7 +504,7 @@ export function createAccountData(params: {
 			// call it made. PER FIELD, not by replacing the record: the fetched
 			// transaction is one attempt, and it knows nothing about the others or
 			// about the observer state already sitting on them.
-			accountData.patchItem('operations', txFound.operationID, (operation) => ({
+			writer.patchItem('operations', txFound.operationID, (operation) => ({
 				...operation,
 				call: {...operation.call, ...callOf(transaction)},
 				attempts: operation.attempts.map((attempt, i) =>
@@ -453,7 +527,14 @@ export function createAccountData(params: {
 		event: TransactionIntentEvent,
 	) {
 		const operationID = event.id;
-		const accountData = store.get();
+		// NO HANDLE, NOTHING TO WRITE, AND NOTHING LOST. The observer is fed from
+		// this store (see `hookTxObserverToAccountData`), so an update arriving while
+		// there is no loaded store belongs to an account that went away, or comes
+		// before the new account's data has loaded, which re-feeds the observer once
+		// it has (`onInitialData`) and so re-emits the state. This was silent with
+		// no account before; a store still loading used to throw synqable's "Store
+		// is not ready" into the observer's emit, which helped nobody.
+		const accountData = currentWriter();
 		if (accountData) {
 			// tx-observer is built in a way that we can be sure that the tx belong to the current account
 			if (
@@ -516,27 +597,20 @@ export function createAccountData(params: {
 		operationId: string,
 		transaction: TrackedTransaction<TransactionMetadata, TxSource>,
 	): boolean {
-		const accountData = store.get();
-		if (accountData) {
-			const currentData = accountData.get();
-			if (currentData?.status !== 'ready') {
-				throw new Error(`accountData not ready`);
-			}
-
-			// Check if operation exists
-			const operation = currentData.data.operations[operationId];
-			if (!operation) {
-				return false;
-			}
-
-			accountData.patchItem('operations', operationId, (op) => ({
-				...op,
-				attempts: [...op.attempts, attemptOf(transaction)],
-			}));
-			return true;
-		} else {
+		// ONE CHECK for both the read and the write: the handle that says the
+		// operation is there is the one that patches it.
+		const writer = currentWriter();
+		if (!writer) {
 			throw new Error(`accountData not ready`);
 		}
+		if (!writer.read().operations[operationId]) {
+			return false;
+		}
+		writer.patchItem('operations', operationId, (op) => ({
+			...op,
+			attempts: [...op.attempts, attemptOf(transaction)],
+		}));
+		return true;
 	}
 
 	/**
@@ -549,11 +623,29 @@ export function createAccountData(params: {
 	 * internals.
 	 */
 	function isReady(): boolean {
-		return store.get()?.get()?.status === 'ready';
+		return store.writer() !== undefined;
 	}
+
+	/**
+	 * The current account's data lifecycle as ONE readable: `no-account`,
+	 * `loading`, `ready`, or `error` with the load's error. What a consumer that
+	 * must not act on data it has not got (the submission, the HUD) derives
+	 * from; see {@link createAccountDataLifecycle}.
+	 */
+	const lifecycle$ = createAccountDataLifecycle(store);
+
+	/**
+	 * Write through the current account's handle and resolve only once the data
+	 * is ON STORAGE; for a writer that must not act before then (the
+	 * commit-reveal submission storing a secret before its commit is sent). See
+	 * {@link createDurableWrite} for what it waits for and how it rejects.
+	 */
+	const writeDurably = createDurableWrite(store);
 
 	return {
 		...store,
+		lifecycle$,
+		writeDurably,
 		isReady,
 		addOperationFromTrackedTransaction,
 		addTransactionToOperation,
@@ -562,4 +654,14 @@ export function createAccountData(params: {
 	};
 }
 
-export type MultiAccountDataStore = ReturnType<typeof createAccountData>;
+/** The account data of an app that adds the fields `F`. */
+export type AccountDataStore<F extends AddedFieldsSchema = {}> = ReturnType<
+	typeof createAccountData<F>
+>;
+
+/**
+ * The account data as the framework sees it: `operations` only. An app's
+ * {@link AccountDataStore} with added fields is assignable to it, so anything
+ * the framework hands the account data to takes either.
+ */
+export type MultiAccountDataStore = AccountDataStore;
