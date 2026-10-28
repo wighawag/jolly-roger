@@ -51,6 +51,10 @@
 					<div class="px-3 py-2 text-xs text-muted-foreground">
 						No account connected
 					</div>
+				{:else if $accountDataState.status === 'error'}
+					<div class="px-3 py-2 text-xs text-destructive">
+						Could not load: {$accountDataState.loadError.message}
+					</div>
 				{:else if $accountDataState.isLoading}
 					<div class="px-3 py-2 text-xs text-muted-foreground">Loading...</div>
 				{:else if operationCount == 0}
