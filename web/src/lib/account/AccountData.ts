@@ -27,9 +27,15 @@ import {
 	type DataOf,
 	type DeepReadonly,
 	type InternalStorage,
+	type MultiAccountStore,
 	type StorageAdapterFactory,
 	type StoreWriter,
 } from 'synqable';
+import {
+	withAddedFieldDefaults,
+	type AddedFields,
+	type AddedFieldsSchema,
+} from './added-fields';
 import {createAccountDataLifecycle} from './lifecycle';
 import {createDurableWrite} from './durable-write';
 import {PUBLIC_OPERATION_RETENTION_DAYS} from '$env/static/public';
@@ -149,6 +155,14 @@ const schema = defineSchema({
 });
 
 export type Schema = typeof schema;
+
+/**
+ * The whole account data's schema: the framework's `operations` and the
+ * fields an app adds (see {@link AddedFields}).
+ */
+export type AccountDataSchema<F extends AddedFieldsSchema = {}> = Schema & F;
+
+export type {AddedFields, AddedFieldsSchema};
 
 /**
  * Where one account's operations are stored, for this deployment.
@@ -276,7 +290,7 @@ export function readStoredOperations(params: {
 	}
 }
 
-export function createAccountData(params: {
+export function createAccountData<F extends AddedFieldsSchema = {}>(params: {
 	accountStore: AccountStore;
 	deployments: TypedDeployments;
 	clock: Clock;
@@ -288,12 +302,32 @@ export function createAccountData(params: {
 	 * load or save fails), and a sync layer one of its own. Handed the
 	 * account's private key when the account store carries one (encryption).
 	 */
-	storageAdapter?: StorageAdapterFactory<InternalStorage<Schema>>;
+	storageAdapter?: StorageAdapterFactory<InternalStorage<AccountDataSchema<F>>>;
+	/**
+	 * Fields the app adds to its account data, beside `operations`, typed
+	 * through synqable's `defineSchema`: the app then reads and writes them
+	 * through the same handle (`writer()`, `ready()`, `writeDurably`) and reads
+	 * them through `watchField`, with no cast. Stored with the operations, so
+	 * they are synced and encrypted wherever the account data is.
+	 */
+	fields?: AddedFields<F>;
 }) {
-	const {accountStore, deployments, clock, scopeAddress} = params;
-	const storageAdapter: StorageAdapterFactory<InternalStorage<Schema>> =
+	const {accountStore, deployments, clock, scopeAddress, fields} = params;
+	type S = AccountDataSchema<F>;
+
+	const fullSchema = defineSchema({
+		...fields?.schema,
+		...schema,
+	}) as S;
+	const defaultData = () =>
+		({...fields?.defaults(), operations: {}}) as DataOf<S>;
+
+	const baseAdapter: StorageAdapterFactory<InternalStorage<S>> =
 		params.storageAdapter ??
 		((_privateKey) => createLocalStorageAdapter(serializer));
+	const storageAdapter = fields
+		? withAddedFieldDefaults(baseAdapter, fields.defaults)
+		: baseAdapter;
 
 	let lastId: number = 0;
 	function generateId() {
@@ -305,22 +339,24 @@ export function createAccountData(params: {
 		return id.toString();
 	}
 
-	const store = createMultiAccountStore({
+	const store = createMultiAccountStore<S>({
 		accountStore,
-		schema,
+		schema: fullSchema,
 		factory: (account) =>
-			createSyncableStore({
-				schema,
+			createSyncableStore<S>({
+				schema: fullSchema,
 				account,
-				defaultData: () => {
-					return {operations: {}};
-				},
+				defaultData,
 				// ONE UPGRADE FUNCTION, TWO READ PATHS. This is the store's; the
 				// same function is applied in `readStoredOperations`, which parses
 				// localStorage itself and never comes through here.
 				schemaVersion: OPERATIONS_SCHEMA_VERSION,
 				migrations: {
-					[OPERATIONS_SCHEMA_VERSION]: upgradeStoredOperations,
+					// It upgrades `operations` and carries every other field of the
+					// envelope through untouched, so it is the whole schema's too.
+					[OPERATIONS_SCHEMA_VERSION]: upgradeStoredOperations as (
+						oldData: unknown,
+					) => InternalStorage<S>,
 				},
 				clock: () => clock.now(),
 				storage: {
@@ -336,6 +372,15 @@ export function createAccountData(params: {
 	});
 
 	/**
+	 * The same store, seen through the framework's own schema, for the
+	 * framework's own writes. Sound because `operations` is one field whatever
+	 * an app adds beside it (`AddedFieldsSchema` forbids redefining it); needed
+	 * because inside this generic function the compiler cannot resolve
+	 * `operations`' item type through an unknown `F`.
+	 */
+	const operationsStore = store as unknown as MultiAccountStore<Schema>;
+
+	/**
 	 * The current account's write handle, OBTAINED AT EACH WRITE.
 	 *
 	 * A handle belongs to the store of the account it was obtained for and is
@@ -345,7 +390,7 @@ export function createAccountData(params: {
 	 * is handled at the site, which is where the right answer is known.
 	 */
 	function currentWriter(): StoreWriter<Schema> | undefined {
-		return store.writer();
+		return operationsStore.writer();
 	}
 
 	function findOperationByTxHash(
@@ -594,4 +639,14 @@ export function createAccountData(params: {
 	};
 }
 
-export type MultiAccountDataStore = ReturnType<typeof createAccountData>;
+/** The account data of an app that adds the fields `F`. */
+export type AccountDataStore<F extends AddedFieldsSchema = {}> = ReturnType<
+	typeof createAccountData<F>
+>;
+
+/**
+ * The account data as the framework sees it: `operations` only. An app's
+ * {@link AccountDataStore} with added fields is assignable to it, so anything
+ * the framework hands the account data to takes either.
+ */
+export type MultiAccountDataStore = AccountDataStore;
