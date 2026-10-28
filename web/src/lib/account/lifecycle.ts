@@ -1,5 +1,5 @@
 import {readable, type Readable} from 'svelte/store';
-import type {Schema, StoreLifecycleState, SyncableStore} from 'synqable';
+import type {StoreLifecycleState} from 'synqable';
 
 /**
  * Where the CURRENT account's data is in its life, as one value.
@@ -23,25 +23,26 @@ export type AccountDataLifecycle =
 	| {status: 'error'; account: `0x${string}`; error: Error};
 
 /** The part of synqable's multi-account store this reads. */
-export type LifecycleSource<S extends Schema> = {
-	subscribe(callback: (store: SyncableStore<S> | null) => void): () => void;
+export type LifecycleSource = {
+	readonly state$: Readable<StoreLifecycleState>;
 };
 
-function fromStoreState(
-	account: `0x${string}`,
-	state: StoreLifecycleState,
-): AccountDataLifecycle {
+function fromStoreState(state: StoreLifecycleState): AccountDataLifecycle {
 	switch (state.status) {
 		case 'ready':
-			return {status: 'ready', account};
+			return {status: 'ready', account: state.account};
 		case 'error':
-			return {status: 'error', account, error: state.loadError};
+			return {status: 'error', account: state.account, error: state.loadError};
 		case 'loading':
-		// A per-account store is `idle` from its creation until its load starts,
-		// which the multi-account store does at once. For a consumer that is still
-		// "this account's data is not here yet", not "no account".
+			return {status: 'loading', account: state.account};
 		case 'idle':
-			return {status: 'loading', account};
+			// Since synqable 0.2.1 an `idle` with no account means exactly "no
+			// account connected". With one, it is a store created for a connect or a
+			// switch whose load has not started yet: still "this account's data is
+			// not here yet".
+			return state.account === undefined
+				? {status: 'no-account'}
+				: {status: 'loading', account: state.account};
 	}
 }
 
@@ -56,45 +57,23 @@ function sameLifecycle(a: AccountDataLifecycle, b: AccountDataLifecycle) {
 }
 
 /**
- * The lifecycle of whichever account is current, derived from synqable.
- *
- * It follows the multi-account store's CURRENT STORE rather than its `state$`,
- * because `state$` cannot tell "no account" from "an account whose store has
- * just been created": both are `idle` with no account, and the second happens
- * on every switch. Following the store gives `no-account` only when there is no
- * store, and reads each store's own `state$`, whose `account` is the store's.
+ * The lifecycle of whichever account is current, derived from the
+ * multi-account store's `state$`, one emission per CHANGE: a store's `idle`
+ * and `loading` are both `loading` here, and a consumer reacting to "loading
+ * again" should see it once per load, not once per internal step of it.
  *
  * Subscribing to it starts the multi-account store, like any of its readables.
  */
-export function createAccountDataLifecycle<S extends Schema>(
-	source: LifecycleSource<S>,
+export function createAccountDataLifecycle(
+	source: LifecycleSource,
 ): Readable<AccountDataLifecycle> {
-	return readable<AccountDataLifecycle>({status: 'no-account'}, (setValue) => {
-		// One emission per CHANGE: a store's `idle` and `loading` are both
-		// `loading` here, and a consumer reacting to "loading again" should see it
-		// once per load, not once per internal step of it.
+	return readable<AccountDataLifecycle>({status: 'no-account'}, (set) => {
 		let last: AccountDataLifecycle | undefined;
-		const set = (next: AccountDataLifecycle) => {
+		return source.state$.subscribe((state) => {
+			const next = fromStoreState(state);
 			if (last && sameLifecycle(last, next)) return;
 			last = next;
-			setValue(next);
-		};
-		let unsubscribeFromState: (() => void) | undefined;
-		const unsubscribeFromStore = source.subscribe((store) => {
-			unsubscribeFromState?.();
-			unsubscribeFromState = undefined;
-			if (!store) {
-				set({status: 'no-account'});
-				return;
-			}
-			const account = store.account;
-			unsubscribeFromState = store.state$.subscribe((state) =>
-				set(fromStoreState(account, state)),
-			);
+			set(next);
 		});
-		return () => {
-			unsubscribeFromState?.();
-			unsubscribeFromStore();
-		};
 	});
 }
