@@ -175,6 +175,15 @@
 			<Spinner class="h-4 w-4" />
 			Loading this transaction.
 		</div>
+	{:else if inspected.status === 'unavailable'}
+		<Modal.Title>Pending Transaction</Modal.Title>
+		<p class="py-4 text-sm text-muted-foreground">
+			Your transactions could not be loaded, so this one cannot be shown: {inspected
+				.error.message}
+		</p>
+		<Modal.Footer>
+			<Button variant="outline" onclick={() => inspector.close()}>Close</Button>
+		</Modal.Footer>
 	{:else if inspected.status === 'cleared' || inspected.status === 'missing'}
 		<Modal.Title>
 			<span class="flex items-center gap-2">
