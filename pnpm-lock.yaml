@@ -253,8 +253,8 @@ importers:
         specifier: ^1.2.1
         version: 1.2.1(svelte@5.56.9)
       synqable:
-        specifier: ^0.0.13
-        version: 0.0.13
+        specifier: ^0.2.0
+        version: 0.2.0
       tailwind-merge:
         specifier: ^3.6.0
         version: 3.6.0
@@ -2732,8 +2732,8 @@ packages:
     engines: {node: '>=14.17.0'}
     hasBin: true
 
-  synqable@0.0.13:
-    resolution: {integrity: sha512-NVccel/juJ3ygpM4iT8Llkwv+DW4MHexa43Kyvhdwk0L0frt3S6xyXF7nrtZ9oj+a1E4iDOdK+I7+UR5NCGrbg==}
+  synqable@0.2.0:
+    resolution: {integrity: sha512-CFCaAYXeKnbPvs6EVCLgK5obYH8RYL2dcyvyku5zMeEDcOokLRmzCfmqXAZ/hFwonZx+c22Oza4kY5xrsLWXXQ==}
 
   tabbable@6.5.0:
     resolution: {integrity: sha512-wieBHXygIm7OyQOu5hQlkk62/WyCFYGlWg7L6/ZCUZwx0o398Zkn4pVmMyfYhfMG8kGrj/Krt8eIk6UKC6VzwA==}
@@ -5467,7 +5467,7 @@ snapshots:
       syncpack-windows-arm64: 15.3.3
       syncpack-windows-x64: 15.3.3
 
-  synqable@0.0.13:
+  synqable@0.2.0:
     dependencies:
       named-logs: 0.4.1
       object-hash: 3.0.0

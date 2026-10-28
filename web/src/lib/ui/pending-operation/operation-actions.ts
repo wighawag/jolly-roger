@@ -480,8 +480,8 @@ export function dismissOperation(
 	deps: Pick<Context, 'accountData'>,
 	operationKey: string,
 ): void {
-	const currentAccountData = deps.accountData.get();
-	currentAccountData?.removeItem('operations', operationKey, {
+	// Obtained at the click, never kept: a handle is revoked by an account switch.
+	deps.accountData.writer()?.removeItem('operations', operationKey, {
 		ignoreMissing: true,
 	});
 }

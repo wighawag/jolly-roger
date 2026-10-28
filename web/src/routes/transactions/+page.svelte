@@ -42,6 +42,18 @@
 					</Empty.Description>
 				</Empty.Header>
 			</Empty.Root>
+		{:else if $accountDataState.status === 'error'}
+			<Empty.Root class="min-h-100">
+				<Empty.Header>
+					<Empty.Media variant="icon">
+						<ListIcon />
+					</Empty.Media>
+					<Empty.Title>Transactions Could Not Be Loaded</Empty.Title>
+					<Empty.Description>
+						{$accountDataState.loadError.message}
+					</Empty.Description>
+				</Empty.Header>
+			</Empty.Root>
 		{:else if $accountDataState.isLoading}
 			<div class="flex flex-col items-center justify-center py-12">
 				<div
