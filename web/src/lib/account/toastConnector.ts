@@ -112,10 +112,10 @@ export function createToastConnector(params: {
 	}
 
 	function deleteOperation(key: string) {
-		const currentAccountData = accountData.get();
-		if (currentAccountData) {
-			currentAccountData.removeItem('operations', key);
-		}
+		// The handle of the account showing the toast, obtained now: a toast can
+		// outlive an account switch, and a handle kept from before it would throw.
+		// No handle (no account, or its data not loaded) means nothing to delete.
+		accountData.writer()?.removeItem('operations', key);
 	}
 
 	// Helper to open modal while keeping toast visible
