@@ -175,6 +175,14 @@
 			<Spinner class="h-4 w-4" />
 			Loading this transaction.
 		</div>
+	{:else if inspected.status === 'no-account'}
+		<Modal.Title>Pending Transaction</Modal.Title>
+		<p class="py-4 text-sm text-muted-foreground">
+			Connect your account to see this transaction.
+		</p>
+		<Modal.Footer>
+			<Button variant="outline" onclick={() => inspector.close()}>Close</Button>
+		</Modal.Footer>
 	{:else if inspected.status === 'unavailable'}
 		<Modal.Title>Pending Transaction</Modal.Title>
 		<p class="py-4 text-sm text-muted-foreground">
