@@ -627,6 +627,18 @@ export function createAccountData<F extends AddedFieldsSchema = {}>(params: {
 	}
 
 	/**
+	 * The current account's data if it has loaded, `undefined` otherwise (no
+	 * account, loading, failed). For a reader that does not write: the same
+	 * question as `isReady()`, answered with the data, so a caller does not walk
+	 * `get()?.get()` into the store or take a write handle only to read.
+	 */
+	function read():
+		ReturnType<StoreWriter<AccountDataSchema<F>>['read']> | undefined {
+		const current = store.get()?.get();
+		return current?.status === 'ready' ? current.data : undefined;
+	}
+
+	/**
 	 * The current account's data lifecycle as ONE readable: `no-account`,
 	 * `loading`, `ready`, or `error` with the load's error. What a consumer that
 	 * must not act on data it has not got (the submission, the HUD) derives
@@ -647,6 +659,7 @@ export function createAccountData<F extends AddedFieldsSchema = {}>(params: {
 		lifecycle$,
 		writeDurably,
 		isReady,
+		read,
 		addOperationFromTrackedTransaction,
 		addTransactionToOperation,
 		updateOperationFromKnownTransaction,

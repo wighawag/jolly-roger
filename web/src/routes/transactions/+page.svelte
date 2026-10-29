@@ -9,7 +9,7 @@
 
 	const {accountData} = getAppContext();
 
-	let accountDataState = $derived(accountData.state$);
+	const lifecycle = accountData.lifecycle$;
 	let operationIds = $derived(accountData.watchItemIds('operations'));
 	let sortedOperationIds = $derived(sortOperationIdsDescending($operationIds));
 </script>
@@ -30,7 +30,7 @@
 
 		<Separator.Root />
 
-		{#if $accountDataState.status === 'idle'}
+		{#if $lifecycle.status === 'no-account'}
 			<Empty.Root class="min-h-100">
 				<Empty.Header>
 					<Empty.Media variant="icon">
@@ -42,7 +42,7 @@
 					</Empty.Description>
 				</Empty.Header>
 			</Empty.Root>
-		{:else if $accountDataState.status === 'error'}
+		{:else if $lifecycle.status === 'error'}
 			<Empty.Root class="min-h-100">
 				<Empty.Header>
 					<Empty.Media variant="icon">
@@ -50,11 +50,11 @@
 					</Empty.Media>
 					<Empty.Title>Transactions Could Not Be Loaded</Empty.Title>
 					<Empty.Description>
-						{$accountDataState.loadError.message}
+						{$lifecycle.error.message}
 					</Empty.Description>
 				</Empty.Header>
 			</Empty.Root>
-		{:else if $accountDataState.isLoading}
+		{:else if $lifecycle.status === 'loading'}
 			<div class="flex flex-col items-center justify-center py-12">
 				<div
 					class="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"

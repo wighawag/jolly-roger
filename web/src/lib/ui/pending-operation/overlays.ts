@@ -8,7 +8,6 @@ import type {
 	MultiAccountDataStore,
 	OnchainOperation,
 } from '$lib/account/AccountData';
-import type {AccountDataLifecycle} from '$lib/account/lifecycle';
 
 /**
  * The operation inspector, and the three questions it can ask.
@@ -49,17 +48,22 @@ export const cancelConfirmPrompt = definePromptOverlay(
  *
  * `unavailable` is the third answer to "is it there": the account's data FAILED
  * to load, so whether the operation exists cannot be known. It is not `loading`
- * (that never ends) and not `missing` (that claims we looked).
+ * (that never ends) and not `missing` (that claims we looked). `no-account` is
+ * the fourth: nobody is connected, so there is no list to look in, which a link
+ * opened before connecting would otherwise show as a load that never ends.
  */
 export type InspectedOperation =
 	| {status: 'closed'; key?: undefined}
 	| {status: 'loading'; key: string}
+	/** No account is connected, so there is no list to look in. */
+	| {status: 'no-account'; key: string}
 	/** The account data could not be loaded; `error` is the load's. */
 	| {status: 'unavailable'; key: string; error: Error}
 	/** Never seen: a stale or mistyped link. */
 	| {status: 'missing'; key: string}
 	/**
-	 * Seen, then removed while the inspector was open.
+	 * Seen, then removed while the inspector was open, from the SAME account's
+	 * list (a switch or a disconnect is not a removal).
 	 *
 	 * Account data drops an operation once it finalizes successfully
 	 * (`AccountData.updateOperationFromTransactionStateUpdated`), so this is the
@@ -96,44 +100,49 @@ export function watchOverlayOperation(
 			}
 
 			const key = state.payload;
-			// Whether this operation was ever in hand, which is what separates "it
-			// finished and was cleared" from "we never had it".
-			let everFound = false;
-			let watching = false;
+			// WHOSE list the operation was last seen in, which is what separates "it
+			// finished and was cleared" from "we never had it" AND from "this is
+			// another account's list now": a switch or a disconnect empties the
+			// list without anything having finished.
+			let foundFor: `0x${string}` | undefined;
 			let operation: OnchainOperation | undefined;
-			let lifecycle: AccountDataLifecycle = {status: 'no-account'};
 
+			// Computed from SYNCHRONOUS sources (the current store and its own
+			// state), never from the last value a listener delivered: `watchItem`
+			// and `lifecycle$` both fire on a state change, in no guaranteed order,
+			// so whichever runs first must already see the truth.
 			const update = () => {
+				const store = accountData.get();
 				if (operation) {
-					everFound = true;
+					foundFor = store?.account;
 					set({status: 'found', key, operation});
 					return;
 				}
-				if (everFound) {
-					set({status: 'cleared', key});
+				if (!store) {
+					set({status: 'no-account', key});
 					return;
 				}
-				if (lifecycle.status === 'error') {
-					set({status: 'unavailable', key, error: lifecycle.error});
+				const current = store.get();
+				if (current.status === 'error') {
+					set({status: 'unavailable', key, error: current.loadError});
 					return;
 				}
-				// Readiness is re-read on every emission rather than cached:
-				// `watchItem` also fires when the store's state changes, which is
-				// exactly when "not ready" becomes "ready".
-				set({status: accountData.isReady() ? 'missing' : 'loading', key});
+				if (current.status !== 'ready') {
+					set({status: 'loading', key});
+					return;
+				}
+				set({
+					status: foundFor === store.account ? 'cleared' : 'missing',
+					key,
+				});
 			};
 
-			// The lifecycle only for its ERROR: `watchItem` already fires on every
-			// state change, but the two listeners are not ordered, so entering or
-			// leaving `error` re-evaluates here too rather than trusting whichever
-			// fired first.
-			const unsubscribeFromLifecycle = accountData.lifecycle$.subscribe(
-				(next) => {
-					const wasError = lifecycle.status === 'error';
-					lifecycle = next;
-					if (watching && (wasError || next.status === 'error')) update();
-				},
-			);
+			// A trigger only: a disconnect changes no item (the list was already
+			// empty for this key), so without it the inspector would not notice.
+			let watching = false;
+			const unsubscribeFromLifecycle = accountData.lifecycle$.subscribe(() => {
+				if (watching) update();
+			});
 			const unsubscribeFromItem = accountData
 				.watchItem('operations', key)
 				.subscribe((next) => {
