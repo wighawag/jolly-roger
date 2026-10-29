@@ -43,9 +43,9 @@ export function createTxObserverDebugController(
 	}
 
 	function refresh() {
-		const currentAccountData = accountData.get()?.get();
-		if (currentAccountData?.status === 'ready') {
-			operations.set(structuredClone(currentAccountData.data.operations));
+		const data = accountData.read();
+		if (data) {
+			operations.set(structuredClone(data.operations));
 		}
 	}
 
@@ -54,13 +54,13 @@ export function createTxObserverDebugController(
 			addEvent('sync', {error: 'txObserver not available'});
 			return;
 		}
-		const currentAccountData = accountData.get()?.get();
-		if (currentAccountData?.status !== 'ready') {
+		const data = accountData.read();
+		if (!data) {
 			addEvent('sync', {error: 'accountData not ready'});
 			return;
 		}
 
-		const ops = currentAccountData.data.operations;
+		const ops = data.operations;
 		const intentsToAdd: {[id: string]: unknown} = {};
 		for (const [id, operation] of Object.entries(ops)) {
 			// The same projection the real connector feeds the observer, so this
