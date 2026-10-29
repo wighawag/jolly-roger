@@ -105,15 +105,21 @@ export function watchOverlayOperation(
 			// another account's list now": a switch or a disconnect empties the
 			// list without anything having finished.
 			let foundFor: `0x${string}` | undefined;
+			// The item as the store that delivered it last saw it, WITH that store:
+			// on an account switch the lifecycle can fire before the new store's
+			// item does, and a value kept without its store would then be shown as
+			// the new account's (measured by review, 2026-10-28).
 			let operation: OnchainOperation | undefined;
+			let operationFrom: unknown;
 
-			// Computed from SYNCHRONOUS sources (the current store and its own
-			// state), never from the last value a listener delivered: `watchItem`
-			// and `lifecycle$` both fire on a state change, in no guaranteed order,
-			// so whichever runs first must already see the truth.
+			// Computed from synchronous sources (the current store and its own
+			// state), using the delivered item only when it came from the current
+			// store: `watchItem` and `lifecycle$` both fire on a state change, in
+			// no guaranteed order, so whichever runs first must already see the
+			// truth.
 			const update = () => {
 				const store = accountData.get();
-				if (operation) {
+				if (operation && operationFrom === store) {
 					foundFor = store?.account;
 					set({status: 'found', key, operation});
 					return;
@@ -137,22 +143,36 @@ export function watchOverlayOperation(
 				});
 			};
 
-			// A trigger only: a disconnect changes no item (the list was already
-			// empty for this key), so without it the inspector would not notice.
+			// The item of EACH store in turn, subscribed on that store itself, so
+			// every value is known to come from the store it is tagged with.
+			let unsubscribeFromItem: (() => void) | undefined;
 			let watching = false;
+			const unsubscribeFromStore = accountData.subscribe((store) => {
+				unsubscribeFromItem?.();
+				unsubscribeFromItem = undefined;
+				operation = undefined;
+				operationFrom = store;
+				if (store) {
+					unsubscribeFromItem = store
+						.watchItem('operations', key)
+						.subscribe((next) => {
+							operation = next;
+							update();
+						});
+				} else {
+					update();
+				}
+			});
+			// A trigger only: a load, a failure or a retry changes the store's
+			// state, which this re-reads.
 			const unsubscribeFromLifecycle = accountData.lifecycle$.subscribe(() => {
 				if (watching) update();
 			});
-			const unsubscribeFromItem = accountData
-				.watchItem('operations', key)
-				.subscribe((next) => {
-					operation = next;
-					update();
-				});
 			watching = true;
 			unsubscribeFromOperation = () => {
-				unsubscribeFromItem();
 				unsubscribeFromLifecycle();
+				unsubscribeFromItem?.();
+				unsubscribeFromStore();
 			};
 		});
 
