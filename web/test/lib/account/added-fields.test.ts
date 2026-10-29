@@ -83,7 +83,7 @@ describe('fields an app adds to its account data', () => {
 			expectTypeOf(accountData.read()!.settings.volume).toEqualTypeOf<number>();
 			expect(accountData.read()!.settings).toEqual({sound: true, volume: 7});
 
-			await accountData.get()!.flush();
+			await accountData.get()!.persisted();
 			await accountData.writeDurably((w) =>
 				w.setItem('submissions', 'cycle-3', {cycle: 3, secret: '0x02'}),
 			);
@@ -121,7 +121,7 @@ describe('fields an app adds to its account data', () => {
 		before.accountData.addOperationFromTrackedTransaction(
 			trackedTransaction(ALICE, 4),
 		);
-		await before.accountData.get()!.flush();
+		await before.accountData.get()!.persisted();
 		before.stop();
 		const stored = storage.saved.get(storageKey(ALICE)) as {
 			data: Record<string, unknown>;
@@ -147,7 +147,7 @@ describe('fields an app adds to its account data', () => {
 			sound: false,
 			volume: 9,
 		});
-		await first.accountData.get()!.flush();
+		await first.accountData.get()!.persisted();
 		first.stop();
 
 		const {accountData, stop} = setup(storage);
