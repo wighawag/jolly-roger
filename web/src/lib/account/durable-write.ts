@@ -1,4 +1,3 @@
-import {get} from 'svelte/store';
 import {
 	StoreUnavailableError,
 	type MultiAccountStore,
@@ -37,6 +36,7 @@ function immediateWriter<S extends Schema>(
 			return writer.account;
 		},
 		read: () => writer.read(),
+		persisted: () => writer.persisted(),
 		set: (field, value, options) =>
 			writer.set(field, value, {...options, immediate: true}),
 		update: (field, value, options) =>
@@ -67,22 +67,26 @@ function immediateWriter<S extends Schema>(
  *    with synqable's `StoreUnavailableError` from there unchanged: `no-account`
  *    at once, `account-switched` when the account changes before the load,
  *    `load-failed` (the load error as `cause`), or `stopped`.
- * 2. It pins the store that handle belongs to. `ready()` resolves on a later
- *    microtask, and the account may have switched in between; the handle would
- *    then throw anyway, but the check here makes that an `account-switched`
- *    rejection BEFORE anything is written, and names the store to flush. A
- *    handle is the same object for its store's lifetime, so `writer()` on the
- *    current store being this handle means "this is the store written to".
+ * 2. It checks that handle is still the current store's. `ready()` resolves on
+ *    a later microtask, and the account may have switched in between; the
+ *    handle would then throw anyway, but the check here makes that an
+ *    `account-switched` rejection BEFORE anything is written. A handle is the
+ *    same object for its store's lifetime, so `writer()` on the current store
+ *    being this handle means "this is the store written to".
  * 3. It runs `write` with that handle, every mutator forced `{immediate: true}`.
  *    Its result is returned. It may be async, and what it writes before it
- *    settles is what gets flushed, but a handle used after an account switch
+ *    settles is what is waited for, but a handle used after an account switch
  *    throws, so keep it synchronous unless it must wait. Anything it throws
- *    rejects the call, with nothing flushed.
- * 4. It flushes THAT store (not whichever is current by then: an account switch
- *    after the write still saves the write, and it is that save to wait for),
- *    then rejects with {@link AccountDataNotStoredError} if the store reports a
- *    `storageError`. `flush()` resolves even when the save failed, so this
- *    check is what makes "resolved" mean "on storage".
+ *    rejects the call, and nothing is waited for.
+ * 4. It awaits the handle's `persisted()` (synqable 0.3): resolved once a save
+ *    that includes every write made before the call has succeeded, rejected
+ *    with the storage error when the save that included them failed and none
+ *    is queued, which this turns into {@link AccountDataNotStoredError}. The
+ *    handle names the store written to, so an account switch after the write
+ *    still waits for that store's save. Saves other writes trigger cannot make
+ *    it reject, and an earlier failed save does not either when this one
+ *    succeeds (`persisted()` retries), which the 0.2 version, a `flush()` then
+ *    a read of `storageStatus$`'s `storageError`, got wrong both ways.
  */
 export function createDurableWrite<S extends Schema>(
 	store: Pick<MultiAccountStore<S>, 'ready' | 'get'>,
@@ -92,8 +96,7 @@ export function createDurableWrite<S extends Schema>(
 	): Promise<Awaited<T>> {
 		const writer = await store.ready();
 
-		const target = store.get();
-		if (!target || target.writer() !== writer) {
+		if (store.get()?.writer() !== writer) {
 			throw new StoreUnavailableError(
 				'account-switched',
 				`The account changed from ${writer.account} before its data could be written`,
@@ -103,10 +106,13 @@ export function createDurableWrite<S extends Schema>(
 
 		const result = await write(immediateWriter(writer));
 
-		await target.flush();
-		const {storageError} = get(target.storageStatus$);
-		if (storageError) {
-			throw new AccountDataNotStoredError(writer.account, storageError);
+		try {
+			await writer.persisted();
+		} catch (error) {
+			throw new AccountDataNotStoredError(
+				writer.account,
+				error instanceof Error ? error : new Error(String(error)),
+			);
 		}
 		return result;
 	};
