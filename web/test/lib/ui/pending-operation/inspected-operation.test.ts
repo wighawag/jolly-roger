@@ -23,8 +23,7 @@ import {
  * such, rather than as a load that never ends.
  */
 
-function setup() {
-	const storage = controlledStorage();
+function setup(storage = controlledStorage()) {
 	const account = accountStore(undefined);
 	const accountData = createAccountData({
 		accountStore: account,
@@ -214,6 +213,41 @@ describe('the inspected operation', () => {
 			expect(seen.some((value) => value.status === 'found')).toBe(false);
 			expect(seen.at(-1)).toEqual({status: 'missing', key: '1000'});
 		} finally {
+			stop();
+		}
+	});
+	it('goes from loading straight to found when the load brings the operation', async () => {
+		const storage = controlledStorage();
+		// A first session files the operation and stores it.
+		const first = setup(storage);
+		first.overlay.set({open: true, payload: '1000'});
+		first.account.set(ALICE);
+		await vi.waitFor(() => expect(first.accountData.isReady()).toBe(true));
+		first.accountData.addOperationFromTrackedTransaction(
+			trackedTransaction(ALICE, 1),
+		);
+		await first.accountData.get()!.persisted();
+		first.stop();
+
+		// A reload: the inspector is open on that operation while it loads.
+		const {account, overlay, inspected, stop} = setup(storage);
+		const seen: string[] = [];
+		const unsubscribe = inspected.subscribe((value) => seen.push(value.status));
+		try {
+			storage.hold();
+			overlay.set({open: true, payload: '1000'});
+			account.set(ALICE);
+			storage.release();
+			await vi.waitFor(() => expect(seen.at(-1)).toBe('found'));
+			// Opened before the account is known, then one load, then the
+			// operation: no `missing` between, and no repeated `loading`.
+			expect(seen.filter((status) => status !== 'closed')).toEqual([
+				'no-account',
+				'loading',
+				'found',
+			]);
+		} finally {
+			unsubscribe();
 			stop();
 		}
 	});
