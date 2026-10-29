@@ -38,6 +38,7 @@ function deferred(): Deferred {
 export function controlledStorage() {
 	const saved = new Map<string, unknown>();
 	let held: Deferred | undefined;
+	let heldSaves: Deferred | undefined;
 	const control = {
 		saved,
 		saves: 0,
@@ -52,6 +53,15 @@ export function controlledStorage() {
 			held = undefined;
 			gate?.resolve();
 		},
+		/** Saves already started wait until {@link releaseSaves} is called. */
+		holdSaves() {
+			heldSaves = deferred();
+		},
+		releaseSaves() {
+			const gate = heldSaves;
+			heldSaves = undefined;
+			gate?.resolve();
+		},
 		adapter: (): AsyncStorage<never> => ({
 			async load(key) {
 				if (held) await held.promise;
@@ -60,11 +70,16 @@ export function controlledStorage() {
 			},
 			async save(key, data) {
 				control.saves++;
+				// Whether this save fails is decided when it STARTS, so a test can
+				// let one save succeed and fail the next one queued behind it.
+				const failure = control.saveError;
+				const snapshot = structuredClone(data);
+				if (heldSaves) await heldSaves.promise;
 				// Settle on a later task, as real storage does, so a caller that
 				// does not wait for the save would see it unfinished.
 				await new Promise((r) => setTimeout(r, 0));
-				if (control.saveError) throw control.saveError;
-				saved.set(key, structuredClone(data));
+				if (failure) throw failure;
+				saved.set(key, snapshot);
 			},
 			async remove(key) {
 				saved.delete(key);
