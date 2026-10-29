@@ -117,27 +117,49 @@ export function watchOverlayOperation(
 			// store: `watchItem` and `lifecycle$` both fire on a state change, in
 			// no guaranteed order, so whichever runs first must already see the
 			// truth.
+			// One emission per change of state; `found` always emits, since the
+			// operation itself is what changes there.
+			let last: InspectedOperation | undefined;
+			const emit = (next: InspectedOperation) => {
+				if (
+					next.status !== 'found' &&
+					last?.status === next.status &&
+					last.key === next.key &&
+					('error' in last ? last.error : undefined) ===
+						('error' in next ? next.error : undefined)
+				) {
+					return;
+				}
+				last = next;
+				set(next);
+			};
+
 			const update = () => {
 				const store = accountData.get();
 				if (operation && operationFrom === store) {
 					foundFor = store?.account;
-					set({status: 'found', key, operation});
+					emit({status: 'found', key, operation});
 					return;
 				}
 				if (!store) {
-					set({status: 'no-account', key});
+					emit({status: 'no-account', key});
 					return;
 				}
 				const current = store.get();
 				if (current.status === 'error') {
-					set({status: 'unavailable', key, error: current.loadError});
+					emit({status: 'unavailable', key, error: current.loadError});
 					return;
 				}
 				if (current.status !== 'ready') {
-					set({status: 'loading', key});
+					emit({status: 'loading', key});
 					return;
 				}
-				set({
+				// Loaded, and the store HAS the operation, but its item has not been
+				// delivered yet (the lifecycle fired first on the same state change).
+				// The delivery follows at once; saying `missing` meanwhile would be a
+				// claim the store's own data contradicts.
+				if (current.data.operations[key]) return;
+				emit({
 					status: foundFor === store.account ? 'cleared' : 'missing',
 					key,
 				});
