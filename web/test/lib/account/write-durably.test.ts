@@ -1,5 +1,4 @@
 import {describe, it, expect, vi} from 'vitest';
-import {readable} from 'svelte/store';
 import {StoreUnavailableError, type StoreWriter} from 'synqable';
 import {createAccountData} from '../../../src/lib/account/AccountData';
 import {
@@ -192,6 +191,54 @@ describe('writeDurably', () => {
 			stop();
 		}
 	});
+	it('resolves when its write is stored, though a later write’s save then fails', async () => {
+		const {storage, accountData, stop} = setup(ALICE);
+		try {
+			await vi.waitFor(() => expect(accountData.isReady()).toBe(true));
+			storage.holdSaves();
+			const done = accountData.writeDurably((writer) =>
+				writer.addItem('operations', 'turn', OPERATION, {deleteAt: 10_000}),
+			);
+			// Our save has started (held) and writeDurably is waiting on it.
+			await vi.waitFor(() => expect(storage.saves).toBe(1));
+			await new Promise((r) => setTimeout(r, 0));
+
+			// Another write, whose save is queued behind ours and will fail.
+			storage.saveError = new Error('quota exceeded');
+			accountData.writer()!.addItem('operations', 'other', OPERATION, {
+				deleteAt: 10_000,
+				immediate: true,
+			});
+			storage.releaseSaves();
+
+			await expect(done).resolves.toBeUndefined();
+			expect(storedOperations(storage, ALICE)?.turn).toBeDefined();
+			expect(storedOperations(storage, ALICE)?.other).toBeUndefined();
+		} finally {
+			stop();
+		}
+	});
+
+	it('resolves after an earlier failed save once storage works again', async () => {
+		const {storage, accountData, stop} = setup(ALICE);
+		try {
+			await vi.waitFor(() => expect(accountData.isReady()).toBe(true));
+			storage.saveError = new Error('quota exceeded');
+			await expect(
+				accountData.writeDurably((writer) =>
+					writer.addItem('operations', 'turn', OPERATION, {deleteAt: 10_000}),
+				),
+			).rejects.toBeInstanceOf(AccountDataNotStoredError);
+
+			storage.saveError = undefined;
+			// Nothing new to write: the earlier failure must not be reported now,
+			// and the write it lost is stored by the retry.
+			await expect(accountData.writeDurably(() => {})).resolves.toBeUndefined();
+			expect(storedOperations(storage, ALICE)?.turn).toBeDefined();
+		} finally {
+			stop();
+		}
+	});
 });
 
 describe('createDurableWrite, against the store it is handed', () => {
@@ -202,9 +249,11 @@ describe('createDurableWrite, against the store it is handed', () => {
 			(...args: unknown[]) => {
 				calls.push({method, options: args[args.length - 1]});
 			};
+		const persisted = vi.fn(async () => {});
 		const writer = {
 			account: ALICE,
 			read: () => ({}),
+			persisted,
 			set: record('set'),
 			update: record('update'),
 			addItem: record('addItem'),
@@ -214,18 +263,12 @@ describe('createDurableWrite, against the store it is handed', () => {
 			patchItem: record('patchItem'),
 			removeItem: record('removeItem'),
 		} as unknown as StoreWriter<never>;
-		return {writer, calls};
+		return {writer, calls, persisted};
 	}
 
 	function fakeStore(writer: StoreWriter<never>, current: StoreWriter<never>) {
-		const flush = vi.fn(async () => {});
-		const target = {
-			writer: () => current,
-			flush,
-			storageStatus$: readable({storageError: null}),
-		};
+		const target = {writer: () => current};
 		return {
-			flush,
 			store: {
 				ready: async () => writer,
 				get: () => target as never,
@@ -234,9 +277,9 @@ describe('createDurableWrite, against the store it is handed', () => {
 	}
 
 	it('rejects with account-switched, writing nothing, when the current store is no longer the handle’s', async () => {
-		const {writer, calls} = fakeWriter();
+		const {writer, calls, persisted} = fakeWriter();
 		const other = fakeWriter().writer;
-		const {store, flush} = fakeStore(writer, other);
+		const {store} = fakeStore(writer, other);
 		const write = vi.fn();
 
 		const error = await rejection(createDurableWrite(store as never)(write));
@@ -244,12 +287,12 @@ describe('createDurableWrite, against the store it is handed', () => {
 		expect((error as StoreUnavailableError).reason).toBe('account-switched');
 		expect(write).not.toHaveBeenCalled();
 		expect(calls).toHaveLength(0);
-		expect(flush).not.toHaveBeenCalled();
+		expect(persisted).not.toHaveBeenCalled();
 	});
 
 	it('forces immediate on every mutator, keeping the caller’s options', async () => {
-		const {writer, calls} = fakeWriter();
-		const {store, flush} = fakeStore(writer, writer);
+		const {writer, calls, persisted} = fakeWriter();
+		const {store} = fakeStore(writer, writer);
 
 		await createDurableWrite(store as never)((w) => {
 			const any = w as unknown as Record<string, (...args: unknown[]) => void>;
@@ -278,6 +321,6 @@ describe('createDurableWrite, against the store it is handed', () => {
 		}
 		expect(calls[2].options).toEqual({deleteAt: 5, immediate: true});
 		expect(calls[7].options).toEqual({ignoreMissing: true, immediate: true});
-		expect(flush).toHaveBeenCalledOnce();
+		expect(persisted).toHaveBeenCalledOnce();
 	});
 });
