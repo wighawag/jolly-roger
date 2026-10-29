@@ -79,6 +79,9 @@ describe('fields an app adds to its account data', () => {
 			});
 			expect(data.settings).toEqual({sound: true, volume: 7});
 			expect(data.profile).toEqual({name: 'alice', colour: 'grey'});
+			// The same data through the account data's own reader, as typed.
+			expectTypeOf(accountData.read()!.settings.volume).toEqualTypeOf<number>();
+			expect(accountData.read()!.settings).toEqual({sound: true, volume: 7});
 
 			await accountData.get()!.flush();
 			await accountData.writeDurably((w) =>
