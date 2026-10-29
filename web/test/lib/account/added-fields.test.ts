@@ -4,7 +4,9 @@ import {defineSchema, map, record, value} from 'synqable';
 import {
 	createAccountData,
 	type AccountDataStore,
+	type AddedFieldsSchema,
 	type MultiAccountDataStore,
+	type OnchainOperation,
 } from '../../../src/lib/account/AccountData';
 import {
 	ALICE,
@@ -179,20 +181,15 @@ describe('fields an app adds to its account data', () => {
 		const asFramework: MultiAccountDataStore = accountData;
 		expect(asFramework).toBe(accountData);
 
-		const clashing = {
-			schema: defineSchema({operations: map<number>()}),
-			defaults: () => ({operations: {}}),
-		};
-		expect(() =>
-			createAccountData({
-				accountStore: accountStore(undefined),
-				deployments,
-				clock,
-				scopeAddress: SCOPE,
-				// @ts-expect-error `operations` is the framework's field
-				fields: clashing,
-			}),
-		).not.toThrow();
+		// `operations` is the framework's: a schema that defines it is not an
+		// AddedFieldsSchema, whatever its item type, so `fields` cannot take it.
+		// Asserted on the constraint itself rather than with a @ts-expect-error
+		// on a call, which any other type error on that line would satisfy.
+		const clashing = defineSchema({operations: map<number>()});
+		const sameItem = defineSchema({operations: map<OnchainOperation>()});
+		expectTypeOf<typeof clashing>().not.toExtend<AddedFieldsSchema>();
+		expectTypeOf<typeof sameItem>().not.toExtend<AddedFieldsSchema>();
+		expectTypeOf<typeof appFields.schema>().toExtend<AddedFieldsSchema>();
 	});
 });
 
