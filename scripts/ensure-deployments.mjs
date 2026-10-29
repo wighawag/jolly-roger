@@ -127,14 +127,28 @@ try {
 	rmSync(ephemeralDir, {recursive: true, force: true});
 	execFileSync(
 		'pnpm',
-		['--filter', './contracts', 'exec', 'hardhat', 'run', 'scripts/deploy-ephemeral.ts'],
+		[
+			'--filter',
+			'./contracts',
+			'exec',
+			'hardhat',
+			'run',
+			'scripts/deploy-ephemeral.ts',
+		],
 		// A compile on a fresh clone, then a few transactions on an instant
 		// chain. Bounded, so a deploy that cannot finish cannot hang an install.
 		{cwd: root, stdio: 'pipe', timeout: 10 * 60 * 1000},
 	);
 	execFileSync(
 		'pnpm',
-		['--filter', './contracts', 'export', EPHEMERAL, '--ts', '../web/src/lib/deployments.ts'],
+		[
+			'--filter',
+			'./contracts',
+			'export',
+			EPHEMERAL,
+			'--ts',
+			'../web/src/lib/deployments.ts',
+		],
 		{cwd: root, stdio: 'pipe'},
 	);
 } catch {
