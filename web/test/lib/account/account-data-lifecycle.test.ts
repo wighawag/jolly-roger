@@ -54,6 +54,7 @@ describe('the account data lifecycle', () => {
 				account: ALICE,
 			});
 			expect(accountData.writer()).toBeUndefined();
+			expect(accountData.read()).toBeUndefined();
 
 			storage.release();
 			await vi.waitFor(() =>
@@ -63,6 +64,7 @@ describe('the account data lifecycle', () => {
 				}),
 			);
 			expect(accountData.writer()?.account).toBe(ALICE);
+			expect(accountData.read()).toEqual({operations: {}});
 		} finally {
 			stop();
 		}
@@ -126,6 +128,7 @@ describe('the account data lifecycle', () => {
 				}),
 			);
 			expect(accountData.writer()).toBeUndefined();
+			expect(accountData.read()).toBeUndefined();
 			expect(accountData.isReady()).toBe(false);
 		} finally {
 			stop();
