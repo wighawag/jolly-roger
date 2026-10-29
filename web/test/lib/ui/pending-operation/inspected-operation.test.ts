@@ -2,7 +2,10 @@ import {describe, it, expect, vi} from 'vitest';
 import {get, writable} from 'svelte/store';
 import {createAccountData} from '../../../../src/lib/account/AccountData';
 import type {OverlayState} from '../../../../src/lib/core/ui/overlay';
-import {watchOverlayOperation} from '../../../../src/lib/ui/pending-operation/overlays';
+import {
+	watchOverlayOperation,
+	type InspectedOperation,
+} from '../../../../src/lib/ui/pending-operation/overlays';
 import {
 	ALICE,
 	BOB,
@@ -157,6 +160,59 @@ describe('the inspected operation', () => {
 			await vi.waitFor(() =>
 				expect(get(inspected)).toEqual({status: 'missing', key: '1000'}),
 			);
+		} finally {
+			stop();
+		}
+	});
+	it('never shows the previous account’s operation after a switch, whatever the account store’s notification order', async () => {
+		// An account store that notifies its subscribers DIRECTLY, not through
+		// svelte's subscriber queue (which happens to delay the lifecycle until
+		// the item has moved to the new store).
+		let current: `0x${string}` | undefined = undefined;
+		const subscribers = new Set<(value: `0x${string}` | undefined) => void>();
+		const account = {
+			subscribe(callback: (value: `0x${string}` | undefined) => void) {
+				subscribers.add(callback);
+				callback(current);
+				return () => void subscribers.delete(callback);
+			},
+			set(value: `0x${string}` | undefined) {
+				current = value;
+				for (const callback of [...subscribers]) callback(value);
+			},
+		};
+		const storage = controlledStorage();
+		const accountData = createAccountData({
+			accountStore: account,
+			deployments,
+			clock,
+			scopeAddress: SCOPE,
+			storageAdapter: storage.adapter,
+		});
+		const overlay = writable<OverlayState<string>>({
+			open: true,
+			payload: '1000',
+		});
+		const seen: InspectedOperation[] = [];
+		const stop = watchOverlayOperation(overlay, accountData).subscribe(
+			(value) => seen.push(value),
+		);
+		try {
+			account.set(ALICE);
+			await vi.waitFor(() => expect(accountData.isReady()).toBe(true));
+			accountData.addOperationFromTrackedTransaction(
+				trackedTransaction(ALICE, 1),
+			);
+			expect(seen.at(-1)?.status).toBe('found');
+
+			storage.hold();
+			seen.length = 0;
+			account.set(BOB);
+			storage.release();
+			await vi.waitFor(() => expect(accountData.isReady()).toBe(true));
+
+			expect(seen.some((value) => value.status === 'found')).toBe(false);
+			expect(seen.at(-1)).toEqual({status: 'missing', key: '1000'});
 		} finally {
 			stop();
 		}
