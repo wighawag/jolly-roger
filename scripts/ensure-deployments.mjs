@@ -65,13 +65,31 @@ if (existsSync(target)) process.exit(0);
  * offered too. That is the right answer where it happens: a developer whose
  * generated file went missing wants their own chain back, not a testnet. It is
  * reachable only when the file is absent, since an existing one wins above.
+ *
+ * RECORDS THAT NAME THEIR CHAIN'S GENESIS COME FIRST, then by name. A record
+ * written by today's rocketh carries a `.chain` file with the chain id AND its
+ * genesis hash, and the app needs both (the account data scopes its storage by
+ * the genesis hash, and `TypedDeployments` is derived from the export). An
+ * older record carries only `.chainId`, so exporting it gives a chain without
+ * `genesisHash` and the app fails to type-check, with errors that name a dead
+ * testnet rather than the cause. Directory order used to decide: mandalas,
+ * which committed `goerli` and `staging` records in the old format beside its
+ * `mainnet` one, exported Goerli on every fresh clone and failed its check six
+ * times (2026-10-28). The old records are still tried, last, since exporting
+ * one is better than a throwaway deploy.
  */
 const networks = existsSync(deploymentsDir)
-	? readdirSync(deploymentsDir).filter(
-			(name) =>
-				name !== EPHEMERAL &&
-				statSync(join(deploymentsDir, name)).isDirectory(),
-		)
+	? readdirSync(deploymentsDir)
+			.filter(
+				(name) =>
+					name !== EPHEMERAL &&
+					statSync(join(deploymentsDir, name)).isDirectory(),
+			)
+			.sort((a, b) => {
+				const named = (network) =>
+					existsSync(join(deploymentsDir, network, '.chain')) ? 0 : 1;
+				return named(a) - named(b) || a.localeCompare(b);
+			})
 	: [];
 
 for (const network of networks) {
