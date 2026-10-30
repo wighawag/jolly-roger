@@ -130,6 +130,17 @@
 	body {
 		@apply bg-background text-foreground;
 	}
+	/* A dialog never taller than the screen. The vendored dialog-content
+	   centres itself with a fixed translate and sets no height limit, so
+	   content longer than a phone (or a phone held sideways) ran off both
+	   edges with no way to reach its buttons. In the base layer, so any
+	   max-h-* / overflow-* class on a DialogContent still wins; kept out of
+	   src/lib/shadcn so `shadcn add` can overwrite that freely. */
+	[data-slot='dialog-content'] {
+		max-height: calc(100dvh - 2rem);
+		overflow-y: auto;
+		overscroll-behavior: contain;
+	}
 }
 
 html {
