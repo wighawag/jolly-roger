@@ -33,6 +33,35 @@ export function effectiveGasPrice(estimates: GasPriceEstimates): bigint {
 	return estimates.baseFeePerGas + estimates.average.maxPriorityFeePerGas;
 }
 
+/**
+ * The node's own idea of the least tip it will mine (`eth_maxPriorityFeePerGas`),
+ * or zero when it does not say (the method is missing, or the call failed).
+ *
+ * A FLOOR FOR THE TIPS, because `eth_feeHistory` describes what blocks PAID,
+ * not what the node ACCEPTS. On a quiet chain every recent block is empty and
+ * every reward is zero, so the percentiles are zero, and a node with a minimum
+ * tip never mines the transaction: it sits in the pool, pending, for ever.
+ * geth is such a node, and will not be configured out of it (1.17 rewrites
+ * `--miner.gasprice 0` to 1,000,000 wei and `--txpool.pricelimit 0` to 1):
+ * found on a LAN box running geth in dev mode, where nothing the page sent was
+ * ever mined while the deploy (priced by the node's suggestion) was. Where
+ * blocks are busy the percentiles are above the floor and nothing changes.
+ */
+async function nodeTipFloor(publicClient: PublicClient): Promise<bigint> {
+	try {
+		const answer = await publicClient.request({
+			method: 'eth_maxPriorityFeePerGas',
+		} as never);
+		return typeof answer === 'string' ? BigInt(answer) : 0n;
+	} catch {
+		return 0n;
+	}
+}
+
+function atLeast(value: bigint, floor: bigint): bigint {
+	return value > floor ? value : floor;
+}
+
 function avg(arr: bigint[]) {
 	if (arr.length === 0) return 0n;
 	const sum = arr.reduce((a: bigint, v: bigint) => a + v);
@@ -86,12 +115,15 @@ export function createGasFeeStore(
 
 		if (feeHistorySupport === 'unknown' || feeHistorySupport === 'supported') {
 			try {
-				const feeHistory: GetFeeHistoryReturnType =
-					await publicClient.getFeeHistory({
-						blockCount,
-						rewardPercentiles,
-						blockTag: 'pending',
-					});
+				const [feeHistory, tipFloor]: [GetFeeHistoryReturnType, bigint] =
+					await Promise.all([
+						publicClient.getFeeHistory({
+							blockCount,
+							rewardPercentiles,
+							blockTag: 'pending',
+						}),
+						nodeTipFloor(publicClient),
+					]);
 				const reward = feeHistory.reward!;
 
 				let blockNum = Number(feeHistory.oldestBlock);
@@ -128,7 +160,10 @@ export function createGasFeeStore(
 				const percentilePriorityFeeAverages: bigint[] = [];
 				for (let i = 0; i < rewardPercentiles.length; i++) {
 					percentilePriorityFeeAverages.push(
-						avg(blocksHistory.map((b) => b.priorityFeePerGas[i])),
+						atLeast(
+							avg(blocksHistory.map((b) => b.priorityFeePerGas[i])),
+							tipFloor,
+						),
 					);
 				}
 
