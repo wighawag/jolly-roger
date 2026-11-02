@@ -1,13 +1,13 @@
 import {describe, it, expect, afterEach} from 'vitest';
 import {get, type Readable} from 'svelte/store';
 import {mnemonicToAccount} from 'viem/accounts';
-import {createEmbeddedWorld, type EmbeddedWorld} from '$lib/embedded';
+import {startEmbeddedNode} from '$lib/embedded/node';
+import {createEmbeddedDeployments} from '$lib/embedded/deployments';
+import {embeddedConnectionFactory} from '$lib/embedded/world';
 import {
 	announceEmbeddedWallet,
 	type EmbeddedWallet,
 } from '$lib/embedded/wallet';
-import {config, extensions} from 'jolly-roger-contracts/rocketh/config.js';
-import deployGreetingsRegistry from 'jolly-roger-contracts/deploy/001_deploy_greetings_registry.js';
 
 // `.svelte.` infix: the `client` project, a real headless chromium, because the
 // burner keeps its mnemonic in localStorage and the connection persists its
@@ -22,13 +22,6 @@ import deployGreetingsRegistry from 'jolly-roger-contracts/deploy/001_deploy_gre
 // hotseat world would play every human with the first one's key, or hang at a
 // picker nobody can see.
 
-const DEPLOYER =
-	'0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80' as const;
-const ADMIN =
-	'0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d' as const;
-const DEPLOYER_ADDRESS = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266';
-const ADMIN_ADDRESS = '0x70997970C51812dc3A010C7d01b50e0d17dc79C8';
-
 const CHAIN_ID = 9007199254740417;
 
 type ConnectionView = {
@@ -37,7 +30,7 @@ type ConnectionView = {
 	account?: {address?: string; signer?: {address: string}};
 };
 
-let world: EmbeddedWorld | undefined;
+let dispose: (() => Promise<void>) | undefined;
 let wallet: EmbeddedWallet | undefined;
 let stop: (() => void) | undefined;
 afterEach(async () => {
@@ -45,8 +38,8 @@ afterEach(async () => {
 	stop = undefined;
 	wallet?.cleanup();
 	wallet = undefined;
-	await world?.dispose();
-	world = undefined;
+	await dispose?.();
+	dispose = undefined;
 	localStorage.clear();
 });
 
@@ -79,34 +72,35 @@ function until<T>(
 }
 
 async function bootWithAccounts(accounts: number) {
-	world = await createEmbeddedWorld({
+	// A chain with nothing deployed, and the connection built exactly as a
+	// world builds its own (`embeddedConnectionFactory`, which
+	// `createEmbeddedWorld` calls). No app contracts on purpose: this file
+	// arrives unchanged in every descendant, each with contracts of its own,
+	// and what it measures is the wallet and the connection.
+	const node = await startEmbeddedNode({chainId: CHAIN_ID});
+	dispose = node.dispose;
+	wallet = await announceEmbeddedWallet({
+		provider: node.provider,
 		chainId: CHAIN_ID,
-		chain: {
-			name: 'Embedded',
-			nativeCurrency: {name: 'Ether', symbol: 'ETH', decimals: 18},
-		},
-		rocketh: {config, extensions},
-		scripts: [
-			{id: '001_deploy_greetings_registry', module: deployGreetingsRegistry},
-		],
-		accounts: {deployer: DEPLOYER, admin: ADMIN},
-		initialBalances: {
-			[DEPLOYER_ADDRESS]: 10n ** 24n,
-			[ADMIN_ADDRESS]: 10n ** 24n,
-		},
-		provision: async ({node}) => {
-			wallet = await announceEmbeddedWallet({
-				provider: node.provider as never,
-				chainId: CHAIN_ID,
-				accounts,
-			});
-			return {wallets: [wallet.handle]};
-		},
+		accounts,
 	});
-	// The world's own factory, asked as the app asks it (a SignedIn target,
-	// built-in wallets only): the context is not needed to see the connection,
-	// and importing it here would pull the app's environment into a browser test.
-	const established = world.establishConnection({
+	const establishConnection = embeddedConnectionFactory({
+		chainId: CHAIN_ID,
+		node,
+		deployments: createEmbeddedDeployments({
+			chainId: CHAIN_ID,
+			chain: {
+				name: 'Embedded',
+				nativeCurrency: {name: 'Ether', symbol: 'ETH', decimals: 18},
+			},
+			name: 'embedded',
+			contracts: {},
+			expected: [],
+		}),
+		wallets: [wallet.handle],
+	});
+	// Asked as the app asks it: a SignedIn target, built-in wallets only.
+	const established = establishConnection({
 		targetStep: 'SignedIn',
 		walletOnly: true,
 	});
@@ -135,7 +129,9 @@ describe('several accounts in one embedded wallet', () => {
 				}).address.toLowerCase(),
 			);
 		}
-		expect(() => held.select(ADMIN_ADDRESS)).toThrow(/does not hold/);
+		expect(() =>
+			held.select('0x70997970C51812dc3A010C7d01b50e0d17dc79C8'),
+		).toThrow(/does not hold/);
 	});
 
 	it('one by default, as before', async () => {
