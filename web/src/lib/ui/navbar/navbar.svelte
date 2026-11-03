@@ -582,6 +582,21 @@
 			</div>
 
 			<Drawer.Footer class="pt-2">
+				<!-- THE WAY HOME, in the drawer too. The bar's page links are the first
+				     thing to go when the bar does not fit (a phone, or an app whose
+				     skin hides them on a full-bleed page), and the drawer is then the
+				     only navigation left; without this a player on such a page had no
+				     way back. Not on the home page itself. The drawer closes itself on
+				     the navigation, like every link in it. -->
+				{#if !isActive('/')}
+					<a
+						href={route('/')}
+						data-testid="drawer-home"
+						class={buttonVariants({variant: 'outline'})}
+					>
+						Home
+					</a>
+				{/if}
 				<Drawer.Close class={buttonVariants({variant: 'outline'})}
 					>Cancel</Drawer.Close
 				>
