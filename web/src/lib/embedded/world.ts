@@ -215,10 +215,44 @@ export async function createEmbeddedWorld(
 		expected: spec.expectedContracts,
 	});
 
-	const establishConnection: ConnectionFactory = (request) =>
+	const establishConnection = embeddedConnectionFactory({
+		chainId: spec.chainId,
+		node,
+		deployments,
+		wallets,
+	});
+
+	return {
+		chainId: spec.chainId,
+		provider: node.provider,
+		deployments,
+		establishConnection,
+		env,
+		dispose: () => node.dispose(),
+	};
+}
+
+/**
+ * HOW A WORLD CONNECTS, as its own function so it can be exercised without a
+ * deploy: `test/lib/embedded/wallet-switch.svelte.test.ts` holds a connection
+ * built exactly as a world builds it, against a chain with nothing on it,
+ * because that file arrives unchanged in every descendant and none of them
+ * shares this app's contracts.
+ */
+export function embeddedConnectionFactory(params: {
+	chainId: number;
+	node: {provider: EmbeddedWorld['provider']};
+	deployments: DeploymentsStore;
+	wallets: EmbeddedWallets | undefined;
+}): ConnectionFactory {
+	const {chainId, node, deployments, wallets} = params;
+	return (request) =>
 		establishConnectionOn({
-			// One wallet, one account, nothing to pick. A world that brings its
-			// own wallet did not inherit the player's choice, it made one.
+			// One wallet, nothing to pick. A world that brings its own wallet did
+			// not inherit the player's choice, it made one; and when that wallet
+			// holds several accounts (several people at one device), the world
+			// chooses among them itself (`EmbeddedWallet.select`), and the
+			// connection follows the selection instead of asking.
 			wallets,
 			useCurrentAccount: wallets ? 'always' : undefined,
 			// ITS OWN SLOT, AND THIS IS NOT TIDINESS. Every connection persists
@@ -233,7 +267,7 @@ export async function createEmbeddedWorld(
 			// Namespaced by CHAIN rather than a single "embedded" prefix,
 			// because two worlds are two chains with two different accounts,
 			// and the same argument applies between them.
-			storagePrefix: `embedded:${spec.chainId}:`,
+			storagePrefix: `embedded:${chainId}:`,
 			// A wallet this world generated signs without asking anybody, so the
 			// app must not tell the player their wallet is about to. The same
 			// mechanism a local signer uses (`guardDispatch`'s `prompts`), said
@@ -255,13 +289,4 @@ export async function createEmbeddedWorld(
 			walletOnly: request.walletOnly,
 			permissions: request.permissions,
 		});
-
-	return {
-		chainId: spec.chainId,
-		provider: node.provider,
-		deployments,
-		establishConnection,
-		env,
-		dispose: () => node.dispose(),
-	};
 }
