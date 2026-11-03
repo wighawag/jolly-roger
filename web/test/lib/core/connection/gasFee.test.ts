@@ -114,6 +114,66 @@ describe('createGasFeeStore (adapter)', () => {
 		off();
 	});
 
+	it("never tips below the node's own minimum, which an idle chain's fee history reports as zero", async () => {
+		// The failure: every recent block empty, every reward zero, so every tip
+		// zero, and a node with a minimum tip (geth: 1,000,000 wei, and it will
+		// not be configured lower) keeps the transaction pending for ever.
+		const getFeeHistory = vi.fn(async () => ({
+			oldestBlock: 0n,
+			reward: [[0n, 0n, 0n]],
+			baseFeePerGas: [7n, 7n],
+			gasUsedRatio: [0],
+		}));
+		const request = vi.fn(async ({method}: {method: string}) => {
+			if (method === 'eth_maxPriorityFeePerGas') return '0xf4240';
+			throw new Error(`unexpected ${method}`);
+		});
+		const publicClient = {getFeeHistory, request} as unknown as PublicClient;
+
+		const store = createGasFeeStore({publicClient});
+		const off = activate(store);
+		await vi.waitFor(() => expect(get(store).step).toBe('Loaded'));
+		const v = get(store);
+		if (v.step !== 'Loaded') throw new Error('not loaded');
+
+		for (const tier of [v.slow, v.average, v.fast]) {
+			expect(tier.maxPriorityFeePerGas).toBe(1_000_000n);
+			expect(tier.maxFeePerGas).toBe(1_000_000n + 14n);
+		}
+		off();
+	});
+
+	it("leaves tips above the node's minimum as the fee history has them", async () => {
+		const getFeeHistory = vi.fn(async () => feeHistoryOneBlock());
+		const request = vi.fn(async () => '0x1');
+		const publicClient = {getFeeHistory, request} as unknown as PublicClient;
+
+		const store = createGasFeeStore({publicClient});
+		const off = activate(store);
+		await vi.waitFor(() => expect(get(store).step).toBe('Loaded'));
+		const v = get(store);
+		if (v.step !== 'Loaded') throw new Error('not loaded');
+		expect(v.slow.maxPriorityFeePerGas).toBe(10n);
+		expect(v.fast.maxPriorityFeePerGas).toBe(80n);
+		off();
+	});
+
+	it('takes no floor from a node that refuses eth_maxPriorityFeePerGas', async () => {
+		const getFeeHistory = vi.fn(async () => feeHistoryOneBlock());
+		const request = vi.fn(async () => {
+			throw new Error('the method eth_maxPriorityFeePerGas does not exist');
+		});
+		const publicClient = {getFeeHistory, request} as unknown as PublicClient;
+
+		const store = createGasFeeStore({publicClient});
+		const off = activate(store);
+		await vi.waitFor(() => expect(get(store).step).toBe('Loaded'));
+		const v = get(store);
+		if (v.step !== 'Loaded') throw new Error('not loaded');
+		expect(v.average).toEqual({maxPriorityFeePerGas: 50n, maxFeePerGas: 250n});
+		off();
+	});
+
 	it('falls back to getGasPrice when the node lacks eth_feeHistory', async () => {
 		const err = Object.assign(new Error('rpc'), {
 			details: 'unknown method eth_feeHistory',
