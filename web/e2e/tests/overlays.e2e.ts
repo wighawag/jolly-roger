@@ -54,6 +54,24 @@ describe('View overlays and navigation', () => {
 		await expect(drawerOf(page)).toHaveCount(0);
 	});
 
+	test('leads home from any other page, and is not offered on home', async ({
+		page,
+	}) => {
+		// The bar's page links are the first thing to go on a narrow screen or a
+		// skinned full-bleed page, and then the drawer is the only navigation left.
+		// `/explorer/` because every app in this tree has it.
+		await page.goto('/explorer/');
+		await openDrawer(page);
+		await drawerOf(page).getByTestId('drawer-home').click();
+
+		await expect(page).toHaveURL(/\/(\?.*)?$/);
+		await expect(page).not.toHaveURL(/explorer/);
+		await expect(drawerOf(page)).toHaveCount(0);
+
+		await openDrawer(page);
+		await expect(drawerOf(page).getByTestId('drawer-home')).toHaveCount(0);
+	});
+
 	test('the back gesture closes it instead of leaving the page', async ({
 		page,
 	}) => {
