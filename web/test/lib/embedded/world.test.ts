@@ -69,15 +69,18 @@ describe('an embedded world', () => {
 		const inTab = world.deployments.get();
 		expect(inTab.chain.id).toBe(CHAIN_ID);
 		expect(inTab.chain.id).not.toBe(buildTimeDeployments.chain.id);
+		// Case-insensitive: a deterministic (CREATE2) deploy records a
+		// checksummed address.
 		expect(inTab.contracts.GreetingsRegistry.address).toMatch(
-			/^0x[0-9a-f]{40}$/,
+			/^0x[0-9a-f]{40}$/i,
 		);
 
 		// NOT "and a different ADDRESS from the build-time one", which is false
 		// and was asserted here until the first developer ran the stack. This
-		// deploy is deterministic - same deployer, same nonces, a CREATE2
-		// implementation - so an embedded world lands its contracts at exactly
-		// the addresses a fresh LOCAL deploy does. The assertion passed only
+		// deploy is deterministic (every contract through the CREATE2 factory,
+		// see "Deterministic deployments" in README.md), so an embedded world
+		// lands its contracts at exactly the addresses a fresh LOCAL deploy
+		// does. The assertion passed only
 		// because the generated `$lib/deployments` was the install-time SEPOLIA
 		// fallback; `pnpm start` deploys locally and re-exports, and then it
 		// failed with one address diffed against itself. Two identical recipes
