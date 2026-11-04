@@ -9,7 +9,9 @@ export default deployScript(
 		const prefix = '';
 
 		// Deploy an upgradeable contract using a proxy pattern
-		// - The implementation is deployed deterministically
+		// - Both the proxy and the implementation are deployed deterministically
+		//   (CREATE2), so their addresses depend on nothing but the code: see
+		//   "Deterministic deployments" in README.md
 		// - The proxy delegates to the implementation
 		// - The admin can upgrade the implementation later
 		const deployment = await env.deployViaProxy(
@@ -26,7 +28,7 @@ export default deployScript(
 					prefix,
 					admin,
 				},
-				deterministicImplementation: true,
+				deterministic: true,
 			},
 		);
 
