@@ -5,6 +5,8 @@ import {
 	type Page,
 	type BrowserContext,
 } from '@playwright/test';
+import {createPublicClient, createWalletClient, http} from 'viem';
+import {mnemonicToAccount} from 'viem/accounts';
 import {parseImpersonateAddresses} from '../../src/lib/dev-accounts';
 
 /**
@@ -55,6 +57,24 @@ if (IMPERSONATE_ADDRESSES.length === 0) {
 const RPC_PORT = (globalThis as any).process.env.E2E_RPC_PORT || '8545';
 const HARDHAT_RPC_URL =
 	(globalThis as any).process.env.E2E_RPC_URL || `http://127.0.0.1:${RPC_PORT}`;
+
+/**
+ * FUNDING WITHOUT HARDHAT. A node that has no `hardhat_setBalance` (geth, as a
+ * LAN box runs it) is funded by a plain transfer instead, from a key of the
+ * test mnemonic, which such a chain's genesis funds. Learnt from the node's
+ * first refusal, or forced with E2E_FUNDING=transfer.
+ *
+ * One funder PER WORKER (accounts 10 to 19, by Playwright's parallel index),
+ * since workers are separate processes and two senders sharing a key race
+ * each other for its nonce. Never 0 or 1: those deploy and administer, and a
+ * box's faucet pays from 0.
+ */
+let fundByTransfer = (globalThis as any).process.env.E2E_FUNDING === 'transfer';
+const E2E_MNEMONIC =
+	(globalThis as any).process.env.E2E_MNEMONIC ||
+	'test test test test test test test test test test test junk';
+const FUNDER_INDEX =
+	10 + (Number((globalThis as any).process.env.TEST_PARALLEL_INDEX ?? 0) % 10);
 
 /**
  * How many times one call to the node is worth sending: the original, plus a
@@ -252,6 +272,7 @@ export async function fundAddressViaHardhat(
 	// Convert ETH to wei (hex)
 	const weiAmount = BigInt(parseFloat(amountInEth) * 1e18);
 	const hexAmount = '0x' + weiAmount.toString(16);
+	if (fundByTransfer) return fundAddressByTransfer(address, weiAmount);
 
 	for (let attempt = 1; attempt <= RPC_ATTEMPTS; attempt++) {
 		try {
@@ -289,6 +310,10 @@ export async function fundAddressViaHardhat(
 					`hardhat_setBalance got a reply that is not JSON: ${raw.slice(0, 200)}`,
 				);
 			}
+			if (body?.error && isUnknownMethod(body.error)) {
+				fundByTransfer = true;
+				return fundAddressByTransfer(address, weiAmount);
+			}
 			if (body?.error) {
 				throw new NodeRefusedCall(
 					`hardhat_setBalance refused for ${address}: ` +
@@ -306,6 +331,50 @@ export async function fundAddressViaHardhat(
 			}
 			await new Promise((resolve) => setTimeout(resolve, RPC_RETRY_DELAY_MS));
 		}
+	}
+}
+
+/** The node does not know the method (geth's answer to a `hardhat_*` call). */
+function isUnknownMethod(error: {message?: string; code?: number}): boolean {
+	return (
+		error.code === -32601 ||
+		/does not exist|not available|not found|not supported/i.test(
+			error.message ?? '',
+		)
+	);
+}
+
+/**
+ * Top `address` up to at least `wei` with a transfer from this worker's funder
+ * (see FUNDER_INDEX). AT LEAST rather than exactly, unlike `hardhat_setBalance`:
+ * a transfer only adds, so an address that already holds more keeps it.
+ */
+async function fundAddressByTransfer(
+	address: string,
+	wei: bigint,
+): Promise<void> {
+	const transport = http(HARDHAT_RPC_URL);
+	const publicClient = createPublicClient({transport});
+	const to = address as `0x${string}`;
+	const balance = await publicClient.getBalance({address: to});
+	if (balance >= wei) return;
+	const wallet = createWalletClient({
+		account: mnemonicToAccount(E2E_MNEMONIC, {addressIndex: FUNDER_INDEX}),
+		transport,
+	});
+	const hash = await wallet.sendTransaction({
+		to,
+		value: wei - balance,
+		chain: null,
+	});
+	const receipt = await publicClient.waitForTransactionReceipt({
+		hash,
+		timeout: 60_000,
+	});
+	if (receipt.status !== 'success') {
+		throw new Error(
+			`could not fund ${address} by transfer from account ${FUNDER_INDEX}: ${hash} reverted`,
+		);
 	}
 }
 
@@ -361,6 +430,15 @@ export type AuthoriseBrowser = (
 	options?: AuthoriseOptions,
 ) => Promise<AuthorisationOutcome>;
 
+export interface ConnectOptions {
+	/**
+	 * Fund what the app spends from once connected (default true). False leaves
+	 * a fresh burner EMPTY, for a test of how a player gets ETH: the
+	 * insufficient-funds dialog and the faucet behind its "Get ETH".
+	 */
+	fund?: boolean;
+}
+
 export interface WalletOptions {
 	/**
 	 * Which burner account the connect flow picks in the account-picker dialog.
@@ -396,7 +474,7 @@ export interface WalletFixtures {
 	 * Connects the wallet using Dev Mode on the current page.
 	 * Can be used when you need more control over when connection happens.
 	 */
-	connectWallet: (page: Page) => Promise<void>;
+	connectWallet: (page: Page, options?: ConnectOptions) => Promise<void>;
 
 	/**
 	 * Waits for a transaction to be confirmed.
@@ -1019,6 +1097,14 @@ async function authoriseBrowser(
 	}
 
 	const confirm = page.locator(CONFIRM_TOP_UP);
+	// An EMPTY payer is offered the faucet first, when the app has one: claim,
+	// and the flow comes back with an amount to send.
+	const faucet = page.getByRole('button', {name: /get funds from the faucet/i});
+	await expect(
+		confirm.or(faucet).first(),
+		'the flow should offer an amount to send, or the faucet',
+	).toBeVisible({timeout: 30_000});
+	if (await faucet.isVisible().catch(() => false)) await faucet.click();
 	await expect(confirm, 'the flow should offer an amount to send').toBeEnabled({
 		timeout: 30_000,
 	});
@@ -1246,11 +1332,11 @@ export const test = base.extend<WalletFixtures & WalletOptions>({
 	connectWallet: async ({fundWallets, walletAccountIndex}, use) => {
 		// Ensure any impersonated wallets are funded before connecting
 		await fundWallets();
-		await use(async (page: Page) => {
+		await use(async (page: Page, options?: ConnectOptions) => {
 			await connectWalletDevMode(page, walletAccountIndex);
 			// The accounts the app spends from only exist once connected; see
 			// fundAppSenders.
-			await fundAppSenders(page);
+			if (options?.fund ?? true) await fundAppSenders(page);
 		});
 	},
 

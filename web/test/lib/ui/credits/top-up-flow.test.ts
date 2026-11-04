@@ -637,13 +637,32 @@ describe('createTopUpFlow: who can pay', () => {
 			accountBalance: TRANSFER_COST,
 			credits: CREDITS,
 		});
-		const flow = createTopUpFlow(flowDeps, CONFIG);
+		// No faucet: with one, the account is offered anyway (below).
+		const flow = createTopUpFlow(flowDeps, {...CONFIG, hasFaucet: false});
 
 		await flow.start(PURPOSE);
 
 		const account = get(flow).methods.find((m) => m.id === 'account');
 		expect(account?.available).toBe(false);
 		expect(account?.unavailableReason).toContain('does not hold enough');
+	});
+
+	it('offers an account that cannot cover it when the faucet can fund it, and goes to the faucet', async () => {
+		// A fresh burner on a LAN box: an empty account and no other wallet.
+		// Refusing the account left it nothing to choose.
+		const {flowDeps} = deps({
+			payerBalance: ETH,
+			accountBalance: 0n,
+			credits: CREDITS,
+		});
+		const flow = createTopUpFlow(flowDeps, CONFIG);
+
+		await flow.start(PURPOSE);
+
+		const account = get(flow).methods.find((m) => m.id === 'account');
+		expect(account?.available).toBe(true);
+		await flow.choose('account');
+		expect(get(flow).phase).toBe('empty');
 	});
 
 	it('rules out paying from an account with no wallet at all', async () => {
@@ -686,7 +705,8 @@ describe('createTopUpFlow: who can pay', () => {
 			accountBalance: 0n, // the account cannot pay, so there is one way left
 			credits: CREDITS,
 		});
-		const flow = createTopUpFlow(flowDeps, CONFIG);
+		// No faucet, or the empty account would be a way to pay too.
+		const flow = createTopUpFlow(flowDeps, {...CONFIG, hasFaucet: false});
 
 		await flow.start(PURPOSE);
 

@@ -1173,6 +1173,10 @@ export function createTopUpFlow(
 					accountSpendable,
 					ownerCanSend: canSend,
 					walletsAvailable: walletsAvailable(),
+					// An empty account is still a way to pay when the faucet can fund
+					// it: choosing it lands on the 'empty' step, whose claim funds the
+					// account and comes back to the payment.
+					faucetCanFund: config.hasFaucet,
 					// WHY a third-party wallet cannot work here is a fact about the
 					// registration, not about paying, so the wording travels with it
 					// rather than living in `core/funding`. Withdrawal is per delegate:

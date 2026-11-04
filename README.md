@@ -265,6 +265,8 @@ Develop against a remote network (testnet/mainnet):
 
 Anything the game needs at play time must come from the box: a font, an icon or a proving key fetched from a CDN is a page that breaks there.
 
+**Rehearse it before an event** with `bash scripts/rehearse-lan.sh`: it builds the package and runs it as a box does, on this machine's LAN address (geth from the box's genesis, the package's deploy run twice, the box's faucet, caddy with the box's rule), then runs the e2e suite against it in a browser that can resolve no other host. By default that is `faucet.e2e.ts`, a player starting from an empty burner; name a game's own suites as arguments (`bash scripts/rehearse-lan.sh e2e/tests/<game>.e2e.ts`). The suite funds by transfer there, since geth has no `hardhat_setBalance`. It needs ports 8545, 34010 and 28600 free on that address.
+
 ## Configuration
 
 ### Named Accounts
