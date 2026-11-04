@@ -1,4 +1,5 @@
 import {writable, get} from 'svelte/store';
+import {isInsufficientFundsFailure} from './insufficient-funds-failure';
 import type {BalanceStore} from '$lib/core/connection/balance';
 import type {GasFeeStore, GasPrice} from '$lib/core/connection/gasFee';
 import type {
@@ -324,29 +325,51 @@ export function createBalanceCheckStore({
 
 			const {maxFeePerGas, maxPriorityFeePerGas} = await getGasPrice(gasSpeed);
 
-			let gasEstimate: bigint;
-			let value: bigint = 0n;
-
-			if ('contract' in options) {
-				const contract = options.contract;
-				gasEstimate = await publicClient.estimateContractGas({
-					address: contract.address,
-					abi: contract.abi,
-					functionName: contract.functionName,
-					args: contract.args,
-					account: contract.account,
-					value: contract.value,
-				});
-				value = contract.value ?? 0n;
-			} else {
+			const value: bigint =
+				('contract' in options
+					? options.contract.value
+					: options.transaction.value) ?? 0n;
+			const estimate = (): Promise<bigint> => {
+				if ('contract' in options) {
+					const contract = options.contract;
+					return publicClient.estimateContractGas({
+						address: contract.address,
+						abi: contract.abi,
+						functionName: contract.functionName,
+						args: contract.args,
+						account: contract.account,
+						value: contract.value,
+					});
+				}
 				const transaction = options.transaction;
-				gasEstimate = await publicClient.estimateGas({
+				return publicClient.estimateGas({
 					to: transaction.to,
 					data: transaction.data,
 					value: transaction.value,
 					account: transaction.account,
 				});
-				value = transaction.value ?? 0n;
+			};
+
+			let gasEstimate: bigint;
+			try {
+				gasEstimate = await estimate();
+			} catch (error) {
+				// THE SAME SHORTFALL, FOUND ONE STEP EARLIER. geth (a LAN box's
+				// chain) checks the sender's balance while estimating, and refuses
+				// the estimate itself for an account that cannot cover the value;
+				// hardhat estimates anyway. Unhandled, an empty player creating a
+				// match was told "not enough funds" with no "Get ETH" in sight. So
+				// the dialog is shown for at least the value plus a plain
+				// transfer's gas, and once that much is there the estimate is asked
+				// again; the check below then covers the real gas.
+				if (!isInsufficientFundsFailure(error)) throw error;
+				await checkBalanceAndShowModal(
+					balance,
+					sender,
+					value + maxFeePerGas * 21_000n,
+				);
+				startEstimating();
+				gasEstimate = await estimate();
 			}
 
 			// Worst-case cost uses maxFeePerGas (the ceiling actually charged).
