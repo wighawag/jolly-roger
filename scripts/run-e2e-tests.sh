@@ -118,6 +118,19 @@ NODE_PGID=""
 # the opposite of what it is for, and worthless the moment two runs overlap.
 NODE_LOG="${TMPDIR:-/tmp}/$(basename "$REPO_DIR")-e2e-node.log"
 
+# The faucet the app's "Get ETH" calls (faucet-server, as a LAN box runs it),
+# so a test can start from an EMPTY burner and fund it the way a player does.
+# Its own port, not the dev stack's 34010, so a `pnpm start` session's faucet
+# is never mistaken for this run's. Built into the app as PUBLIC_FAUCET_API.
+FAUCET_PORT="${E2E_FAUCET_PORT:-34110}"
+FAUCET_URL="http://127.0.0.1:${FAUCET_PORT}"
+export E2E_FAUCET_URL="$FAUCET_URL"
+export PUBLIC_FAUCET_API="$FAUCET_URL"
+export PUBLIC_FAUCET_LINK="$FAUCET_URL"
+FAUCET_PGID=""
+FAUCET_CWD=""
+FAUCET_LOG="${TMPDIR:-/tmp}/$(basename "$REPO_DIR")-e2e-faucet.log"
+
 # Cleanup function to kill background processes
 #
 # Only ever stops what THIS run started. Port 8545 (and 4173) may belong to a
@@ -142,6 +155,14 @@ cleanup() {
         sleep 1
         kill -9 "$NODE_PID" 2>/dev/null || true
     fi
+
+    if [ -n "$FAUCET_PGID" ]; then
+        echo "Stopping the faucet this run started (PGID: $FAUCET_PGID)..."
+        kill -- "-$FAUCET_PGID" 2>/dev/null || true
+        sleep 1
+        kill -9 -- "-$FAUCET_PGID" 2>/dev/null || true
+    fi
+    [ -n "$FAUCET_CWD" ] && rm -rf "$FAUCET_CWD"
 
     # The preview server is started and stopped by Playwright's `webServer`, so
     # it is not ours to kill.
@@ -362,6 +383,52 @@ else
         sleep 1
     done
 fi
+
+# Start the faucet, paying from account 0 of the test mnemonic (as a LAN box's
+# does), for whatever chain the node is. Never reused: a faucet already on the
+# port may pay on another chain, and then "Get ETH" fails for no visible reason.
+if curl -s -o /dev/null "$FAUCET_URL" 2>/dev/null; then
+    echo -e "${RED}✗ Something already answers on ${FAUCET_URL}.${NC}"
+    echo -e "${RED}  Set E2E_FAUCET_PORT to use a different port.${NC}"
+    exit 1
+fi
+CHAIN_ID="$(curl -s -X POST "$RPC_URL" -H "Content-Type: application/json" \
+    -d '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' |
+    node -e 'let s="";process.stdin.on("data",(d)=>(s+=d)).on("end",()=>process.stdout.write(String(Number(JSON.parse(s).result))))')"
+echo -e "${GREEN}🚰 Starting the faucet on ${FAUCET_URL} (chain ${CHAIN_ID})...${NC}"
+# From an empty directory, so it reads no .env (contracts/.env names a chain
+# on a fixed port); everything it needs is given here.
+FAUCET_CWD="$(mktemp -d)"
+setsid env -C "$FAUCET_CWD" \
+    FAUCET_PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" \
+    "CHAIN_${CHAIN_ID}=1000000000000000000:${RPC_URL}" \
+    CORS_ORIGINS='*' \
+    "$CONTRACTS_DIR/node_modules/.bin/faucet" --no-captcha --port "$FAUCET_PORT" --host 127.0.0.1 \
+    >"$FAUCET_LOG" 2>&1 &
+FAUCET_PID=$!
+for _ in $(seq 1 25); do
+    FAUCET_PGID="$(ps -o pgid= -p "$FAUCET_PID" 2>/dev/null | tr -d ' ')"
+    [ -n "$FAUCET_PGID" ] && [ "$FAUCET_PGID" != "$(ps -o pgid= -p $$ | tr -d ' ')" ] && break
+    FAUCET_PGID=""
+    sleep 0.2
+done
+if [ -z "$FAUCET_PGID" ]; then
+    echo -e "${RED}✗ Could not find the faucet's process group; stopping.${NC}"
+    kill "$FAUCET_PID" 2>/dev/null || true
+    exit 1
+fi
+for i in {1..30}; do
+    if curl -s -o /dev/null "$FAUCET_URL"; then
+        echo -e "${GREEN}✓ Faucet is ready${NC}"
+        break
+    fi
+    if [ $i -eq 30 ]; then
+        echo -e "${RED}✗ The faucet failed to start: ${FAUCET_LOG}${NC}"
+        tail -20 "$FAUCET_LOG" 2>/dev/null || true
+        exit 1
+    fi
+    sleep 1
+done
 
 # Compile contracts
 echo -e "\n${GREEN}📋 Compiling contracts...${NC}"
