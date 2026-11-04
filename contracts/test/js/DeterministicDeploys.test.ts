@@ -49,15 +49,17 @@ describe('the deploy scripts', function () {
 
 describe('a setup call, for a LAN box', function () {
 	// Against the template's own contract, the way a game's deploy script
-	// would tell one contract about another.
+	// would tell one contract about another. A repo that replaced it (every
+	// game) skips these: the test above checks its own scripts.
 	const anyDeployment = (env: any) =>
 		Object.values(env.deployments).find((d: any) =>
 			d.abi.some((f: any) => f.name === 'setMessage'),
 		) as any;
 
-	it('is kept, with its guard, when the execute is guarded', async function () {
+	it('is kept, with its guard, when the execute is guarded', async function (t) {
 		const {provider, env, recorded} = await lanDeploy();
 		const registry = anyDeployment(env);
+		if (!registry) return t.skip('no GreetingsRegistry here');
 		const {deployer} = env.namedAccounts;
 		await env.execute(registry, {
 			account: deployer,
@@ -90,9 +92,10 @@ describe('a setup call, for a LAN box', function () {
 		expect(now).toEqual(call.check.result);
 	});
 
-	it('is refused when the execute has no guard', async function () {
+	it('is refused when the execute has no guard', async function (t) {
 		const {provider, env, recorded} = await lanDeploy();
 		const registry = anyDeployment(env);
+		if (!registry) return t.skip('no GreetingsRegistry here');
 		await env.execute(registry, {
 			account: env.namedAccounts.deployer,
 			functionName: 'setMessage',
