@@ -254,6 +254,17 @@ Develop against a remote network (testnet/mainnet):
 - Watches and deploys to the remote network
 - Runs web development server locally
 
+## On a LAN box, with no internet
+
+`nix build .#lan` packages the game for [ethereum-lan-node](https://github.com/wighawag/ethereum-lan-node), a box that runs its own chain and serves games to the phones and laptops on its network, with no internet at all. The package is what the box's game module expects: the static site (`$out/web`), built for same-host urls (`web/.env.lan`: the chain at `//:8545`, the faucet at `//:34010`, a burner wallet in every browser, no ENS), and a deploy command the box runs to put the contracts on its chain.
+
+- **The build has no network.** It compiles with the official solc WASM build (`SOLC_PATH`, see `contracts/hardhat.config.ts`), deploys into a throwaway chain with the box's chain id (19216801) to learn the addresses (`contracts/scripts/deploy-lan-build.ts`), and builds the web app against them.
+- **The box gets the same addresses**, because every contract goes through the CREATE2 factory the box's genesis predeploys (see "Deterministic deployments" below). The deploy command (`nix/lan-deploy.sh`) replays the recorded transactions with `cast`, skipping any contract already there, so the box can run it on every boot.
+- **Everything game-specific is in `nix/game.nix`**: the pnpm dependencies' hash (recompute it whenever `pnpm-lock.yaml` changes, as that file says), and optionally the name, title, description, deploy command and a pre-build step. `nix/lan.nix` itself is generic: change it here, in the template, so every game gets the change.
+- **Add it to a box** as `services.ethereumLanNode.games.<name> = { package = inputs.<this-repo>.packages.x86_64-linux.lan; webPort = <a port of its own>; };`.
+
+Anything the game needs at play time must come from the box: a font, an icon or a proving key fetched from a CDN is a page that breaks there.
+
 ## Configuration
 
 ### Named Accounts
@@ -334,6 +345,7 @@ export default deployScript(
         linkedData: {
           /* metadata stored with deployment */
         },
+        deterministic: true,
       },
     );
 
@@ -344,6 +356,12 @@ export default deployScript(
   { tags: ["GreetingsRegistry"] },
 );
 ```
+
+### Deterministic deployments
+
+Deploy every contract with `deterministic: true` (for `deployViaProxy`, it covers the proxy and the implementation; for `deployViaRouter`, the routes and the router). It deploys through the CREATE2 factory at `0x4e59b44847b379578588920ca78fbf26c0b4956c`, so an address depends only on the init code and not on the deployer's nonce. That is what lets the LAN package know the addresses before the box's chain exists, and what keeps them when anything else (a faucet paying from the deployer) sends a transaction first. A deploy script should send nothing but deployments: a setup call's effect is not in any init code, so a replay of the deployments would not reproduce it (pass it to the constructor, or to the proxy's `execute`). `contracts/test/js/DeterministicDeploys.test.ts` checks all of this on every contract test run.
+
+Under CREATE2 the deploying contract is the factory, so a constructor must never use `msg.sender` as the deployer (an owner, a mint): pass the account explicitly.
 
 ## Using Contracts in the Frontend
 
