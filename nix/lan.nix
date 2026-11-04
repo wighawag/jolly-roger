@@ -109,6 +109,9 @@ in
       LAN_TRANSACTIONS=$TMPDIR/lan.transactions.json \
         pnpm exec hardhat run --build-profile production scripts/deploy-lan-build.ts
       pnpm exec rocketh-export -e lan --ts ../web/src/lib/deployments.ts
+      # The package's JS (dist/), which the web app may import: with/embedded-
+      # chain's offline demo runs the deploy scripts in the browser.
+      pnpm exec tsc
       popd
 
       pushd web
