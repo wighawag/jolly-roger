@@ -14,3 +14,6 @@ tmp/
 .kilo/
 # Scratch space for subagent runs (artifacts, transcripts). Never committed.
 .pi-subagents/
+# nix build's output link
+result
+result-*
