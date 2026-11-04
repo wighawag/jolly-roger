@@ -3,7 +3,7 @@ import {readable, writable, get} from 'svelte/store';
 import {createBalanceCheckStore} from '$lib/core/transaction/balance-check-store';
 import type {BalanceStore} from '$lib/core/connection/balance';
 import type {GasFeeStore, GasPriceEstimates} from '$lib/core/connection/gasFee';
-import type {PublicClient} from 'viem';
+import {BaseError, InsufficientFundsError, type PublicClient} from 'viem';
 
 const ADDR = '0xaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaA' as const;
 
@@ -193,6 +193,84 @@ describe('balanceCheck.ensureCanAfford', () => {
 		).rejects.toThrow(/gas price/i);
 
 		expect(gas.update).toHaveBeenCalled();
+	});
+
+	it('offers the dialog when the NODE refuses to estimate for want of funds (geth), then estimates again', async () => {
+		// geth checks the sender's balance while estimating; hardhat does not. An
+		// empty account sending value was told "not enough funds" with no remedy.
+		const estimateContractGas = vi
+			.fn()
+			.mockRejectedValueOnce(
+				new InsufficientFundsError({
+					cause: new BaseError('insufficient funds for transfer'),
+				}),
+			)
+			.mockResolvedValueOnce(50_000n);
+		const publicClient = {estimateContractGas} as unknown as PublicClient;
+		// Empty, until the faucet answers.
+		let held = 0n;
+		const value = writable({step: 'Loaded', value: held} as const);
+		const balance = {
+			subscribe: value.subscribe,
+			status: readable({loading: false}).subscribe as any,
+			update: async () => ({step: 'Loaded', value: held}) as any,
+		} as unknown as BalanceStore;
+		const store = createBalanceCheckStore({
+			publicClient,
+			gasFee: fakeGasFee(estimate),
+		});
+
+		const pending = store.ensureCanAfford(
+			{
+				contract: {
+					address: ADDR,
+					abi: [],
+					functionName: 'create',
+					args: [],
+					account: ADDR,
+					value: 10n ** 16n,
+				},
+			},
+			{balance, sender: ADDR},
+		);
+
+		await vi.waitFor(() => expect(get(store).step).toBe('insufficient'));
+		const shown = get(store) as any;
+		expect(shown.estimatedCost).toBeGreaterThanOrEqual(10n ** 16n);
+		held = 10n ** 18n;
+		value.set({step: 'Loaded', value: held});
+		shown.onContinue();
+
+		const request = await pending;
+		expect(estimateContractGas).toHaveBeenCalledTimes(2);
+		expect(request.gas).toBe(50_000n);
+	});
+
+	it('still fails on an estimate that is refused for another reason', async () => {
+		const publicClient = {
+			estimateContractGas: vi.fn(async () => {
+				throw new BaseError('execution reverted: NotYourTurn');
+			}),
+		} as unknown as PublicClient;
+		const store = createBalanceCheckStore({
+			publicClient,
+			gasFee: fakeGasFee(estimate),
+		});
+		await expect(
+			store.ensureCanAfford(
+				{
+					contract: {
+						address: ADDR,
+						abi: [],
+						functionName: 'act',
+						args: [],
+						account: ADDR,
+					},
+				},
+				{balance: fakeBalance(0n), sender: ADDR},
+			),
+		).rejects.toThrow(/NotYourTurn/);
+		expect(get(store).step).not.toBe('insufficient');
 	});
 });
 
