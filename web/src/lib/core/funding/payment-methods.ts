@@ -9,7 +9,8 @@
  *
  * Availability is answered from what is actually there, never assumed:
  * - paying from the account needs the account to have a wallet AND to be able
- *   to cover the transaction plus whatever it forwards;
+ *   to cover the transaction plus whatever it forwards, OR a faucet that can
+ *   fund it first (`faucetCanFund`);
  * - paying with another wallet needs a wallet to exist to connect to, read from
  *   the payment connection's OWN wallet list, since that is the connection that
  *   will be used.
@@ -65,10 +66,23 @@ export type PaymentMethodsInput = {
 	 * Saying so keeps the user from choosing a route that could only fail.
 	 */
 	walletRouteBlocked?: {reason: string};
+	/**
+	 * Whether a faucet can fund the account before it pays (the app has
+	 * PUBLIC_FAUCET_API or PUBLIC_FAUCET_LINK). Then an EMPTY account is still
+	 * on offer, and choosing it leads to the faucet first.
+	 *
+	 * Without it, a fresh burner on a chain with a faucet and no wallet in the
+	 * browser (every player on a LAN box) had nothing it could choose: its
+	 * account could not pay, there was no other wallet, and the faucet was
+	 * offered only to a payer already chosen.
+	 */
+	faucetCanFund?: boolean;
 };
 
 const ACCOUNT_DESCRIPTION =
 	'One transaction from the account you signed in with. No second wallet to connect.';
+const EMPTY_ACCOUNT_DESCRIPTION =
+	'Your account is empty: the faucet funds it first, then it pays.';
 const WALLET_DESCRIPTION =
 	'Connect any wallet and pay from it. It does not have to be the account you signed in with.';
 
@@ -77,14 +91,19 @@ export function paymentMethods(
 ): readonly PaymentMethod[] {
 	const {accountSpendable, ownerCanSend, walletsAvailable} = input;
 
-	const accountAvailable = ownerCanSend && accountSpendable > 0n;
+	const accountCanPay = ownerCanSend && accountSpendable > 0n;
+	const accountFundable =
+		!accountCanPay && ownerCanSend && !!input.faucetCanFund;
+	const accountAvailable = accountCanPay || accountFundable;
 	const walletAvailable = walletsAvailable > 0 && !input.walletRouteBlocked;
 
 	return [
 		{
 			id: 'account',
 			label: 'Pay from your account',
-			description: ACCOUNT_DESCRIPTION,
+			description: accountFundable
+				? EMPTY_ACCOUNT_DESCRIPTION
+				: ACCOUNT_DESCRIPTION,
 			available: accountAvailable,
 			unavailableReason: accountAvailable
 				? undefined
