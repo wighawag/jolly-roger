@@ -37,3 +37,8 @@ for tests: `pnpm test`
 - **`web/src/lib/index.ts` is where the app is composed**, which is why it may import both `./kit/*` and the environment. Anything that composes THIS app belongs there rather than in `core/`.
 
 - The two boundary tests and this section are INHERITED from `template-svelte`, the root of this template tree, where they are also enforced. A change to either that is meaningful for a sibling belongs there rather than here, or every sibling silently misses it.
+
+## Contracts
+
+- **Deploy every contract with `deterministic: true`, and send nothing but deployments from a deploy script.** The LAN package (`nix build .#lan`, see "On a LAN box, with no internet" in README.md) replays the deploy on a box's chain and needs addresses that depend only on the init code. `contracts/test/js/DeterministicDeploys.test.ts` fails otherwise. Under CREATE2 a constructor's `msg.sender` is the factory, so never use it as the deployer.
+- **`nix/lan.nix` and `nix/lan-deploy.sh` are generic**: a game's specifics go in `nix/game.nix`. Build with `nix build git+file://$PWD#lan` (git add new files first), never a `path:` flake reference.
