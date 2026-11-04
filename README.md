@@ -361,7 +361,18 @@ export default deployScript(
 
 ### Deterministic deployments
 
-Deploy every contract with `deterministic: true` (for `deployViaProxy`, it covers the proxy and the implementation; for `deployViaRouter`, the routes and the router). It deploys through the CREATE2 factory at `0x4e59b44847b379578588920ca78fbf26c0b4956c`, so an address depends only on the init code and not on the deployer's nonce. That is what lets the LAN package know the addresses before the box's chain exists, and what keeps them when anything else (a faucet paying from the deployer) sends a transaction first. A deploy script should send nothing but deployments: a setup call's effect is not in any init code, so a replay of the deployments would not reproduce it (pass it to the constructor, or to the proxy's `execute`). `contracts/test/js/DeterministicDeploys.test.ts` checks all of this on every contract test run.
+Deploy every contract with `deterministic: true` (for `deployViaProxy`, it covers the proxy and the implementation; for `deployViaRouter`, the routes and the router). It deploys through the CREATE2 factory at `0x4e59b44847b379578588920ca78fbf26c0b4956c`, so an address depends only on the init code and not on the deployer's nonce. That is what lets the LAN package know the addresses before the box's chain exists, and what keeps them when anything else (a faucet paying from the deployer) sends a transaction first. Guard every other transaction a deploy script sends. A setup call (one contract told about another, a role granted) goes through rocketh's `execute` with a `guard`, the view call (or storage slot) that says whether it is still needed:
+
+```typescript
+await env.execute(Avatars, {
+  account: admin,
+  functionName: "setMinter",
+  args: [Sale.address],
+  guard: { kind: "call", functionName: "minter", equals: Sale.address },
+});
+```
+
+The deploy skips the call when the guard already holds, so a redeploy repeats nothing, and the LAN package records the guard with the call: the box reads it before replaying the call and checks it after. An unguarded call is refused there, since a box running the deploy on every boot would repeat it. When the value can go to a constructor or to the proxy's `execute` instead, that is simpler still. `contracts/test/js/DeterministicDeploys.test.ts` checks all of this on every contract test run.
 
 Under CREATE2 the deploying contract is the factory, so a constructor must never use `msg.sender` as the deployer (an owner, a mint): pass the account explicitly.
 

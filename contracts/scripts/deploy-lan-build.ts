@@ -15,9 +15,11 @@
  * deterministic-deployment proxy at 0x4e59b448..., which the box's genesis
  * predeploys and which rocketh deploys here with the same pre-signed
  * transaction, so an address depends only on the salt and the init code: not
- * on the chain, its history, or a nonce. Any other kind of transaction is
- * refused (scripts/lan/replayable.ts says why). The deployer and the admin
- * are accounts 0 and 1 of the test mnemonic, on the box as here.
+ * on the chain, its history, or a nonce. A setup call is kept only if its
+ * `execute` has a guard, which the box reads before replaying it
+ * (scripts/lan/record.ts); anything else is refused (scripts/lan/replayable.ts
+ * says why). Every sender is one of the first 20 accounts of the test
+ * mnemonic, on the box as here.
  *
  * INSTANT MINING AND AN AUTOMATIC GAS PRICE are forced, as in
  * scripts/deploy-ephemeral.ts, since the `default` network differs across the
@@ -31,8 +33,9 @@
 import {network} from 'hardhat';
 import {mkdirSync, writeFileSync} from 'node:fs';
 import {dirname, resolve} from 'node:path';
-import {loadAndExecuteDeploymentsFromFiles} from '../rocketh/environment.js';
 import {FACTORY, replayableTransactions} from './lan/replayable.js';
+import {recordingEnvironment, type Recorded} from './lan/record.js';
+import {MNEMONIC_ACCOUNTS} from './lan/accounts.js';
 
 /** The box's chain id (ethereum-lan-node nix/genesis.json). */
 const CHAIN_ID = Number(process.env.LAN_CHAIN_ID ?? 19216801);
@@ -50,7 +53,8 @@ const connection = await network.connect({
 });
 const provider = connection.provider;
 
-const env = await loadAndExecuteDeploymentsFromFiles({
+const recorded: Recorded = new Map();
+const env = await recordingEnvironment(recorded)({
 	provider,
 	environment: 'lan',
 	saveDeployments: true,
@@ -60,8 +64,9 @@ let transactions;
 try {
 	transactions = await replayableTransactions(
 		provider,
-		[env.namedAccounts.deployer, env.namedAccounts.admin],
+		MNEMONIC_ACCOUNTS,
 		env.deployments,
+		recorded,
 	);
 } catch (error) {
 	throw new Error(`deploy-lan-build: ${(error as Error).message}`);
