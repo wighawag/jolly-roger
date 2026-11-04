@@ -5,10 +5,16 @@
 # values. When a merge from the template conflicts here, keep yours (and, for
 # the hash, recompute it as below): nothing in this file is meant to cascade.
 {
-  # fetchPnpmDeps' hash of the dependencies pnpm-lock.yaml names. It changes
-  # whenever the lockfile does, and a stale one fails the build loudly with the
-  # right value ("got: sha256-..."): build with `nix build .#lan`, then copy it
-  # here. A lockfile change merged from the template needs the same.
+  # fetchPnpmDeps' hash of the packages pnpm-lock.yaml names. Check it, and get
+  # the right value ("got: sha256-..."), with
+  #
+  #   nix build git+file://$PWD#lan.pnpmDeps --rebuild
+  #
+  # after any lockfile change, including one merged from the template. Without
+  # --rebuild, Nix trusts a hash it has already seen: on a machine that built
+  # the template, a descendant's stale hash quietly gets the TEMPLATE's
+  # packages. Two lockfiles can also name the same packages, and so share a
+  # hash.
   pnpmDepsHash = "sha256-u0xELFbGJ3NawTADvsSPgmuX8uNc5EVLddWWEmNEh40=";
 
   # Optional, shown with their defaults:
