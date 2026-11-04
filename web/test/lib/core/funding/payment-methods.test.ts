@@ -38,6 +38,33 @@ describe('paymentMethods: who can pay, as a set', () => {
 		expect(account?.unavailableReason).toBeTruthy();
 	});
 
+	it('offers an empty account when a faucet can fund it first', () => {
+		// A fresh burner on a LAN box: nothing in it, no other wallet, and a
+		// faucet. Refusing it left the player nothing to choose.
+		const methods = paymentMethods({
+			...both,
+			accountSpendable: 0n,
+			walletsAvailable: 0,
+			faucetCanFund: true,
+		});
+		const account = methods.find((m) => m.id === 'account');
+		expect(account?.available).toBe(true);
+		expect(account?.description).toMatch(/faucet/);
+		expect(availablePaymentMethods(methods).map((m) => m.id)).toEqual([
+			'account',
+		]);
+	});
+
+	it('does not offer the faucet to an account that cannot send at all', () => {
+		const account = paymentMethods({
+			...both,
+			accountSpendable: 0n,
+			ownerCanSend: false,
+			faucetCanFund: true,
+		}).find((m) => m.id === 'account');
+		expect(account?.available).toBe(false);
+	});
+
 	it('refuses the account when it has no wallet to send with', () => {
 		const account = paymentMethods({...both, ownerCanSend: false}).find(
 			(m) => m.id === 'account',
