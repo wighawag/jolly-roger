@@ -24,6 +24,11 @@
   # title = <web/src/web-config.json's "title">;
   # description = <web/src/web-config.json's "description">;
   # deployBin = "<name>-deploy";               what the box runs to deploy
+  # solc = { version = "0.8.28+commit.7893614a"; hash = "sha256-..."; };
+  #                  the solc WASM build, which must be the version
+  #                  contracts/hardhat.config.ts compiles with (the hash is the
+  #                  sha256 in https://binaries.soliditylang.org/wasm/list.json,
+  #                  as an SRI hash: nix hash convert --to sri sha256:<hex>)
   # preBuild = "";   shell, run from the repo root before the contracts are
   #                  compiled (what they or the web app need built first)
 }
