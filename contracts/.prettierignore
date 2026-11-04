@@ -12,6 +12,7 @@ generated
 deployments/localhost
 deployments/hardhat*
 deployments/lan
+deployments/lan.transactions.json
 _metadata
 
 # hardhat
