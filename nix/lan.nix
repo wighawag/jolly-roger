@@ -46,14 +46,19 @@
   name = game.name or packageJson.name;
   deployBin = game.deployBin or "${name}-deploy";
 
-  # The official WASM build of solc 0.8.28 (https://binaries.soliditylang.org/wasm/list.json,
-  # whose sha256 this is): the same compiler as the native build hardhat would
-  # download, with nothing to patch. (The native build wants /lib64's loader,
-  # and once patched, hardhat's binary-or-wasm sniffing takes it for text.)
-  # Keep it in step with the version in contracts/hardhat.config.ts.
-  solc = fetchurl {
-    url = "https://binaries.soliditylang.org/wasm/soljson-v0.8.28+commit.7893614a.js";
+  # The official WASM build of solc (https://binaries.soliditylang.org/wasm/list.json,
+  # whose sha256 the hash is): the same compiler as the native build hardhat
+  # would download, with nothing to patch. (The native build wants /lib64's
+  # loader, and once patched, hardhat's binary-or-wasm sniffing takes it for
+  # text.) The version must be the one in contracts/hardhat.config.ts: a repo
+  # that compiles with another one says so in nix/game.nix.
+  solcBuild = game.solc or {
+    version = "0.8.28+commit.7893614a";
     hash = "sha256-cu9YCm7FlDEwAo5SlDE/JOlDVSCsyJ+Mnb/QE52a4UY=";
+  };
+  solc = fetchurl {
+    url = "https://binaries.soliditylang.org/wasm/soljson-v${solcBuild.version}.js";
+    inherit (solcBuild) hash;
   };
 
   # The deploy needs `cast` alone: copied out of foundry, it is 90 MB instead
