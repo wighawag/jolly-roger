@@ -147,8 +147,8 @@ mkdir -p "$WORK/deploy"
 for run in first second; do
 	ETH_NODE_URI="$RPC_URL" MNEMONIC="$MNEMONIC" STATE_DIRECTORY="$WORK/deploy" "$DEPLOY" | tee "$WORK/deploy-$run.log"
 done
-if ! grep -q "(0 deployed now)" "$WORK/deploy-second.log"; then
-	echo -e "${RED}✗ The second deploy deployed something: it must be idempotent.${NC}"
+if ! grep -q "(0 sent now)" "$WORK/deploy-second.log"; then
+	echo -e "${RED}✗ The second deploy sent something: it must be idempotent.${NC}"
 	exit 1
 fi
 
