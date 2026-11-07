@@ -33,6 +33,9 @@ export type BalanceCheckState =
 
 export type GasSpeed = 'slow' | 'average' | 'fast';
 
+/** How old a gas price may be before a transaction refreshes it (ms). */
+export const MAX_GAS_PRICE_AGE_MS = 30_000;
+
 export interface EnsureCanAffordOptions {
 	gasSpeed?: GasSpeed;
 	forceUpdate?: boolean;
@@ -197,10 +200,23 @@ export function createBalanceCheckStore({
 	// the whole connection flow and then die on "Gas fee not loaded", a race the
 	// user can neither see nor retry their way out of. This mirrors what
 	// `checkBalanceAndShowModal` already does for the balance.
+	//
+	// A loaded value that is OLD is refreshed too. The poller runs every ten
+	// minutes, so without this a page opened just after a local deploy priced
+	// every transaction for ten minutes at the deploy's tips: rocketh deploys
+	// with a ~99 gwei tip, the 20-block fee history averaged that to ~60 gwei,
+	// and every transaction was budgeted (and charged) 60 times what the chain
+	// asked: for a 4M gas call, ~0.24 ETH where 0.004 was right. A local signer
+	// topped up for a few actions ran dry after one. A failed refresh keeps
+	// the cached value rather than failing the send: an old price beats none.
 	async function getGasPrice(speed: GasSpeed): Promise<GasPrice> {
 		let gasFeeValue = get(gasFee);
-		if (gasFeeValue.step !== 'Loaded') {
-			gasFeeValue = await gasFee.update();
+		const fetchedAt = get(gasFee.status).lastSuccessfulFetch;
+		const stale =
+			fetchedAt === undefined || Date.now() - fetchedAt > MAX_GAS_PRICE_AGE_MS;
+		if (gasFeeValue.step !== 'Loaded' || stale) {
+			const refreshed = await gasFee.update();
+			if (refreshed.step === 'Loaded') gasFeeValue = refreshed;
 		}
 		if (gasFeeValue.step !== 'Loaded') {
 			// Waiting is not pretending: if the chain still will not price gas, the
