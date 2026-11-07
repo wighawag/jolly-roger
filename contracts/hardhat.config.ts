@@ -27,8 +27,10 @@ const config: HardhatUserConfig = {
 			default: {
 				version: '0.8.28',
 				// A solc to use instead of downloading one, for a build with no
-				// network (the Nix package for a LAN box, nix/lan.nix, gives it the
-				// official WASM build). Keep it in step with `version`.
+				// network: the LAN package (ethereum-lan-node's lib.mkRockethGame,
+				// see flake.nix) gives it the official WASM build. Keep it in step
+				// with `version`. Hardhat has no other way to take a compiler, so
+				// this line stays in every repo that builds one.
 				path: process.env.SOLC_PATH || undefined,
 			},
 			production: {
