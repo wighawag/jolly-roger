@@ -51,8 +51,9 @@ const deploymentsDir = join(root, 'contracts', 'deployments');
 const EPHEMERAL = 'ephemeral';
 /**
  * Records that are never offered, besides the throwaway deploy's own: `lan` is
- * what `contracts/scripts/deploy-lan-build.ts` leaves behind when run by hand
- * (the Nix build runs it in a throwaway copy). Those name a LAN box's chain,
+ * what the LAN build's deploy (ethereum-lan-node, nix/rocketh-game/build/
+ * deploy.ts) leaves behind when run by hand in this repo (the Nix build runs
+ * it in a throwaway copy). Those name a LAN box's chain,
  * which nobody develops against, and exporting them made unit tests fail in
  * duel-in-the-dark (2026-11-04) for no reason the failures named.
  */
