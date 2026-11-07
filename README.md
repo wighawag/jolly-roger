@@ -256,11 +256,14 @@ Develop against a remote network (testnet/mainnet):
 
 ## On a LAN box, with no internet
 
-`nix build .#lan` packages the game for [ethereum-lan-node](https://github.com/wighawag/ethereum-lan-node), a box that runs its own chain and serves games to the phones and laptops on its network, with no internet at all. The package is what the box's game module expects: the static site (`$out/web`), built for same-host urls (`web/.env.lan`: the chain at `//:8545`, the faucet at `//:34010`, a burner wallet in every browser, no ENS), and a deploy command the box runs to put the contracts on its chain.
+`nix build .#lan` packages the game for [ethereum-lan-node](https://github.com/wighawag/ethereum-lan-node), a box that runs its own chain and serves games to the phones and laptops on its network, with no internet at all. The package is what the box's game module expects: the static site (`$out/web`), built for same-host urls (the chain at `//:8545`, the faucet at `//:34010`, a burner wallet in every browser, no ENS; a repo's own `web/.env.lan` replaces those), and a deploy command the box runs to put the contracts on its chain.
 
-- **The build has no network.** It compiles with the official solc WASM build (`SOLC_PATH`, see `contracts/hardhat.config.ts`), deploys into a throwaway chain with the box's chain id (19216801) to learn the addresses (`contracts/scripts/deploy-lan-build.ts`), and builds the web app against them.
-- **The box gets the same addresses**, because every contract goes through the CREATE2 factory the box's genesis predeploys (see "Deterministic deployments" below). The deploy command (`nix/lan-deploy.sh`) replays the recorded transactions with `cast`, skipping any contract already there, so the box can run it on every boot.
-- **Everything game-specific is in `nix/game.nix`**: the pnpm dependencies' hash (recompute it whenever `pnpm-lock.yaml` changes, as that file says), and optionally the name, title, description, deploy command and a pre-build step. `nix/lan.nix` itself is generic: change it here, in the template, so every game gets the change.
+- **The build is ethereum-lan-node's**, not this repo's: `flake.nix` calls its `lib.mkRockethGame` with this repo and `nix/game.nix`, and [its README](https://github.com/wighawag/ethereum-lan-node#a-game-from-the-template-tree) says what it does. A fix to the package lands there and reaches every game with `nix flake update ethereum-lan-node`, without a template cascade.
+- **The build has no network.** It compiles with the official solc WASM build, deploys into a throwaway chain with the box's chain id to learn the addresses, and builds the web app against them.
+- **The box gets the same addresses**, because every contract goes through the CREATE2 factory the box's genesis predeploys (see "Deterministic deployments" below). The deploy command replays the recorded transactions with `cast`, skipping any contract already there, so the box can run it on every boot.
+- **Everything game-specific is in `nix/game.nix`**: the pnpm dependencies' hash (recompute it whenever `pnpm-lock.yaml` changes, as that file says), and optionally the name, title, description, deploy command and a pre-build step.
+- **Two hooks stay in this repo**, since nothing outside it can supply them: `path: process.env.SOLC_PATH` in `contracts/hardhat.config.ts`, and `withGuardRecording` in `contracts/rocketh/deploy.ts` (see `contracts/rocketh/guard-recording.ts`).
+- **A repo that never goes on a box** drops `flake.nix` and `nix/game.nix`, listed in `.offshoot-omissions`; the two hooks do nothing unless the LAN build switches them on.
 - **Add it to a box** as `services.ethereumLanNode.games.<name> = { package = inputs.<this-repo>.packages.x86_64-linux.lan; webPort = <a port of its own>; };`.
 
 Anything the game needs at play time must come from the box: a font, an icon or a proving key fetched from a CDN is a page that breaks there.
@@ -370,7 +373,7 @@ await env.execute(Avatars, {
 });
 ```
 
-The deploy skips the call when the guard already holds, so a redeploy repeats nothing, and the LAN package records the guard with the call: the box reads it before replaying the call and checks it after. An unguarded call is refused there, since a box running the deploy on every boot would repeat it. When the value can go to a constructor or to the proxy's `execute` instead, that is simpler still. `contracts/test/js/DeterministicDeploys.test.ts` checks all of this on every contract test run.
+The deploy skips the call when the guard already holds, so a redeploy repeats nothing, and the LAN package records the guard with the call: the box reads it before replaying the call and checks it after. An unguarded call is refused there, since a box running the deploy on every boot would repeat it. When the value can go to a constructor or to the proxy's `execute` instead, that is simpler still. `nix build git+file://$PWD#lan` checks all of this, and names the transaction it refuses. (A contract test used to check it on every run; it went with the LAN package's move to ethereum-lan-node, and rocketh's `work/notes/ideas/replayable-deploys.md` is the idea that would bring it back.)
 
 Under CREATE2 the deploying contract is the factory, so a constructor must never use `msg.sender` as the deployer (an owner, a mint): pass the account explicitly.
 

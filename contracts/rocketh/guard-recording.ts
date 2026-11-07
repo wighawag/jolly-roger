@@ -1,12 +1,19 @@
 /**
  * Lets the LAN build learn the GUARD of every setup call the deploy scripts
  * send (`execute(..., {guard})`), so a LAN box can replay the call only when
- * its effect is missing (contracts/scripts/lan/record.ts explains the rest).
+ * its effect is missing. The LAN build itself lives in ethereum-lan-node
+ * (lib.mkRockethGame, nix/rocketh-game/build/record.ts explains the rest).
+ *
+ * ONE OF THE TWO HOOKS A REPO HAS TO CARRY for that build, because deploy
+ * scripts take `execute` from ./deploy.ts: wrapping the extensions anywhere
+ * else does not reach them (the other hook is SOLC_PATH in hardhat.config.ts).
+ * A rocketh-level execution listener would make it unnecessary: see
+ * rocketh's work/notes/ideas/replayable-deploys.md.
  *
  * `withGuardRecording(extensions)` wraps `execute` and nothing else. The
  * wrapper does NOTHING unless a recorder is installed on `globalThis`, which
- * only the LAN build and its test do: every other deploy, in node or in a
- * browser tab (the embedded chain runs these scripts there), is untouched.
+ * only the LAN build does: every other deploy, in node or in a browser tab
+ * (the embedded chain runs these scripts there), is untouched.
  *
  * Browser-safe on purpose: deploy.ts imports it, and deploy.ts is bundled into
  * the web app wherever the deploy scripts run in a tab.
