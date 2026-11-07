@@ -37,12 +37,26 @@ function firstNonEmpty(
  * @param chainRpcUrls    The chain's `rpcUrls.default.http` from the export.
  * @param isDev           `import.meta.env.DEV` (developer-facing vs user-facing
  *   message). Passed in so this stays pure/testable.
+ * @param options.awaitingPage `PUBLIC_NODE_URL` IS configured, in the same-host
+ *   notation (`//:8545`, see core/env/same-host), and there is no page to
+ *   resolve it against yet, which is SSR and prerender. The url is then not
+ *   missing but not known, and this answers `ok` with no url rather than a
+ *   fatal error.
+ *
+ *   WHY IT MATTERS: the context is built on the server too, and a fatal set
+ *   there is rendered into the HTML. Without this every page of a signer app
+ *   configured with `//:8545` (the dev and LAN `.env`s are) prerendered the
+ *   "Failed to initialize" screen, and the browser showed it until the app
+ *   took over. Nothing is lost by deferring: the browser always has a page, so
+ *   it resolves the value for real and runs this check again, and a url that
+ *   is genuinely missing there is still fatal there.
  */
 export function resolveSignerRpc(
 	config: {targetStep: TargetStep; walletOnly: boolean},
 	explicitNodeURL: string | undefined,
 	chainRpcUrls: readonly string[] | undefined,
 	isDev: boolean,
+	options?: {awaitingPage?: boolean},
 ): SignerRpcResolution {
 	const rpcUrl = explicitNodeURL?.trim() || firstNonEmpty(chainRpcUrls);
 
@@ -56,6 +70,11 @@ export function resolveSignerRpc(
 
 	if (rpcUrl) {
 		return {ok: true, rpcUrl};
+	}
+
+	// Configured, but only resolvable in a page: not known yet, not missing.
+	if (options?.awaitingPage) {
+		return {ok: true, rpcUrl: undefined};
 	}
 
 	// Signer mode with no RPC anywhere: fail loudly, with a message tailored to
