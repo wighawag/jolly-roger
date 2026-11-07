@@ -1,5 +1,6 @@
-# This game's identity as a LAN-box package (nix/lan.nix): the little that
-# nix/lan.nix cannot work out by itself.
+# This game's identity as a LAN-box package: the arguments flake.nix passes to
+# ethereum-lan-node's lib.mkRockethGame, i.e. the little it cannot work out by
+# itself (its nix/rocketh-game/default.nix documents each one).
 #
 # PER REPO. Every repo of the template tree inherits this file and sets its own
 # values. When a merge from the template conflicts here, keep yours (and, for
