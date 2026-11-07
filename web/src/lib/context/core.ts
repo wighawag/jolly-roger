@@ -84,7 +84,11 @@ import {
 	ephemeralStorage,
 } from '$lib/core/transaction/in-flight-store.js';
 import {guardDispatch} from '$lib/core/transaction/dispatch-guard.js';
-import {resolveURLForThisPage} from '$lib/core/env/same-host.js';
+import {
+	currentPageOrigin,
+	isSameHostURL,
+	resolveURLForThisPage,
+} from '$lib/core/env/same-host.js';
 import {startInFlightTracking} from '$lib/core/transaction/in-flight-tracking.js';
 import {createRecordedNonceReader} from '$lib/account/recorded-nonces.js';
 import {createAccountCannotSendStore} from '$lib/core/transaction/account-cannot-send-store.js';
@@ -396,6 +400,8 @@ function buildChainConfig(params: {
 	account: ReturnType<typeof buildConnection>['account'];
 	/** Already resolved against the page. See core/env/same-host. */
 	nodeURL: string | undefined;
+	/** Configured in the same-host notation, and no page yet (SSR, prerender). */
+	nodeURLAwaitsPage: boolean;
 }) {
 	const {
 		deployments,
@@ -405,6 +411,7 @@ function buildChainConfig(params: {
 		walletOnly,
 		fatal,
 		nodeURL,
+		nodeURLAwaitsPage,
 	} = params;
 
 	// ----------------------------------------------------------------------------
@@ -441,6 +448,7 @@ function buildChainConfig(params: {
 		nodeURL,
 		chain.rpcUrls?.default?.http,
 		import.meta.env.DEV,
+		{awaitingPage: nodeURLAwaitsPage},
 	);
 	if (!signerRpc.ok) {
 		fatal.set(signerRpc.error);
@@ -1170,6 +1178,12 @@ export function createCoreContext<App extends AppContext>(params: {
 	// the burner's node are three consumers of one fact.
 	const nodeURL = resolveURLForThisPage(PUBLIC_NODE_URL);
 	const chainInfoNodeURL = resolveURLForThisPage(PUBLIC_CHAIN_INFO_NODE_URL);
+	// The node url IS configured but cannot be resolved yet: the context is
+	// being built on the server, and `//:8545` has no host to follow there.
+	// The signer's RPC check must not call that missing, or the error screen is
+	// prerendered into every page. See `resolveSignerRpc`'s `awaitingPage`.
+	const nodeURLAwaitsPage =
+		isSameHostURL(PUBLIC_NODE_URL) && !currentPageOrigin();
 
 	const burner = resolveBurnerWallet(
 		burnerOverride,
@@ -1274,6 +1288,7 @@ export function createCoreContext<App extends AppContext>(params: {
 		walletOnly,
 		fatal,
 		nodeURL,
+		nodeURLAwaitsPage,
 	});
 
 	const {inFlight} = buildInFlight({
