@@ -112,4 +112,43 @@ describe('resolveSignerRpc', () => {
 			expect(!r.ok && r.error).not.toMatch(/PUBLIC_NODE_URL/);
 		});
 	});
+
+	// `PUBLIC_NODE_URL="//:8545"` resolves to undefined during SSR and prerender,
+	// because there is no page whose host it could follow. Fatal there meant the
+	// error screen was prerendered into every page, though the browser resolves
+	// the url and has nothing wrong with it.
+	describe('a same-host url before there is a page to resolve it against', () => {
+		it('is not fatal: the url is not known yet, it is not missing', () => {
+			const r = resolveSignerRpc(
+				{targetStep: 'SignedIn', walletOnly: false},
+				undefined,
+				[],
+				true,
+				{awaitingPage: true},
+			);
+			expect(r).toEqual({ok: true, rpcUrl: undefined});
+		});
+
+		it('still prefers a chain rpcUrl when there is one', () => {
+			const r = resolveSignerRpc(
+				{targetStep: 'SignedIn', walletOnly: false},
+				undefined,
+				['https://chain-rpc.example'],
+				true,
+				{awaitingPage: true},
+			);
+			expect(r).toEqual({ok: true, rpcUrl: 'https://chain-rpc.example'});
+		});
+
+		it('is still fatal in the browser, once the page has resolved nothing', () => {
+			const r = resolveSignerRpc(
+				{targetStep: 'SignedIn', walletOnly: false},
+				undefined,
+				[],
+				true,
+				{awaitingPage: false},
+			);
+			expect(r.ok).toBe(false);
+		});
+	});
 });
