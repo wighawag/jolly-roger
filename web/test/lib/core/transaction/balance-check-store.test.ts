@@ -10,7 +10,7 @@ const ADDR = '0xaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaA' as const;
 function fakeBalance(value: bigint): BalanceStore {
 	return {
 		subscribe: readable({step: 'Loaded', value} as const).subscribe,
-		status: readable({loading: false}).subscribe as any,
+		status: readable({loading: false}),
 		update: async () => ({step: 'Loaded', value}) as any,
 	} as unknown as BalanceStore;
 }
@@ -18,7 +18,7 @@ function fakeBalance(value: bigint): BalanceStore {
 function fakeGasFee(estimate: GasPriceEstimates): GasFeeStore {
 	return {
 		subscribe: readable({step: 'Loaded', ...estimate} as const).subscribe,
-		status: readable({loading: false}).subscribe as any,
+		status: readable({loading: false}),
 		update: async () => ({step: 'Loaded', ...estimate}) as any,
 	} as unknown as GasFeeStore;
 }
@@ -53,7 +53,7 @@ function lazyGasFee(estimate: GasPriceEstimates, options: {loads: boolean}) {
 	return {
 		store: {
 			subscribe: value.subscribe,
-			status: readable({loading: false}).subscribe as any,
+			status: readable({loading: false}),
 			update,
 		} as unknown as GasFeeStore,
 		update,
@@ -212,7 +212,7 @@ describe('balanceCheck.ensureCanAfford', () => {
 		const value = writable({step: 'Loaded', value: held} as const);
 		const balance = {
 			subscribe: value.subscribe,
-			status: readable({loading: false}).subscribe as any,
+			status: readable({loading: false}),
 			update: async () => ({step: 'Loaded', value: held}) as any,
 		} as unknown as BalanceStore;
 		const store = createBalanceCheckStore({
@@ -364,5 +364,84 @@ describe('balanceCheck.markFundingRequested', () => {
 		});
 		store.markFundingRequested(ADDR);
 		expect(get(store).step).toBe('idle');
+	});
+});
+
+describe('the gas price a transaction is priced at', () => {
+	// The bug: the poller refreshes every ten minutes, and a page opened just
+	// after a local deploy kept the deploy's ~60 gwei tips for all of them, so
+	// every transaction was budgeted at 60 times what the chain asked, and a
+	// local signer's top-up ran dry after one move.
+	const deployTips: GasPriceEstimates = {
+		...estimate,
+		fast: {
+			maxFeePerGas: 60_000_000_000n,
+			maxPriorityFeePerGas: 59_000_000_000n,
+		},
+	};
+
+	function cachedGasFee(
+		cached: GasPriceEstimates,
+		fetchedAt: number,
+		refresh: () => Promise<unknown>,
+	) {
+		const update = vi.fn(refresh);
+		return {
+			store: {
+				subscribe: readable({step: 'Loaded', ...cached}).subscribe,
+				status: readable({loading: false, lastSuccessfulFetch: fetchedAt}),
+				update,
+			} as unknown as GasFeeStore,
+			update,
+		};
+	}
+
+	async function price(gasFee: GasFeeStore) {
+		const store = createBalanceCheckStore({
+			publicClient: {
+				estimateContractGas: vi.fn(async () => 21_000n),
+			} as unknown as PublicClient,
+			gasFee,
+		});
+		return store.ensureCanAfford(
+			{
+				contract: {
+					address: ADDR,
+					abi: [],
+					functionName: 'setMessage',
+					args: ['hi'],
+					account: ADDR,
+				},
+			},
+			{balance: fakeBalance(10n ** 18n), sender: ADDR},
+		);
+	}
+
+	it('refreshes an old price before using it', async () => {
+		const gas = cachedGasFee(deployTips, Date.now() - 5 * 60_000, async () => ({
+			step: 'Loaded',
+			...estimate,
+		}));
+		const request = await price(gas.store);
+		expect(gas.update).toHaveBeenCalled();
+		expect(request.maxFeePerGas).toBe(estimate.fast.maxFeePerGas);
+	});
+
+	it('uses a recent price as it is', async () => {
+		const gas = cachedGasFee(estimate, Date.now(), async () => {
+			throw new Error('not expected');
+		});
+		const request = await price(gas.store);
+		expect(gas.update).not.toHaveBeenCalled();
+		expect(request.maxFeePerGas).toBe(estimate.fast.maxFeePerGas);
+	});
+
+	it('keeps the old price when the refresh fails, rather than failing the send', async () => {
+		const gas = cachedGasFee(estimate, Date.now() - 5 * 60_000, async () => ({
+			step: 'Unloaded',
+		}));
+		const request = await price(gas.store);
+		expect(gas.update).toHaveBeenCalled();
+		expect(request.maxFeePerGas).toBe(estimate.fast.maxFeePerGas);
 	});
 });
