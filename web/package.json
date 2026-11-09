@@ -48,7 +48,7 @@
 		"typescript": "~6.0.3",
 		"vaul-svelte": "1.0.0-next.7",
 		"viem": "^2.55.19",
-		"vite": "^8.2.1",
+		"vite": "^8.2.4",
 		"vite-plugin-devtools-json": "^1.1.0",
 		"vitest": "^4.1.11",
 		"vitest-browser-svelte": "^3.0.0"
