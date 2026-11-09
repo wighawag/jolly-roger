@@ -8,6 +8,7 @@
   },
   "packageManager": "pnpm@10.28.1",
   "devDependencies": {
+    "jolly-roger-contracts": "workspace:*",
     "expand-vars": "^0.1.0",
     "ldenv": "^0.6.0",
     "pinnace": "0.17.0",
@@ -17,6 +18,7 @@
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
+    "_prepare": "Runs AFTER contracts' own prepare, because the root devDepends on the contracts workspace (workspace:*, under the name contracts/package.json gives it) and pnpm runs lifecycle scripts in dependency order. Without that edge pnpm runs both at once, and ensure-deployments' throwaway deploy compiles while `contracts prepare` compiles, the two racing on contracts/cache/build-info (ENOENT on rename), which fails `pnpm i`. A repo that renames its contracts package renames it here too; it has to be the name, since pnpm orders by name and not by a link: or workspace:./path alias.",
     "prepare": "node scripts/ensure-deployments.mjs",
     "cleandep": "rm -rf node_modules && pnpm -r exec rm -rf node_modules",
     "---------------------- FORMAT ----------------------": "",
