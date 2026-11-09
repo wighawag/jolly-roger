@@ -204,9 +204,15 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      comlink:
+        specifier: ^4.4.2
+        version: 4.4.2
       eip-1193:
         specifier: ^0.7.4
         version: 0.7.4
+      fake-indexeddb:
+        specifier: ^6.2.8
+        version: 6.2.8
       faucet-client:
         specifier: ^0.1.0
         version: 0.1.0
@@ -299,7 +305,7 @@ importers:
         version: 3.0.0(svelte@5.56.9)(vitest@4.1.11)
       webevm:
         specifier: ^0.9.1
-        version: 0.9.1
+        version: 0.9.1(comlink@4.4.2)
 
 packages:
 
@@ -1674,6 +1680,9 @@ packages:
     resolution: {integrity: sha512-FQN4MRfuJeHf7cBbBMJFXhKSDq+2kAArBlmRBvcvFE5BB1HZKXtSFASDhdlz9zOYwxh8lDdnvmMOe/+5cdoEdg==}
     engines: {node: '>= 0.8'}
 
+  comlink@4.4.2:
+    resolution: {integrity: sha512-OxGdvBmJuNKSCMO4NTl1L47VRp6xn2wG4F/2hYzB6tiCb709otOxtEYCSvK80PtjODfXXZu8ds+Nw5kVCjqd2g==}
+
   commander@10.0.1:
     resolution: {integrity: sha512-y4Mg2tXshplEbSGzx7amzPwKKOCGuoSRP/CjEdwwk0FOGlUbq6lKuoyDZTNZkmxHdJtp54hdfY/JUrdL7Xfdug==}
     engines: {node: '>=14'}
@@ -1874,6 +1883,10 @@ packages:
   expect-type@1.4.0:
     resolution: {integrity: sha512-KfYbmpRm0VbLjEvVa9yGwCi9GI34xvi7A/HXYWQO65CSD2u3MczUJSuwXKFIxlGsgBQizV9q5J9NHj4VG0n+pA==}
     engines: {node: '>=12.0.0'}
+
+  fake-indexeddb@6.2.8:
+    resolution: {integrity: sha512-mpVW/HLUqwKXJ6F/s0hMgdK1eQfM4ncTHDioNGHWL0WKV3VcZCoZq1NKgboBbAge07aRCO7L48yziKssL59XEQ==}
+    engines: {node: '>=18'}
 
   fast-equals@5.4.1:
     resolution: {integrity: sha512-DjlFSM5Pk9cGcL0q5QXl66eGzx0N6szNgaswwc5ZphlBohjTVJSnGgI+rJVOgOi65qUoQnDZN4nDqi33udtydQ==}
@@ -4502,6 +4515,8 @@ snapshots:
     dependencies:
       delayed-stream: 1.0.0
 
+  comlink@4.4.2: {}
+
   commander@10.0.1: {}
 
   commander@12.1.0: {}
@@ -4713,6 +4728,8 @@ snapshots:
       cross-spawn: 7.0.6
 
   expect-type@1.4.0: {}
+
+  fake-indexeddb@6.2.8: {}
 
   fast-equals@5.4.1: {}
 
@@ -5859,7 +5876,7 @@ snapshots:
       - debug
       - supports-color
 
-  webevm@0.9.1:
+  webevm@0.9.1(comlink@4.4.2):
     dependencies:
       '@eip-1193/over-port': 0.2.0
       '@ethereumjs/block': 10.1.3
@@ -5873,6 +5890,8 @@ snapshots:
       '@ethereumjs/vm': 10.1.3
       '@noble/hashes': 2.2.0
       revm-wasm: 0.3.1
+    optionalDependencies:
+      comlink: 4.4.2
     transitivePeerDependencies:
       - supports-color
 
