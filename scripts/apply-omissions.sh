@@ -135,11 +135,22 @@ if git rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1; then
         echo -e "  path with its reason, or keep the file.${NC}"
         exit 1
     fi
+    # AND A FILE KEPT AT THE STEM'S OLD VERSION, which a resolution "ours" makes
+    # silently and which nothing else in the tree can see (the file is a good
+    # file, so everything passes). This is the moment it is made, and MERGE_HEAD
+    # makes the comparison free. See the script's header.
+    if ! node "$REPO_DIR/scripts/check-stem-drift.mjs"; then
+        echo -e "${RED}  Resolve that before committing the merge: take the stem's"
+        echo -e "  version, or make the file this repo's own.${NC}"
+        exit 1
+    fi
 else
     echo
     echo -e "${YELLOW}  Not in a merge, so the list was not checked AGAINST THE STEM.${NC}"
     echo -e "${YELLOW}  That check is what catches a path nobody listed:${NC}"
     echo -e "${YELLOW}    git fetch stem <branch> && node scripts/check-omissions.mjs FETCH_HEAD${NC}"
+    echo -e "${YELLOW}  and the one that catches a file left at the stem's old version:${NC}"
+    echo -e "${YELLOW}    node scripts/check-stem-drift.mjs FETCH_HEAD${NC}"
 fi
 
 if [ "$removed" -gt 0 ]; then
