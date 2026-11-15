@@ -313,6 +313,13 @@ else
     ln -s "$REPO_DIR/web/node_modules" "$WEB_DIR/node_modules"
 fi
 
+# What a GAME builds in its main checkout and its app needs (a workspace
+# package's gitignored `dist`, say), as the root package.json's
+# "e2e": {"linkBuilt": [...]} declares it: nothing for this template. A path
+# not built fails the run here, naming it, rather than as an import deep in the
+# build. The reasoning, and why it is a declared list, is in the script.
+node "$REPO_DIR/scripts/e2e-link-built.mjs" "$REPO_DIR" "$WORKTREE_DIR"
+
 echo -e "${GREEN}✓ Worktree ready${NC}"
 
 # Nothing is pre-killed: whatever is on these ports may not be ours (see
