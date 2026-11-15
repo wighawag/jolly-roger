@@ -115,6 +115,21 @@ two kinds of ignored input a build needs (`.env*.local` and the generated PWA
 icons). `node_modules` is symlinked rather than installed again - same commit,
 same lockfile, and pnpm's links resolve relative to their real path.
 
+A game whose app imports something it BUILDS (a workspace package's gitignored
+`dist`, which a fresh worktree does not have) declares it in the root
+`package.json`, as plain data beside the `"lan"` field, and the run links each
+path from the main checkout into the worktree, failing at once, naming the
+path, when the main checkout has not built it (`pnpm i` does):
+
+```json
+"e2e": {"linkBuilt": ["common/dist", "indexer/dist"]}
+```
+
+Nothing is linked unless it is named: a package that must build in the
+worktree (the contracts package, from the artifacts the run just compiled) would
+otherwise be replaced by the main checkout's stale build. The template declares
+nothing. See `scripts/e2e-link-built.mjs`.
+
 - `E2E_KEEP_WORKTREE=1` leaves it in place to poke at afterwards.
 - The Playwright report and `test-results` (traces, screenshots) are copied back
   into `web/` before it is removed, so a failed run is still debuggable.
