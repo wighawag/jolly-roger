@@ -43,81 +43,81 @@
  * links nothing.
  */
 import {
-  existsSync,
-  lstatSync,
-  mkdirSync,
-  readFileSync,
-  symlinkSync,
-} from "node:fs";
-import { dirname, isAbsolute, join, normalize, sep } from "node:path";
+	existsSync,
+	lstatSync,
+	mkdirSync,
+	readFileSync,
+	symlinkSync,
+} from 'node:fs';
+import {dirname, isAbsolute, join, normalize, sep} from 'node:path';
 
-const RED = "\x1b[31m";
-const GREEN = "\x1b[32m";
-const NC = "\x1b[0m";
+const RED = '\x1b[31m';
+const GREEN = '\x1b[32m';
+const NC = '\x1b[0m';
 
 function fail(message) {
-  console.error(`${RED}✗ ${message}${NC}`);
-  process.exit(1);
+	console.error(`${RED}✗ ${message}${NC}`);
+	process.exit(1);
 }
 
 const [repo, worktree] = process.argv.slice(2);
 if (!repo || !worktree) {
-  fail("usage: e2e-link-built.mjs <main checkout> <e2e worktree>");
+	fail('usage: e2e-link-built.mjs <main checkout> <e2e worktree>');
 }
 
-const manifest = JSON.parse(readFileSync(join(repo, "package.json"), "utf8"));
+const manifest = JSON.parse(readFileSync(join(repo, 'package.json'), 'utf8'));
 const declared = manifest.e2e?.linkBuilt ?? [];
 if (!Array.isArray(declared)) {
-  fail('package.json\'s "e2e.linkBuilt" must be an array of paths');
+	fail('package.json\'s "e2e.linkBuilt" must be an array of paths');
 }
 
 // Checked in full before anything is linked, so a bad entry links nothing.
 const paths = declared.map((entry) => {
-  if (typeof entry !== "string" || entry.trim() === "") {
-    fail(`"e2e.linkBuilt" holds ${JSON.stringify(entry)}, which is not a path`);
-  }
-  const path = normalize(entry).replace(/[/\\]+$/, "");
-  if (
-    isAbsolute(entry) ||
-    path === "." ||
-    path === ".." ||
-    path.startsWith(`..${sep}`)
-  ) {
-    fail(
-      `"e2e.linkBuilt" names ${entry}, and an entry is a path inside the repo`,
-    );
-  }
-  if (!existsSync(join(repo, path))) {
-    fail(
-      `${join(repo, path)} is missing, and package.json's "e2e.linkBuilt" ` +
-        `says the app needs it. Build it in the main checkout first (pnpm i).`,
-    );
-  }
-  const target = join(worktree, path);
-  let present = false;
-  try {
-    lstatSync(target);
-    present = true;
-  } catch {
-    // absent, as a build output should be
-  }
-  if (present) {
-    fail(
-      `${target} already exists in the worktree, so it is tracked and not a ` +
-        `build output; take it out of "e2e.linkBuilt"`,
-    );
-  }
-  return path;
+	if (typeof entry !== 'string' || entry.trim() === '') {
+		fail(`"e2e.linkBuilt" holds ${JSON.stringify(entry)}, which is not a path`);
+	}
+	const path = normalize(entry).replace(/[/\\]+$/, '');
+	if (
+		isAbsolute(entry) ||
+		path === '.' ||
+		path === '..' ||
+		path.startsWith(`..${sep}`)
+	) {
+		fail(
+			`"e2e.linkBuilt" names ${entry}, and an entry is a path inside the repo`,
+		);
+	}
+	if (!existsSync(join(repo, path))) {
+		fail(
+			`${join(repo, path)} is missing, and package.json's "e2e.linkBuilt" ` +
+				`says the app needs it. Build it in the main checkout first (pnpm i).`,
+		);
+	}
+	const target = join(worktree, path);
+	let present = false;
+	try {
+		lstatSync(target);
+		present = true;
+	} catch {
+		// absent, as a build output should be
+	}
+	if (present) {
+		fail(
+			`${target} already exists in the worktree, so it is tracked and not a ` +
+				`build output; take it out of "e2e.linkBuilt"`,
+		);
+	}
+	return path;
 });
 
 for (const path of paths) {
-  const target = join(worktree, path);
-  mkdirSync(dirname(target), { recursive: true });
-  symlinkSync(join(repo, path), target);
+	const target = join(worktree, path);
+	mkdirSync(dirname(target), {recursive: true});
+	symlinkSync(join(repo, path), target);
 }
 if (paths.length > 0) {
-  console.log(
-    `${GREEN}  Linked what package.json's "e2e.linkBuilt" names: ` +
-      `${paths.join(", ")}${NC}`,
-  );
+	console.log(
+		`${GREEN}  Linked what package.json's "e2e.linkBuilt" names: ` +
+			`${paths.join(', ')}${NC}`,
+	);
 }
