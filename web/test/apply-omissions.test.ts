@@ -65,7 +65,11 @@ function scratch(list: string, files: string[]): string {
 
 	git(dir, ['init', '-q', '.']);
 	mkdirSync(join(dir, 'scripts'), {recursive: true});
-	for (const script of ['apply-omissions.sh', 'check-omissions.mjs']) {
+	for (const script of [
+		'apply-omissions.sh',
+		'check-omissions.mjs',
+		'check-stem-drift.mjs',
+	]) {
 		cpSync(join(ROOT, 'scripts', script), join(dir, 'scripts', script));
 	}
 	// A STUB FOR THE SIBLING CHECK, so this suite asserts the same thing in every
