@@ -132,6 +132,18 @@ describe('check-stem-drift.mjs', () => {
 		expect(output).toContain('1 shared file(s) differ');
 	});
 
+	it('passes a file the repo is merely BEHIND on, which the next merge brings', () => {
+		const dir = scratch({'menu.svelte': 'v1\n'});
+		git(dir, ['checkout', '-q', 'stem']);
+		commit(dir, {'menu.svelte': 'v2\n'}, 'stem: menu v2, not merged yet');
+		git(dir, ['checkout', '-q', 'child']);
+
+		const {status, output} = check(dir, 'stem');
+
+		expect(status, output).toBe(0);
+		expect(output).toContain('1 of them only behind it');
+	});
+
 	it('finds the drift during a merge, from MERGE_HEAD, with no ref given', () => {
 		const dir = scratch({'fixture.ts': 'v1\n'});
 		git(dir, ['checkout', '-q', 'stem']);
