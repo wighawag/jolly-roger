@@ -266,6 +266,8 @@ Develop against a remote network (testnet/mainnet):
 - **A repo that never goes on a box** drops `flake.nix` and `flake.lock`, listed in `.offshoot-omissions` (the `"lan"` field is inert without them); the two hooks do nothing unless the LAN build switches them on.
 - **Add it to a box** as `services.ethereumLanNode.games.<name> = { package = inputs.<this-repo>.packages.x86_64-linux.lan; webPort = <a port of its own>; };`.
 
+The e2e run reads `package.json` the same way: a game whose app imports something it builds (a workspace package's `dist`) names it in an `"e2e": {"linkBuilt": [...]}` field, and the run links it into its worktree (see `web/TESTING.md`, "The run happens in a git worktree").
+
 Anything the game needs at play time must come from the box: a font, an icon or a proving key fetched from a CDN is a page that breaks there.
 
 **Rehearse it before an event** with `bash scripts/rehearse-lan.sh`: it builds the package and runs it as a box does, on this machine's LAN address (geth from the box's genesis, the package's deploy run twice, the box's faucet, caddy with the box's rule), then runs the e2e suite against it in a browser that can resolve no other host. By default that is `faucet.e2e.ts`, a player starting from an empty burner; name a game's own suites as arguments (`bash scripts/rehearse-lan.sh e2e/tests/<game>.e2e.ts`). The suite funds by transfer there, since geth has no `hardhat_setBalance`. It needs ports 8545, 34010 and 28600 free on that address.
