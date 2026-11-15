@@ -266,6 +266,8 @@ Develop against a remote network (testnet/mainnet):
 - **A repo that never goes on a box** drops `flake.nix` and `flake.lock`, listed in `.offshoot-omissions` (the `"lan"` field is inert without them); the two hooks do nothing unless the LAN build switches them on.
 - **Add it to a box** as `services.ethereumLanNode.games.<name> = { package = inputs.<this-repo>.packages.x86_64-linux.lan; webPort = <a port of its own>; };`.
 
+The e2e run reads `package.json` the same way: a game whose app imports something it builds (a workspace package's `dist`) names it in an `"e2e": {"linkBuilt": [...]}` field, and the run links it into its worktree (see `web/TESTING.md`, "The run happens in a git worktree").
+
 Anything the game needs at play time must come from the box: a font, an icon or a proving key fetched from a CDN is a page that breaks there.
 
 ## Configuration
