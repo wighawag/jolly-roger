@@ -492,7 +492,9 @@ export function createOverlayRegistry(
 				// `label` (and `param`) rewritten, so its payload type is the
 				// caller's; the generic cannot say "same definition, new label".
 				return registry.use(
-					scopedDefinition(definition as ViewOverlayDefinition<unknown>) as never,
+					scopedDefinition(
+						definition as ViewOverlayDefinition<unknown>,
+					) as never,
 				);
 			},
 
