@@ -6,7 +6,8 @@
 	},
 	"include": [
 		"**/*",
-		"../../generated/**/*",
+		"../../generated/artifacts/index.ts",
+		"../../generated/abis/index.ts",
 		"../../rocketh/**/*",
 		"../../hardhat.config.ts"
 	],
