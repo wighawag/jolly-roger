@@ -1,0 +1,554 @@
+# Plan: an indexer, push notifications, messaging and high scores, across the template tree
+
+Written 2026-11-16. One step per fresh agent context: each step below starts with what to read, says what to do and what "done" means, and ends by appending an entry to the **Progress log** at the bottom of this file and ticking its box. Do ONE step per context. The prompt that starts a step is in the next section, and it is the same prompt every time.
+
+The measurements behind this plan are in `docs/analysis/template-tree-2026-11-16.md` on this branch (the tree as measured, every node's status, the code-quality findings and the ranked fixes). Read it once before the first step; each step re-derives what it needs.
+
+## Where this plan lives
+
+**Proposed (P-1): jolly-roger's `work` branch, as `docs/plans/template-tree-features.md`**, beside `docs/plans/delegation-multi-signer.md` and the spec it realises, `work/specs/proposed/service-layers.md`. jolly-roger is the highest repo the four features touch (F1 to F3 land there; F4 lands below it, at template-commit-reveal), and the cleanup steps that start higher (the root's dependency bumps, the format fix's cascade) have no `work` branch at their home: template-svelte, template-svelte-tailwind and template-svelte-shadcn have none. Rejected: template-commit-reveal's `work` (it holds the games' plan and HANDOFF, but three of the four features are not games' and would be planned below their home), and a tree-level repo of its own (one more repo to fetch for every step, for one file).
+
+Until the user approves its push, the plan is on the LOCAL branch `plan/template-tree-features` of jolly-roger (worktree `~/dev/worktrees/jolly-roger/plan/template-tree-features`), branched from `origin/work` f527ab28. Once pushed to `work`, `origin/work` is the live copy and the prompt below reads it from there.
+
+## The prompt for a step
+
+Paste this into a fresh session as it is. It picks the next step itself. To run a different step, add one line after it, for example `Do step H1.`
+
+```
+You are working on the plan in docs/plans/template-tree-features.md on the `work` branch of jolly-roger (/home/wighawag/dev/github/wighawag/jolly-roger). It spans the whole template tree, rooted at template-svelte; every repo of the tree is under /home/wighawag/dev/github/wighawag/. Fetch first: `git -C ~/dev/github/wighawag/jolly-roger fetch origin --prune`, then read the plan in full with `git -C ~/dev/github/wighawag/jolly-roger show origin/work:docs/plans/template-tree-features.md`, and its analysis with `git -C ~/dev/github/wighawag/jolly-roger show origin/work:docs/analysis/template-tree-2026-11-16.md`. If `origin/work` does not have the plan, stop and tell me.
+
+Which step: if my message after this prompt names a step, do that one. Otherwise do the first step whose box is unticked in the plan's Steps list and whose needs are all ticked. If that step's section has no "Start here" block, or its decisions are marked PROPOSED rather than decided, stop: measure what it needs, propose or refresh its specification in the shape of the specified steps instead of doing it, and bring me each decision as a numbered recommendation (what you recommend, and the alternative you rejected), so I can answer "go" or correct only the ones I disagree with. Do ONE step and nothing else.
+
+First:
+1. Run `git fetch --all --prune` in every repo the step names (its "Start here" block lists them). Analyse `origin/<branch>` refs, never a main checkout's working tree.
+2. Check that the main checkout of every repo the step will commit in is clean (`git status --porcelain`). If one is not, stop and tell me. Do not fast-forward or switch a main checkout; work in worktrees.
+3. Read the step's "Start here" block and re-derive reality: the numbers in the plan are measurements from the day they were written. If a premise of the step no longer holds (a file moved, a branch moved, a version changed, a cascade landed), stop and tell me the discrepancy rather than building on it.
+4. Check that every step the chosen step needs is ticked: what its own text says it needs, and otherwise every step above it in the Steps list. If not, stop and tell me.
+5. Read the AGENTS.md of every repo you will touch, and follow that repo's own work protocol there. For any cascade, read /home/wighawag/.agents/skills/reconcile-template-tree/SKILL.md; for any new module or seam, /home/wighawag/.agents/skills/codebase-design/SKILL.md.
+
+Rules:
+- Work in git worktrees under ~/dev/worktrees/<repo>/<branch>, never beside a repo. Build on preview branches named `tf-<step id>/<node branch>` (for example `tf-F1a/with/indexer`), one per node you change, branched from that node's `origin/<branch>`. Never commit to a node branch directly, and never to a main checkout.
+- The plan itself is updated on a branch `tf-<step id>/work` of jolly-roger, from `origin/work`, in ~/dev/worktrees/jolly-roger/tf-<step id>/work.
+- Commit in small steps, one commit per item of the step's "Do". Push NOTHING, in any repo, and open no pull request: every push is asked for. At the end, list every push the step needs (repo, ref, old..new, each a fast-forward or a new branch; any deletion listed separately) and wait for my approval.
+- Ask before any destructive command (a branch or tag deletion, a worktree removal other than your own, a reset, a force). Never `git stash` inside a conflicted merge. Never `--force` a node branch.
+- Bound every exploratory shell command with `timeout` and cap its output with `head`. Never grep node_modules, dist, .git or minified or generated bundles, and never run an unbounded regex over one.
+- Ports: the verify's vitest `client` project and every e2e start Chromium and open ports. Before anything opens a port, check it is free with `ss -ltn` and what holds it; 8545 and 8546 belong to another project, and the e2e script defaults its chain to 8545, so run every e2e with `E2E_RPC_PORT=8557 E2E_PORT=4183` (and move any other port the script reports busy with its own variable, such as `E2E_FAUCET_PORT`). Run at most three verifies or e2e suites at once. Stop every node, server, worker and browser you start, by its process group, before you finish, and remove every worktree you created except the step's preview worktrees.
+- Each node's verify is the `verify` of its repo's `offshoot` branch (`git show origin/offshoot:fanout.config.json`); a repo without one is verified with its stem's until step L1a gives it its own.
+- Never write an em dash character, and do not hard-wrap Markdown prose.
+
+When the step's "Done when" holds: append a dated entry to the plan's Progress log (what was done, the measurements against "Done when", every commit with its repo and branch, the pushes needed, anything that surprised you), tick the step's box, and commit both on `tf-<step id>/work`. If it does not all hold, do not tick: say what is missing in the entry and in your report.
+
+End with a report: what changed, the measurements against the step's "Done when", anything you could not verify, a `## Decisions` block for every non-obvious choice, the pushes to approve, and which step comes next. If what you learned changes the order or the content of later steps, fix the Steps list and those steps' text in the plan, and if it changes how a session must start or finish, fix this prompt there too (it must stay paste-as-is, with nothing to fill in), and say what you changed. The next session gets this same prompt, unchanged.
+```
+
+## Where things stand (2026-11-16)
+
+From the analysis (read it for the evidence):
+
+- **The tree is 23 repos and 33 nodes**, every verify green except conquest-demo's (which cannot pass as configured). Nine nodes are behind their stem: template-zk-game 18 (clean), bleeps and mandalas 10, arts, conquest-demo and template-svelte-docs 6, the blog and wabisabi-website 4, and **infinite-gambit 111, with 9 conflicting paths**. Every node from jolly-roger down fails `format:check` on one inherited file (`web/src/lib/core/ui/overlay/registry.ts:495`) except infinite-gambit.
+- **No full e2e of jolly-roger's own six nodes since 2026-08-22.** template-commit-reveal's last (2026-11-15) is main 62, with/nft-identity 62, with/fuzd-pixi-indexer 68; stratagems 67 + 1 skipped; reveal-or-die 59 + 2, bomber-world 62 + 2.
+- **F1's ground**: template-commit-reveal `with/indexer` adds 28 files (+2704 lines). Game-agnostic: `web/src/lib/indexer/{follower 276, host 167, worker-choice 73}.ts` and `contracts/utils/indexer.ts` 104, with 491 lines of tests; `worker-choice.ts` imports jolly-roger's `$lib/embedded/chain-id`, the only thing tying it to `with/embedded-chain`. Commit-reveal-bound: `cycle-stamp.ts` 81 and `indexed-state.ts` 289 (it implements `$lib/game/core/seams`' `OnchainStateStore`). The reference game's processor and board: 404 lines. jolly-roger has no etherfold dependency on any branch.
+- **F2's ground**: jolly-roger's `web/src/lib/core/service-worker/push-notifications/` (index.ts 315, utils.ts 14) is shipped, wired to nothing (its README says so, deliberately), untested, its payload types declared twice, and it signs nothing; the service worker's receiving side is wired (`web/src/service-worker/index.ts:369`, `:404`). push-notification-server (cf-worker only, effectively untested) has three gaps its own findings name: `/push` unauthenticated, `/register` with no ownership proof, `/push` not idempotent. etherfold provides the feed a notifier follows (`/feed`, `/canonical`, `/state-moved`) and decided the notifier lives OUTSIDE it (ADR-0005), with its rules in ADR-0007, 0009, 0011, 0012, 0013; no such consumer exists anywhere yet.
+- **F3's ground**: missiv (last code 2026-03-11) has DMs (end-to-end encrypted) and per-domain rooms (unencrypted), identity by a delegated key bound to the wallet (the shape of jolly-roger's with/local-signer), a `.ts` client on `svelte/store`, rooms on cf-worker and bun only (node: HTTP only), no notification of any kind, DEV fail-open backdoors, an unauthenticated `_initDB`, and an end-to-end suite failing on schema drift. stratagems used it until step 6c (2026-10-26) and dropped it "until a messaging layer exists in jolly-roger".
+- **F4's ground**: three games end a table three ways (reveal-or-die: survivors share a leftover pot; stratagems: a score per member, argmax with ties, `TableSettled(winners, topScore)`; infinite-gambit: a resumable tally, a pro-rata split by material), all below template-commit-reveal, whose `UsingCommitReveal.sol:223` anticipates "a settlement, a score". stratagems' leaderboard is computed in the browser (`leaderboard.ts` 190, `score.ts` 177, `table-end.ts` 488), of which about 150 to 190 lines (`rankScores`, `settleBatches`, the live then recorded ranking, anyone-may-settle in batches) are generic. etherfold has no aggregation primitive and no factory-discovered source; a top-N is a query, cheap on SQLite and a scan in IndexedDB. Tables are EIP-1167 clones made by `CommitRevealGameFactory`, which keeps their list (`getGames`).
+- **The prior spec**: `work/specs/proposed/service-layers.md` (2026-08-26) already draws `with/indexer` from `main`, `with/messaging` from `with/local-signer`, `with/notifications` from `[with/indexer, with/local-signer]`, and the rules R1 to R6 (a layer has a fixed shape, degrades to its absence, `main` stays decentralised, a service is green in its own repo before its branch exists, verification per node, a layer augments and never replaces). This plan follows it except where a decision below says otherwise, and step F1a records the reconciliation in that spec.
+
+## The structural fact every feature meets
+
+**A node branch has either in-repo stems or one cross-repo `stemBranch`, never both**: offshoot-fanout refuses the combination (`packages/offshoot-fanout/src/config.ts:200-208`, "a branch has one or the other"). template-commit-reveal reaches jolly-roger through ONE edge, `main` fed from `integration`. So a layer built at jolly-roger beside `integration` reaches template-commit-reveal only by entering `integration` (and so every game, template-zk-game included), unless template-commit-reveal grows a second ROOT branch fed from that layer. Several root branches in one child repo, each with its own `stemBranch`, are supported (`nodes.ts:282`). This is why template-commit-reveal's own README for `with/indexer` said "not jolly-roger", and it is what decision F1-2 answers.
+
+## Decisions to take before the first step (PROPOSED, awaiting the user)
+
+- **P-1, the plan's home**: jolly-roger `work` (above). Rejected: template-commit-reveal `work`; a repo of its own.
+- **P-2, the order: level the tree first, then the features**, cleanup the features do not need deferred to after them. The cascade that carries F1 down crosses every node from jolly-roger to the games, so it should carry nothing else (the format fix, the pending cascades, infinite-gambit's 111 commits) and start from nodes whose e2e is known. Rejected: features first and cleanup after (each feature cascade then also carries a backlog, and a conflict cannot be attributed to either); all cleanup first (the svelte line's seams and the per-game offline boot block no feature and would delay them by weeks).
+- **P-3, every push asked for, no standing approval**, as the user asked for this plan. Rejected: stratagems' standing fast-forward approval for its plan branch (it can be granted later, per repo).
+- **P-4, the services prerequisite (the spec's R4)**: push-notification-server and missiv are made green and API-stable in their own repos (steps S1, S3) and the notifier exists (step S2) before the jolly-roger branches that use them. Rejected: building the branches against the services as they are (a branch tracking a moving service is rewritten on every release, and the services' open routes would ship in a template).
+- **P-5, the vitest `client` project** (Chromium on a port) is run by every step's verify, with ports checked as the prompt says: this analysis could not run it (its brief forbade a browser) and recorded it NOT RUN, so step L1b re-baselines it with the e2e. Rejected: dropping it from the tree's verify (it holds template-zk-game's in-browser prover test, which its AGENTS.md requires after a Noir or bb.js bump).
+
+## Steps
+
+- [ ] **Step L1a** (the svelte line): the root's patch bumps, the leaves levelled and given an `offshoot` branch, conquest-demo's verify fixed
+- [ ] **Step L1b** (jolly-roger and below, but infinite-gambit): the format fix at its two homes, the pending cascades (template-zk-game, duel-in-the-dark, bleeps, mandalas with its drift), and the e2e baseline of every node it touches, jolly-roger's six first
+- [ ] **Step I1** (infinite-gambit, needs L1b): its 111-commit cascade with the 9 conflicts, the 24 rename-only files taken back, the render fix merged, its e2e recorded
+- [ ] **Step H1** (any time; needs only the user's approvals): stray branches, the symlinks, mis-tracked and merged local branches, stale records
+- [ ] **Step V1** (needs L1b): the divergence check at the tree's root, and the lists of the nodes F1 to F4 cross (jolly-roger, template-commit-reveal, reveal-or-die, bomber-world, infinite-gambit)
+- [ ] **Step F1a** (jolly-roger, needs V1): `with/indexer` from `main`: the game-agnostic host, follower and worker choice, the Node indexer, and GreetingsRegistry's processor with a count badge beside the direct read
+- [ ] **Step F1b** (template-commit-reveal, needs F1a and I1): a second root `upstream/with/indexer` fed from jolly-roger's, `with/indexer` stemming from `[main, upstream/with/indexer]`, its copies of the moved files gone; cascaded to `with/fuzd-pixi-indexer`, stratagems and infinite-gambit
+- [ ] **Step S1** (push-notification-server, independent): authenticated `/push` per domain, an ownership proof at `/register`, an idempotency key, the "any subscription" route, a nodejs platform, API tests, AGENTS.md and work/
+- [ ] **Step S2** (a new repo, needs S1 and F1a): the notifier: an etherfold consumer following `/canonical`, subscription triggers as data, an outbox, Web Push its first action
+- [ ] **Step F2** (jolly-roger, needs F1a, S1, S2): `with/push-notifications` from `[with/indexer, with/local-signer]`: subscribe to new greetings, receive a push
+- [ ] **Step S3** (missiv, independent; needs S1 for its push call): green and API-stable: the backdoors and `_initDB` closed, the end-to-end suite fixed, a push on a new DM through push-notification-server, the shared ownership proof
+- [ ] **Step F3** (jolly-roger, needs F2 and S3): `with/messaging` from `with/push-notifications`: a global chat and direct messages, a DM notifying through F2
+- [ ] **Step F4a** (template-commit-reveal `main`, needs I1 and V1; independent of F1 to F3): a table's end and its scores in the base: the settlement lifecycle, `ScoreRecorded` on the factory, the generic client half; the reference game its first user
+- [ ] **Step F4b** (template-commit-reveal `with/indexer`, needs F4a and F1b): high scores indexed (a framework processor fragment, a high-score page), read from the tab or from a hosted `etherfold run`; the log-reading fallback on nodes without the indexer
+- [ ] **Step F4c** (the games, needs F4b): stratagems, infinite-gambit and reveal-or-die (bomber-world by cascade) record their scores through the base, each a new deployment
+- [ ] **Step K1** (after the features): jolly-roger's core patched below it goes home (the world connection's `nodeURL` from template-commit-reveal; a `GAME` seam for template-zk-game's five modified files)
+- [ ] **Step K2** (after the features): the offline world's shared boot at template-commit-reveal, so the games stop copying `offline.ts`
+- [ ] **Step K3** (after the features): the svelte line's seams: the styled notification panels at the root, the shadcn layer patches at template-svelte-shadcn, the blog's posts source; divergence lists for every remaining node
+- [ ] **Step K4** (after the features): dependency alignment: stratagems' toolchain on the tree's, rocketh 0.26 and hardhat-deploy 2.2 at jolly-roger, SvelteKit 3 at the root (the dependabot major), each a recomputed `pnpmDepsHash`
+
+Parallel lanes: H1 any time; S1 and S3 do not touch the template tree and can run beside L1a to F1b; F4a beside F1a. Everything else in list order.
+
+### Step L1a: the svelte line levelled
+
+Repos: template-svelte, template-svelte-tailwind, template-svelte-shadcn, template-svelte-tailwind-blog, conquest-website-2, ronan-eth, wabisabi-website, arts, palestine, conquest-demo, template-svelte-docs, rocketh-website.
+
+**What decides the shape** (measured 2026-11-16): the root and its two layers are level, and jolly-roger is level with shadcn; below them arts (6 behind, merge-tree clean), conquest-demo (6), template-svelte-docs (6), the blog (4) and wabisabi-website (4) are behind, and palestine, rocketh-website, conquest-website-2 and ronan-eth are level with stems that are behind. Every missing commit is the 2026-11-15 arrival of `scripts/check-stem-drift.mjs` and its `apply-omissions.sh` change. arts, palestine, template-svelte-docs, rocketh-website and wabisabi-website have no `offshoot` branch, so offshoot-fanout verifies them with the default (their stem's command): arts' and palestine's 932 sim tests, `tsc` and format are never run by the tree, rocketh-website needs `ROCKETH_DIR`, and wabisabi-website's build (which its CI depends on) is skipped. conquest-demo's configured verify fails with 9 svelte-check errors because it never builds `conquest-demo-server-app`; its own `pnpm verify` passes. Two dependabot patch bumps wait at jolly-roger whose home is the root: `@sveltejs/adapter-static` 3.0.10 to 3.0.11 and `vite` 8.2.1 to 8.2.4 (the root has the same old versions). The root's verify skips `web:build`.
+
+**Decisions** (PROPOSED):
+
+- **L1a-1, the bumps at the root**, then cascaded with the rest; the jolly-roger dependabot branches are closed by the user with a comment naming the root commit (H1 lists them). Rejected: merging them at jolly-roger (below their home; every sibling of the svelte line misses them).
+- **L1a-2, an `offshoot` branch for each of the five repos without one**, with `{"stem": "github:wighawag/<stem>", "branches": {"main": {}}, "verify": ...}` and the verify each repo's CI or `dorfl.json` already runs (arts and palestine: the web verify plus the sim's tests, `tsc` and format; rocketh-website: its verify with `ROCKETH_DIR` stated; wabisabi-website: with `web:build`), written with `offshoot-fanout config set`. Rejected: leaving them on the default (the tree's green says nothing about them).
+- **L1a-3, conquest-demo's fanout verify becomes `pnpm install && pnpm verify`** if that is web-build-free and port-free, otherwise the server build prepended. Rejected: fixing its imports (they are right; the verify is wrong).
+- **L1a-4, the root's verify gains `pnpm --filter ./web build`**, inherited by every node whose config copies it. Rejected: leaving builds to CI (no CI runs on a cascade).
+
+**Start here.**
+
+```sh
+for r in template-svelte template-svelte-tailwind template-svelte-shadcn template-svelte-tailwind-blog conquest-website-2 ronan-eth wabisabi-website arts palestine conquest-demo template-svelte-docs rocketh-website jolly-roger; do git -C ~/dev/github/wighawag/$r fetch --all --prune; done
+for r in arts conquest-demo template-svelte-docs template-svelte-tailwind-blog wabisabi-website; do echo "$r $(git -C ~/dev/github/wighawag/$r rev-list --count origin/main..stem/main)"; done   # 6 6 6 4 4 on 2026-11-16
+for r in arts palestine template-svelte-docs rocketh-website wabisabi-website; do git -C ~/dev/github/wighawag/$r rev-parse -q --verify origin/offshoot || echo "$r: no offshoot branch"; done
+git -C ~/dev/github/wighawag/template-svelte show origin/main:web/package.json | grep -n -E '"(vite|@sveltejs/adapter-static)"'   # ^8.2.1 and ^3.0.10
+git -C ~/dev/github/wighawag/conquest-demo show origin/offshoot:fanout.config.json; git -C ~/dev/github/wighawag/conquest-demo show origin/main:package.json | grep -n '"verify"'
+timeout 300 offshoot-fanout discover ~/dev/github/wighawag --remote stem --root template-svelte | head -80   # read-only without --save or --add-remotes; no registry exists yet (~/.offshoot-stems is absent on 2026-11-16)
+```
+
+**Do** (preview branches `tf-L1a/main` in each repo; one commit per item):
+
+1. Re-derive: the commands above, and each repo's verify on its `origin/main` as the baseline (the analysis' figures are the expected ones).
+2. L1a-4 and L1a-1 at template-svelte: the build in the verify, the two bumps, `pnpm install`, the root's verify green.
+3. L1a-2 and L1a-3: the five configs and conquest-demo's, each verify green on the current `origin/main` before any cascade (so a later red is the cascade's).
+4. The cascade, top to bottom (`offshoot-fanout fanout --dry-run` first, then for real onto the preview branches): tailwind, shadcn, the blog, its two sites, wabisabi-website, arts, palestine, conquest-demo, template-svelte-docs, rocketh-website; jolly-roger `main` takes the root's bumps here too (only its `main`; L1b carries them further). Each node's drift check run and its result recorded; nothing beyond the cascade changed.
+
+**Done when**: every node of the svelte line is level with its stem (the stem's head an ancestor) on its preview branch; every node has an `offshoot` branch whose verify passes, conquest-demo's included, the five new ones running what their CI runs; the root's verify builds; `check-omissions` and `check-stem-drift` pass on every node (a failure recorded with its file, not fixed here, unless it is the cascade's own); jolly-roger `tf-L1a/main` verifies; every push approved by the user.
+
+### Step L1b: jolly-roger and below levelled, and the e2e baseline
+
+Repos: jolly-roger, template-commit-reveal, reveal-or-die, bomber-world, stratagems, template-zk-game, duel-in-the-dark, bleeps, mandalas. Needs L1a pushed.
+
+**What decides the shape** (measured 2026-11-16): `web/src/lib/core/ui/overlay/registry.ts:495` fails prettier on every jolly-roger node and is inherited byte-identical by every descendant (introduced 0a886487, 2026-10-25); template-commit-reveal adds `web/src/lib/game/render/README.md` failing on all seven of its nodes. reveal-or-die, bomber-world and stratagems fail format on their own files too (contracts 8 and 9; stratagems' because its prettier configuration and plugin differ from the stem's), and their verifies do not run format, so this step fixes only the inherited two. template-zk-game is 18 behind `integration` (merge-tree clean) and duel-in-the-dark follows it; bleeps and mandalas are 10 behind `main`, and mandalas' `web/src/lib/core/ens/index.ts` is left at the stem's pre-c7252e38 version (the drift check fails on it). The last full e2e of jolly-roger's own nodes is 2026-08-22 (main 44, with/hosted-account 49 of 50, website 43 of 44), and the client vitest project was not run by the analysis.
+
+**Decisions** (PROPOSED):
+
+- **L1b-1, the format fix at its two homes only** (jolly-roger `main` and template-commit-reveal `main`), cascaded; each game's own format failures are left to K4, recorded. Rejected: fixing every game's format here (stratagems' needs its prettier configuration taken from the stem, which changes its lockfile and `pnpmDepsHash`, a step of its own).
+- **L1b-2, mandalas' drift taken back in the cascade merge** (the stem's `ens/index.ts`). Rejected: a separate commit after (the drift check would fail on the merge commit itself).
+- **L1b-3, the e2e baseline is recorded, not fixed**: each node's full e2e is run once on its preview branch after the cascade; a failure is recorded with its test and reproduced on the node's `origin` head to say whether the cascade caused it. A failure the cascade caused blocks the step; one that predates it becomes a work item in that repo. Rejected: fixing every flake here (the known ones, delegation and the service-worker gateway, are jolly-roger work items already).
+- **L1b-4, infinite-gambit is not in this step** (I1 is). Rejected: one cascade for everything (its 9 conflicts would hold every other node's push).
+
+**Start here.**
+
+```sh
+for r in jolly-roger template-commit-reveal reveal-or-die bomber-world stratagems template-zk-game duel-in-the-dark bleeps mandalas; do git -C ~/dev/github/wighawag/$r fetch --all --prune; done
+git -C ~/dev/github/wighawag/jolly-roger show origin/main:web/src/lib/core/ui/overlay/registry.ts | sed -n 490,500p
+git -C ~/dev/github/wighawag/template-zk-game rev-list --count origin/main..stem/integration    # 18 on 2026-11-16
+for r in bleeps mandalas; do git -C ~/dev/github/wighawag/$r rev-list --count origin/main..stem/main; done   # 10 10
+git -C ~/dev/github/wighawag/mandalas diff --stat stem/main origin/main -- web/src/lib/core/ens/index.ts
+ss -ltn | head -40
+```
+
+**Do** (preview branches `tf-L1b/<branch>`; one commit per item):
+
+1. Re-derive the commands above; each node's verify on its `origin` head (with the client project) as the baseline.
+2. L1b-1: `prettier --write` on `registry.ts` at jolly-roger `main` and on `game/render/README.md` at template-commit-reveal `main`, nothing else.
+3. The cascade from jolly-roger `main` (carrying L1a's bumps and item 2) through jolly-roger's six nodes, template-commit-reveal's seven, reveal-or-die, bomber-world, stratagems, template-zk-game, duel-in-the-dark, bleeps and mandalas (L1b-2), dry-run first; every node's verify, its guards and `format:check` (the two files gone from the failures).
+4. L1b-3: the full e2e of jolly-roger's six nodes, template-commit-reveal `main`, `with/nft-identity` and `with/fuzd-pixi-indexer`, stratagems, reveal-or-die, bomber-world, template-zk-game, duel-in-the-dark, bleeps and mandalas, three at a time, ports as the prompt says; each result recorded in the Progress log with its date.
+
+**Done when**: every node of jolly-roger's subtree but infinite-gambit is level with its stem on its preview branch; `registry.ts` and `game/render/README.md` pass prettier on every node; mandalas' drift check passes; every verify passes with its client project; every e2e listed above has a recorded result, and none fails because of the cascade; RPC 8557 and app 4183 free before and after; every push approved.
+
+### Step I1: infinite-gambit levelled
+
+Repo: infinite-gambit (its clone is reached at `~/dev/github/wighawag/infinite-gambit`; `chess-battleground` is a symlink to it). Needs L1b pushed.
+
+**What decides the shape** (measured 2026-11-16): `main` 5bc96292 (2026-11-10) is 150 ahead and 111 behind `stem/with/fuzd-pixi-indexer` (merge base d20cd0fa, 2026-11-09); `git merge-tree --write-tree origin/main stem/with/fuzd-pixi-indexer` reports 9 conflicting paths, two of them design merges (`web/src/lib/offline.ts` and `offline-players.ts` against the stem's new `$lib/game/lobby/offline-table` module). 24 shared files differ from the stem only by the old `template-commit-reveal` to `chess-battleground` rename in comments, some now false (`web/src/lib/game/core/cycle.ts` cites "ADR-0001 (chess-battleground"). `fix/army-death-after-king-capture` holds one render fix not in `main` (e475b4b3; merge-tree clean). Its own verify (with format and contracts) passes: server 206 files 2228 tests, contracts 210. No chess e2e is recorded on the lean-rules board; `offline-ai.e2e.ts` was recorded failing on 2026-11-06 because it still drives the placement game. The cascade brings `check-stem-drift.mjs` and the divergence machinery it does not have.
+
+**Decisions** (PROPOSED):
+
+- **I1-1, the two design merges resolved onto the stem's offline-table module**: infinite-gambit's `offline.ts` keeps only what is chess's, the shared boot taken from `$lib/game/lobby/offline-table` as stratagems' and reveal-or-die's did. Rejected: keeping infinite-gambit's copy (it diverges further on every cascade; K2 then has a fourth copy to dissolve).
+- **I1-2, the 24 rename-only files take the stem's version in the merge** (`git checkout stem/with/fuzd-pixi-indexer -- <file>` for each, listed in the merge commit). Rejected: a rename sweep after (the drift and divergence checks would count them on the merge commit).
+- **I1-3, `fix/army-death-after-king-capture` merged before the cascade**, its branch then deleted (H1). Rejected: cherry-picking (loses the branch's link).
+- **I1-4, the package names stay `chess-battleground*`** in this step (a rename changes the lockfile and every `--filter`), recorded as a K4 item. Rejected: renaming in the cascade (two kinds of change in one merge).
+
+**Start here.**
+
+```sh
+git -C ~/dev/github/wighawag/infinite-gambit fetch --all --prune
+git -C ~/dev/github/wighawag/infinite-gambit rev-list --left-right --count origin/main...stem/with/fuzd-pixi-indexer     # 150 111 on 2026-11-16
+git -C ~/dev/github/wighawag/infinite-gambit merge-tree --write-tree --name-only origin/main stem/with/fuzd-pixi-indexer | head -40
+git -C ~/dev/github/wighawag/infinite-gambit cherry origin/main origin/fix/army-death-after-king-capture
+git -C ~/dev/github/wighawag/infinite-gambit show origin/offshoot:fanout.config.json
+```
+
+**Do** (preview branch `tf-I1/main`; one commit per item):
+
+1. Re-derive; the baseline verify and full e2e on `origin/main` (recorded as the board's first e2e, failures and all).
+2. I1-3: the render fix merged.
+3. The cascade merge, I1-1 and I1-2 inside it; `.offshoot-omissions` updated for anything the stem added that chess drops; the drift check and `check-omissions` clean.
+4. `.offshoot-divergences` and its test (the stem's machinery, arriving with the cascade), listing every remaining modified shared file with its reason.
+5. The verify, then the full e2e again, compared case by case with item 1's.
+
+**Done when**: `stem/with/fuzd-pixi-indexer` is an ancestor of `tf-I1/main`; the drift check reports nothing; `.offshoot-divergences` lists every modified shared file and its test passes; none of the 24 rename-only files differs from the stem; the verify passes (server, client, contracts, format); the e2e is no worse than item 1's, case by case, and its result is recorded; every push approved.
+
+### Step H1: hygiene
+
+Any time, in any order relative to the other steps; it changes no code. Every deletion is listed for the user and done only once approved, item by item.
+
+**What decides the shape**: the analysis' stray-branch table (about 60 remote branches with nothing unique, or superseded), the symlinks (`~/dev/github/wighawag/chess-battleground` to `infinite-gambit` with 8 worktrees under `~/dev/worktrees/chess-battleground/` resolving through it; `wasisabi-website` and `wasisabi`, a misspelling, which make a directory scan see a repo twice), three mis-tracked local branches at template-commit-reveal (`px1/*`, `px2/*`, landed under the same SHAs), merged preview branches in jolly-roger (ph1/*, s8/*, t1/*, webevm09/*, lan), template-commit-reveal (dlg/*, pa1/*, crc/*, ...) and stratagems (76), and stale records: template-commit-reveal `work`'s root files `17` and `18.`, the "NOT pushed" notes in the newest done tasks of jolly-roger and template-commit-reveal, HANDOFF.md's status table, `games-on-this-foundation.md`'s "hotseat and NPCs remain", jolly-roger's observations whose subject no longer exists.
+
+**Decisions** (PROPOSED):
+
+- **H1-1, tag before deleting anything that holds history nothing else does**: jolly-roger `v1` (tag `v1`, then delete `v1` and `v1-public`), stratagems `wip/X2-pure-core` (tag), template-commit-reveal `old` (kept as a branch, or a tag `pre-reset` if the user prefers). Rejected: deleting without tags; keeping everything.
+- **H1-2, the deletions** are exactly the analysis' table's "delete" rows; the "keep" rows stay (jolly-roger `tooling`, rocketh-website's two screenshot branches, stratagems `proto/go-style`, etherfold `gh-pages`, fuzd `feat/fuel`, missiv `conquest-2025-1` and `wip-generic-do`), bleeps `gif-export` the user's call. Rejected: a blanket "merged into main" rule (it would take the orphan screenshot branches whose images pull requests link to).
+- **H1-3, the chess-battleground symlink goes after its 8 worktrees are removed** (all clean, all on branches H1-2 deletes), with `rm ~/dev/github/wighawag/chess-battleground` (never a trailing slash, never `-r`), then `git -C ~/dev/github/wighawag/infinite-gambit worktree prune`. The wasisabi symlinks go too. Rejected: `worktree repair` and keeping the symlink (a second name for one repo misleads every scan).
+- **H1-4, stale records fixed in their own repos' `work`**, each by that repo's protocol (template-commit-reveal: delete `17` and `18.`, mark HANDOFF.md superseded where the plans now say it; jolly-roger: close the observations whose subject is gone). Rejected: leaving them (the next plan reads them as true).
+
+**Start here.**
+
+```sh
+for r in jolly-roger template-commit-reveal reveal-or-die bomber-world stratagems infinite-gambit template-zk-game duel-in-the-dark template-svelte-docs rocketh-website template-svelte-tailwind-blog conquest-website-2 ronan-eth bleeps etherfold fuzd missiv; do git -C ~/dev/github/wighawag/$r fetch --all --prune; done
+ls -la ~/dev/github/wighawag | grep -- '->'
+git -C ~/dev/github/wighawag/infinite-gambit worktree list | head -20
+```
+
+**Do**: 1. re-derive each row of the table (`git cherry origin/main origin/<b>`, its last date); 2. present the deletion list with the tags first and wait; 3. tag, then delete what was approved (remote and local, with their worktrees); 4. H1-3; 5. H1-4.
+
+**Done when**: every approved deletion done and every "keep" row still present; the tags pushed (approved); no symlink in `~/dev/github/wighawag/` points at another repo of the tree; `git worktree list` of infinite-gambit shows no path through `chess-battleground`; the stale records fixed in each repo's `work`.
+
+### Step V1: divergences recorded where the features will cross
+
+Needs L1b. Repos: template-svelte (the check), then jolly-roger, template-commit-reveal, reveal-or-die, bomber-world (lists). stratagems and infinite-gambit (I1) already have theirs.
+
+**What decides the shape**: stratagems' `.offshoot-divergences` (36 entries) and its test `web/test/offshoot-divergences.test.ts` are repo-local (step C-10 of stratagems' plan left "tree-wide" to the user); `check-stem-drift.mjs` lives at the root and catches only a file left at an OLD stem version, and `check-omissions.mjs` only deletions. Measured modified shared files without a record: jolly-roger main 34, with/local-signer 48 more; template-commit-reveal main 29 of 49 unexplained; reveal-or-die about 20 framework files; bomber-world including the `:v2` wire key. F1b and F4 change exactly these repos' framework files, and a cascade reviewer must tell a decision from drift.
+
+**Decisions** (PROPOSED):
+
+- **V1-1, the check at the root, as `scripts/check-divergences.mjs`** beside `check-stem-drift.mjs` (same stem resolution, the stem-less root case handled the same way), run by `apply-omissions.sh`; stratagems' unit test then calls it rather than carrying its own logic. Rejected: stratagems' test copied into each repo (the reason `check-omissions` moved to the root).
+- **V1-2, one list per node branch** (`.offshoot-divergences` cascades like `.offshoot-omissions`: the stem's entries above a separator, the branch's below), for jolly-roger's six nodes, template-commit-reveal's seven, reveal-or-die and bomber-world. Other nodes get theirs in K3. Rejected: every node now (the svelte line's lists block no feature).
+- **V1-3, a list entry is a path and a reason**, as stratagems'; the check fails on an unlisted modified file, on a listed file equal to the stem's, and on an entry without a reason. Rejected: reasons in AGENTS.md (unchecked).
+
+**Start here.**
+
+```sh
+for r in template-svelte jolly-roger template-commit-reveal reveal-or-die bomber-world stratagems; do git -C ~/dev/github/wighawag/$r fetch --all --prune; done
+git -C ~/dev/github/wighawag/stratagems show origin/main:web/test/offshoot-divergences.test.ts | head -60
+git -C ~/dev/github/wighawag/template-svelte show origin/main:scripts/check-stem-drift.mjs | head -60
+git -C ~/dev/github/wighawag/template-commit-reveal diff --name-status stem/integration...origin/main | grep -c '^M'   # 49 on 2026-11-16
+```
+
+**Do** (preview branches `tf-V1/<branch>`): 1. V1-1 test-first at the root, its tests including the root case; 2. the cascade of the check to every node (it changes nothing but adds a script and a call); 3. V1-2 lists, each red before it is complete, green after; 4. stratagems' and infinite-gambit's tests on the shared script.
+
+**Done when**: `check-divergences.mjs` passes its tests at the root and reports, at each listed node, nothing; every node of the tree has the script by cascade; stratagems' and infinite-gambit's lists pass through it unchanged; every verify passes; every push approved.
+
+### Step F1a: jolly-roger `with/indexer`
+
+Repo: jolly-roger (new node), with template-commit-reveal read only. Needs V1.
+
+**What decides the shape** (measured 2026-11-16, template-commit-reveal `with/indexer` ba29f069):
+
+- The game-agnostic half is 620 source lines and 491 test lines: `web/src/lib/indexer/follower.ts` (276; no game import: GraphQL parts re-read when their entities move, pinned by block hash, serialised), `host.ts` (167; `hostLiveIndexer` with the tab election and an optional published snapshot, `hostWorldIndexer` with a database per world; reads SvelteKit's `_app/immutable/` layout through `appRoot`), `worker-choice.ts` (73; its one tie to jolly-roger's `with/embedded-chain` is `isEmbeddedChainId` from `$lib/embedded/chain-id`), `contracts/utils/indexer.ts` (104; `indexInProcess` over libSQL, for tests and scripts), and tests `follower.test.ts` 354, `worker-choice.test.ts` 112, `host.test.ts` 25. Dependencies: web `@etherfold/browser` ^0.13.0, `graphql` ^0.2.2, `processor-entities` ^0.4.2, `state-store` ^0.5.1; contracts the same with `state-store-sqlite` ^0.5.1, `@libsql/client` ^0.17.4, `remote-sql-libsql` ^0.0.7, and the contracts package's `./utils/*` export.
+- jolly-roger's greetings are an RPC POLL (`web/src/lib/onchain/state.ts:38-52`, `getLastMessages` every 5 s); `MessageChanged(address indexed user, string message)` is emitted and read by nothing, tested by nothing. The spec's worked example: a badge saying how many greetings an address has sent, an aggregate no direct read gives (R6: the indexed read is beside the direct one, its view field optional).
+- jolly-roger's `main` has no embedded chain; `integration` does (`[with/local-signer, with/embedded-chain]`).
+
+**Decisions** (PROPOSED):
+
+- **F1-1, `with/indexer` stems from jolly-roger `main`** (the spec's decision: indexing is read-only and needs no signer; bleeps and mandalas, on `main`, can adopt it). Rejected: from `integration` (the files would move verbatim, the world worker with them, but every adopter would carry a signer and an in-tab chain it did not ask for, the chain the reconciliation skill names "a chain that lies").
+- **F1-3, what moves up**: `follower.ts`, `host.ts` (both halves: `hostWorldIndexer` is generic code that names no chain), `worker-choice.ts` with the world test INJECTED (`indexerWorkerFor(prefix, deployment, address, {isWorld})`, default never a world; template-commit-reveal passes `isEmbeddedChainId`), `contracts/utils/indexer.ts`, their tests, the dependencies; moved byte-for-byte but for `worker-choice.ts`, so F1b's merge conflicts on one file only. Stays at template-commit-reveal: `cycle-stamp.ts`, `indexed-state.ts`, the commit-reveal half of `index.ts`, the reference game's processor. Rejected: moving `indexed-state.ts` as a generic store (its seam is the game's `OnchainStateStore` and its stamp the cycle); moving only the follower (the host is the larger repeated half).
+- **F1-4, jolly-roger's own indexed store**: a small `web/src/lib/indexer/indexed.ts`, a readable of the follower's data with the worker's progress and its refusal and failure statuses, which template-commit-reveal's `indexed-state.ts` MAY later be rebuilt on (measured in F1b, not done there). Rejected: no store at jolly-roger (each app would rebuild it).
+- **F1-5, the demo is the spec's badge**: a GreetingsRegistry processor (`web/src/lib/onchain/indexer/`: entities per account with its greeting count; the source GreetingsRegistry's `MessageChanged` only), the two worker entries, an optional `greetingCounts` view field, a badge beside each message. The poll stays. Rejected: the indexed list replacing the poll (an R6 break, and a local-signer-shaped diff into every call site).
+- **F1-6, no publication at jolly-roger** (no snapshot job: a demo's history is short), the host's `processorBundle` path kept for apps that publish. Rejected: a publication job in the template (a hosted job every adopter inherits).
+- **F1-7, tested in Node and in the e2e**: the processor folded by `indexInProcess` against the deploy script's contract in a unit test (two accounts, three greetings, counts 2 and 1); one e2e case (post a greeting, the badge reads its count). Rejected: unit only (the worker entries are what break in a bundle).
+- **F1-8, the service-layers spec reconciled**: its graph is amended to name `with/embedded-chain` and `integration` (which replaced `with/webevm`), `with/push-notifications` (the user's name for its `with/notifications`), and the second-root pattern of F1-2; a dated note, not a rewrite.
+
+**Start here.**
+
+```sh
+for r in jolly-roger template-commit-reveal; do git -C ~/dev/github/wighawag/$r fetch --all --prune; done
+git -C ~/dev/github/wighawag/template-commit-reveal diff --stat origin/main...origin/with/indexer | tail -30   # 28 files, +2704 on 2026-11-16
+git -C ~/dev/github/wighawag/template-commit-reveal show origin/with/indexer:web/src/lib/indexer/worker-choice.ts | grep -n import
+git -C ~/dev/github/wighawag/jolly-roger show origin/offshoot:fanout.config.json
+git -C ~/dev/github/wighawag/jolly-roger show origin/main:web/src/lib/onchain/state.ts | sed -n 30,60p
+git -C ~/dev/github/wighawag/jolly-roger show origin/work:work/specs/proposed/service-layers.md | sed -n 40,70p
+```
+
+**Do** (preview branch `tf-F1a/with/indexer` from jolly-roger `origin/main`, the `offshoot` config change on `tf-F1a/offshoot`; one commit per item):
+
+1. Re-derive; jolly-roger `main`'s verify and e2e as the baseline (L1b's figures).
+2. F1-3: the files and tests copied from template-commit-reveal `with/indexer` (record the source SHA in the commit), `worker-choice.ts`' world test injected, test-first for the injection; the dependencies, `pnpm install`.
+3. F1-4: the store, test-first.
+4. F1-5 and F1-7: the processor with its Node test, the worker entries, the view field, the badge (logic-less: the count comes from a store), the e2e case; a `README.indexer.md` in the shape of template-commit-reveal's.
+5. The node: `with/indexer` added to jolly-roger's `fanout.config.json` with `{"stem": "main"}` (written with `offshoot-fanout config set` on the preview config branch), verify and full e2e.
+6. F1-8 on the plan's `tf-F1a/work` branch.
+
+**Done when**: jolly-roger `tf-F1a/with/indexer` verifies (check 0 and 0, unit `main`'s plus the new cases, client project included) and its full e2e is `main`'s plus the badge case; the moved files are byte-identical to template-commit-reveal's but for `worker-choice.ts`; `check-divergences`, `check-omissions` and `check-stem-drift` clean against `main`; no file of `main` is edited outside the composition (the measure of R1: a `hosted-account`-shaped diff, the files the node adds listed in its README); every push approved.
+
+### Step F1b: template-commit-reveal inherits the indexer host
+
+Repos: template-commit-reveal (`offshoot`, a new root, `with/indexer`, `with/fuzd-pixi-indexer`), stratagems, infinite-gambit. Needs F1a and I1 pushed.
+
+**What decides the shape**: the structural fact above. After F1a, jolly-roger `with/indexer` holds files that template-commit-reveal `with/indexer` also holds (added independently there), so any merge of the first into the second is add/add on the moved files: identical content merges clean, `worker-choice.ts` conflicts once. template-commit-reveal's README for `with/indexer` (`README.indexer.md`) gives "not jolly-roger" as a decision of stratagems' step X (PX6, PX7) for the reason the second root removes. stratagems' and infinite-gambit's copies of the seven `lib/indexer` files are byte-identical to `with/fuzd-pixi-indexer`'s (inherited, not copied).
+
+**Decisions** (PROPOSED):
+
+- **F1-2, a second root at template-commit-reveal, `upstream/with/indexer`, fed from jolly-roger `with/indexer`** (`{"stemBranch": "with/indexer"}` in template-commit-reveal's `fanout.config.json`), and `with/indexer` re-stemmed to `{"stem": ["main", "upstream/with/indexer"]}`. The new root carries nothing of template-commit-reveal's (it is jolly-roger's branch, verified by template-commit-reveal's verify, which jolly-roger's tree passes); `with/indexer` then holds only the commit-reveal half. The same pattern serves any later jolly-roger layer a game wants (`upstream/with/messaging`). Rejected: `with/indexer` into jolly-roger's `integration` (etherfold, its CLI and libSQL in every game and in template-zk-game, reversing PX6 for the two fast games that do not index); an offshoot-fanout change allowing `stem` and `stemBranch` on one branch (the tool refuses it by design, because the merge order and the intent become unreadable, and the change reaches every repo's cascade semantics); hand-porting the files on every change (divergence by copy).
+- **F1-9, the moved files take jolly-roger's version in the first merge**, `worker-choice.ts`' callers in template-commit-reveal passing `{isWorld: isEmbeddedChainId}`, the merge commit listing them. Rejected: keeping template-commit-reveal's copies (the second root would then add nothing).
+- **F1-10, `README.indexer.md` rewritten** to say where each half lives and why, its "Not jolly-roger either" paragraph replaced by F1-2. Rejected: leaving it (it would be false the day F1b lands).
+- **F1-11, `indexed-state.ts` is measured, not rebuilt**: how much of it F1-4's store would replace, recorded as a K item if it is more than its plumbing. Rejected: rebuilding it here (a refactor in the step that changes topology).
+
+**Start here.**
+
+```sh
+for r in jolly-roger template-commit-reveal stratagems infinite-gambit; do git -C ~/dev/github/wighawag/$r fetch --all --prune; done
+git -C ~/dev/github/wighawag/jolly-roger rev-parse --short origin/with/indexer            # exists once F1a is pushed
+git -C ~/dev/github/wighawag/template-commit-reveal show origin/offshoot:fanout.config.json
+git -C ~/dev/github/wighawag/template-commit-reveal merge-tree --write-tree --name-only origin/with/indexer stem/with/indexer | head -30
+git -C ~/dev/github/wighawag/offshoot show origin/main:packages/offshoot-fanout/src/config.ts | sed -n 193,214p
+git -C ~/dev/github/wighawag/infinite-gambit merge-base --is-ancestor stem/with/fuzd-pixi-indexer origin/main && echo "I1 landed"
+```
+
+**Do** (preview branches `tf-F1b/<branch>`; one commit per item):
+
+1. Re-derive; the merge-tree above must name `worker-choice.ts` and nothing beyond the moved files and the lockfile, else stop.
+2. F1-2: the config on `tf-F1b/offshoot`; `upstream/with/indexer` created at jolly-roger `with/indexer`'s head; `offshoot-fanout fanout --dry-run` with the new config shows the new root fed from jolly-roger and `with/indexer` merging both stems in order.
+3. The merge into `with/indexer`, F1-9 and F1-10; its verify and full e2e (its own baseline from L1b plus nothing lost).
+4. The cascade to `with/fuzd-pixi-indexer`, then stratagems and infinite-gambit, each verified, each with its drift and divergence checks; the full e2e of `with/fuzd-pixi-indexer`, stratagems and infinite-gambit.
+5. F1-11, measured and recorded.
+
+**Done when**: template-commit-reveal's config names `upstream/with/indexer` (root, `stemBranch: with/indexer`) and `with/indexer` (`[main, upstream/with/indexer]`), and the dry run shows both; `with/indexer` holds no copy of a moved file that differs from jolly-roger's; every node it reaches verifies and its e2e matches its L1b or I1 baseline; the checks clean everywhere; jolly-roger's `integration`, template-zk-game and the `with/all` line untouched; every push approved.
+
+### Step S1: push-notification-server green and API-stable
+
+Repo: push-notification-server. Independent of the template tree.
+
+**What decides the shape** (origin/main 1e0d908, 2026-08-22): cf-worker only (D1), one `Subscriptions(address, domain, subscriptionID, subscription, timestamp, expiry)` table; `POST /register` with `// TODO authentication of address` (`packages/server/src/api/index.ts:74`), `POST /push` with `// TODO authentication via tokens` (`:99`), not idempotent, `// TODO Retry` for 5xx (`:131`); its tests are one workerd "hello world" and a vacuous `1 + 2`; no AGENTS.md, no work/. Its own findings (`docs/findings/trigger-service-integration.md`) name GAP-1 to GAP-3 and ENHANCEMENT-1, and ask that the ownership proof be ONE implementation shared with the trigger service. missiv already has that primitive: the wallet signs `originPublicKeyPublicationMessage(origin, delegatePublicKey)` and the server recovers the address (`packages/common/src/index.ts:214-216`, `packages/server/src/api/user/index.ts:23-50`). jolly-roger's client keys a subscription by the delegated signer's address (`push-notifications/index.ts:48,148` in the example) and carries the signer's private key unused.
+
+**Decisions** (PROPOSED):
+
+- **S1-1, GAP-1: a token per calling service, scoped to a domain**, compared in constant time, configured by the operator (an env list of `domain:token-hash`). Rejected: a signature per push (a service has no wallet), one global token (a caller for one app could push to another's users).
+- **S1-2, GAP-2: `/register` takes the wallet's signature over missiv's publication message and a delegate signature over the request**, so a subscription is keyed by the WALLET address and proven by the delegate key the app already holds. Rejected: keying by the delegate address (a new device is a new key, so the notifier would not know whom to notify); an Ethereum signature per registration by the wallet itself (a wallet prompt per device per app).
+- **S1-3, the shared proof's home: a small package extracted from missiv-common**, `missiv`'s repo publishing it (it already implements and tests the message), used by push-notification-server, the notifier (S2) and missiv itself (S3). This answers the service-layers spec's open decision 2. Rejected: `@etherplay/delegation` (on-chain delegation, a different trust; its signature was found to name no chain, `docs/plans/delegation-multi-signer.md`); each service its own (the findings ask for one).
+- **S1-4, GAP-3: an idempotency key on `/push`**, deduplicated per `(address, domain, key, subscription)`, so a retry reaches only the subscriptions not yet delivered; ENHANCEMENT-1, `GET /registered/:address/:domain`, with a count. Rejected: deduplicating per key only (a partial failure would then never be retried).
+- **S1-5, a nodejs platform on libSQL** beside cf-worker (the dev stack and the e2e then need no wrangler), and API tests through `app.request` on in-memory libSQL, port-free, as missiv's are. Rejected: wrangler dev in the template's zellij layout.
+- **S1-6, an AGENTS.md and a work/ folder** in the tree's shape (dorfl's), the findings file becoming its first closed items.
+
+**Start here.**
+
+```sh
+git -C ~/dev/github/wighawag/push-notification-server fetch --all --prune
+git -C ~/dev/github/wighawag/push-notification-server show origin/main:docs/findings/trigger-service-integration.md | head -40
+git -C ~/dev/github/wighawag/push-notification-server show origin/main:packages/server/src/api/index.ts | sed -n 55,150p
+git -C ~/dev/github/wighawag/missiv show origin/main:packages/common/src/index.ts | sed -n 200,230p
+```
+
+**Do** (a branch `tf-S1/main`; one commit per item, changesets as the repo's convention asks): 1. API tests first, red on the gaps; 2. S1-3 the shared package (in missiv, its own preview branch `tf-S1/main` there), published version noted; 3. S1-1, S1-2, S1-4; 4. S1-5; 5. S1-6; the client example updated to the new `/register`.
+
+**Done when**: `/push` refuses without a domain's token and with another domain's; `/register` refuses a subscription for an address whose proof does not recover it; a retried `/push` with the same key delivers nothing twice (tested with a recording sender); `GET /registered/:address/:domain` answers a count; the nodejs platform starts and its routes pass the same tests; no test needs a port; every push and publish approved.
+
+### Step S2: the notifier, an etherfold consumer
+
+A new repo (its name decided below). Needs S1 (its action target) and F1a (the greetings processor it is tested on).
+
+**What decides the shape**: etherfold ADR-0005 (triggers run outside the indexer-server: N independent consumers, each with its own database, cursor, gate, outbox and auth), ADR-0007 (a gate: safe at finality, or fast at a depth, cancelling on retraction; a push tolerates the fast lane), ADR-0009 (an action is an authenticated HTTP call with a semantic idempotency key and a per-type delivery policy: a push expires, bounded retries then a recorded dead letter), ADR-0011 (bounded by rate, digests), ADR-0012 (triggers expire unless renewed, Web Push liveness through ENHANCEMENT-1), ADR-0013 (conditions are data over DECODED arguments, predicates and actions are operator code; subscription triggers, whose recipient is the registrant, and global rule triggers). etherfold serves `GET /{indexer}/canonical?gate=` (`packages/server/src/api/feed.ts:232`) and `GET /{indexer}/feed` (`:135`) from `etherfold run`, publicly; it stores nothing per consumer.
+
+**Decisions** (PROPOSED):
+
+- **S2-1, its home: a new repo, `wighawag/etherfold-triggers`** (the name the user's to change), AGPL-3.0, with a nodejs platform on libSQL first. Rejected: inside push-notification-server (ADR-0009 makes push one action among reward APIs and mints, and F4 may want a non-push action); inside etherfold (ADR-0005 reverses exactly that); inside jolly-roger (a service in a template, against R3's "open source and self-hostable" being the service's own repo).
+- **S2-2, the safe lane first** (`/canonical` at a gate of finality), the fast lane later. Rejected: fast first (cancel-on-retraction and a pending buffer, for a demo whose local chain has no reorgs).
+- **S2-3, the first trigger type is a subscription trigger "a log of this event at this contract, from anyone but me"**, registered with S1-3's proof, renewed by the client, expiring otherwise; the action is `POST /push` with S1's domain token and the key `<chainId>:<blockHash>:<logIndex>:<recipient>`. Rejected: a global rule notifying every subscriber of the domain (the server would then need a broadcast it does not have, and ADR-0013 says a recipient set is data).
+- **S2-4, tested without a port**: the consumer against an in-process etherfold server (`@etherfold/server`'s app with `app.request`, as its own tests do) and a recording push target. Rejected: an `etherfold run` process in the tests.
+
+**Start here.**
+
+```sh
+git -C ~/dev/github/wighawag/etherfold fetch --all --prune
+for a in 0005-triggers-run-outside-the-indexer-server 0007-consumers-gate-themselves-safe-and-fast-lanes 0009-actions-are-idempotent-http-calls-with-per-type-delivery-policy 0011-bound-triggers-by-delivery-rate-and-deliver-digests 0012-triggers-expire-unless-renewed 0013-trigger-conditions-are-data-actions-are-code; do git -C ~/dev/github/wighawag/etherfold show origin/main:docs/adr/$a.md | head -30; done
+git -C ~/dev/github/wighawag/etherfold show origin/main:work/specs/dropped/trigger-system.md | sed -n 1,60p
+git -C ~/dev/github/wighawag/etherfold show origin/main:packages/server/README.md | sed -n 98,190p
+```
+
+**Do**: 1. the repo created locally (its remote created by the user, approved); 2. the consumer loop on `/canonical` with its cursor and outbox in one transaction, test-first; 3. the subscription registry (S2-3), with expiry; 4. the push action with retries and dead letters; 5. a nodejs CLI and the README; 6. a test end to end on GreetingsRegistry's processor (F1a's bundle) folded by an in-process etherfold server.
+
+**Done when**: a greeting by one account produces exactly one `/push` call per subscribed other account, keyed as S2-3 says, across a restart of the consumer (cursor and outbox durable) and a retried target; an expired subscription produces none; a rewind answered by `/canonical` rolls the outbox back; no test needs a port; the repo's verify passes; every push approved.
+
+### Step F2: jolly-roger `with/push-notifications`
+
+Repo: jolly-roger (new node). Needs F1a, S1 and S2 pushed.
+
+**What decides the shape**: the push-notifications module (above) speaks S1's old routes; after S1 its `/register` needs the wallet's proof and the delegate signature, which with/local-signer's delegated key provides. The service worker already shows a declarative push and follows its action (`web/src/service-worker/index.ts:369,404`; the app side `core/service-worker/index.ts:153`). The payload types are declared twice. A real Web Push needs the browser's push service (Chromium: FCM over the network), which a headless e2e on a local chain cannot reach; Chromium's DevTools protocol can deliver a push message to a service worker (`ServiceWorker.deliverPushMessage`), to be measured.
+
+**Decisions** (PROPOSED):
+
+- **F2-1, `with/push-notifications` stems from `[with/indexer, with/local-signer]`** (the spec's `with/notifications`, named as the user names it): the notifier follows the greetings processor F1a defines, and registration needs the delegated signer. Rejected: from `with/local-signer` alone (the processor the notifier runs would then live nowhere the app ships it); a chain under `with/indexer` (it would hand indexer adopters a signer).
+- **F2-2, how an indexed event becomes a notification: in a service**, S2's notifier following an `etherfold run` of the greetings processor, calling push-notification-server. Rejected: in the browser (the tab's indexer seeing `MessageChanged` and the service worker showing a local notification: nothing arrives when no tab is open, so it is not push); push-notification-server watching the chain (etherfold's ADR-0005 and the server's own design); the greeter's client calling `/push` for its readers (S1 closes `/push` to clients, and the client would have to know every subscriber).
+- **F2-3, the module wired, not rewritten**: its `/register` call takes S1-2's proof from the local signer; the duplicated types become one export the service worker imports; its README corrected (the push listener's file); unit tests for the state machine and the service worker's push and click handlers. Rejected: replacing it with push-notification-server's example client (jolly-roger's is its descendant and further along).
+- **F2-4, the UI**: a "notify me of new greetings" toggle in the demo, subscribing the browser and registering the trigger with S2, renewing it on load; R2: with `PUBLIC_PUSH_SERVER` or `PUBLIC_NOTIFIER` empty the toggle is replaced by a line saying notifications are not configured, not an error. Rejected: a global settings page (the demo has one subject).
+- **F2-5, the dev stack**: three zellij panes (push-notification-server's nodejs platform, `etherfold run` of the greetings bundle, the notifier), their env in `.env`, VAPID keys generated by a script into `.env.local`. Rejected: hosted services in the template's defaults (R3).
+- **F2-6, the e2e**: the subscription stubbed in a fixture (`pushManager.subscribe` returning a fixed endpoint), the push server in a recording mode, so the case asserts: the registration stored, a greeting by a second account producing one recorded `/push`, and the service worker showing it when the recorded payload is delivered through `ServiceWorker.deliverPushMessage` (if item 1 measures that it works headless; otherwise by posting the payload to the worker's handler). Rejected: a real push service (network, credentials, flake).
+
+**Start here.**
+
+```sh
+for r in jolly-roger push-notification-server; do git -C ~/dev/github/wighawag/$r fetch --all --prune; done
+git -C ~/dev/github/wighawag/jolly-roger rev-parse --short origin/with/indexer origin/with/local-signer
+git -C ~/dev/github/wighawag/jolly-roger show origin/main:web/src/lib/core/service-worker/push-notifications/README.md | head -40
+git -C ~/dev/github/wighawag/jolly-roger show origin/main:web/src/service-worker/index.ts | sed -n 250,300p
+git -C ~/dev/github/wighawag/push-notification-server log --oneline -5 origin/main
+ss -ltn | head -40
+```
+
+**Do** (preview branch `tf-F2/with/push-notifications`, merged from both stems; one commit per item): 1. measure headless push delivery (F2-6) in a throwaway page; 2. F2-3, test-first; 3. F2-4; 4. F2-5; 5. F2-6 and the full e2e; 6. the node in `fanout.config.json`, `README.push-notifications.md`.
+
+**Done when**: the node merges both stems with no edit to either's files beyond the composition; its verify passes with the new tests; its full e2e is `with/local-signer`'s and `with/indexer`'s cases plus F2-6's case; with the services' env empty, the app runs and says notifications are not configured; the payload types are declared once; every push approved.
+
+### Step S3: missiv green and API-stable
+
+Repo: missiv. Needs S1 (its push call uses S1's domain token) and S1-3's package.
+
+**What decides the shape** (origin/main 79fe3ab): DEV fail-open backdoors (`FAKE:<publicKey>` and an all-zero signature, `packages/server/src/setup.ts:46-57`, `api/user/index.ts:32-35`) hinge on `env.DEV` being falsy in production; `_initDB=true` runs schema setup unauthenticated; the end-to-end suite fails 5 of 6 on schema drift (`work/notes/observations/end-to-end-tests-failing-drift.md`); the client sends an all-zero per-message signature (`packages/client/src/lib/conversation/index.ts:302`) and `toPublicKey: '0xff' // TODO` (`:316,321`); the client's only test is `1 + 2`; rooms run on cf-worker and bun, not nodejs; no notification of any kind; `pnpm install` exits 1 on pnpm 11 (`ERR_PNPM_IGNORED_BUILDS`).
+
+**Decisions** (PROPOSED):
+
+- **S3-1, the backdoors fail closed**: honoured only when an explicit `DEV_BACKDOORS=true` is set, never by an absent `DEV`; `_initDB` behind the admin token. Rejected: removing them (the dev loop uses them).
+- **S3-2, a push on a new DM**: after `/sendMessage` stores a message, the server calls push-notification-server's `/push` for the recipient's wallet address with its domain token and the message id as the idempotency key, when configured (`PUSH_SERVER_URL`, `PUSH_TOKEN`), with a payload naming the sender and no content (the content is end-to-end encrypted). Rejected: through the notifier (missiv is not on chain; there is no feed); a client-triggered push (S1 closes it); room messages notifying (no recipient, and ADR-0011's rate argument).
+- **S3-3, rooms on nodejs**, if item 1 measures it under a day (the Bun room is the model); otherwise the dev stack runs missiv on bun and this is recorded. Rejected: wrangler in the dev stack.
+- **S3-4, the end-to-end suite fixed and the client's real per-message signature and recipient key**, the vacuous test replaced by the client-server suite's cases. Rejected: shipping a template on an all-zero signature.
+- **S3-5, the registration on S1-3's shared package**. Rejected: missiv keeping its own copy beside the package extracted from it.
+
+**Start here.**
+
+```sh
+git -C ~/dev/github/wighawag/missiv fetch --all --prune
+git -C ~/dev/github/wighawag/missiv ls-tree -r --name-only origin/main work/ | head -20
+git -C ~/dev/github/wighawag/missiv show origin/main:packages/server/src/setup.ts | sed -n 40,62p
+git -C ~/dev/github/wighawag/missiv show origin/main:platforms/nodejs/src/cli.ts | sed -n 50,66p
+command -v bun || echo "no bun on this machine"
+```
+
+**Do** (branch `tf-S3/main`, changesets): 1. measure S3-3 and the end-to-end suite's drift; 2. S3-1 and S3-4, tests first; 3. S3-5; 4. S3-2 with a recording push target; 5. S3-3 or its recorded fallback; 6. the pnpm 11 install fixed (`allowBuilds` or its successor).
+
+**Done when**: a production configuration refuses `FAKE:` and an all-zero signature; `_initDB` refuses without the admin token; the client-server and end-to-end suites pass (end-to-end where its chain nodes allow, recorded); a DM to a registered wallet produces one recorded `/push` with the message id as key and no content; `pnpm install` exits 0 on pnpm 11; every push and publish approved.
+
+### Step F3: jolly-roger `with/messaging`
+
+Repo: jolly-roger (new node). Needs F2 and S3 pushed.
+
+**What decides the shape**: missiv's client is `.ts` stores on `svelte/store` (registration, conversationList, conversation, room), which fits the tree's rules; identity is the wallet address bound to a delegate key, which with/local-signer holds (stratagems alpha1 passed `{address, delegatePrivateKey: localKey}`, alpha1-final `web/src/lib/stratagems/ui/missiv/missiv.ts:28-33`); registration costs one wallet signature (the publication message). Rooms are per domain (`@<domain>`), unencrypted, the last 100 messages kept; DMs are encrypted with an accept and reject flow.
+
+**Decisions** (PROPOSED):
+
+- **F3-1, the home: jolly-roger, `with/messaging` stemming from `with/push-notifications`** (a chat is any app's, not a game's: bleeps and mandalas are candidates, and the games can take it through a second root as F1-2 does). Rejected: template-commit-reveal (games only; every non-game app would rebuild it); `with/messaging` from `with/local-signer` with an integration branch `[with/messaging, with/push-notifications]` for the notifications (the spec's fan: honest about messaging not needing the indexer, but two branches for one feature the user defined as notifying through F2; the chain carries the indexer layer into messaging, which costs its install and nothing in application source).
+- **F3-2, what ships**: a global chat (the domain's room) and direct messages (conversations, accept and reject, unread), a messaging panel in the shell, a player's address opening a DM; registration asked once, on first use. Rejected: rooms per page or per contract (missiv's semi-private rooms gated by an `eth_call` are a later step, recorded).
+- **F3-3, notifications for DMs only**, through S3-2; the F2 toggle gains a second subscription, "direct messages", on by default once push is on. Rejected: room messages notifying.
+- **F3-4, the dev stack**: one more zellij pane (missiv on nodejs, or bun per S3-3), its env; R2: with `PUBLIC_MISSIV` empty the panel says messaging is not configured.
+- **F3-5, the e2e**: two pages, two accounts: a room message seen by the other; a DM sent, accepted, read; the recorded `/push` for the DM. Rejected: one page with two accounts switched (it hides the socket's behaviour).
+
+**Start here.**
+
+```sh
+for r in jolly-roger missiv push-notification-server; do git -C ~/dev/github/wighawag/$r fetch --all --prune; done
+git -C ~/dev/github/wighawag/jolly-roger rev-parse --short origin/with/push-notifications
+git -C ~/dev/github/wighawag/missiv ls-tree -r --name-only origin/main packages/client/src/lib | head -30
+git -C ~/dev/github/wighawag/stratagems show alpha1-final:web/src/lib/stratagems/ui/missiv/missiv.ts | head -60
+```
+
+**Do** (preview branch `tf-F3/with/messaging`): 1. the dependency and the client constructed in the composition (one file and one spread, R1); 2. F3-2's stores wired, the panel logic-less; 3. F3-3; 4. F3-4; 5. F3-5 and the full e2e; 6. the node in `fanout.config.json`, `README.messaging.md`.
+
+**Done when**: the node's verify passes; its full e2e is `with/push-notifications`' plus F3-5's cases; with missiv's env empty the app runs and says so; the diff against its stem is `hosted-account`-shaped (the spec's acceptance criterion: files added, one composition edit, a pane, env, e2e); every push approved.
+
+### Step F4a: a table's end and its scores, in the base
+
+Repo: template-commit-reveal `main`, cascaded to its six nodes (the games take it in F4c). Needs I1 and V1; independent of F1 to F3.
+
+**What decides the shape** (measured 2026-11-16): the three games' table ends (above, and the analysis' "duplicated across the tree"); stratagems' client half (`score.ts`' `rankScores` and `settleBatches`, `table-end.ts`' live then recorded ranking, anyone-may-settle in batches, withdraw once settled, offline auto-settle) is about 150 to 190 generic lines; infinite-gambit's `_tally(budget)` is the resumable bounded count a large table needs. Tables are EIP-1167 clones made by `contracts/src/commit-reveal/CommitRevealGameFactory.sol` (`createGame`, a `GameCreated` event, a list `getGames`); etherfold follows a fixed list of contracts, so an indexer cannot follow every clone, but it can follow the factory. The commit-reveal rules apply (reveal order independence, a stake at risk, no persisted key or field renamed), and the gas budget is declared per deployment (ADR-0003).
+
+**Decisions** (PROPOSED):
+
+- **F4-1, what a high score is**: the score each game already computes at a table's end, one number per seat, recorded once when the table is settled; a game's high-score list is the best scores across all its tables (the top N, and each player's best). Rejected: the persistent world's scores (it never ends; stratagems' world leaderboard is its token economy); a score computed by a client (unverifiable).
+- **F4-2, recorded on the factory**: a table's settlement calls `recordScores(seats, players, scores)` on the factory that made it, which accepts only its own clones and emits `ScoreRecorded(game, player, score, cycle)`; one contract for an indexer to follow, whatever the number of tables. Rejected: the table emitting it (one source per clone); a separate HighScores contract (one more address every deployment configures, when the factory already knows its clones). Item 1 measures the clone check's cost (a mapping written at `createGame`) against the commit budget.
+- **F4-3, the settlement lifecycle in the base**: a table base with `_scoreOf(seat)` the game's hook, a resumable `_settle(budget)` (infinite-gambit's tally shape, anyone may call it after the end), the result recorded once, and `withdraw` reading the game's payout rule; the client half (`rankScores`, `settleBatches`, a table-end store) in `$lib/game/lobby`. The reference game is its first user (its score: its stake share at the end, measured in item 1). Rejected: only the event (each game keeps its settlement, and the record would be a fourth implementation of the same lifecycle).
+- **F4-4, additive for the games**: the games adopt in F4c; until then their tables compile unchanged against the base (the hook is opt-in). Rejected: changing the three games here (three new deployments in a framework step).
+
+**Start here.**
+
+```sh
+for r in template-commit-reveal stratagems reveal-or-die infinite-gambit; do git -C ~/dev/github/wighawag/$r fetch --all --prune; done
+git -C ~/dev/github/wighawag/template-commit-reveal show origin/main:contracts/src/commit-reveal/CommitRevealGameFactory.sol | sed -n 1,90p
+git -C ~/dev/github/wighawag/template-commit-reveal show origin/main:contracts/src/commit-reveal/UsingCommitReveal.sol | sed -n 215,235p
+git -C ~/dev/github/wighawag/stratagems show origin/main:contracts/src/game/table/StratagemsTable.sol | sed -n 1,80p
+git -C ~/dev/github/wighawag/infinite-gambit show origin/main:contracts/src/game/internal/UsingGameTable.sol | sed -n 150,320p
+git -C ~/dev/github/wighawag/reveal-or-die show origin/main:contracts/src/game/table/UsingGameTable.sol | sed -n 325,470p
+git -C ~/dev/github/wighawag/stratagems show origin/main:web/src/lib/stratagems/score.ts | sed -n 1,60p
+```
+
+**Do** (preview branches `tf-F4a/<branch>` at template-commit-reveal; one commit per item): 1. measure the three settlements side by side, the clone check's gas, the reference game's score; 2. the contract base and the factory's record, test-first (a two-seat table, a tie, a resumed settlement, a refused foreign caller), the gas budget re-measured; 3. the client half, test-first, moved from stratagems' generic functions (the source SHA recorded); 4. the reference game on it, its table-end UI, one e2e case; 5. the cascade to the six nodes, verified, the e2e of `main`, `with/nft-identity` and `with/fuzd-pixi-indexer`.
+
+**Done when**: a reference table settles in resumable rounds and its factory emits one `ScoreRecorded` per seat, once; a foreign caller is refused; the gas budget holds; the client half has the tests stratagems' had for those functions; the six nodes verify and the three e2e suites pass with the new case; the games are untouched and still verify against the new base; every push approved.
+
+### Step F4b: high scores, indexed
+
+Repos: template-commit-reveal `with/indexer` (and by cascade `with/fuzd-pixi-indexer`), `main` for the fallback. Needs F4a and F1b.
+
+**What decides the shape**: etherfold has no aggregation primitive: a score is a field a handler writes, and a top-N is a query (`orderBy` and `first`), cheap on SQLite, a full scan in IndexedDB until two of etherfold's blocked backlog tasks land (`an-indexeddb-index-serves-the-accessor`, `the-browser-index-orders-a-u256-numerically`). A game's processor is the game's; the framework can give it a fragment to fold (entities and a handler for the factory's `ScoreRecorded`) the way `cycle-stamp.ts` relies on the game folding `CycleAdvanced`. `etherfold run` serves the same processor's `/graphql` from SQLite, and `etherfold build --publish` makes a snapshot a tab starts from.
+
+**Decisions** (PROPOSED):
+
+- **F4-5, a framework fragment**: `$lib/indexer/scores` exports the entities (`Score` per table and seat, `Best` per player) and the `onScoreRecorded` handler a game's processor spreads in, with the factory added to its source, and a `highScores` store reading the top N and the player's best. Rejected: a second processor for scores (two streams and two workers per game).
+- **F4-6, read from the tab by default, from a hosted indexer when configured**: `PUBLIC_INDEXER_URL` set, the store reads that server's `/graphql` instead (the external tracker: an `etherfold run` of the same bundle, serving the global list from SQLite); R2 and R3: unset, the tab indexes as today. Rejected: server only (breaks the decentralised default); tab only (the top-N scan grows with every table; item 1 measures it at 1,000 tables).
+- **F4-7, nodes without the indexer read the factory's logs** (`with/all`, so reveal-or-die and bomber-world): `getLogs` of `ScoreRecorded` from the factory's deploy block in bounded ranges, folded in memory. Rejected: requiring the indexer for a high-score list (a fast game would install etherfold for one page).
+- **F4-8, a beaten record notifying through F2 is NOT in this plan** (a global rule trigger at S2, later). Rejected: adding it here (it would make F4 depend on F2 and S2).
+
+**Start here.**
+
+```sh
+git -C ~/dev/github/wighawag/template-commit-reveal fetch --all --prune
+git -C ~/dev/github/wighawag/template-commit-reveal show origin/with/indexer:web/src/lib/indexer/README.md | head -60
+git -C ~/dev/github/wighawag/etherfold show origin/main:packages/accessor/src/types.ts | sed -n 55,75p
+git -C ~/dev/github/wighawag/etherfold ls-tree -r --name-only origin/main work/tasks/backlog | head
+```
+
+**Do** (preview branches `tf-F4b/<branch>`): 1. measure the top-N in IndexedDB at 1,000 tables (a generated stream, the indexer test harness); 2. F4-5, test-first through `indexInProcess`; 3. the reference game's processor spreading it, a high-score page (logic-less); 4. F4-6 with a test against a GraphQL executor; 5. F4-7 at `main` (its own store, the same view); 6. the cascade, verified; the e2e of `with/indexer` and `with/fuzd-pixi-indexer` with one case (a settled table's scores on the page).
+
+**Done when**: the page lists a settled reference table's scores on `with/indexer` (indexed) and on `main` (from logs); `PUBLIC_INDEXER_URL` switches the source, tested; item 1's figure is recorded; the nodes verify and their e2e passes with the new case; every push approved.
+
+### Step F4c: the games record their scores
+
+Repos: stratagems, infinite-gambit, reveal-or-die (bomber-world by cascade). Needs F4b.
+
+**What decides the shape**: each game's score is already computed and settled its own way (above). Adopting F4-3 changes each game's table contract, so each is a NEW deployment: stratagems' D-live has not happened (free); reveal-or-die's last deployment is `deployment/rise-testnet` (2026-01-14, old); infinite-gambit has a Sepolia configuration (`config/sepolia`, in main).
+
+**Decisions** (PROPOSED):
+
+- **F4-9, each game's score**: stratagems, L4's net gems (`getScores`, already the table's argmax); infinite-gambit, a seat's material at the cap (`_materialOf`); reveal-or-die, what a survivor withdraws (its carried stake plus its leftover share), a dead seat's 0; bomber-world inherits reveal-or-die's. Rejected: one formula imposed by the base (a game's score is its rules).
+- **F4-10, each game's settlement rebuilt on the base's lifecycle where it fits** (stratagems' and infinite-gambit's do; reveal-or-die's leftover pot is its payout rule behind `withdraw`), the game's own copy deleted; its divergence list and its omissions updated. Rejected: calling `recordScores` from each game's own settlement and keeping three lifecycles.
+- **F4-11, one game per session**, stratagems first (it has the leaderboard the generic half came from), then infinite-gambit, then reveal-or-die with bomber-world. Rejected: all three in one session.
+
+**Start here.**
+
+```sh
+for r in template-commit-reveal stratagems infinite-gambit reveal-or-die bomber-world; do git -C ~/dev/github/wighawag/$r fetch --all --prune; done
+git -C ~/dev/github/wighawag/stratagems show origin/main:web/src/lib/stratagems/leaderboard.ts | sed -n 1,40p
+git -C ~/dev/github/wighawag/infinite-gambit show origin/main:docs/adr/0012*.md 2>/dev/null | head -30; git -C ~/dev/github/wighawag/infinite-gambit ls-tree --name-only origin/main docs/adr/ | grep 0012
+```
+
+**Do** (per game, preview branch `tf-F4c/main`): 1. the stem merged; 2. the contract on the base, its tests unchanged as the oracle plus the record's, its gas pins re-measured; 3. its client on the generic half, its own copies deleted; 4. its high-score page (indexed for stratagems and infinite-gambit, from logs for reveal-or-die); 5. verify, contracts, the LAN build (`nix build git+file://$PWD#lan`, a deploy script changed), the full e2e.
+
+**Done when**, per game: the contract tests pass unchanged plus the record's; the gas budget holds; the game's copies of the generic lifecycle are gone and its divergence list says what remains; its high-score page shows a settled table's scores in the e2e; verify, contracts, the LAN build and the e2e pass; every push approved.
+
+### Steps K1 to K4: after the features
+
+Specified when their turn comes (each needs its own measurement then); what they are for, from the analysis:
+
+- **K1**: jolly-roger's `lib/core/connection/remote.ts` and `types.ts` (the world connection's `nodeURL`, a deployments override), patched at template-commit-reveal, move to jolly-roger (template-zk-game, a sibling under `integration`, keeps the bug until then); a `GAME` seam in `$app-specific` and a world test constant, which would remove five modified shared files from template-zk-game and every game.
+- **K2**: the offline world's shared boot (`offline.ts`, 1307 lines at template-commit-reveal against the stem's 332, copied in four games) extracted into `$lib/game`; bomber-world's per-seat identity as a hook.
+- **K3**: the svelte line's seams (the styled notification panels every level rewrites; the shadcn layer patches at template-svelte-shadcn; the blog's posts source and its feed, duplicated with template-svelte-docs'); the splash to `with/pixi-js`; the hover seam and the Router fix from infinite-gambit; divergence lists for every node V1 did not cover.
+- **K4**: stratagems' contracts toolchain and prettier on the stem's (its format then passes); rocketh 0.26 and hardhat-deploy 2.2 at jolly-roger where stratagems already is; the games' own format failures; infinite-gambit's package names; SvelteKit 3 at the root (the dependabot major), each lockfile change with its `pnpmDepsHash`.
+
+## Progress log
+
+### 2026-11-16, the analysis and this plan (read-only; nothing built, nothing pushed)
+
+- **What was done**: every repo of the tree and the four libraries fetched (`git fetch --all --prune`); the tree discovered from the `stem` remotes and the `offshoot` branches (23 repos, 33 nodes, drawn in the analysis); each node's verify run in a detached worktree under `~/dev/worktrees/<repo>/analysis/<branch>`, three at a time through a session-wide slot script, every worktree removed afterwards; the guards, `format:check`, the stray branches, the open work/ items, the unrecorded deviations, the dependency drift (39 packages with more than one range, 31 of them in stratagems) and the code quality measured by one read-only subagent per repo or pair; Part 3 (this plan) written here.
+- **Measurements**: in the analysis, `docs/analysis/template-tree-2026-11-16.md`. Every verify passed but conquest-demo's (9 errors, a verify that never builds its server app). Nine nodes behind their stem, infinite-gambit by 111 with 9 conflicting paths. format:check red from jolly-roger down on one inherited file. No full e2e of jolly-roger's own nodes since 2026-08-22.
+- **A deviation, recorded**: the session's brief forbade a browser and a port, and every verify from jolly-roger down runs vitest's `client` project (headless Chromium on a port). It ran on jolly-roger's six nodes, template-commit-reveal's seven, reveal-or-die, stratagems, infinite-gambit and bleeps before the rule was amended; afterwards the client project was NOT RUN and the analysis' unit figures are the server project's. Two verify process groups were stopped when they reached it. No process from the session survived it. One subagent also ran a plain `git fetch` in stratagems (refs only).
+- **Surprises**: `chess-battleground` is a symlink, not a second clone, and 8 worktrees resolve through it; offshoot-fanout forbids a branch from having both an in-repo stem and a cross-repo `stemBranch`, which is the whole shape of F1; etherfold dropped its trigger system on purpose, so the notifier F2 needs exists nowhere; jolly-roger's `work` already holds a proposed spec for exactly these layers (`service-layers.md`, 2026-08-26), drawn before `integration` and template-commit-reveal's own `with/indexer` existed.
+- **Commits**: this file and the analysis, on jolly-roger's local branch `plan/template-tree-features` (from `origin/work` f527ab28), not pushed.
+- **Pushes needed**: jolly-roger `work`, f527ab28..(this branch's head), a fast-forward, once the user approves the plan's home (P-1).
+- **Next**: the user answers P-1 to P-5 and L1a-1 to L1a-4; then step L1a.
