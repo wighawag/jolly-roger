@@ -8,6 +8,7 @@ import {
 	announceEmbeddedWallet,
 	type EmbeddedWallet,
 } from '$lib/embedded/wallet';
+import type {EIP1193ProviderLike} from '$lib/embedded/types';
 
 // `.svelte.` infix: the `client` project, a real headless chromium, because the
 // burner keeps its mnemonic in localStorage and the connection persists its
@@ -32,12 +33,15 @@ type ConnectionView = {
 
 let dispose: (() => Promise<void>) | undefined;
 let wallet: EmbeddedWallet | undefined;
+let previousWallet: EmbeddedWallet | undefined;
 let stop: (() => void) | undefined;
 afterEach(async () => {
 	stop?.();
 	stop = undefined;
 	wallet?.cleanup();
 	wallet = undefined;
+	previousWallet?.cleanup();
+	previousWallet = undefined;
 	await dispose?.();
 	dispose = undefined;
 	localStorage.clear();
@@ -71,6 +75,74 @@ function until<T>(
 	});
 }
 
+/**
+ * The node a world's wallet talks to, able to HOLD one method's answers: an
+ * in-tab chain still booting answers `eth_chainId` late. The node rather than
+ * the wallet, because the wallet's own `on`/`removeListener` must reach the
+ * connection untouched (see `wallet.ts`), and the node is a bare `request`.
+ */
+function holdingNode(node: EIP1193ProviderLike) {
+	let holding: string | undefined;
+	const held: (() => void)[] = [];
+	return {
+		provider: {
+			async request(args: {method: string; params?: unknown}) {
+				if (args.method === holding) {
+					await new Promise<void>((resume) => held.push(resume));
+				}
+				return node.request(args);
+			},
+		} satisfies EIP1193ProviderLike,
+		/** Hold every `method` asked from now on, until `release`. */
+		hold(method: string) {
+			holding = method;
+		},
+		/** Answer the next ones at once again; the held ones stay held. */
+		stopHolding() {
+			holding = undefined;
+		},
+		heldCount: () => held.length,
+		release() {
+			for (const resume of held.splice(0)) resume();
+		},
+	};
+}
+
+function connectionFactoryFor(
+	node: {provider: EIP1193ProviderLike},
+	walletHandle: EmbeddedWallet['handle'],
+) {
+	return embeddedConnectionFactory({
+		chainId: CHAIN_ID,
+		node,
+		deployments: createEmbeddedDeployments({
+			chainId: CHAIN_ID,
+			chain: {
+				name: 'Embedded',
+				nativeCurrency: {name: 'Ether', symbol: 'ETH', decimals: 18},
+			},
+			name: 'embedded',
+			contracts: {},
+			expected: [],
+		}),
+		wallets: [walletHandle],
+	});
+}
+
+function establish(
+	establishConnection: ReturnType<typeof connectionFactoryFor>,
+) {
+	// Asked as the app asks it: a SignedIn target, built-in wallets only.
+	const established = establishConnection({
+		targetStep: 'SignedIn',
+		walletOnly: true,
+	});
+	return established.connection as unknown as Readable<ConnectionView> & {
+		ensureConnected: (step: 'WalletConnected') => Promise<unknown>;
+		requestSignature: () => Promise<unknown>;
+	};
+}
+
 async function bootWithAccounts(accounts: number) {
 	// A chain with nothing deployed, and the connection built exactly as a
 	// world builds its own (`embeddedConnectionFactory`, which
@@ -84,33 +156,7 @@ async function bootWithAccounts(accounts: number) {
 		chainId: CHAIN_ID,
 		accounts,
 	});
-	const establishConnection = embeddedConnectionFactory({
-		chainId: CHAIN_ID,
-		node,
-		deployments: createEmbeddedDeployments({
-			chainId: CHAIN_ID,
-			chain: {
-				name: 'Embedded',
-				nativeCurrency: {name: 'Ether', symbol: 'ETH', decimals: 18},
-			},
-			name: 'embedded',
-			contracts: {},
-			expected: [],
-		}),
-		wallets: [wallet.handle],
-	});
-	// Asked as the app asks it: a SignedIn target, built-in wallets only.
-	const established = establishConnection({
-		targetStep: 'SignedIn',
-		walletOnly: true,
-	});
-	return {
-		connection:
-			established.connection as unknown as Readable<ConnectionView> & {
-				ensureConnected: (step: 'WalletConnected') => Promise<unknown>;
-				requestSignature: () => Promise<unknown>;
-			},
-	};
+	return {connection: establish(connectionFactoryFor(node, wallet.handle))};
 }
 
 describe('several accounts in one embedded wallet', () => {
@@ -193,5 +239,89 @@ describe('several accounts in one embedded wallet', () => {
 			'the first sign-in again',
 		);
 		expect(signedInAgain.account?.signer?.address).toBe(firstKey);
+	});
+});
+
+// WHAT IT PINS: a reload in a hotseat world, where the connection restores the
+// account it last signed in as (A) while the person now holding the device is
+// someone else (B). The restore has to ask the wallet `eth_chainId` and
+// `eth_accounts` first, and a chain still booting answers late, so B can be
+// selected and signed in before it lands. Up to @etherplay/connect 0.17.0 the
+// restore then published A over B, and `useCurrentAccount` followed the wallet
+// back to B WITHOUT a signature: the world was left with no signer.
+// template-commit-reveal's hotseat met it after a reload mid commit phase
+// (its finding `a-stored-account-auto-connect-lands-after-a-later-switch`).
+// Fixed in 0.17.1: a restore that something overtook publishes nothing.
+describe('a reload whose restore lands late', () => {
+	it('keeps the account signed in since, with its signer, when the stored one is restored too late', async () => {
+		const node = await startEmbeddedNode({chainId: CHAIN_ID});
+		dispose = node.dispose;
+		const slow = holdingNode(node.provider);
+
+		// The previous visit: signed in as A, which the connection stores.
+		previousWallet = await announceEmbeddedWallet({
+			provider: slow.provider,
+			chainId: CHAIN_ID,
+			accounts: 2,
+		});
+		const [first, second] = previousWallet.accounts.map((a) => a.toLowerCase());
+		const before = establish(connectionFactoryFor(slow, previousWallet.handle));
+		await before.ensureConnected('WalletConnected');
+		await before.requestSignature();
+		await until(
+			before,
+			(c) =>
+				c.step === 'SignedIn' && c.account?.address?.toLowerCase() === first,
+			'the previous visit signed in as the first account',
+		);
+		expect(
+			localStorage.getItem(`embedded:${CHAIN_ID}:__origin_account`),
+		).toContain(previousWallet.accounts[0].slice(2).toLowerCase());
+		previousWallet.cleanup();
+
+		// The reload: the same mnemonic, a chain slow to say which it is, and a
+		// connection whose restore of A waits on that answer.
+		wallet = await announceEmbeddedWallet({
+			provider: slow.provider,
+			chainId: CHAIN_ID,
+			accounts: 2,
+		});
+		slow.hold('eth_chainId');
+		const connection = establish(connectionFactoryFor(slow, wallet.handle));
+		const seen: ConnectionView[] = [];
+		stop = connection.subscribe((c) => seen.push(c));
+		await expect
+			.poll(() => slow.heldCount(), {timeout: 5_000})
+			.toBeGreaterThan(0);
+		slow.stopHolding();
+
+		// Meanwhile it is B's turn: selected and signed in.
+		wallet.select(wallet.accounts[1]);
+		await connection.ensureConnected('WalletConnected');
+		await connection.requestSignature();
+		const signedInAsB = await until(
+			connection,
+			(c) =>
+				c.step === 'SignedIn' && c.account?.address?.toLowerCase() === second,
+			'the second account signed in while the restore waits',
+		);
+		const keyOfB = signedInAsB.account?.signer?.address;
+		expect(keyOfB).toBeTruthy();
+		const signedInAt = seen.length;
+
+		// The chain answers at last, and the restore of A gets its turn.
+		slow.release();
+		await new Promise((settle) => setTimeout(settle, 500));
+
+		const after = get(connection);
+		expect(after.step).toBe('SignedIn');
+		expect(after.account?.address?.toLowerCase()).toBe(second);
+		expect(after.account?.signer?.address).toBe(keyOfB);
+		// And never A in between: nobody saw the previous visit come back.
+		expect(
+			seen
+				.slice(signedInAt)
+				.filter((c) => c.account?.address?.toLowerCase() === first),
+		).toEqual([]);
 	});
 });
