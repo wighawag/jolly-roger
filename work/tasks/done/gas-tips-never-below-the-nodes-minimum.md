@@ -14,7 +14,7 @@ from: stratagems' port plan, step L2 (`join-template-commit-reveal` branch, `wor
 
 Found on a LAN box running geth 1.17 in dev mode (the maintainer's `ethereum-lan-node`): nothing a page sent was ever mined, while the contracts' deploy (priced from the node's suggestion) was. geth's miner wants a tip of at least 1,000,000 wei, its txpool at least 1, and it will not be configured lower: it rewrites `--miner.gasprice 0` to 1,000,000 and `--txpool.pricelimit 0` to 1 ("Sanitizing invalid ..."). Its `eth_maxPriorityFeePerGas` answers 1,000,000. The same holds on any quiet geth-served chain.
 
-## Done, 2026-11-02, on local preview branches `pl2/*`, NOT pushed
+## Done, 2026-11-02, on local preview branches `pl2/*`, since pushed
 
 **`main`** (from `origin/main` 434de911): `14e7462e` the tips' floor. `eth_maxPriorityFeePerGas` is asked alongside `eth_feeHistory`, and each tier's tip is at least its answer; a node that refuses the method (or fails) gives no floor, so the estimate is what it was. Where blocks are busy the percentiles are above the floor and nothing changes. On hardhat, which suggests 1 gwei on a chain whose base fee is 0, a local transaction now tips 1 gwei instead of 0. Three unit cases: an idle chain gets the node's floor, a busy chain keeps its percentiles, a node without the method gives no floor.
 

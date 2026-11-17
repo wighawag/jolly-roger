@@ -12,7 +12,7 @@ from: stratagems' port plan, step 8 (`join-template-commit-reveal` branch, `work
 
 The commit-reveal submission moves into the account data (stratagems' step 8, P8): a turn's secret must be STORED before its commit is sent, by writers no click drives (auto-commit, auto-reveal, the fallback on cycle ticks). synqable 0.2.0 makes a write before the load impossible to express (the mutators moved onto a write handle that only a loaded store gives out). The account data is jolly-roger's, so the move to 0.2 and the three seams the submission needs land here, at `main`, and cascade.
 
-## Done, 2026-10-28, on local preview branches `s8/<branch>`, NOT pushed
+## Done, 2026-10-28, on local preview branches `s8/<branch>`, since pushed
 
 On `main` (`s8/main`), one commit each:
 
