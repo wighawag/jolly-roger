@@ -73,6 +73,8 @@ From the analysis (read it for the evidence):
 - [x] **Step L1b** (jolly-roger and below, but infinite-gambit): the format fix at its two homes, the pending cascades (template-zk-game, duel-in-the-dark, bleeps, mandalas with its drift), the `contracts/generated` include at its home, and the e2e baseline of every node it touches, jolly-roger's six first
 - [x] **Step I1** (infinite-gambit, needs L1b): its 118-commit cascade with the 9 conflicts (three of them design merges), the 24 rename-only files taken back, the render fix merged, its e2e recorded
 - [ ] **Step H1** (any time; needs only the user's approvals): stray branches, the symlinks, mis-tracked and merged local branches, stale records
+- [ ] **Step C1a** (jolly-roger, needs L1b; added by the user on 2026-11-17): `@etherplay/connect` ^0.17.0 to ^0.17.1 at `main` (the late auto-connect restore no longer signs a previous account back in), a regression test of the reload race on `with/embedded-chain`, cascaded to jolly-roger's six nodes
+- [ ] **Step C1b** (needs C1a pushed): the same bump carried below jolly-roger (template-commit-reveal's seven nodes, the games, template-zk-game and duel-in-the-dark, bleeps and mandalas), and template-commit-reveal's finding `a-stored-account-auto-connect-lands-after-a-later-switch` marked fixed with the version
 - [ ] **Step V1** (needs L1b): the divergence check at the tree's root, and the lists of the nodes F1 to F4 cross (jolly-roger, template-commit-reveal, reveal-or-die, bomber-world, infinite-gambit)
 - [ ] **Step F1a** (jolly-roger, needs V1): `with/indexer` from `main`: the game-agnostic host, follower and worker choice, the Node indexer, and GreetingsRegistry's processor with a count badge beside the direct read
 - [ ] **Step F1b** (template-commit-reveal, needs F1a and I1): a second root `upstream/with/indexer` fed from jolly-roger's, `with/indexer` stemming from `[main, upstream/with/indexer]`, its copies of the moved files gone; cascaded to `with/fuzd-pixi-indexer`, stratagems and infinite-gambit
@@ -101,7 +103,7 @@ Decided by the user on 2026-11-17 ("let's do some stuff in parallel"). Each lane
 
 | Lane | Steps | Repo it writes | Port slot (chain, app, faucet, gateway plain and SW, wallet host) |
 |---|---|---|---|
-| tree | H1, V1, F1a, F1b, F2, F3, K1 to K4 | the template tree | 0: 8557, 4183, 34110, 4273, 4274, 50000 |
+| tree | H1, C1a, C1b, V1, F1a, F1b, F2, F3, K1 to K4 | the template tree | 0: 8557, 4183, 34110, 4273, 4274, 50000 |
 | push | S1 | push-notification-server, and missiv for S1-3's package only | 1: 8558, 4184, 34121, 4292, 4293, 50011 |
 | triggers | S2a, then S2b | the new trigger-service repo | 2: 8559, 4185, 34122, 4294, 4295, 50012 |
 | messaging | S3 | missiv (its review reads only; its build writes after S1-3 lands) | 3: 8560, 4186, 34123, 4296, 4297, 50013 |
@@ -233,6 +235,50 @@ git -C ~/dev/github/wighawag/infinite-gambit worktree list | head -20
 **Do**: 1. re-derive each row of the table (`git cherry origin/main origin/<b>`, its last date); 2. present the deletion list with the tags first and wait; 3. tag, then delete what was approved (remote and local, with their worktrees); 4. H1-3; 5. H1-4.
 
 **Done when**: every approved deletion done and every "keep" row still present; the tags pushed (approved); no symlink in `~/dev/github/wighawag/` points at another repo of the tree; `git worktree list` of infinite-gambit shows no path through `chess-battleground`; the stale records fixed in each repo's `work`.
+
+### Step C1a: `@etherplay/connect` 0.17.1 at jolly-roger, the reload race pinned
+
+Repo: jolly-roger (`main` and its five other nodes), with etherplay-connect and template-commit-reveal read only. Needs L1b. Added by the user on 2026-11-17, in the words of a standalone prompt this section restates; its decisions are the user's.
+
+**What decides the shape** (measured 2026-11-17): `@etherplay/connect` 0.17.1 is published (`npm view @etherplay/connect versions`), from etherplay-connect `origin/main` edabf72. Its changelog (`packages/etherplay-connect/CHANGELOG.md`) has two patches: 77afb17, "a slow attempt no longer lands over something newer" (the auto-connect at construction, restoring the stored account for `targetStep: 'SignedIn'`, an explicit `connect`, `selectWallet` and `requestSignature` publish only if nothing moved the flow since they asked; late `unlock()` and lock-poll answers dropped; and, visibly, a `connect` or `ensureConnected` called before a slow auto-connect lands now wins, asking for a fresh signature under `requestSignatureAutomaticallyIfPossible`), and 387bde5 (under `useCurrentAccount`, following the wallet prefers the address it started for instead of demanding it, so a quick switch B then back to A no longer ends with no account). The auto-connect block is at `packages/etherplay-connect/src/index.ts:1725` ("Auto-connect logic based on targetStep"). Before 0.17.1, an auto-connect restoring the STORED origin account (`waitForWallet(...).then(...)`, then `set({step: 'SignedIn', account: existingAccount, ...})`) checked nothing on landing, so a switch and a new sign-in made before it landed were overwritten by the previous account and the app was left with no signer. It shows only with a several-account wallet slow to answer `eth_chainId`/`eth_accounts` (an embedded world's in-tab chain while it boots); downstream it hit template-commit-reveal's hotseat after a reload mid commit phase, worked around in `$lib/game/lobby/hotseat.ts` (the game shown only while the connection is signed in as the person holding the device; the workaround STAYS, cheap and right) and recorded in its `work` finding `a-stored-account-auto-connect-lands-after-a-later-switch.md` ("worked around 2026-11-02 (hotseat); not fixed upstream"). Every jolly-roger node's `web/package.json` has `"@etherplay/connect": "^0.17.0"`, and template-commit-reveal `main` the same. `with/embedded-chain` has `web/test/lib/embedded/wallet-switch.svelte.test.ts` (197 lines, client project, real Chromium), which builds a connection exactly as a world does (`embeddedConnectionFactory`, `useCurrentAccount: 'always'`, a several-account wallet from `announceEmbeddedWallet({accounts})`).
+
+**Decisions** (the user's, 2026-11-17):
+
+- **C1-1, the bump at its home, `main`**, `^0.17.0` to `^0.17.1`, the lockfile recording it, the changes between 0.17.0 and 0.17.1 read for anything that moved behaviour (types, options, defaults) and the call sites adapted if needed; `pnpmDepsHash` recomputed, as AGENTS.md requires. Rejected: bumping where the race shows (`with/embedded-chain`), below its home.
+- **C1-2, the regression test on `with/embedded-chain`**, where the scenario exists, a new case in `wallet-switch.svelte.test.ts`: an origin account stored for account A in the world's storage prefix, a connection constructed with auto-connect and a wallet whose `eth_chainId`/`eth_accounts` answer slowly, then, before the restore lands, account B selected and signed in, then the restore let land: the connection is still SignedIn as B with B's signer. Slow the NODE behind the wallet if a wrapper would break `on`/`removeListener` (the warning in `wallet.ts`). The case must be shown FAILING against 0.17.0 (installed temporarily, or the pre-bump lockfile) and passing after; if it does not fail against 0.17.0, say so and keep it as a guard.
+- **C1-3, cascaded by the tree's procedure, merging, never rebasing**: `main` into `with/local-signer`, `with/embedded-chain` and `website`; `with/local-signer` into `with/hosted-account`; `with/local-signer` and `with/embedded-chain` into `integration`.
+- **C1-4, recorded as a done task on jolly-roger `work`** (`work/tasks/done/<slug>.md`, in the shape of `gas-tips-never-below-the-nodes-minimum.md`): the version, the test, the measurements, the pushes.
+- **C1-5, what is NOT this step**: everything below jolly-roger, and marking template-commit-reveal's finding fixed. That is C1b.
+
+**Start here.**
+
+```sh
+for r in jolly-roger etherplay-connect template-commit-reveal; do git -C ~/dev/github/wighawag/$r fetch --all --prune; done
+npm view @etherplay/connect versions --json | tail -4                                   # 0.17.1 on 2026-11-17
+git -C ~/dev/github/wighawag/etherplay-connect show origin/main:packages/etherplay-connect/CHANGELOG.md | sed -n 1,20p
+git -C ~/dev/github/wighawag/etherplay-connect grep -n 'Auto-connect logic based on targetStep' origin/main -- packages/etherplay-connect/src/index.ts   # :1725
+for b in main with/local-signer with/hosted-account with/embedded-chain integration website; do echo "$b $(git -C ~/dev/github/wighawag/jolly-roger show origin/$b:web/package.json | grep etherplay/connect)"; done
+git -C ~/dev/github/wighawag/jolly-roger show origin/with/embedded-chain:web/test/lib/embedded/wallet-switch.svelte.test.ts | head -60
+```
+
+**Do** (preview branches `tf-C1a/<branch>` from each node's `origin/<branch>`; one commit per item):
+
+1. Re-derive; each node's verify as the baseline (check errors and warnings, unit counts, the client project included).
+2. C1-1 on `tf-C1a/main`, and its `pnpmDepsHash`.
+3. C1-2 on `tf-C1a/with/embedded-chain` (after `main`'s merge, so it runs on 0.17.1), with its red against 0.17.0 shown and recorded.
+4. C1-3, each node's verify, `node scripts/check-dangling-imports.mjs` where it exists, `check-omissions` and `check-stem-drift`, each node's `pnpmDepsHash`.
+5. C1-4 on `tf-C1a/work`, beside this plan's entry.
+
+**Done when**: every jolly-roger node locks `@etherplay/connect` 0.17.1; the new case fails on 0.17.0 (or the report says it did not) and passes on 0.17.1; every node's verify passes against its baseline, the checks clean; the done task written; every push approved. The hotseat workaround and the finding at template-commit-reveal are untouched.
+
+### Step C1b: `@etherplay/connect` 0.17.1 below jolly-roger, and the finding closed
+
+Needs C1a pushed. Repos: template-commit-reveal (its seven nodes, its `work`), reveal-or-die, bomber-world, stratagems, infinite-gambit, template-zk-game, duel-in-the-dark, bleeps, mandalas. Not specified yet beyond this: its first session measures and proposes.
+
+**Decisions** (PROPOSED, not decided):
+
+- **C1-6, carried by the next cascade from jolly-roger, on its own**: the cascade of C1a's merges down the tree, in L1b's order, carrying nothing else (P-2), each lockfile with its `pnpmDepsHash` where a `flake.nix` exists; the full e2e of template-commit-reveal `main` (the hotseat suite, `offline-hotseat.e2e.ts`, included) as the measure that the workaround and the fix live together. Rejected: riding V1's or F1b's cascade (a conflict could not be attributed).
+- **C1-7, the finding marked fixed** on template-commit-reveal `work`: its `status` says fixed upstream in `@etherplay/connect` 0.17.1 (77afb17), the hotseat workaround kept and why. Rejected: deleting it (it explains the workaround).
 
 ### Step V1: divergences recorded where the features will cross
 
@@ -729,4 +775,10 @@ Reminders the user asked to keep, so a later step does not lose them. A step tha
 - **H1-4, the records** (template-commit-reveal `tf-H1/work`, from `origin/work` 784a7410): 7348594c drops the empty `17` and `18.`; 0bfa5a32 turns the 22 done tasks' "NOT pushed" headings into "since pushed", each commit they name checked on an origin ref (two of `the-handover-waits-for-the-persons-data`'s are reveal-or-die's and bomber-world's, on theirs); bb4588d2 marks HANDOFF.md superseded as a status record, pointing at this plan and stratagems' `work/plans/join-template-commit-reveal.md`, and keeps its "delete when done, move what is still true" instruction; 3915ea56 says in `games-on-this-foundation.md` that hotseat and NPCs are done (2026-11-02, tasks `hotseat-in-the-offline-world` and `ai-seats-in-the-offline-world`); 59695710 the work README's "the offshoot config lists only `main`", false since the `with/*` layers. jolly-roger (`tf-H1/work`, from `origin/work` b17f7332): 75ab9f03 the same heading fix in its 5 done tasks, every commit checked on origin; a second commit deletes six observations whose subject is gone (`signer-balance-store-appears-unused`, its file deleted in d537e7d; `e2e-replace-previous-message-fails-pre-existing`, fixed in 9001865c; `polling-stores-re-armed-timer-after-stop`, `account-data-map-subscription-is-keyed-by-address-not-store`, `maxfee-below-maxpriority-on-fresh-local-node`, `pending-operation-inspector-says-loading-forever-on-a-load-error`, each resolved by its own account) and rewords the two findings that cited the first two. Kept though resolved: `drawer-portal-to-layer-drawer-is-dead` and `two-layer-schemes-met-in-the-cascade`, which ADR-0005, the overlay spec and two findings cite as their record.
 - **Measured against "Done when"**: the stale records are fixed on preview branches (not yet in `work`); NOT met: no approved deletion is done, no tag exists, the `chess-battleground` symlink and its nine worktrees remain. So the box is not ticked; the session that does the approved deletions ticks it.
 - **Pushes needed** (fast-forwards; none made): template-commit-reveal `work` 784a7410..59695710; jolly-roger `work` b17f7332..(the head of `tf-H1/work`, this entry). The deletions and tags are listed in the session's report for item-by-item approval.
-- **Next**: on approval, H1's items 3 and 4 (tags first, then the deletions with their worktrees, then the symlinks and `git worktree prune`); then V1.
+- **Next**: on approval, H1's items 3 and 4 (tags first, then the deletions with their worktrees, then the symlinks and `git worktree prune`); then C1a (added by the user after this entry), then V1.
+
+### 2026-11-17, the user's addition: `@etherplay/connect` 0.17.1
+
+- **The answer**: the user gave a standalone prompt for bumping `@etherplay/connect` to the release fixing the late auto-connect restore, "one message we can integrate into" the plan.
+- **What changed in this plan**: steps C1a (the prompt, restated as a step with its decisions as the user's) and C1b (what the prompt left out: the cascade below jolly-roger and template-commit-reveal's finding marked fixed, PROPOSED), both in the tree lane before V1, since V1's and F1's cascades should carry nothing else. Measured for it: 0.17.1 is published and contains the fix (etherplay-connect 77afb17, with 387bde5 beside it), `src/index.ts:1725`; every jolly-roger node and template-commit-reveal `main` on `^0.17.0`.
+- **Next**: unchanged for H1 (approvals); then C1a.
