@@ -616,3 +616,11 @@ Reminders the user asked to keep, so a later step does not lose them. A step tha
 - **What changed in this plan**: the prompt's port rule names every port a suite opens and asks for a TMPDIR per concurrent suite, and a new rule says when and how to recompute `pnpmDepsHash`; I1's item 3 says what L1b's changes bring to its merge; K4 gains stratagems' `flake.lock` and template-commit-reveal's contracts type-check.
 - **Pushed** (the user approved every push above, 2026-11-16): each node branch as listed, each checked a fast-forward of a fresh `origin` fetch first, top down; this branch to jolly-roger `work`. After the push, stratagems' `stem` fetched and its `offshoot-divergences.test.ts` passes 3 / 3 against the real stem ref (38a67c64). L1b's box ticked.
 - **Next**: step I1, the next in list order (V1 also needs only L1b); H1, S3 and F4a remain parallel lanes.
+
+### 2026-11-16, outside the steps: mandalas off the LAN box
+
+- **Why**: the user, after L1b: "the lan box is for games with tables", and mandalas is not one (bleeps had already opted out the same way). L1b had recomputed mandalas' `pnpmDepsHash` only because its `flake.nix` was still there, from 98713778 (2026-11-04).
+- **What was done** (mandalas, preview branch `no-lan/main` from `origin/main` fa84ffb2): b7af96cc drops `flake.nix` and `flake.lock`, lists them in `.offshoot-omissions` with the reason (bleeps' entry, reworded), and puts the `lan` field back at the template's values (jolly-roger `main`'s hash, no `preBuild`, no `solc`), inert without the flake; bc6f75ee takes `contracts/deploy/001_deploy_token.ts` back to its pre-98713778 blob (the `lan`-only `deterministic` and proxy-less branch, dead without a LAN build). The inherited hooks and AGENTS.md text stay, as at bleeps.
+- **Measured**: the verify passes (95 / 1055, client 9 / 44, check 0 and 0); contracts 84 passing; the contracts type-check passes; `check-omissions` (26 paths) and `check-stem-drift` (42 shared files differ, none old) pass against jolly-roger `main` 24fabcd9.
+- **Effect on later steps**: the prompt's `pnpmDepsHash` rule applies only where a `flake.nix` exists, so mandalas and bleeps are now both outside it; no step text changes.
+- **Pushes needed**: mandalas `main` fa84ffb2..bc6f75ee (fast-forward); jolly-roger `work` from `mandalas-no-lan/work` (this entry).
