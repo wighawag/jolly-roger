@@ -33,7 +33,8 @@ Rules:
 - Ask before any destructive command (a branch or tag deletion, a worktree removal other than your own, a reset, a force). Never `git stash` inside a conflicted merge. Never `--force` a node branch.
 - Bound every exploratory shell command with `timeout` and cap its output with `head`. Never grep node_modules, dist, .git or minified or generated bundles, and never run an unbounded regex over one.
 - Ports: the verify's vitest `client` project and every e2e start Chromium and open ports. Before anything opens a port, check it is free with `ss -ltn` and what holds it; 8545 and 8546 belong to another project, and the e2e script defaults its chain to 8545, so run every e2e with `E2E_RPC_PORT=8557 E2E_PORT=4183` (and move any other port the script reports busy with its own variable, such as `E2E_FAUCET_PORT`). Suites that run at the same time each need their own set of EVERY port a suite opens (the chain, the app, `E2E_FAUCET_PORT` 34110, `E2E_GATEWAY_PLAIN_PORT` 4273, `E2E_GATEWAY_SW_PORT` 4274, `E2E_WALLET_HOST_PORT` 50000; for slot k, for example, 8557+k, 4183+k, 34120+k, 4290+2k, 4291+2k, 50010+k) and their own `TMPDIR`, since the script names its throwaway worktree after the checkout's directory name and two `main` worktrees collide. Run at most three verifies or e2e suites at once. Stop every node, server, worker and browser you start, by its process group, before you finish, and remove every worktree you created except the step's preview worktrees.
-- Each node's verify is the `verify` of its repo's `offshoot` branch (`git show origin/offshoot:fanout.config.json`); a repo without one is verified with its stem's until step L1a gives it its own.
+- Each node's verify is the `verify` of its repo's `offshoot` branch (`git show origin/offshoot:fanout.config.json`); a repo without one is verified with its stem's until step L1a gives it its own. A repo outside the template tree (a service: push-notification-server, missiv, the trigger service) is verified with its own `verify` (its `dorfl.json`, else its CI), or the one its step defines.
+- Parallel lanes: several sessions may run at once, each on its own step, as the plan's "Parallel lanes" section says. Use your lane's port slot from there for anything that opens a port, and before listing your pushes, fetch and rebase `tf-<step id>/work` onto the fresh `origin/work` (another lane may have pushed; in the Progress log keep both entries, yours last).
 - A lockfile changed at a node whose repo has a `flake.nix` needs its `pnpmDepsHash` recomputed, as that repo's AGENTS.md says: set it to `sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=`, run `nix build --no-link git+file://<the preview worktree>#lan.pnpmDeps`, take the `got:` value, one commit per node, top down (a child's hash line then conflicts with its parent's: keep the child's and recompute it).
 - Never write an em dash character, and do not hard-wrap Markdown prose.
 
@@ -75,20 +76,37 @@ From the analysis (read it for the evidence):
 - [ ] **Step V1** (needs L1b): the divergence check at the tree's root, and the lists of the nodes F1 to F4 cross (jolly-roger, template-commit-reveal, reveal-or-die, bomber-world, infinite-gambit)
 - [ ] **Step F1a** (jolly-roger, needs V1): `with/indexer` from `main`: the game-agnostic host, follower and worker choice, the Node indexer, and GreetingsRegistry's processor with a count badge beside the direct read
 - [ ] **Step F1b** (template-commit-reveal, needs F1a and I1): a second root `upstream/with/indexer` fed from jolly-roger's, `with/indexer` stemming from `[main, upstream/with/indexer]`, its copies of the moved files gone; cascaded to `with/fuzd-pixi-indexer`, stratagems and infinite-gambit
-- [ ] **Step S1** (the push server in progress, independent; NOT SPECIFIED: its location to be given by the user, then specified against S1-1 to S1-6): authenticated `/push` per domain, an ownership proof at `/register`, an idempotency key, the "any subscription" route, a nodejs platform, port-free API tests
-- [ ] **Step S2** (a new repo, needs S1 and F1a): the trigger service wiring etherfold to the push server, generic over its actions: an etherfold consumer following `/canonical`, subscription and global rule triggers as data, an outbox with a per-type delivery policy, a push action and a reward action (achievements with rewards, refined by the user on 2026-11-16)
+- [ ] **Step S1** (push-notification-server, a parallel lane; its decisions PROPOSED again, below): authenticated `/push` per domain, an ownership proof at `/register`, an idempotency key, the "any subscription" route, a nodejs platform, port-free API tests
+- [ ] **Step S2a** (a new repo, a parallel lane; needs S1's decisions taken, not its code): the trigger service's core, against recording targets; **Step S2b** (needs S1 and F1a pushed) wires it to the real push server's proof and tests it end to end on the greetings processor. Together: the trigger service wiring etherfold to the push server, generic over its actions: an etherfold consumer following `/canonical`, subscription and global rule triggers as data, an outbox with a per-type delivery policy, a push action and a reward action (achievements with rewards, refined by the user on 2026-11-16)
 - [ ] **Step F2** (jolly-roger, needs F1a, S1, S2): `with/push-notifications` from `[with/indexer, with/local-signer]`: subscribe to new greetings, receive a push
-- [ ] **Step S3** (missiv, independent; needs S1 for its push call): green and API-stable: the backdoors and `_initDB` closed, the end-to-end suite fixed, a push on a new DM through push-notification-server, the shared ownership proof
+- [ ] **Step S3** (missiv, a parallel lane; RE-SCOPED by the user on 2026-11-17, review first): a strong review of missiv and its re-specification now (read-only), then the build once S1's shared proof package has landed in missiv: safe (the backdoors and `_initDB` closed, the end-to-end suite fixed), more elegant (what the review finds), a push on a new DM through push-notification-server, the shared ownership proof
 - [ ] **Step F3** (jolly-roger, needs F2 and S3): `with/messaging` from `with/push-notifications`: a global chat and direct messages, a DM notifying through F2
-- [ ] **Step F4a** (template-commit-reveal `main`, needs I1 and V1; independent of F1 to F3): a table's end and its scores in the base: the settlement lifecycle, `ScoreRecorded` on the factory, the generic client half; the reference game its first user
-- [ ] **Step F4b** (template-commit-reveal `with/indexer`, needs F4a and F1b): high scores indexed (a framework processor fragment, a high-score page), read from the tab or from a hosted `etherfold run`; the log-reading fallback on nodes without the indexer
-- [ ] **Step F4c** (the games, needs F4b): stratagems, infinite-gambit and reveal-or-die (bomber-world by cascade) record their scores through the base, each a new deployment
 - [ ] **Step K1** (after the features): jolly-roger's core patched below it goes home (the world connection's `nodeURL` from template-commit-reveal; a `GAME` seam for template-zk-game's five modified files)
 - [ ] **Step K2** (after the features): the offline world's shared boot at template-commit-reveal, so the games stop copying `offline.ts`
 - [ ] **Step K3** (after the features): the svelte line's seams: the styled notification panels at the root, the shadcn layer patches at template-svelte-shadcn, the blog's posts source; divergence lists for every remaining node
 - [ ] **Step K4** (after the features): dependency alignment: stratagems' toolchain on the tree's, rocketh 0.26 and hardhat-deploy 2.2 at jolly-roger, SvelteKit 3 at the root (the dependabot major), each a recomputed `pnpmDepsHash`
 
-Parallel lanes: H1 any time; S1 and S3 do not touch the template tree and can run beside L1a to F1b; F4a beside F1a. Everything else in list order.
+Parallel lanes: see "Parallel lanes" below. Everything else in list order.
+
+**Postponed by the user on 2026-11-17** ("each game might need different ways to handle highscore and this does not seem to be a crucial feature to have at the moment"): high scores, steps F4a to F4c. Their sections stay below as the record of what was measured and proposed; they are not in the order, and come back only when the user asks, re-specified then (whether a shared score lifecycle fits the games at all is the first question).
+
+- [ ] (postponed) **Step F4a** (template-commit-reveal `main`, needs I1 and V1; independent of F1 to F3): a table's end and its scores in the base: the settlement lifecycle, `ScoreRecorded` on the factory, the generic client half; the reference game its first user
+- [ ] (postponed) **Step F4b** (template-commit-reveal `with/indexer`, needs F4a and F1b): high scores indexed (a framework processor fragment, a high-score page), read from the tab or from a hosted `etherfold run`; the log-reading fallback on nodes without the indexer
+- [ ] (postponed) **Step F4c** (the games, needs F4b): stratagems, infinite-gambit and reveal-or-die (bomber-world by cascade) record their scores through the base, each a new deployment
+
+### Parallel lanes
+
+Decided by the user on 2026-11-17 ("let's do some stuff in parallel"). Each lane is its own session, started with the step prompt plus `Do step <id>.`, and writes only in its own repo's worktrees and in its own `tf-<id>/work` plan branch.
+
+| Lane | Steps | Repo it writes | Port slot (chain, app, faucet, gateway plain and SW, wallet host) |
+|---|---|---|---|
+| tree | H1, V1, F1a, F1b, F2, F3, K1 to K4 | the template tree | 0: 8557, 4183, 34110, 4273, 4274, 50000 |
+| push | S1 | push-notification-server, and missiv for S1-3's package only | 1: 8558, 4184, 34121, 4292, 4293, 50011 |
+| triggers | S2a, then S2b | the new trigger-service repo | 2: 8559, 4185, 34122, 4294, 4295, 50012 |
+| messaging | S3 | missiv (its review reads only; its build writes after S1-3 lands) | 3: 8560, 4186, 34123, 4296, 4297, 50013 |
+
+Ordering between lanes: S2a needs S1's decisions taken (the push contract it codes against), not S1's code; S2b needs S1 and F1a pushed. S3's review needs nothing; its build needs S1-3's package in missiv (the one place two lanes write the same repo, so they take turns: S1 lands the package first, S3 builds on it). F2 needs F1a, S1 and S2b; F3 needs F2 and S3. Ports: also a TMPDIR per session; at most three verifies or e2e suites at once across all lanes is not enforceable, so prefer port-free tests in the service lanes (their steps ask for them).
+
 
 ### Step L1a: the svelte line levelled
 
@@ -319,13 +337,11 @@ git -C ~/dev/github/wighawag/infinite-gambit merge-base --is-ancestor stem/with/
 
 ### Step S1: the push server green and API-stable
 
-Repo: the push server in progress (the user, 2026-11-16: "re push server we have one in progress"); its location was not found on this machine on 2026-11-16 (`~/dev/github/wighawag/push-notification-server` has one branch, `main` 1e0d908 of 2026-08-22, no worktree and no commit since, and no other repo or worktree under `~/dev` is a push server). Independent of the template tree.
-
-**Not specified yet: the step's first session asks the user where the in-progress server is**, measures it against S1-1 to S1-6 (which of them it already meets, which it answers differently, which it lacks), and brings back the step's specification with its decisions as numbered recommendations, as the prompt says for a step without a decided specification. Until then, what follows is the measurement of the CURRENT server and the requirements it produced.
+Repo: push-notification-server (`~/dev/github/wighawag/push-notification-server`). The user, 2026-11-17: "re push server : ../push-notification-server". It is the server measured on 2026-11-16, unchanged since (`main` 1e0d908 of 2026-08-22, one branch, no worktree), so the "in progress" server of the re-opening is this one and the measurement below stands. Independent of the template tree; the push lane.
 
 **What decides the shape** (origin/main 1e0d908, 2026-08-22): cf-worker only (D1), one `Subscriptions(address, domain, subscriptionID, subscription, timestamp, expiry)` table; `POST /register` with `// TODO authentication of address` (`packages/server/src/api/index.ts:74`), `POST /push` with `// TODO authentication via tokens` (`:99`), not idempotent, `// TODO Retry` for 5xx (`:131`); its tests are one workerd "hello world" and a vacuous `1 + 2`; no AGENTS.md, no work/. Its own findings (`docs/findings/trigger-service-integration.md`) name GAP-1 to GAP-3 and ENHANCEMENT-1, and ask that the ownership proof be ONE implementation shared with the trigger service. missiv already has that primitive: the wallet signs `originPublicKeyPublicationMessage(origin, delegatePublicKey)` and the server recovers the address (`packages/common/src/index.ts:214-216`, `packages/server/src/api/user/index.ts:23-50`). jolly-roger's client keys a subscription by the delegated signer's address (`push-notifications/index.ts:48,148` in the example) and carries the signer's private key unused.
 
-**Decisions** (RE-OPENED by the user on 2026-11-16: "re push server we have one in progress". S1-1 to S1-6 below were measured on push-notification-server 1e0d908 and stand as the REQUIREMENTS the in-progress server must meet (GAP-1 to GAP-3, ENHANCEMENT-1, the shared ownership proof, a port-free test path, a nodejs platform); the step is re-specified against that server once its location is known, and its decisions brought to the user again):
+**Decisions** (PROPOSED again on 2026-11-17: they were re-opened on 2026-11-16 only because the server's location was unknown, and the location answered is the server they were measured on; brought back to the user for a "go"):
 
 - **S1-1, GAP-1: a token per calling service, scoped to a domain**, compared in constant time, configured by the operator (an env list of `domain:token-hash`). Rejected: a signature per push (a service has no wallet), one global token (a caller for one app could push to another's users).
 - **S1-2, GAP-2: `/register` takes the wallet's signature over missiv's publication message and a delegate signature over the request**, so a subscription is keyed by the WALLET address and proven by the delegate key the app already holds. Rejected: keying by the delegate address (a new device is a new key, so the notifier would not know whom to notify); an Ethereum signature per registration by the wallet itself (a wallet prompt per device per app).
@@ -334,23 +350,25 @@ Repo: the push server in progress (the user, 2026-11-16: "re push server we have
 - **S1-5, a nodejs platform on libSQL** beside cf-worker (the dev stack and the e2e then need no wrangler), and API tests through `app.request` on in-memory libSQL, port-free, as missiv's are. Rejected: wrangler dev in the template's zellij layout.
 - **S1-6, an AGENTS.md and a work/ folder** in the tree's shape (dorfl's), the findings file becoming its first closed items.
 
-**Start here** (the current server; the in-progress one's commands are the first thing its specification adds).
+**Start here.**
 
 ```sh
 git -C ~/dev/github/wighawag/push-notification-server fetch --all --prune
-git -C ~/dev/github/wighawag/push-notification-server log --all --oneline -3   # 1e0d908 on 2026-11-16: if the in-progress work has landed here, specify against it
+git -C ~/dev/github/wighawag/push-notification-server log --all --oneline -3   # 1e0d908 on 2026-11-17
 git -C ~/dev/github/wighawag/push-notification-server show origin/main:docs/findings/trigger-service-integration.md | head -40
 git -C ~/dev/github/wighawag/push-notification-server show origin/main:packages/server/src/api/index.ts | sed -n 55,150p
 git -C ~/dev/github/wighawag/missiv show origin/main:packages/common/src/index.ts | sed -n 200,230p
 ```
 
-**Do** (a branch `tf-S1/main`; one commit per item, changesets as the repo's convention asks): 1. API tests first, red on the gaps; 2. S1-3 the shared package (in missiv, its own preview branch `tf-S1/main` there), published version noted; 3. S1-1, S1-2, S1-4; 4. S1-5; 5. S1-6; the client example updated to the new `/register`.
+**Do** (a branch `tf-S1/main`; one commit per item, changesets as the repo's convention asks): 1. API tests first, red on the gaps; 2. S1-3 the shared package (in missiv, its own preview branch `tf-S1/main` there, touching nothing of missiv but the extraction, since the messaging lane re-specifies the rest of missiv), published version noted; 3. S1-1, S1-2, S1-4; 4. S1-5; 5. S1-6; the client example updated to the new `/register`.
 
 **Done when**: `/push` refuses without a domain's token and with another domain's; `/register` refuses a subscription for an address whose proof does not recover it; a retried `/push` with the same key delivers nothing twice (tested with a recording sender); `GET /registered/:address/:domain` answers a count; the nodejs platform starts and its routes pass the same tests; no test needs a port; every push and publish approved.
 
 ### Step S2: the trigger service, an etherfold consumer with push and reward actions
 
-A new repo (its name decided below). Needs S1 (its push target) and F1a (the greetings processor it is tested on). It is the service that wires etherfold to the push server, and, by the user's refinement of 2026-11-16, it is GENERIC: "It does not exist and could be made generic to also support achievements with rewards." So its first two action types are a push notification (F2's) and an achievement with a reward (F4's later use: a high score, a badge), over one core.
+A new repo (its name decided below). Needs S1 (its push target) and F1a (the greetings processor it is tested on).
+
+**Split into S2a and S2b (PROPOSED on 2026-11-17, so the triggers lane can start now)**: S2a is items 1 to 5 below, tested on a processor of the repo's own (a minimal test contract's event folded by an in-process etherfold server), the push adapter written against S1-1's domain token and S1-4's idempotency key with a recording target, and registration of a subscription trigger taking a proof through a seam (a test verifier) rather than S1-3's package; it needs S1's decisions taken, not S1's code. S2b is item 6 and the seam's real verifier on S1-3's package, run against push-notification-server's nodejs platform in-process; it needs S1 and F1a pushed. S2a's "Done when" is S2's below with the greetings replaced by the test processor's event and the recording push target standing for the server; S2b's adds the greetings, S1-3's proof and the real server's routes. Rejected: waiting for S1 and F1a (the trigger service's core, the larger half, depends on neither). It is the service that wires etherfold to the push server, and, by the user's refinement of 2026-11-16, it is GENERIC: "It does not exist and could be made generic to also support achievements with rewards." So its first two action types are a push notification (F2's) and an achievement with a reward (F4's later use: a high score, a badge), over one core.
 
 **What decides the shape**: etherfold ADR-0005 (triggers run outside the indexer-server: N independent consumers, each with its own database, cursor, gate, outbox and auth), ADR-0007 (a gate: safe at finality, or fast at a depth, cancelling on retraction; a push tolerates the fast lane), ADR-0009 (an action is an authenticated HTTP call with a semantic idempotency key and a per-type delivery policy: a push expires, bounded retries then a recorded dead letter), ADR-0011 (bounded by rate, digests), ADR-0012 (triggers expire unless renewed, Web Push liveness through ENHANCEMENT-1), ADR-0013 (conditions are data over DECODED arguments, predicates and actions are operator code; subscription triggers, whose recipient is the registrant, and global rule triggers). etherfold serves `GET /{indexer}/canonical?gate=` (`packages/server/src/api/feed.ts:232`) and `GET /{indexer}/feed` (`:135`) from `etherfold run`, publicly; it stores nothing per consumer.
 
@@ -372,7 +390,7 @@ git -C ~/dev/github/wighawag/etherfold show origin/main:work/specs/dropped/trigg
 git -C ~/dev/github/wighawag/etherfold show origin/main:packages/server/README.md | sed -n 98,190p
 ```
 
-**Do**: 1. the repo created locally (its remote created by the user, approved); 2. the consumer loop on `/canonical` with its cursor and outbox in one transaction, test-first; 3. the trigger registry for both archetypes (S2-3, S2-5), with expiry for subscriptions; 4. the action seam and its delivery policy (TTL, retry budget, dead letter, all recorded states), then the push adapter and the reward adapter (S2-6); 5. a nodejs CLI and the README (how an operator defines a global rule and a reward target); 6. a test end to end on GreetingsRegistry's processor (F1a's bundle) folded by an in-process etherfold server: a subscription trigger notifying, and a global rule ("every account's third greeting") calling the recording reward target.
+**Do** (S2a: items 1 to 5; S2b: item 6 and the real proof): 1. the repo created locally at `~/dev/github/wighawag/etherfold-triggers`, AGPL-3.0, with an AGENTS.md and dorfl's `work/` as the tree's repos have, its `verify` in `dorfl.json` (its remote created by the user, approved); 2. the consumer loop on `/canonical` with its cursor and outbox in one transaction, test-first; 3. the trigger registry for both archetypes (S2-3, S2-5), with expiry for subscriptions; 4. the action seam and its delivery policy (TTL, retry budget, dead letter, all recorded states), then the push adapter and the reward adapter (S2-6); 5. a nodejs CLI and the README (how an operator defines a global rule and a reward target); 6. a test end to end on GreetingsRegistry's processor (F1a's bundle) folded by an in-process etherfold server: a subscription trigger notifying, and a global rule ("every account's third greeting") calling the recording reward target.
 
 **Done when**: a greeting by one account produces exactly one push call per subscribed other account, keyed as S2-3 says, across a restart of the consumer (cursor and outbox durable) and a retried target; an expired subscription produces none; the global rule calls the reward target exactly once per qualifying account, with its idempotency key, only from the safe lane, and a target failing past its budget ends dead-lettered and inspectable; a rewind answered by `/canonical` rolls the outbox back; no test needs a port; the repo's verify passes; every push approved.
 
@@ -406,13 +424,15 @@ ss -ltn | head -40
 
 **Done when**: the node merges both stems with no edit to either's files beyond the composition; its verify passes with the new tests; its full e2e is `with/local-signer`'s and `with/indexer`'s cases plus F2-6's case; with the services' env empty, the app runs and says notifications are not configured; the payload types are declared once; every push approved.
 
-### Step S3: missiv green and API-stable
+### Step S3: missiv reviewed, made safe and elegant, and API-stable
 
-Repo: missiv. Needs S1 (its push call uses S1's domain token) and S1-3's package.
+Repo: missiv. Its build needs S1 (its push call uses S1's domain token) and S1-3's package; its review needs nothing. The messaging lane.
+
+**RE-SCOPED by the user on 2026-11-17**: "I would not only try to make it safe, but more elegant, good idea to review its current code strongly". So S3-1 to S3-5 below are RE-OPENED (they were decided as a safety pass), and the step's first session is a REVIEW: adversarial and thorough, of every package and platform (`packages/server`, `packages/client`, `packages/common`, `platforms/*`, the tests and the end-to-end suite), along the axes a template's dependency is judged by: the API's shape (routes, payloads, naming, versioning, what a client must know), the trust model (the backdoors, `_initDB`, the per-message signature, what the server can read), the module boundaries and duplication between platforms, the client's stores against the tree's Svelte rules (logic in `.ts`, stores across the boundary, no `.svelte.ts`), dead code and TODOs, the schema and its migrations, error handling, and the tests (what they prove, what is vacuous). It writes its findings in missiv's own `work/notes/findings/` (missiv follows dorfl's `work/` contract; read its `work/protocol/`), each with its file and line, then brings a refreshed specification of this step: the safety items (S3-1 to S3-5, kept, changed or dropped) and the elegance items the review justifies, each a numbered recommendation with the alternative rejected, and an order of build commits. Nothing in missiv's code is changed in that session (S1-3's extraction may be landing there in the push lane). Rejected: the safety pass alone (the user asked for more); a rewrite decided before the review (the review decides what is worth changing).
 
 **What decides the shape** (origin/main 79fe3ab): DEV fail-open backdoors (`FAKE:<publicKey>` and an all-zero signature, `packages/server/src/setup.ts:46-57`, `api/user/index.ts:32-35`) hinge on `env.DEV` being falsy in production; `_initDB=true` runs schema setup unauthenticated; the end-to-end suite fails 5 of 6 on schema drift (`work/notes/observations/end-to-end-tests-failing-drift.md`); the client sends an all-zero per-message signature (`packages/client/src/lib/conversation/index.ts:302`) and `toPublicKey: '0xff' // TODO` (`:316,321`); the client's only test is `1 + 2`; rooms run on cf-worker and bun, not nodejs; no notification of any kind; `pnpm install` exits 1 on pnpm 11 (`ERR_PNPM_IGNORED_BUILDS`).
 
-**Decisions** (decided by the user on 2026-11-16: as proposed):
+**Decisions** (decided by the user on 2026-11-16: as proposed; RE-OPENED on 2026-11-17 by the re-scoping above, and re-specified by the review):
 
 - **S3-1, the backdoors fail closed**: honoured only when an explicit `DEV_BACKDOORS=true` is set, never by an absent `DEV`; `_initDB` behind the admin token. Rejected: removing them (the dev loop uses them).
 - **S3-2, a push on a new DM**: after `/sendMessage` stores a message, the server calls push-notification-server's `/push` for the recipient's wallet address with its domain token and the message id as the idempotency key, when configured (`PUSH_SERVER_URL`, `PUSH_TOKEN`), with a payload naming the sender and no content (the content is end-to-end encrypted). Rejected: through the notifier (missiv is not on chain; there is no feed); a client-triggered push (S1 closes it); room messages notifying (no recipient, and ADR-0011's rate argument).
@@ -430,7 +450,7 @@ git -C ~/dev/github/wighawag/missiv show origin/main:platforms/nodejs/src/cli.ts
 command -v bun || echo "no bun on this machine"
 ```
 
-**Do** (branch `tf-S3/main`, changesets): 1. measure S3-3 and the end-to-end suite's drift; 2. S3-1 and S3-4, tests first; 3. S3-5; 4. S3-2 with a recording push target; 5. S3-3 or its recorded fallback; 6. the pnpm 11 install fixed (`allowBuilds` or its successor).
+**Do** (after the review's specification is decided; branch `tf-S3/main`, changesets): 1. measure S3-3 and the end-to-end suite's drift; 2. S3-1 and S3-4, tests first; 3. S3-5; 4. S3-2 with a recording push target; 5. S3-3 or its recorded fallback; 6. the pnpm 11 install fixed (`allowBuilds` or its successor).
 
 **Done when**: a production configuration refuses `FAKE:` and an all-zero signature; `_initDB` refuses without the admin token; the client-server and end-to-end suites pass (end-to-end where its chain nodes allow, recorded); a DM to a registered wallet produces one recorded `/push` with the message id as key and no content; `pnpm install` exits 0 on pnpm 11; every push and publish approved.
 
@@ -461,7 +481,7 @@ git -C ~/dev/github/wighawag/stratagems show alpha1-final:web/src/lib/stratagems
 
 **Done when**: the node's verify passes; its full e2e is `with/push-notifications`' plus F3-5's cases; with missiv's env empty the app runs and says so; the diff against its stem is `hosted-account`-shaped (the spec's acceptance criterion: files added, one composition edit, a pane, env, e2e); every push approved.
 
-### Step F4a: a table's end and its scores, in the base
+### Step F4a (postponed): a table's end and its scores, in the base
 
 Repo: template-commit-reveal `main`, cascaded to its six nodes (the games take it in F4c). Needs I1 and V1; independent of F1 to F3.
 
@@ -490,7 +510,7 @@ git -C ~/dev/github/wighawag/stratagems show origin/main:web/src/lib/stratagems/
 
 **Done when**: a reference table settles in resumable rounds and its factory emits one `ScoreRecorded` per seat, once; a foreign caller is refused; the gas budget holds; the client half has the tests stratagems' had for those functions; the six nodes verify and the three e2e suites pass with the new case; the games are untouched and still verify against the new base; every push approved.
 
-### Step F4b: high scores, indexed
+### Step F4b (postponed): high scores, indexed
 
 Repos: template-commit-reveal `with/indexer` (and by cascade `with/fuzd-pixi-indexer`), `main` for the fallback. Needs F4a and F1b.
 
@@ -516,7 +536,7 @@ git -C ~/dev/github/wighawag/etherfold ls-tree -r --name-only origin/main work/t
 
 **Done when**: the page lists a settled reference table's scores on `with/indexer` (indexed) and on `main` (from logs); `PUBLIC_INDEXER_URL` switches the source, tested; item 1's figure is recorded; the nodes verify and their e2e passes with the new case; every push approved.
 
-### Step F4c: the games record their scores
+### Step F4c (postponed): the games record their scores
 
 Repos: stratagems, infinite-gambit, reveal-or-die (bomber-world by cascade). Needs F4b.
 
@@ -639,3 +659,9 @@ Reminders the user asked to keep, so a later step does not lose them. A step tha
 - **What changed in this plan**: I1's item 4 (the machinery was not the stem's); K2 (infinite-gambit's copy now carries the table boot, and its offline table has no browser suite).
 - **Pushed** (the user approved, 2026-11-17): infinite-gambit `main` 5bc96292..8a71edd3, checked a fast-forward of a fresh `origin` fetch first; this branch to jolly-roger `work`. The deletion of `fix/army-death-after-king-capture` was not asked for and is left to H1. I1's box ticked.
 - **Next**: H1 (any time) is first in list order, then V1 (needs L1b); S3 and F4a remain parallel lanes.
+
+### 2026-11-17, the user's answers after I1: parallel lanes, and high scores postponed
+
+- **The answers**: "let's do some stuff in parallel"; "re push server : ../push-notification-server"; S1 in that repo, S2 in a new repo, S3 in missiv, where "I would not only try to make it safe, but more elegant, good idea to review its current code strongly"; and high scores: "each game might need different ways to handle highscore and this does not seem to be a crucial feature to have at the moment. we could postpone the whole thing".
+- **What changed in this plan**: a "Parallel lanes" section (four lanes, a port slot each, the ordering between them, and the rule that each lane rebases its plan branch on a fresh `origin/work` before its push), and the prompt's rules point at it and say how a service repo is verified. S1's repo is push-notification-server, the one measured, unchanged since 1e0d908, so its S1-1 to S1-6 are PROPOSED again for a "go". S2 split into S2a (the core, against recording targets, needing only S1's decisions) and S2b (the real proof and the greetings end to end, needing S1 and F1a pushed), PROPOSED. S3 re-scoped review-first: its first session reviews missiv adversarially, writes findings in missiv's `work/`, and re-specifies the step; S3-1 to S3-5 RE-OPENED. F4a to F4c postponed, out of the order, their sections kept as the record.
+- **Next**: the tree lane's H1 (or V1); the push lane's S1 once its decisions have a "go"; the triggers lane's S2a once S1's decisions are taken; the messaging lane's S3 review now.
