@@ -138,7 +138,7 @@ function establish(
 		walletOnly: true,
 	});
 	return established.connection as unknown as Readable<ConnectionView> & {
-		ensureConnected: (step: 'WalletConnected') => Promise<unknown>;
+		ensureConnected: (step?: 'WalletConnected') => Promise<unknown>;
 		requestSignature: () => Promise<unknown>;
 	};
 }
@@ -322,6 +322,93 @@ describe('a reload whose restore lands late', () => {
 			seen
 				.slice(signedInAt)
 				.filter((c) => c.account?.address?.toLowerCase() === first),
+		).toEqual([]);
+	});
+});
+
+// WHAT IT PINS: a reload where an ACTION runs before the stored session is back.
+// Every app action calls `ensureConnected()` (a game's commit, a table's
+// creation), and a person can click while the page is still loading, so the
+// call starts while the restore of the account they signed in as is still
+// waiting on the wallet (a chain still booting answers `eth_chainId` late).
+// From @etherplay/connect 0.17.1 to 0.17.2 such a call overtook the restore and
+// started a sign-in of its own: the account picker, a signature asked again,
+// for the account that was signed in all along (template-commit-reveal's
+// `table.e2e.ts` met it: reload, create a table at once). Fixed in 0.17.3: a
+// call that names nothing new JOINS the restore, waits for it, and carries on
+// signed in. A call that names another account still wins, as the case above
+// pins.
+describe('a reload that acts at once', () => {
+	it('stays signed in as the stored account, with its signer, and asks for no signature', async () => {
+		const node = await startEmbeddedNode({chainId: CHAIN_ID});
+		dispose = node.dispose;
+		const slow = holdingNode(node.provider);
+
+		// The previous visit: signed in as A, which the connection stores.
+		previousWallet = await announceEmbeddedWallet({
+			provider: slow.provider,
+			chainId: CHAIN_ID,
+			accounts: 2,
+		});
+		const first = previousWallet.accounts[0].toLowerCase();
+		const before = establish(connectionFactoryFor(slow, previousWallet.handle));
+		await before.ensureConnected('WalletConnected');
+		await before.requestSignature();
+		const signedInBefore = await until(
+			before,
+			(c) =>
+				c.step === 'SignedIn' && c.account?.address?.toLowerCase() === first,
+			'the previous visit signed in as the first account',
+		);
+		const keyOfA = signedInBefore.account?.signer?.address;
+		expect(keyOfA).toBeTruthy();
+		previousWallet.cleanup();
+
+		// The reload: the restore of A waits on the chain's answer.
+		wallet = await announceEmbeddedWallet({
+			provider: slow.provider,
+			chainId: CHAIN_ID,
+			accounts: 2,
+		});
+		slow.hold('eth_chainId');
+		const connection = establish(connectionFactoryFor(slow, wallet.handle));
+		const seen: ConnectionView[] = [];
+		stop = connection.subscribe((c) => seen.push(c));
+		await expect
+			.poll(() => slow.heldCount(), {timeout: 5_000})
+			.toBeGreaterThan(0);
+		slow.stopHolding();
+
+		// An action, before the restore lands: what every app action calls.
+		const acted = connection.ensureConnected().then(
+			() => 'resolved' as const,
+			(error: unknown) => error,
+		);
+
+		// The chain answers, and the restore lands.
+		slow.release();
+		const outcome = await Promise.race([
+			acted,
+			new Promise((settle) => setTimeout(() => settle('still waiting'), 5_000)),
+		]);
+		expect(outcome).toBe('resolved');
+
+		const after = get(connection);
+		expect(after.step).toBe('SignedIn');
+		expect(after.account?.address?.toLowerCase()).toBe(first);
+		expect(after.account?.signer?.address).toBe(keyOfA);
+		// And no sign-in of its own on the way: no picker, no signature asked.
+		expect(
+			seen
+				.map((c) => c.step)
+				.filter((step) =>
+					[
+						'MechanismToChoose',
+						'WalletToChoose',
+						'ChooseWalletAccount',
+						'WaitingForSignature',
+					].includes(step),
+				),
 		).toEqual([]);
 	});
 });
