@@ -30,8 +30,9 @@ against ONE shared contract, their writes overwrite each other. A test
 that asserts "my message1 card is visible" can have message1 already
 replaced by a concurrent test's write before the assertion runs. This is
 the root cause of the flaky `should replace previous message from same
-account` failure recorded in
-`observations/e2e-replace-previous-message-fails-pre-existing.md`.
+account` failure recorded in the observation
+`e2e-replace-previous-message-fails-pre-existing` (fixed in `9001865`, the
+greeting describe made serial; the observation deleted 2026-11-17).
 
 The sibling tests that only assert "my unique greeting appears at least
 once" (`getByText(uniqueGreeting)`) are less exposed: they submit then
