@@ -91,328 +91,360 @@
  * no merge and no config it refuses too, rather than reporting a pass it has
  * not earned.
  */
-import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import {execFileSync} from 'node:child_process';
+import {existsSync, readFileSync} from 'node:fs';
 
-const LIST = ".offshoot-divergences";
-const RED = "\x1b[31m";
-const GREEN = "\x1b[32m";
-const YELLOW = "\x1b[33m";
-const NC = "\x1b[0m";
+const LIST = '.offshoot-divergences';
+const RED = '\x1b[31m';
+const GREEN = '\x1b[32m';
+const YELLOW = '\x1b[33m';
+const NC = '\x1b[0m';
 
-function git(args, { allowFailure = false } = {}) {
-  try {
-    return execFileSync("git", args, {
-      encoding: "utf8",
-      maxBuffer: 256 * 1024 * 1024,
-      stdio: ["ignore", "pipe", "pipe"],
-    }).trim();
-  } catch (error) {
-    if (allowFailure) return undefined;
-    throw error;
-  }
+function git(args, {allowFailure = false} = {}) {
+	try {
+		return execFileSync('git', args, {
+			encoding: 'utf8',
+			maxBuffer: 256 * 1024 * 1024,
+			stdio: ['ignore', 'pipe', 'pipe'],
+		}).trim();
+	} catch (error) {
+		if (allowFailure) return undefined;
+		throw error;
+	}
 }
 
 function refuse(message) {
-  console.error(`${RED}✗ ${message}${NC}`);
-  process.exit(1);
+	console.error(`${RED}✗ ${message}${NC}`);
+	process.exit(1);
 }
 
 function notChecked(message) {
-  console.log(`${YELLOW}- ${message}${NC}`);
-  process.exit(2);
+	console.log(`${YELLOW}- ${message}${NC}`);
+	process.exit(2);
 }
 
-const top = git(["rev-parse", "--show-toplevel"], { allowFailure: true });
-if (!top) refuse("not inside a git repository");
+const top = git(['rev-parse', '--show-toplevel'], {allowFailure: true});
+if (!top) refuse('not inside a git repository');
 process.chdir(top);
 
 if (!existsSync(LIST)) {
-  notChecked(`no ${LIST} here, so there is nothing to check`);
+	notChecked(`no ${LIST} here, so there is nothing to check`);
 }
-const listText = readFileSync(LIST, "utf8");
+const listText = readFileSync(LIST, 'utf8');
 
 /** The list's sections, each `{branch, entries: [{path, reason, line}]}`. */
 function parse(text) {
-  const sections = [{ branch: undefined, entries: [] }];
-  text.split("\n").forEach((raw, index) => {
-    const content = raw.replace(/#.*$/, "").trim();
-    if (content.length === 0) return;
-    const marker = /^\[([^\]]+)\]$/.exec(content);
-    if (marker) {
-      sections.push({ branch: marker[1].trim(), entries: [] });
-      return;
-    }
-    const [path, ...rest] = content.split(/\s+/);
-    sections
-      .at(-1)
-      .entries.push({ path, reason: rest.join(" "), line: index + 1 });
-  });
-  return sections;
+	const sections = [{branch: undefined, entries: []}];
+	text.split('\n').forEach((raw, index) => {
+		const content = raw.replace(/#.*$/, '').trim();
+		if (content.length === 0) return;
+		const marker = /^\[([^\]]+)\]$/.exec(content);
+		if (marker) {
+			sections.push({branch: marker[1].trim(), entries: []});
+			return;
+		}
+		const [path, ...rest] = content.split(/\s+/);
+		sections
+			.at(-1)
+			.entries.push({path, reason: rest.join(' '), line: index + 1});
+	});
+	return sections;
 }
 
 const sections = parse(listText);
 const own = sections.at(-1);
-const node = own.branch ?? "main";
+const node = own.branch ?? 'main';
 const inherited = sections.slice(0, -1).flatMap((section) => section.entries);
 
-const head = git(["rev-parse", "HEAD"]);
-const merging = git(["rev-parse", "-q", "--verify", "MERGE_HEAD"], {
-  allowFailure: true,
+const head = git(['rev-parse', 'HEAD']);
+const merging = git(['rev-parse', '-q', '--verify', 'MERGE_HEAD'], {
+	allowFailure: true,
 });
 
 /** The node's stems as refs, from the config, or `{error}`. */
 function stemsFromConfig() {
-  const text =
-    git(["show", "offshoot:fanout.config.json"], { allowFailure: true }) ??
-    git(["show", "origin/offshoot:fanout.config.json"], { allowFailure: true });
-  if (!text) {
-    return {
-      error:
-        "no ref given, no merge in progress, and no `offshoot` branch (local or " +
-        "origin) holding fanout.config.json, so there is nothing to compare " +
-        "against. Pass the stem commits, e.g.\n" +
-        "  git fetch stem main && node scripts/check-divergences.mjs FETCH_HEAD",
-    };
-  }
-  const config = JSON.parse(text);
-  const branches = config.branches ?? { main: {} };
-  const entry = branches[node];
-  if (!entry) {
-    return {
-      fatal:
-        `${LIST} names the node \`${node}\` (its last \`[branch]\` marker, or ` +
-        `\`main\` without one), and fanout.config.json lists no such branch ` +
-        `(it lists ${Object.keys(branches).join(", ")}). A list that came from ` +
-        `another repo by cascade is not this one's: write this node's own.`,
-    };
-  }
-  if (entry.stem) {
-    const stems = Array.isArray(entry.stem) ? entry.stem : [entry.stem];
-    return {
-      stems: stems.map((branch) => ({
-        name: branch,
-        candidates: [`refs/heads/${branch}`, `refs/remotes/origin/${branch}`],
-      })),
-    };
-  }
-  if (config.stem === null || config.stem === undefined) {
-    return {
-      error:
-        `the node \`${node}\` is a root of the tree ("stem": null), so there ` +
-        "is nothing to compare against. A list cannot hold an entry here: " +
-        "there is nothing above the root to differ FROM.",
-    };
-  }
-  const branch = entry.stemBranch ?? "main";
-  return {
-    stems: [
-      { name: `stem/${branch}`, candidates: [`refs/remotes/stem/${branch}`] },
-    ],
-  };
+	// The local `offshoot` branch first, as offshoot-fanout reads it, unless
+	// `origin/offshoot` is a newer version of it: a local config branch nobody
+	// fast-forwarded would otherwise hide every branch added to the config since.
+	const local = git(['rev-parse', '-q', '--verify', 'refs/heads/offshoot'], {
+		allowFailure: true,
+	});
+	const remote = git(
+		['rev-parse', '-q', '--verify', 'refs/remotes/origin/offshoot'],
+		{allowFailure: true},
+	);
+	const ref =
+		local && remote && local !== remote && isAncestor(local, remote)
+			? remote
+			: (local ?? remote);
+	const text = ref
+		? git(['show', `${ref}:fanout.config.json`], {allowFailure: true})
+		: undefined;
+	if (!text) {
+		return {
+			error:
+				'no ref given, no merge in progress, and no `offshoot` branch (local or ' +
+				'origin) holding fanout.config.json, so there is nothing to compare ' +
+				'against. Pass the stem commits, e.g.\n' +
+				'  git fetch stem main && node scripts/check-divergences.mjs FETCH_HEAD',
+		};
+	}
+	const config = JSON.parse(text);
+	const branches = config.branches ?? {main: {}};
+	let entry = branches[node];
+	let unknown;
+	if (!entry) {
+		// A list that came from another repo by cascade names one of THAT repo's
+		// branches. It is the stem's list byte for byte when this node has not
+		// written its own (checked below, with this repo's `main` stems), and
+		// only otherwise a list that is wrong here.
+		unknown =
+			`${LIST} names the node \`${node}\` (its last \`[branch]\` marker, or ` +
+			`\`main\` without one), and fanout.config.json lists no such branch ` +
+			`(it lists ${Object.keys(branches).join(', ')}). A list that came from ` +
+			`another repo by cascade is not this one's: write this node's own.`;
+		entry = branches.main;
+	}
+	if (!entry) {
+		return {
+			fatal:
+				`${LIST} names the node \`${node}\` (its last \`[branch]\` marker, or ` +
+				`\`main\` without one), and fanout.config.json lists no such branch ` +
+				`(it lists ${Object.keys(branches).join(', ')}). A list that came from ` +
+				`another repo by cascade is not this one's: write this node's own.`,
+		};
+	}
+	if (entry.stem) {
+		const stems = Array.isArray(entry.stem) ? entry.stem : [entry.stem];
+		return {
+			unknown,
+			stems: stems.map((branch) => ({
+				name: branch,
+				candidates: [`refs/heads/${branch}`, `refs/remotes/origin/${branch}`],
+			})),
+		};
+	}
+	if (config.stem === null || config.stem === undefined) {
+		return {
+			error:
+				`the node \`${node}\` is a root of the tree ("stem": null), so there ` +
+				'is nothing to compare against. A list cannot hold an entry here: ' +
+				'there is nothing above the root to differ FROM.',
+		};
+	}
+	const branch = entry.stemBranch ?? 'main';
+	return {
+		unknown,
+		stems: [
+			{name: `stem/${branch}`, candidates: [`refs/remotes/stem/${branch}`]},
+		],
+	};
 }
 
 function isAncestor(a, b) {
-  return (
-    git(["merge-base", "--is-ancestor", a, b], { allowFailure: true }) !==
-    undefined
-  );
+	return (
+		git(['merge-base', '--is-ancestor', a, b], {allowFailure: true}) !==
+		undefined
+	);
 }
 
 /** The stem commit last merged from a stem, the newer of its candidate refs. */
 function baseOf(stem) {
-  let best;
-  for (const ref of stem.candidates) {
-    if (
-      !git(["rev-parse", "-q", "--verify", `${ref}^{commit}`], {
-        allowFailure: true,
-      })
-    )
-      continue;
-    const base = git(["merge-base", "HEAD", ref], { allowFailure: true });
-    if (!base) continue;
-    if (!best || isAncestor(best.commit, base))
-      best = { commit: base, how: ref.replace(/^refs\/(heads|remotes)\//, "") };
-  }
-  return best;
+	let best;
+	for (const ref of stem.candidates) {
+		if (
+			!git(['rev-parse', '-q', '--verify', `${ref}^{commit}`], {
+				allowFailure: true,
+			})
+		)
+			continue;
+		const base = git(['merge-base', 'HEAD', ref], {allowFailure: true});
+		if (!base) continue;
+		if (!best || isAncestor(best.commit, base))
+			best = {commit: base, how: ref.replace(/^refs\/(heads|remotes)\//, '')};
+	}
+	return best;
 }
 
 const given = process.argv.slice(2);
-const fromEnv = (process.env.OFFSHOOT_STEM_REFS ?? "")
-  .split(/\s+/)
-  .filter((ref) => ref.length > 0);
+const fromEnv = (process.env.OFFSHOOT_STEM_REFS ?? '')
+	.split(/\s+/)
+	.filter((ref) => ref.length > 0);
 
 let stems;
 let configError;
+let unknownNode;
 if (given.length > 0 || fromEnv.length > 0) {
-  stems = (given.length > 0 ? given : fromEnv).map((ref) => {
-    const commit = git(["rev-parse", "--verify", `${ref}^{commit}`], {
-      allowFailure: true,
-    });
-    if (!commit) refuse(`cannot resolve the ref you gave: ${ref}`);
-    return { name: ref, candidates: [commit] };
-  });
+	stems = (given.length > 0 ? given : fromEnv).map((ref) => {
+		const commit = git(['rev-parse', '--verify', `${ref}^{commit}`], {
+			allowFailure: true,
+		});
+		if (!commit) refuse(`cannot resolve the ref you gave: ${ref}`);
+		return {name: ref, candidates: [commit]};
+	});
 } else {
-  const resolved = stemsFromConfig();
-  if (resolved.fatal) refuse(resolved.fatal);
-  if (resolved.error) configError = resolved.error;
-  stems = resolved.stems ?? [];
+	const resolved = stemsFromConfig();
+	if (resolved.fatal) refuse(resolved.fatal);
+	if (resolved.error) configError = resolved.error;
+	unknownNode = resolved.unknown;
+	stems = resolved.stems ?? [];
 }
 
 const bases = [];
 for (const stem of stems) {
-  const base = baseOf(stem);
-  if (!base) {
-    const message =
-      `${stem.name} is not here (or shares no history with HEAD): fetch it ` +
-      `(git fetch stem, or git fetch origin), or pass the stem commits.`;
-    if (merging) configError = message;
-    else refuse(message);
-    continue;
-  }
-  bases.push({
-    commit: base.commit,
-    how: given.length > 0 ? stem.name : base.how,
-  });
+	const base = baseOf(stem);
+	if (!base) {
+		const message =
+			`${stem.name} is not here (or shares no history with HEAD): fetch it ` +
+			`(git fetch stem, or git fetch origin), or pass the stem commits.`;
+		if (merging) configError = message;
+		else refuse(message);
+		continue;
+	}
+	bases.push({
+		commit: base.commit,
+		how: given.length > 0 ? stem.name : base.how,
+	});
 }
 
 let compared = bases;
 if (merging) {
-  // MERGE_HEAD is the newer version of the stem being merged: it replaces that
-  // stem's last-merged commit. The others stay.
-  compared = [
-    { commit: merging, how: "MERGE_HEAD (a merge in progress)" },
-    ...bases.filter((base) => !isAncestor(base.commit, merging)),
-  ];
-  if (configError) {
-    console.log(
-      `${YELLOW}  note: compared against MERGE_HEAD only, since ${configError}${NC}`,
-    );
-  }
+	// MERGE_HEAD is the newer version of the stem being merged: it replaces that
+	// stem's last-merged commit. The others stay.
+	compared = [
+		{commit: merging, how: 'MERGE_HEAD (a merge in progress)'},
+		...bases.filter((base) => !isAncestor(base.commit, merging)),
+	];
+	if (configError) {
+		console.log(
+			`${YELLOW}  note: compared against MERGE_HEAD only, since ${configError}${NC}`,
+		);
+	}
 } else if (compared.length === 0) {
-  refuse(configError ?? "nothing to compare against");
+	refuse(configError ?? 'nothing to compare against');
 }
 
 for (const base of compared) {
-  if (!merging && base.commit === head) {
-    refuse(
-      `${base.how} IS this commit (${head.slice(0, 8)}), so there is nothing ` +
-        `to compare against. That is not a pass - check the ref.`,
-    );
-  }
+	if (!merging && base.commit === head) {
+		refuse(
+			`${base.how} IS this commit (${head.slice(0, 8)}), so there is nothing ` +
+				`to compare against. That is not a pass - check the ref.`,
+		);
+	}
 }
 
 // A NODE THAT HAS NOT WRITTEN A LIST carries its stem's by cascade.
 for (const base of compared) {
-  const theirs = git(["show", `${base.commit}:${LIST}`], {
-    allowFailure: true,
-  });
-  if (theirs !== undefined && theirs === listText.trim()) {
-    notChecked(
-      `${LIST} is ${base.how.split(" ")[0]}'s byte for byte, so this node has ` +
-        `no list of its own yet and nothing here is checked`,
-    );
-  }
+	const theirs = git(['show', `${base.commit}:${LIST}`], {
+		allowFailure: true,
+	});
+	if (theirs !== undefined && theirs === listText.trim()) {
+		notChecked(
+			`${LIST} is ${base.how.split(' ')[0]}'s byte for byte, so this node has ` +
+				`no list of its own yet and nothing here is checked`,
+		);
+	}
 }
+if (unknownNode) refuse(unknownNode);
 
 function nulSplit(text) {
-  return (text ?? "").split("\0").filter((part) => part.length > 0);
+	return (text ?? '').split('\0').filter((part) => part.length > 0);
 }
 
 const unmerged = new Set(
-  nulSplit(git(["ls-files", "-u", "-z"])).map((line) =>
-    line.slice(line.indexOf("\t") + 1),
-  ),
+	nulSplit(git(['ls-files', '-u', '-z'])).map((line) =>
+		line.slice(line.indexOf('\t') + 1),
+	),
 );
 
 /** For one stem commit: the paths here that differ from it, and that it lacks. */
 function against(commit) {
-  const status = nulSplit(
-    git(["diff", "--name-status", "--no-renames", "-z", commit]),
-  );
-  const modified = new Set();
-  const added = new Set();
-  for (let i = 0; i + 1 < status.length; i += 2) {
-    const [kind, path] = [status[i][0], status[i + 1]];
-    if (unmerged.has(path) || path === LIST) continue;
-    if (kind === "M" || kind === "T") modified.add(path);
-    else if (kind === "A") added.add(path);
-  }
-  return { modified, added };
+	const status = nulSplit(
+		git(['diff', '--name-status', '--no-renames', '-z', commit]),
+	);
+	const modified = new Set();
+	const added = new Set();
+	for (let i = 0; i + 1 < status.length; i += 2) {
+		const [kind, path] = [status[i][0], status[i + 1]];
+		if (unmerged.has(path) || path === LIST) continue;
+		if (kind === 'M' || kind === 'T') modified.add(path);
+		else if (kind === 'A') added.add(path);
+	}
+	return {modified, added};
 }
 
 const diffs = compared.map((base) => against(base.commit));
 const candidates = new Set(diffs.flatMap((diff) => [...diff.modified]));
 const divergent = [...candidates]
-  .filter((path) =>
-    diffs.every((diff) => diff.modified.has(path) || diff.added.has(path)),
-  )
-  .sort();
+	.filter((path) =>
+		diffs.every((diff) => diff.modified.has(path) || diff.added.has(path)),
+	)
+	.sort();
 
 const problems = [];
 
 const bare = [...inherited, ...own.entries].filter(
-  (entry) => entry.reason.length === 0,
+	(entry) => entry.reason.length === 0,
 );
 if (bare.length > 0) {
-  problems.push([
-    "these entries have no reason, and an unexplained entry is how a " +
-      "divergence outlives the reason for it:",
-    bare.map((entry) => `line ${entry.line}: ${entry.path}`),
-  ]);
+	problems.push([
+		'these entries have no reason, and an unexplained entry is how a ' +
+			'divergence outlives the reason for it:',
+		bare.map((entry) => `line ${entry.line}: ${entry.path}`),
+	]);
 }
 
 const seen = new Set();
 const twice = own.entries.filter(
-  (entry) => seen.has(entry.path) || !seen.add(entry.path),
+	(entry) => seen.has(entry.path) || !seen.add(entry.path),
 );
 if (twice.length > 0) {
-  problems.push(["listed twice:", twice.map((entry) => entry.path)]);
+	problems.push(['listed twice:', twice.map((entry) => entry.path)]);
 }
 
 const listed = new Set(own.entries.map((entry) => entry.path));
 const unlisted = divergent.filter((path) => !listed.has(path));
 if (unlisted.length > 0) {
-  problems.push([
-    `these differ from the stem's and are not in ${LIST}${own.branch ? ` (its [${own.branch}] section)` : ""}: ` +
-      `list each with the reason it must differ, or take the stem's ` +
-      `(git checkout <stem commit> -- <path>):`,
-    unlisted,
-  ]);
+	problems.push([
+		`these differ from the stem's and are not in ${LIST}${own.branch ? ` (its [${own.branch}] section)` : ''}: ` +
+			`list each with the reason it must differ, or take the stem's ` +
+			`(git checkout <stem commit> -- <path>):`,
+		unlisted,
+	]);
 }
 
 const differing = new Set(divergent);
 const stale = [...listed].filter((path) => !differing.has(path)).sort();
 if (stale.length > 0) {
-  problems.push([
-    `these are listed in ${LIST} but do not differ from the stem's, or are ` +
-      `not one of its files: remove them from the list:`,
-    stale,
-  ]);
+	problems.push([
+		`these are listed in ${LIST} but do not differ from the stem's, or are ` +
+			`not one of its files: remove them from the list:`,
+		stale,
+	]);
 }
 
 const against_ = compared
-  .map((base) => `${base.commit.slice(0, 8)} (${base.how})`)
-  .join(", ");
+	.map((base) => `${base.commit.slice(0, 8)} (${base.how})`)
+	.join(', ');
 
 if (problems.length === 0) {
-  // Says the COUNT, so a pass over nothing is visible as one.
-  console.log(
-    `${GREEN}✓ ${divergent.length} shared file(s) differ from ${against_}, ` +
-      `each listed with its reason, for the node ${node}` +
-      (inherited.length > 0
-        ? ` (${inherited.length} inherited entries, its stems', checked there)`
-        : "") +
-      NC,
-  );
-  process.exit(0);
+	// Says the COUNT, so a pass over nothing is visible as one.
+	console.log(
+		`${GREEN}✓ ${divergent.length} shared file(s) differ from ${against_}, ` +
+			`each listed with its reason, for the node ${node}` +
+			(inherited.length > 0
+				? ` (${inherited.length} inherited entries, its stems', checked there)`
+				: '') +
+			NC,
+	);
+	process.exit(0);
 }
 
 console.error(`${RED}✗ ${LIST} does not describe the node ${node}:${NC}`);
 for (const [what, paths] of problems) {
-  console.error(`  ${what}`);
-  for (const path of paths) console.error(`    ${path}`);
+	console.error(`  ${what}`);
+	for (const path of paths) console.error(`    ${path}`);
 }
-console.error("");
+console.error('');
 console.error(`  Compared against ${against_}.`);
 process.exit(1);
