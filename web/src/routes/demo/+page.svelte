@@ -2,6 +2,7 @@
 	import DefaultHead from '../../lib/metadata/DefaultHead.svelte';
 	import {Button} from '$lib/shadcn/ui/button';
 	import {Input} from '$lib/shadcn/ui/input';
+	import {Badge} from '$lib/shadcn/ui/badge';
 	import {Spinner} from '$lib/shadcn/ui/spinner';
 	import MessageSquareIcon from '@lucide/svelte/icons/message-square';
 	import SendIcon from '@lucide/svelte/icons/send';
@@ -196,6 +197,18 @@
 								value={message.account}
 								class="hidden shrink-0 text-sm sm:inline-flex"
 							/>
+							{#if message.greetingCount !== undefined}
+								<!-- with/indexer: how many greetings this account has sent, from
+								     the indexer; absent until it answers (lib/onchain/indexer). -->
+								<Badge
+									variant="secondary"
+									class="shrink-0"
+									title="greetings sent by this account"
+									data-testid="greeting-count"
+								>
+									{message.greetingCount}
+								</Badge>
+							{/if}
 							<p class="min-w-0 flex-1 truncate text-base">{message.message}</p>
 							<span
 								class="overflow-hidden text-sm whitespace-nowrap text-muted-foreground"

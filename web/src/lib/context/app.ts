@@ -2,7 +2,13 @@ import {
 	createOnchainState,
 	type OnchainStateStore,
 } from '$lib/onchain/state.js';
-import {createViewState, type ViewStateStore} from '$lib/view/index.js';
+import {createViewState} from '$lib/view/index.js';
+import {
+	createGreetingCounts,
+	withGreetingCounts,
+	type CountedViewStateStore,
+} from '$lib/onchain/indexer/counts.js';
+import type {EIP1193Provider} from 'viem';
 import type {TypedDeployments} from '$lib/deployments-store.js';
 import type {CoreServices} from './core.js';
 
@@ -37,8 +43,14 @@ import type {CoreServices} from './core.js';
  * `createAppContext`, `AppMembers` and `operationScope`.
  */
 export function createAppContext(core: CoreServices): AppMembers {
-	const {publicClient, deployments, account, accountData, chainFetchGate} =
-		core;
+	const {
+		publicClient,
+		deployments,
+		account,
+		accountData,
+		chainFetchGate,
+		connection,
+	} = core;
 
 	// The demo needs one field of the resolved chain configuration. It takes it
 	// from `core.appConfig` rather than having core hand that field over, so an
@@ -53,7 +65,16 @@ export function createAppContext(core: CoreServices): AppMembers {
 		fetchGate: chainFetchGate,
 	});
 
-	const viewState = createViewState({
+	// THE INDEXER (`with/indexer`), BESIDE the poll above, never instead of it:
+	// how many greetings each account has sent, folded in a worker
+	// (`$lib/onchain/indexer`), laid over the view as an optional field.
+	const greetingCounts = createGreetingCounts({
+		provider: connection.provider as unknown as EIP1193Provider,
+		deployments: deployments.get(),
+		gate: chainFetchGate,
+	});
+
+	const directViewState = createViewState({
 		onchainState,
 		operations: accountData.watchField('operations'),
 		// The account a pending greeting belongs to. Here it is also the address
@@ -64,6 +85,8 @@ export function createAppContext(core: CoreServices): AppMembers {
 		account,
 		config,
 	});
+
+	const viewState = withGreetingCounts(directViewState, greetingCounts);
 
 	// `config` is not returned: it is this half's own construction detail, and
 	// core neither uses it nor puts it in the context.
@@ -81,7 +104,7 @@ export function createAppContext(core: CoreServices): AppMembers {
  */
 export type AppMembers = {
 	onchainState: OnchainStateStore;
-	viewState: ViewStateStore;
+	viewState: CountedViewStateStore;
 };
 
 /**

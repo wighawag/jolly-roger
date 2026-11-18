@@ -84,3 +84,5 @@ pnpm-lock.yaml                                         etherfold's packages, lib
 contracts/package.json                                 etherfold's packages, the ./utils/* export and utils/ built at install (prepare), for indexInProcess and deployInProcess in Node
 contracts/tsconfig.json                                compiles utils/ (indexInProcess, deployInProcess) beside the two generated indexes
 web/package.json                                       etherfold's browser packages; fake-indexeddb and the contracts package for the indexer's tests
+web/src/lib/context/app.ts                             the composition: the greetings' indexed counts, beside the poll, laid over the view
+web/src/routes/demo/+page.svelte                       a greeting-count badge beside each message, shown only when the indexer has answered
