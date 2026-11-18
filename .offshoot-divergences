@@ -72,3 +72,13 @@ web/src/lib/shadcn/ui/select/select-content.svelte     portals into its overlay 
 
 # The e2e
 web/e2e/tests/service-worker-gateway.e2e.ts            the gateway navigation retried: it races the worker's clients.claim(), which Chromium can abort
+
+[website]
+# AND BELOW THIS LINE, WHAT `website` MODIFIES FROM `main`: the template's own
+# website, deployed with pinnace.
+
+package.json                                           pinnace for the deployment, and the LAN package's pnpmDepsHash for this lockfile
+pnpm-lock.yaml                                         pinnace
+web/src/web-config.json                                the website's repository link
+web/src/lib/ui/navbar/navbar.svelte                    the website's About link
+web/src/routes/+page.svelte                            the website's hero and its "Check The Demo" call to action
