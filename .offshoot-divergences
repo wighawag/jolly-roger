@@ -140,3 +140,17 @@ web/test/lib/core/connection/executor.test.ts          who signs, per executor
 web/test/lib/core/connection/mode.test.ts              the execution mode is the executors' now
 web/test/lib/view/operation.test.ts                    which executor sent an operation
 web/test/lib/view/pending-operations.test.ts           the optimistic entry keyed by the account, the signer sending for it
+
+[with/hosted-account]
+# AND BELOW THIS LINE, WHAT `with/hosted-account` MODIFIES FROM
+# `with/local-signer`: sign-in at a hosted account (email, OAuth) against a
+# wallet host this repo runs in dev and in the e2e.
+
+package.json                                           the wallet host's dev script, and the LAN package's pnpmDepsHash for this lockfile
+pnpm-lock.yaml                                         the wallet host's packages
+dev/zellij.kdl                                         the wallet host in the dev layout
+scripts/run-e2e-tests.sh                               the e2e starts the wallet host beside the chain and the app
+web/.env                                               the wallet host's URL and the hosted sign-in's variables
+web/package.json                                       the hosted sign-in's packages
+web/playwright.config.ts                               two workers feeding the node, and the workers note corrected
+web/e2e/tests/delegation.e2e.ts                        the delegation flow with a hosted account among the sign-in choices
