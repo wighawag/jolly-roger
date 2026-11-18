@@ -6,10 +6,14 @@ import {test, expect, describe} from '../fixtures/test';
  * `MessageChanged` in the browser, and the row shows how many greetings its
  * account has sent (`data-testid="greeting-count"`), beside the direct read.
  *
- * The burner account is shared with the other suites, which post greetings of
- * their own meanwhile, so the count is compared before and after rather than
- * named: a second greeting must raise it.
+ * ITS OWN ACCOUNT (index 5): a suite that sends needs one, or it races
+ * another for the nonce (`test/e2e-account-claims.test.ts`). Not 3 or 4, which
+ * `with/local-signer`'s suites claim, so `with/push-notifications`, which stems
+ * from both, inherits no collision. The count is still compared before and
+ * after rather than named, so a re-run against the same chain passes too.
  */
+test.use({walletAccountIndex: 5});
+
 describe('Demo Page - greeting counts from the indexer', () => {
 	describe.configure({mode: 'serial'});
 
