@@ -33,6 +33,7 @@
 README.md                                              jolly-roger's README: the wallet-connected template with its contracts, the LAN package and how a descendant builds on it
 AGENTS.md                                              the repo's rules for agents: Svelte conventions plus the contracts' deploy rules and the LAN package's
 package.json                                           the monorepo of web and contracts: their scripts, the dev stack, the e2e and LAN settings ("lan", "e2e")
+package.json                                           the LAN package's pnpmDepsHash for this branch's lockfile
 pnpm-lock.yaml                                         the lockfile of this workspace's own dependencies (contracts, viem, @etherplay/connect, ...)
 pnpm-workspace.yaml                                    the contracts package in the workspace, and the cookie override for SvelteKit's vulnerable range
 .gitignore                                             the contracts', the LAN build's and the e2e's generated files
@@ -78,6 +79,7 @@ web/e2e/tests/service-worker-gateway.e2e.ts            the gateway navigation re
 # state folded by an etherfold processor in a worker in the tab, read BESIDE the
 # direct read, never instead of it (README.indexer.md).
 
+package.json                                           the LAN package's pnpmDepsHash for this branch's lockfile
 pnpm-lock.yaml                                         etherfold's packages, libSQL and fake-indexeddb
 contracts/package.json                                 etherfold's packages and the ./utils/* export, for indexInProcess in Node
 contracts/tsconfig.json                                compiles utils/ (indexInProcess) beside the two generated indexes
