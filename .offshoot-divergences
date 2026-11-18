@@ -1,0 +1,142 @@
+# The stem's files this node carries MODIFIED, each with the reason it differs.
+#
+# WHAT THIS IS FOR. `.offshoot-omissions` lists what this repo does not carry
+# from its stem; this lists what it carries and changes. Everything else is the
+# stem's byte for byte or this repo's own, so a diff against the stem reads as:
+# the additions, the omissions (listed there) and these. A modified file is a
+# conflict on every cascade that touches it, so each one here is a cost paid on
+# purpose, and the reason says what it buys. A cascade reviewer meeting one of
+# these files knows the node's side is a decision; meeting any other modified
+# file, it is drift.
+#
+# AND IT IS CHECKED, by `scripts/check-divergences.mjs` (the tree's one copy,
+# from template-svelte), run by `web/test/offshoot-divergences.test.ts` and by
+# `scripts/apply-omissions.sh` during a merge: it fails on a modified file with
+# no entry, on an entry whose file no longer differs, and on an entry with no
+# reason. A file at the stem's OLD version is drift, not a divergence:
+# `scripts/check-stem-drift.mjs` catches that.
+#
+# FORMAT. One file per line: its path, then its reason. `#` starts a comment.
+# A line `[<branch>]` starts a section.
+#
+# SECTIONS, AND HOW THIS FILE CASCADES. This section, with no marker, is
+# `main`'s: what jolly-roger `main` modifies from template-svelte-shadcn
+# `main`. Each other branch of this repo inherits it by merge, as it inherits
+# `.offshoot-omissions`, and adds its own entries below a `[<its branch>]`
+# marker: what IT modifies from its own stem branch. Only the last section is
+# checked at a node; the sections above are its stems', checked there. A child
+# REPO (template-commit-reveal, bleeps, mandalas, template-zk-game) never keeps
+# these entries: its list is its own, written against this repo, and until it
+# writes one it carries this file unchanged and the check says it has none.
+
+# The repo's identity, documents and workspace
+README.md                                              jolly-roger's README: the wallet-connected template with its contracts, the LAN package and how a descendant builds on it
+AGENTS.md                                              the repo's rules for agents: Svelte conventions plus the contracts' deploy rules and the LAN package's
+package.json                                           the monorepo of web and contracts: their scripts, the dev stack, the e2e and LAN settings ("lan", "e2e")
+pnpm-lock.yaml                                         the lockfile of this workspace's own dependencies (contracts, viem, @etherplay/connect, ...)
+pnpm-workspace.yaml                                    the contracts package in the workspace, and the cookie override for SvelteKit's vulnerable range
+.gitignore                                             the contracts', the LAN build's and the e2e's generated files
+.offshoot-omissions                                    jolly-roger's own omissions from template-svelte-shadcn (Head.svelte moved, the svg icon, the dev layouts)
+
+# The web package's configuration
+web/package.json                                       the web app's dependencies (viem, @etherplay/connect, the account-data stack) and its scripts
+web/.env                                               the chain's public variables: the node URL, the URL handed to wallets, ENS, the explorer's block index
+web/.gitignore                                         the generated deployments module, yalc, and the e2e outputs as this app's playwright writes them
+web/.prettierignore                                    the vendored shadcn components are not reformatted
+web/README.md                                          the web app's README: the wallet-connected app, what already exists, how to switch the logs on
+web/svelte.config.js                                   the `$app-specific` alias, the slot an app on this template is composed through
+web/vite.config.ts                                     the two vitest projects (server and browser) run one after the other, workers capped, the dev host
+web/playwright.config.ts                               the e2e runs a local chain, deploys the contracts and drives a wallet, so its config starts them
+web/src/web-config.json                                the brand: Jolly Roger's name, description, URLs and identity links
+web/src/app.html                                       dark mode by default, and the named-logs console script that reads ?debug, documented where it is inlined
+web/src/app.d.ts                                       PageData's optional surfaceChrome and the shallow-routing overlay state, typed for the layout that reads them
+web/src/app.css                                        the overlay layers' z-index scale, the viewport-clamped layout, the dispatch and funding modal styles
+web/static/_redirects                                  the explorer's dynamic routes rewritten for unique-origin IPFS gateways, before the 404 fallback
+
+# The app shell and its composition
+web/src/lib/index.ts                                   where this app is composed: the wallet connection, the account stores, the logs, the dispatch indicator
+web/src/lib/kit/README.md                              the adapter's scope as it stands here, its claims narrowed to what is true
+web/src/routes/+layout.svelte                          the shell: the chrome as a list a descendant extends, the overlay layers, a surface's own chrome
+web/src/routes/+layout.ts                              the version logged at start and the named-logs init logger, beside the stem's service-worker toggle
+web/src/routes/+page.svelte                            jolly-roger's home page, through the kit's paths and the shadcn button
+web/src/routes/+error.svelte                           the error page in the shadcn style and clamped to the viewport like the rest of the app
+web/test/framework-boundary.test.ts                    the boundary rule stated as inherited from template-svelte, with this repo's ADR-0004 and its own leak list
+
+# Components the overlay layers needed changed (ADR-0005 on the `work` branch)
+web/src/lib/components/NavigationProgress.svelte       no z-index of its own: it renders inside the "progress" overlay layer, which decides what it covers
+web/src/lib/core/notifications/NotificationOverlay.svelte  no z-index of its own: the notifications' overlay layer decides what it sits above
+web/src/lib/shadcn/ui/dialog/dialog-content.svelte     portals into its overlay layer in $lib/core/ui/layers instead of the body
+web/src/lib/shadcn/ui/drawer/drawer-content.svelte     portals into its overlay layer in $lib/core/ui/layers instead of the body
+web/src/lib/shadcn/ui/popover/popover-content.svelte   portals into its overlay layer in $lib/core/ui/layers instead of the body
+web/src/lib/shadcn/ui/select/select-content.svelte     portals into its overlay layer in $lib/core/ui/layers instead of the body
+
+# The e2e
+web/e2e/tests/service-worker-gateway.e2e.ts            the gateway navigation retried: it races the worker's clients.claim(), which Chromium can abort
+
+[with/local-signer]
+# AND BELOW THIS LINE, WHAT `with/local-signer` MODIFIES FROM `main`: the app
+# sends through a LOCAL SIGNER, a key it holds and the account delegates to on
+# GreetingsRegistry (@etherplay/delegation), with the signer's gas surfaced and
+# a payment rail to top it up.
+
+# The repo and its workspace
+README.md                                              the LAN rehearsal script this branch adds (scripts/rehearse-lan.sh)
+.offshoot-omissions                                    this branch's own omission below main's: contracts/deployments/sepolia, which is main's contracts
+pnpm-lock.yaml                                         @etherplay/delegation in the contracts package
+scripts/run-e2e-tests.sh                               a faucet in the e2e stack, since the local signer's gas is funded and not Hardhat's
+
+# The contracts: greetings belong to the account, posted by its delegate
+contracts/package.json                                 depends on @etherplay/delegation
+contracts/remappings.txt                               the @etherplay/delegation remapping
+contracts/rocketh/config.ts                            the payment rail's configuration, the signer's top-up
+contracts/src/GreetingsRegistry/GreetingsRegistry.sol  setMessageFor: a delegate posts for its account, credentials bound to this contract
+contracts/src/GreetingsRegistry/IGreetingsRegistry.sol setMessageFor in the interface
+contracts/test/solidity/GreetingsRegistry/GreetingsRegistry.t.sol  the delegation's cases beside main's
+
+# The web app's configuration and composition
+web/.env                                               who signs: the executors' variables replacing PUBLIC_EXECUTION_MODE
+web/playwright.config.ts                               workers capped for the stalling wallet, and its cause named
+web/src/lib/context/app.ts                             the payment dialog told what it is for
+web/src/lib/context/config.ts                          the delegation registry's address and the payment rail's
+web/src/lib/context/core.ts                            the local signer composed: the executors, the signer's RPC, the payment rail's client, its guards
+web/src/lib/context/index.ts                           the context exports the payment and delegation pieces
+web/src/lib/context/types.ts                           the context's types for the executors, the payment rail and its purpose
+web/src/lib/context/AcrossPages.svelte                 the funding flow and the delegation wired across pages
+web/src/lib/dev-accounts.ts                            the dev executors (which key signs) beside main's dev accounts
+
+# Accounts and operations: several senders act for one account
+web/src/lib/account/AccountData.ts                     operations keyed by the account, whatever sender acted for it
+web/src/lib/account/connectors.ts                      several clients (the wallet and the local signer), the payment rail's client tracked
+web/src/lib/account/recorded-nonces.ts                 a nonce is evidence about one sender, filtered by sender
+web/src/lib/view/index.ts                              a greeting is set by setMessage or setMessageFor
+web/src/lib/view/operation.ts                          which executor sent an operation
+
+# The UI
+web/src/lib/core/connection/ConnectionFlow.svelte      a refusal told from a cancellation, and a stray click not losing the connection
+web/src/lib/core/connection/mode.ts                    the execution mode is the executors' now, one line left
+web/src/lib/core/transaction/AccountCannotSendModal.svelte  names who signs instead of an execution mode
+web/src/lib/core/transaction/InsufficientFundsModal.svelte  which payer is short and the top-up of the signer as one flow
+web/src/lib/ui/navbar/navbar.svelte                    the account drawer with the signer's funding, portalled into its layer
+web/src/routes/demo/+page.svelte                       the demo offers the signer's top-up when a send fails for want of gas
+web/src/routes/demo/lib/setGreeting.ts                 a greeting sent by the local signer through setMessageFor
+
+# The e2e
+web/e2e/fixtures/stalling-wallet.ts                    the stalled write goes through /contracts here, since the demo's Send never reaches the wallet
+web/e2e/fixtures/test.ts                               the delegation, the faucet and the burner's funding in the fixtures
+web/e2e/impersonate-addresses.json                     the faucet's address
+web/e2e/tests/demo.e2e.ts                              a greeting belongs to the account, posted by its delegate
+web/e2e/tests/escape-hatch.e2e.ts                      the reconnect names the address it needs; the wallet list reached collapsed or not
+web/e2e/tests/pending-operation.e2e.ts                 the inspector's cases given the delegation fixture they need
+
+# Unit tests of the above
+web/test/e2e-account-claims.test.ts                    the stalling-wallet guard matches an import, not a mention (967b10b2; generic, its home is main: a K item)
+web/test/lib/account/connectors.test.ts                several clients and the payment rail's
+web/test/lib/account/operations-migration.test.ts      recorded nonces filtered by sender
+web/test/lib/account/replacement-correlation.test.ts   the connector takes a list of clients
+web/test/lib/account/stored-operations.svelte.test.ts  operations keyed by the account, readStoredOperations gone
+web/test/lib/context/fatal.test.ts                     the signer's and the payment rail's failures
+web/test/lib/context/ssr-context.test.ts               the executors and the payment rail on the server
+web/test/lib/core/connection/executor.test.ts          who signs, per executor
+web/test/lib/core/connection/mode.test.ts              the execution mode is the executors' now
+web/test/lib/view/operation.test.ts                    which executor sent an operation
+web/test/lib/view/pending-operations.test.ts           the optimistic entry keyed by the account, the signer sending for it
