@@ -329,6 +329,57 @@ describe('check-divergences.mjs', () => {
 		expect(output).toContain('no list of its own');
 	});
 
+	it("says a list from the stem repo, naming one of ITS branches, is not this node's when it is the stem's byte for byte", () => {
+		// A child repo whose stem branch is a multi-branch repo's `integration`
+		// inherits that list, whose last marker names `integration`.
+		const list = 'z.ts  the stem changed z\n[integration]\ny.ts  and y\n';
+		const dir = scratch({'a.ts': 'a\n', [LIST]: list});
+		git(dir, ['update-ref', 'refs/remotes/stem/integration', 'stem']);
+		config(dir, {
+			stem: 'github:example/parent',
+			branches: {main: {stemBranch: 'integration'}},
+		});
+		commit(dir, {'a.ts': 'mine\n'}, 'child: its a, no list of its own');
+
+		const {status, output} = check(dir);
+
+		expect(status, output).toBe(2);
+		expect(output).toContain('no list of its own');
+	});
+
+	it('reads origin/offshoot when the local offshoot branch is an older version of it', () => {
+		const dir = scratch({'a.ts': 'a\n', 'b.ts': 'b\n'});
+		git(dir, ['branch', '-q', 'main', 'stem']);
+		config(dir, {stem: 'github:example/parent', branches: {main: {}}});
+		const old = git(dir, ['rev-parse', 'offshoot']);
+		config(dir, {
+			stem: 'github:example/parent',
+			branches: {main: {}, 'with/x': {stem: 'main'}},
+		});
+		// The newer config, one commit on top of the old, as origin's.
+		const newer = git(dir, ['rev-parse', 'offshoot']);
+		const tree = git(dir, ['rev-parse', `${newer}^{tree}`]);
+		const onTop = git(dir, [
+			'commit-tree',
+			tree,
+			'-p',
+			old,
+			'-m',
+			'config, later',
+		]);
+		git(dir, ['update-ref', 'refs/remotes/origin/offshoot', onTop]);
+		git(dir, ['update-ref', 'refs/heads/offshoot', old]);
+		commit(
+			dir,
+			{'b.ts': 'mine\n', [LIST]: '[with/x]\nb.ts  its b\n'},
+			'with/x: its b',
+		);
+
+		const {status, output} = check(dir);
+
+		expect(status, output).toBe(0);
+	});
+
 	it('says there is nothing to check where there is no list', () => {
 		const dir = scratch({'a.ts': 'a\n'});
 
