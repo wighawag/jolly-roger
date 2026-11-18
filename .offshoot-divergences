@@ -158,3 +158,11 @@ web/src/lib/core/tab-leader/storage-lock.ts            the same fix, in the stor
 web/test/lib/core/tab-leader/storage-lock.test.ts      the two-worlds case of that fix
 web/src/routes/+page.svelte                            the home page's "Play Offline" button to /offline-demo/
 
+[integration]
+# AND BELOW THIS LINE, WHAT `integration` MODIFIES FROM BOTH ITS STEMS,
+# `with/local-signer` and `with/embedded-chain`: where the two meet, a file
+# holds both. Every other file is one stem's.
+
+contracts/package.json                                 both stems' changes: @etherplay/delegation (local-signer) and the package built at install (embedded-chain)
+pnpm-lock.yaml                                         both stems' dependencies, re-resolved together
+web/src/lib/context/core.ts                            both stems' compositions in one: the local signer and the payment rail beside the world in the tab and its tab leader
