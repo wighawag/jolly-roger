@@ -1,0 +1,74 @@
+# The stem's files this node carries MODIFIED, each with the reason it differs.
+#
+# WHAT THIS IS FOR. `.offshoot-omissions` lists what this repo does not carry
+# from its stem; this lists what it carries and changes. Everything else is the
+# stem's byte for byte or this repo's own, so a diff against the stem reads as:
+# the additions, the omissions (listed there) and these. A modified file is a
+# conflict on every cascade that touches it, so each one here is a cost paid on
+# purpose, and the reason says what it buys. A cascade reviewer meeting one of
+# these files knows the node's side is a decision; meeting any other modified
+# file, it is drift.
+#
+# AND IT IS CHECKED, by `scripts/check-divergences.mjs` (the tree's one copy,
+# from template-svelte), run by `web/test/offshoot-divergences.test.ts` and by
+# `scripts/apply-omissions.sh` during a merge: it fails on a modified file with
+# no entry, on an entry whose file no longer differs, and on an entry with no
+# reason. A file at the stem's OLD version is drift, not a divergence:
+# `scripts/check-stem-drift.mjs` catches that.
+#
+# FORMAT. One file per line: its path, then its reason. `#` starts a comment.
+# A line `[<branch>]` starts a section.
+#
+# SECTIONS, AND HOW THIS FILE CASCADES. This section, with no marker, is
+# `main`'s: what jolly-roger `main` modifies from template-svelte-shadcn
+# `main`. Each other branch of this repo inherits it by merge, as it inherits
+# `.offshoot-omissions`, and adds its own entries below a `[<its branch>]`
+# marker: what IT modifies from its own stem branch. Only the last section is
+# checked at a node; the sections above are its stems', checked there. A child
+# REPO (template-commit-reveal, bleeps, mandalas, template-zk-game) never keeps
+# these entries: its list is its own, written against this repo, and until it
+# writes one it carries this file unchanged and the check says it has none.
+
+# The repo's identity, documents and workspace
+README.md                                              jolly-roger's README: the wallet-connected template with its contracts, the LAN package and how a descendant builds on it
+AGENTS.md                                              the repo's rules for agents: Svelte conventions plus the contracts' deploy rules and the LAN package's
+package.json                                           the monorepo of web and contracts: their scripts, the dev stack, the e2e and LAN settings ("lan", "e2e")
+pnpm-lock.yaml                                         the lockfile of this workspace's own dependencies (contracts, viem, @etherplay/connect, ...)
+pnpm-workspace.yaml                                    the contracts package in the workspace, and the cookie override for SvelteKit's vulnerable range
+.gitignore                                             the contracts', the LAN build's and the e2e's generated files
+.offshoot-omissions                                    jolly-roger's own omissions from template-svelte-shadcn (Head.svelte moved, the svg icon, the dev layouts)
+
+# The web package's configuration
+web/package.json                                       the web app's dependencies (viem, @etherplay/connect, the account-data stack) and its scripts
+web/.env                                               the chain's public variables: the node URL, the URL handed to wallets, ENS, the explorer's block index
+web/.gitignore                                         the generated deployments module, yalc, and the e2e outputs as this app's playwright writes them
+web/.prettierignore                                    the vendored shadcn components are not reformatted
+web/README.md                                          the web app's README: the wallet-connected app, what already exists, how to switch the logs on
+web/svelte.config.js                                   the `$app-specific` alias, the slot an app on this template is composed through
+web/vite.config.ts                                     the two vitest projects (server and browser) run one after the other, workers capped, the dev host
+web/playwright.config.ts                               the e2e runs a local chain, deploys the contracts and drives a wallet, so its config starts them
+web/src/web-config.json                                the brand: Jolly Roger's name, description, URLs and identity links
+web/src/app.html                                       dark mode by default, and the named-logs console script that reads ?debug, documented where it is inlined
+web/src/app.d.ts                                       PageData's optional surfaceChrome and the shallow-routing overlay state, typed for the layout that reads them
+web/src/app.css                                        the overlay layers' z-index scale, the viewport-clamped layout, the dispatch and funding modal styles
+web/static/_redirects                                  the explorer's dynamic routes rewritten for unique-origin IPFS gateways, before the 404 fallback
+
+# The app shell and its composition
+web/src/lib/index.ts                                   where this app is composed: the wallet connection, the account stores, the logs, the dispatch indicator
+web/src/lib/kit/README.md                              the adapter's scope as it stands here, its claims narrowed to what is true
+web/src/routes/+layout.svelte                          the shell: the chrome as a list a descendant extends, the overlay layers, a surface's own chrome
+web/src/routes/+layout.ts                              the version logged at start and the named-logs init logger, beside the stem's service-worker toggle
+web/src/routes/+page.svelte                            jolly-roger's home page, through the kit's paths and the shadcn button
+web/src/routes/+error.svelte                           the error page in the shadcn style and clamped to the viewport like the rest of the app
+web/test/framework-boundary.test.ts                    the boundary rule stated as inherited from template-svelte, with this repo's ADR-0004 and its own leak list
+
+# Components the overlay layers needed changed (ADR-0005 on the `work` branch)
+web/src/lib/components/NavigationProgress.svelte       no z-index of its own: it renders inside the "progress" overlay layer, which decides what it covers
+web/src/lib/core/notifications/NotificationOverlay.svelte  no z-index of its own: the notifications' overlay layer decides what it sits above
+web/src/lib/shadcn/ui/dialog/dialog-content.svelte     portals into its overlay layer in $lib/core/ui/layers instead of the body
+web/src/lib/shadcn/ui/drawer/drawer-content.svelte     portals into its overlay layer in $lib/core/ui/layers instead of the body
+web/src/lib/shadcn/ui/popover/popover-content.svelte   portals into its overlay layer in $lib/core/ui/layers instead of the body
+web/src/lib/shadcn/ui/select/select-content.svelte     portals into its overlay layer in $lib/core/ui/layers instead of the body
+
+# The e2e
+web/e2e/tests/service-worker-gateway.e2e.ts            the gateway navigation retried: it races the worker's clients.claim(), which Chromium can abort
