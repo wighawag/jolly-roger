@@ -11,6 +11,9 @@
     "with/embedded-chain": {
       "stem": "main"
     },
+    "with/indexer": {
+      "stem": "main"
+    },
     "integration": {
       "stem": [
         "with/local-signer",
