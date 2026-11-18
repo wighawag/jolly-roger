@@ -144,6 +144,19 @@ if git rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1; then
         echo -e "  version, or make the file this repo's own.${NC}"
         exit 1
     fi
+    # AND A SHARED FILE THIS NODE MODIFIES WITHOUT A REASON, or a reason whose
+    # modification is gone: a merge is where both happen (a resolution that
+    # blends two sides, a stem that took the node's change). Only where the node
+    # keeps a list; exit 2 is "no list of its own yet", which is not a failure.
+    if [ -f "$REPO_DIR/.offshoot-divergences" ]; then
+        divergences=0
+        node "$REPO_DIR/scripts/check-divergences.mjs" || divergences=$?
+        if [ "$divergences" -eq 1 ]; then
+            echo -e "${RED}  Resolve that before committing the merge: give the file its"
+            echo -e "  reason in .offshoot-divergences, or take the stem's version.${NC}"
+            exit 1
+        fi
+    fi
 else
     echo
     echo -e "${YELLOW}  Not in a merge, so the list was not checked AGAINST THE STEM.${NC}"
@@ -151,6 +164,8 @@ else
     echo -e "${YELLOW}    git fetch stem <branch> && node scripts/check-omissions.mjs FETCH_HEAD${NC}"
     echo -e "${YELLOW}  and the one that catches a file left at the stem's old version:${NC}"
     echo -e "${YELLOW}    node scripts/check-stem-drift.mjs FETCH_HEAD${NC}"
+    echo -e "${YELLOW}  and, where it keeps a list, the one that catches a modified file with no reason:${NC}"
+    echo -e "${YELLOW}    node scripts/check-divergences.mjs FETCH_HEAD${NC}"
 fi
 
 if [ "$removed" -gt 0 ]; then
