@@ -54,6 +54,15 @@ with/notifications  stem: [with/indexer, with/local-signer]   feature: true
 with/all            stem: [with/notifications, with/sync, with/messaging, with/hosted-account, with/webevm]
 ```
 
+> **Amended 2026-11-18 (the template-tree plan's step F1a, decision F1-8; a note, not a rewrite).** The graph above was drawn before three things existed, and reads as follows today:
+>
+> - **`with/webevm` is `with/embedded-chain`** (the chain in the tab, from `main`), and the in-tab chain reaches the games through **`integration`**, stemming from `[with/local-signer, with/embedded-chain]`, which template-commit-reveal's `main` is fed from. There is no `with/all` at jolly-roger.
+> - **`with/indexer` exists** (2026-11-18, from `main`, as drawn): etherfold's host, follower and worker choice moved up from template-commit-reveal's own `with/indexer`, and a GreetingsRegistry processor whose per-account count is the badge below, beside the poll (R6). See `README.indexer.md` on that branch.
+> - **`with/notifications` is named `with/push-notifications`** (the user's name), still from `[with/indexer, with/local-signer]`.
+> - **A layer reaches the games through a SECOND ROOT, not through `integration`.** offshoot-fanout refuses a branch with both an in-repo stem and a cross-repo `stemBranch`, and template-commit-reveal reaches jolly-roger through one edge (`main` from `integration`), so a layer beside `integration` would otherwise reach the games only by entering `integration`, and so every game. A child repo that wants a layer grows a root fed from it (`upstream/with/indexer`, `{"stemBranch": "with/indexer"}`) and its own layer stems from `[main, upstream/<layer>]`. The same pattern serves `with/messaging` later.
+>
+> The shared address-ownership proof (open decision 2 below) is `delegated-identity`, its own repo, used by the push server, the trigger service and missiv.
+
 Three decisions are load-bearing.
 
 **`with/indexer` stems from `main`, not from `with/local-signer`.** Indexing is read-only and needs no wallet. Chaining it under the signer would hand every indexer adopter a signing layer they did not ask for, which is the "a chain lies about the dependency" trap the reconciliation skill names explicitly. The same argument puts `with/webevm` on `main`.
@@ -190,5 +199,5 @@ The number that does not shrink is verification: 10 nodes each needing check, un
 ## Open decisions
 
 1. ~~Can a branch be both multi-stem and `feature: true`?~~ **Resolved 2026-08-26: yes, verified against the implementation.** `parseBranchGraph` accepts `stem` as a string or a non-empty array, and rejects `feature: true` only when `stem` is absent entirely (the base case). Running this PRD's exact graph through `parseBranchGraph` and `featuresOf`: `with/notifications` is adoptable and carries `{notifications, indexer, local-signer}`, `with/all` carries all seven features, and `website` correctly carries none. No change to offshoot is needed.
-2. Who owns the shared address-ownership-proof package, and where does it live?
+2. ~~Who owns the shared address-ownership-proof package, and where does it live?~~ **Resolved 2026-11-17 (the template-tree plan, S1-3): `delegated-identity`** (github.com/wighawag/delegated-identity, MIT), used by push-notification-server, etherfold-triggers and missiv.
 3. Does `with/webevm` supersede `variant/offline`, or do they answer different questions?
