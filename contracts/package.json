@@ -5,6 +5,7 @@
 	"exports": {
 		"./deploy/*": "./dist/deploy/*",
 		"./rocketh/*": "./dist/rocketh/*",
+		"./utils/*": "./dist/utils/*",
 		"./artifacts/*": "./dist/generated/artifacts/*",
 		"./abis/*": "./dist/generated/abis/*",
 		"./deployments/*": "./deployments/*",
@@ -16,6 +17,11 @@
 		"deployments"
 	],
 	"devDependencies": {
+		"@etherfold/browser": "^0.13.0",
+		"@etherfold/graphql": "^0.2.2",
+		"@etherfold/processor-entities": "^0.4.2",
+		"@etherfold/state-store-sqlite": "^0.5.1",
+		"@libsql/client": "^0.17.4",
 		"@nomicfoundation/hardhat-keystore": "^3.0.13",
 		"@nomicfoundation/hardhat-network-helpers": "^3.0.11",
 		"@nomicfoundation/hardhat-node-test-runner": "^3.1.0",
@@ -33,6 +39,7 @@
 		"@types/node": "^26.2.0",
 		"as-soon": "^0.1.6",
 		"earl": "^2.0.0",
+		"eip-1193": "^0.7.4",
 		"expand-vars": "^0.1.0",
 		"faucet-server": "^0.2.0",
 		"forge-std": "github:foundry-rs/forge-std#v1.9.4",
@@ -43,6 +50,7 @@
 		"prettier": "^3.9.6",
 		"prettier-plugin-solidity": "^2.4.1",
 		"purgatory": "^0.0.8",
+		"remote-sql-libsql": "^0.0.7",
 		"rocketh": "^0.25.0",
 		"set-defaults": "^0.0.5",
 		"slippy": "^0.3.1",

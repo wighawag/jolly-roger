@@ -72,3 +72,13 @@ web/src/lib/shadcn/ui/select/select-content.svelte     portals into its overlay 
 
 # The e2e
 web/e2e/tests/service-worker-gateway.e2e.ts            the gateway navigation retried: it races the worker's clients.claim(), which Chromium can abort
+
+[with/indexer]
+# AND BELOW THIS LINE, WHAT `with/indexer` MODIFIES FROM `main`: an app's
+# state folded by an etherfold processor in a worker in the tab, read BESIDE the
+# direct read, never instead of it (README.indexer.md).
+
+pnpm-lock.yaml                                         etherfold's packages, libSQL and fake-indexeddb
+contracts/package.json                                 etherfold's packages and the ./utils/* export, for indexInProcess in Node
+contracts/tsconfig.json                                compiles utils/ (indexInProcess) beside the two generated indexes
+web/package.json                                       etherfold's browser packages, and fake-indexeddb for the worker choice's test

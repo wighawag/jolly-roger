@@ -32,6 +32,21 @@ importers:
 
   contracts:
     devDependencies:
+      '@etherfold/browser':
+        specifier: ^0.13.0
+        version: 0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@3.25.76)
+      '@etherfold/graphql':
+        specifier: ^0.2.2
+        version: 0.2.2(@etherfold/browser@0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@3.25.76))(vitest@4.1.11)
+      '@etherfold/processor-entities':
+        specifier: ^0.4.2
+        version: 0.4.2(typescript@6.0.3)(zod@3.25.76)
+      '@etherfold/state-store-sqlite':
+        specifier: ^0.5.1
+        version: 0.5.1(vitest@4.1.11)
+      '@libsql/client':
+        specifier: ^0.17.4
+        version: 0.17.4
       '@nomicfoundation/hardhat-keystore':
         specifier: ^3.0.13
         version: 3.0.13(hardhat@3.21.0)
@@ -83,6 +98,9 @@ importers:
       earl:
         specifier: ^2.0.0
         version: 2.0.0
+      eip-1193:
+        specifier: ^0.7.4
+        version: 0.7.4
       expand-vars:
         specifier: ^0.1.0
         version: 0.1.0
@@ -113,6 +131,9 @@ importers:
       purgatory:
         specifier: ^0.0.8
         version: 0.0.8(@libsql/core@0.17.4)(hono@4.13.3)(typescript@6.0.3)(zod@3.25.76)
+      remote-sql-libsql:
+        specifier: ^0.0.7
+        version: 0.0.7(@libsql/core@0.17.4)
       rocketh:
         specifier: ^0.25.0
         version: 0.25.0(typescript@6.0.3)(zod@3.25.76)
@@ -140,6 +161,18 @@ importers:
 
   web:
     devDependencies:
+      '@etherfold/browser':
+        specifier: ^0.13.0
+        version: 0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3)
+      '@etherfold/graphql':
+        specifier: ^0.2.2
+        version: 0.2.2(@etherfold/browser@0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3))(vitest@4.1.11)
+      '@etherfold/processor-entities':
+        specifier: ^0.4.2
+        version: 0.4.2(typescript@6.0.3)(zod@4.4.3)
+      '@etherfold/state-store':
+        specifier: ^0.5.1
+        version: 0.5.1
       '@etherkit/burner-wallet':
         specifier: ^0.2.2
         version: 0.2.2(typescript@6.0.3)(viem@2.55.19(typescript@6.0.3)(zod@4.4.3))(zod@4.4.3)
@@ -197,6 +230,9 @@ importers:
       eip-1193:
         specifier: ^0.7.4
         version: 0.7.4
+      fake-indexeddb:
+        specifier: ^6.2.8
+        version: 6.2.8
       faucet-client:
         specifier: ^0.1.0
         version: 0.1.0
@@ -310,6 +346,9 @@ packages:
 
   '@eip-1193/jsonrpc-provider@0.6.0':
     resolution: {integrity: sha512-9+0lRur/WqeV1Gbx9cqnZB6oaL/Io9jkBxDc1YymT9cKdlOeOVGlvjMEtaGlMiSPE25OnX3a7OEX2BDBFJeqyQ==}
+
+  '@eip-1193/over-port@0.2.1':
+    resolution: {integrity: sha512-jU9KaHQDLgISkkqsq6LLjxKMFNVvuUiJQDrLb3SHCDfT458b0UEJSRu6mf8USIHJpvXyYqJo3z64gsrKqZ91eg==}
 
   '@eip-1193/signer@0.4.1':
     resolution: {integrity: sha512-xL91MRttMgQeoTomMgBZNc01Rzb++0BwHPOyAuu86DiVGgorgJ/3m888JfW8muBEAZZWPHhGozhUMbauW+hhVw==}
@@ -472,6 +511,43 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@etherfold/accessor@0.1.2':
+    resolution: {integrity: sha512-A2I+7Yxky5YMNkK++kffV3wg46QfFxS0H2Put/P6CdfE52wjYs4rcMrUuDzc0iQsi8Lun7ta6ZLlR9P5v74JeQ==}
+    peerDependencies:
+      vitest: '>=3'
+    peerDependenciesMeta:
+      vitest:
+        optional: true
+
+  '@etherfold/browser@0.13.0':
+    resolution: {integrity: sha512-0oerE70+V6y2CThvmADbv0fNrmyjWGnOqXOoqpuFzHuaKb8BtTZnGAZVh1lnfaX0hwrrFL0LJUYJ6A2eO/vGug==}
+
+  '@etherfold/core@0.12.0':
+    resolution: {integrity: sha512-QkigIe9/npoMQvzslO9MxtKaUiZb0tWo6oGwItqbNVxoVPluM+nmuXOsOcOCMWzdD4Q8sF7CIZyaAqapSBVOkw==}
+
+  '@etherfold/graphql@0.2.2':
+    resolution: {integrity: sha512-s4xkC5GbJYyhrfhNlCBSv+kjRY54+w1kdaH8rrDGACkZ/IbRKv/yA7W5Hb/Mi2M5rZGDosV8ROvhCXpoHZEsMA==}
+    peerDependencies:
+      '@etherfold/browser': ^0.13.0
+      vitest: '>=3'
+    peerDependenciesMeta:
+      '@etherfold/browser':
+        optional: true
+      vitest:
+        optional: true
+
+  '@etherfold/processor-entities@0.4.2':
+    resolution: {integrity: sha512-zDGWw/Mk3z+zhNIPbDTL+DvchCMPRW5/s95u31Mrs6wI6T9xOftYxwLYAF9I269Q/Zvgh+Q/z68lNFmyP5KRHg==}
+
+  '@etherfold/state-store-indexeddb@0.4.1':
+    resolution: {integrity: sha512-tHYAc7wVtwDzrbBXJYC0t/mJcl+qjcHUREwlEeRNBMYRGgd1TQLfswohwvbcAOv//HsfFj3crI10OVlqg0CmUg==}
+
+  '@etherfold/state-store-sqlite@0.5.1':
+    resolution: {integrity: sha512-S+0hptqY7jncJsBHGyqY62zV5M+cElcM/pHrQZbL1LUzr4egoJq/yQ1pnZWFCMO6AcgBRG14QZeAq5m1DURlig==}
+
+  '@etherfold/state-store@0.5.1':
+    resolution: {integrity: sha512-0NXxg0cE2zKrwyWD3nrHf0lp1QZX/YQCBI4CAapmtgOI4NHdCIICbek45rIMfgYv/1k1BEULSech6F+K3ohgaQ==}
 
   '@etherkit/burner-wallet@0.2.2':
     resolution: {integrity: sha512-8sz8M0fyhImW1jRBlaZTEM0xaEgRWDJ69ffIsW1opJUTHQYs0swVtxY0pxUo6PaX+p1el0ysJ+JHWGoDmo4Pag==}
@@ -1060,6 +1136,11 @@ packages:
 
   '@polka/url@1.0.0-next.29':
     resolution: {integrity: sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww==}
+
+  '@pothos/core@4.18.0':
+    resolution: {integrity: sha512-2VWbAdY+JfxTe0zcH3SLvpkQU4QQaAuuwj7jPf2AfufPyqUlHhFz+fH4H2pl9ll/hthdABNs/uvpanc7yoCHtw==}
+    peerDependencies:
+      graphql: ^16.10.0 || ^17.0.0
 
   '@rocketh/core@0.25.0':
     resolution: {integrity: sha512-g46786IFssQpGo9DclpbXX5MA+ohy54mofYTiUCJapcZ4uS6MPWFp5BX2+GYmZmbaGnGST05c1VRsxt5lJMRew==}
@@ -1812,6 +1893,10 @@ packages:
     resolution: {integrity: sha512-KfYbmpRm0VbLjEvVa9yGwCi9GI34xvi7A/HXYWQO65CSD2u3MczUJSuwXKFIxlGsgBQizV9q5J9NHj4VG0n+pA==}
     engines: {node: '>=12.0.0'}
 
+  fake-indexeddb@6.2.8:
+    resolution: {integrity: sha512-mpVW/HLUqwKXJ6F/s0hMgdK1eQfM4ncTHDioNGHWL0WKV3VcZCoZq1NKgboBbAge07aRCO7L48yziKssL59XEQ==}
+    engines: {node: '>=18'}
+
   fast-equals@5.4.1:
     resolution: {integrity: sha512-DjlFSM5Pk9cGcL0q5QXl66eGzx0N6szNgaswwc5ZphlBohjTVJSnGgI+rJVOgOi65qUoQnDZN4nDqi33udtydQ==}
     engines: {node: '>=6.0.0'}
@@ -1903,6 +1988,10 @@ packages:
   graceful-fs@4.2.11:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
 
+  graphql@16.15.0:
+    resolution: {integrity: sha512-32kz9FecohDiC/tgcViwnRXM7HFBVTPiW7pHO+DikKOI5KjhU/jNULOReXsrFqt2WAYbE9xFXsTffJw6iTO8qw==}
+    engines: {node: ^12.22.0 || ^14.16.0 || ^16.0.0 || >=17.0.0}
+
   handlebars@4.7.10:
     resolution: {integrity: sha512-P5VJMVM7qgBn6vjXMw8WG9uVI+ncf2pi72j4de4yz5ZULLj2RGqLYaKOYGsgyrViQ0tePOVlN1tDCCXXtFqXKg==}
     engines: {node: '>=0.4.7'}
@@ -1953,6 +2042,9 @@ packages:
   https-proxy-agent@5.0.1:
     resolution: {integrity: sha512-dFcAjpTQFgoLMzC2VwU+C/CbS7uRL0lWmxDITmqm7C+7F0Odmj6s9l6alZc6AELXhrnggM2CeWSXHGOdX2YtwA==}
     engines: {node: '>= 6'}
+
+  idb-keyval@6.3.0:
+    resolution: {integrity: sha512-um+2dgAWmYsu615EXpWVwSmapJhON0G43t3Ka/EVaohzPQXSMqKEqeDK/oIW3Ow+BXaF2PvSc+oBTFp793A5Ow==}
 
   inline-style-parser@0.2.7:
     resolution: {integrity: sha512-Nb2ctOyNR8DqQoR0OwRG95uNWIC0C1lCgf5Naz5H6Ji72KZ8OcFZLz2P5sNgwlyoJ8Yif11oMuYs5pBQa86csA==}
@@ -2672,6 +2764,9 @@ packages:
     resolution: {integrity: sha512-VT8kSnlEg8069w7AiCcAk3Yf5xvMnrGTagVOmU/OpOLHaHnNqXhWZCH/4EVga/bT/HtWhvE6/fHrXLErx7OnJA==}
     engines: {node: '>=18'}
 
+  sveltore@0.0.2:
+    resolution: {integrity: sha512-MqUEo9y7Mh4qy5sNEF05+t7sxhGHYa5dv25+xZSulxFMHFlAYUIPAVXp3Eeu6XtpdV0w6P3izmzgwJf07+3UOw==}
+
   sveltore@1.0.0:
     resolution: {integrity: sha512-e+A+Yv/mMl8d/ZjkMQ0J88PYgJEFKyDrFxLYjS4dbnrbmIfUdrVQWgGfTGfO07uFm6BQEq088YsvIpnfiWIi4w==}
     engines: {node: '>=18'}
@@ -2816,6 +2911,9 @@ packages:
   universalify@2.0.1:
     resolution: {integrity: sha512-gptHNQghINnc/vTGIk0SOFGFNXw7JVrlRUtConJRlvaw6DuX0wO5Jeko9sWrMBhh+PsYAZ7oXAiOnf/UKogyiw==}
     engines: {node: '>= 10.0.0'}
+
+  use-stores@0.2.1:
+    resolution: {integrity: sha512-4VmJz5CduJbOqzUfK2D12GydaCjyqIJekgr6/xihKvNYMJTc9VvPSCdnBz69kcfoXdcRq4+msZE8ikVPOhN7NA==}
 
   util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
@@ -3029,6 +3127,10 @@ snapshots:
       named-logs: 0.3.2
       promise-throttle: 1.1.2
 
+  '@eip-1193/over-port@0.2.1':
+    dependencies:
+      eip-1193: 0.7.4
+
   '@eip-1193/signer@0.4.1(typescript@6.0.3)(zod@3.25.76)':
     dependencies:
       eip-1193: 0.7.4
@@ -3121,6 +3223,132 @@ snapshots:
 
   '@esbuild/win32-x64@0.28.2':
     optional: true
+
+  '@etherfold/accessor@0.1.2(vitest@4.1.11)':
+    dependencies:
+      '@etherfold/state-store': 0.5.1
+    optionalDependencies:
+      vitest: 4.1.11(@types/node@26.2.0)(@vitest/browser-playwright@4.1.11)(vite@8.2.4(@types/node@26.2.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12))
+
+  '@etherfold/browser@0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@3.25.76)':
+    dependencies:
+      '@eip-1193/over-port': 0.2.1
+      '@etherfold/core': 0.12.0(typescript@6.0.3)(zod@3.25.76)
+      '@etherfold/state-store': 0.5.1
+      '@etherfold/state-store-indexeddb': 0.4.1(vitest@4.1.11)
+      eip-1193: 0.7.4
+      idb-keyval: 6.3.0
+      named-logs: 0.4.1
+      sveltore: 0.0.2
+      use-stores: 0.2.1
+    transitivePeerDependencies:
+      - bufferutil
+      - typescript
+      - utf-8-validate
+      - vitest
+      - zod
+
+  '@etherfold/browser@0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3)':
+    dependencies:
+      '@eip-1193/over-port': 0.2.1
+      '@etherfold/core': 0.12.0(typescript@6.0.3)(zod@4.4.3)
+      '@etherfold/state-store': 0.5.1
+      '@etherfold/state-store-indexeddb': 0.4.1(vitest@4.1.11)
+      eip-1193: 0.7.4
+      idb-keyval: 6.3.0
+      named-logs: 0.4.1
+      sveltore: 0.0.2
+      use-stores: 0.2.1
+    transitivePeerDependencies:
+      - bufferutil
+      - typescript
+      - utf-8-validate
+      - vitest
+      - zod
+
+  '@etherfold/core@0.12.0(typescript@6.0.3)(zod@3.25.76)':
+    dependencies:
+      abitype: 1.3.0(typescript@6.0.3)(zod@3.25.76)
+      eip-1193: 0.7.4
+      named-logs: 0.4.1
+      viem: 2.55.19(typescript@6.0.3)(zod@3.25.76)
+    transitivePeerDependencies:
+      - bufferutil
+      - typescript
+      - utf-8-validate
+      - zod
+
+  '@etherfold/core@0.12.0(typescript@6.0.3)(zod@4.4.3)':
+    dependencies:
+      abitype: 1.3.0(typescript@6.0.3)(zod@4.4.3)
+      eip-1193: 0.7.4
+      named-logs: 0.4.1
+      viem: 2.55.19(typescript@6.0.3)(zod@4.4.3)
+    transitivePeerDependencies:
+      - bufferutil
+      - typescript
+      - utf-8-validate
+      - zod
+
+  '@etherfold/graphql@0.2.2(@etherfold/browser@0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@3.25.76))(vitest@4.1.11)':
+    dependencies:
+      '@etherfold/accessor': 0.1.2(vitest@4.1.11)
+      '@etherfold/state-store': 0.5.1
+      '@pothos/core': 4.18.0(graphql@16.15.0)
+      graphql: 16.15.0
+    optionalDependencies:
+      '@etherfold/browser': 0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@3.25.76)
+      vitest: 4.1.11(@types/node@26.2.0)(@vitest/browser-playwright@4.1.11)(vite@8.2.4(@types/node@26.2.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12))
+
+  '@etherfold/graphql@0.2.2(@etherfold/browser@0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3))(vitest@4.1.11)':
+    dependencies:
+      '@etherfold/accessor': 0.1.2(vitest@4.1.11)
+      '@etherfold/state-store': 0.5.1
+      '@pothos/core': 4.18.0(graphql@16.15.0)
+      graphql: 16.15.0
+    optionalDependencies:
+      '@etherfold/browser': 0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3)
+      vitest: 4.1.11(@types/node@26.2.0)(@vitest/browser-playwright@4.1.11)(vite@8.2.4(@types/node@26.2.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12))
+
+  '@etherfold/processor-entities@0.4.2(typescript@6.0.3)(zod@3.25.76)':
+    dependencies:
+      '@etherfold/core': 0.12.0(typescript@6.0.3)(zod@3.25.76)
+      '@etherfold/state-store': 0.5.1
+      named-logs: 0.4.1
+    transitivePeerDependencies:
+      - bufferutil
+      - typescript
+      - utf-8-validate
+      - zod
+
+  '@etherfold/processor-entities@0.4.2(typescript@6.0.3)(zod@4.4.3)':
+    dependencies:
+      '@etherfold/core': 0.12.0(typescript@6.0.3)(zod@4.4.3)
+      '@etherfold/state-store': 0.5.1
+      named-logs: 0.4.1
+    transitivePeerDependencies:
+      - bufferutil
+      - typescript
+      - utf-8-validate
+      - zod
+
+  '@etherfold/state-store-indexeddb@0.4.1(vitest@4.1.11)':
+    dependencies:
+      '@etherfold/accessor': 0.1.2(vitest@4.1.11)
+      '@etherfold/state-store': 0.5.1
+    transitivePeerDependencies:
+      - vitest
+
+  '@etherfold/state-store-sqlite@0.5.1(vitest@4.1.11)':
+    dependencies:
+      '@etherfold/accessor': 0.1.2(vitest@4.1.11)
+      '@etherfold/state-store': 0.5.1
+      named-logs: 0.4.1
+      remote-sql: 0.0.7
+    transitivePeerDependencies:
+      - vitest
+
+  '@etherfold/state-store@0.5.1': {}
 
   '@etherkit/burner-wallet@0.2.2(typescript@6.0.3)(viem@2.55.19(typescript@6.0.3)(zod@4.4.3))(zod@4.4.3)':
     dependencies:
@@ -3675,6 +3903,10 @@ snapshots:
 
   '@polka/url@1.0.0-next.29': {}
 
+  '@pothos/core@4.18.0(graphql@16.15.0)':
+    dependencies:
+      graphql: 16.15.0
+
   '@rocketh/core@0.25.0(typescript@6.0.3)(zod@3.25.76)':
     dependencies:
       abitype: 1.3.0(typescript@6.0.3)(zod@3.25.76)
@@ -4182,6 +4414,11 @@ snapshots:
       typescript: 6.0.3
       zod: 3.25.76
 
+  abitype@1.3.0(typescript@6.0.3)(zod@4.4.3):
+    optionalDependencies:
+      typescript: 6.0.3
+      zod: 4.4.3
+
   acorn@8.18.0: {}
 
   adm-zip@0.6.0: {}
@@ -4512,6 +4749,8 @@ snapshots:
 
   expect-type@1.4.0: {}
 
+  fake-indexeddb@6.2.8: {}
+
   fast-equals@5.4.1: {}
 
   fast-equals@6.2.1: {}
@@ -4619,6 +4858,8 @@ snapshots:
 
   graceful-fs@4.2.11: {}
 
+  graphql@16.15.0: {}
+
   handlebars@4.7.10:
     dependencies:
       minimist: 1.2.8
@@ -4699,6 +4940,8 @@ snapshots:
       debug: 4.4.3
     transitivePeerDependencies:
       - supports-color
+
+  idb-keyval@6.3.0: {}
 
   inline-style-parser@0.2.7: {}
 
@@ -5418,6 +5661,8 @@ snapshots:
     transitivePeerDependencies:
       - '@typescript-eslint/types'
 
+  sveltore@0.0.2: {}
+
   sveltore@1.0.0: {}
 
   svgo@3.3.4:
@@ -5525,6 +5770,8 @@ snapshots:
   undici@7.30.1: {}
 
   universalify@2.0.1: {}
+
+  use-stores@0.2.1: {}
 
   util-deprecate@1.0.2: {}
 

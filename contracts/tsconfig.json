@@ -18,6 +18,7 @@
 		"deploy",
 		"generated/artifacts/index.ts",
 		"generated/abis/index.ts",
+		"utils",
 		"hardhat.config.ts"
 	]
 }
