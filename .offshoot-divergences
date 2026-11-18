@@ -72,3 +72,71 @@ web/src/lib/shadcn/ui/select/select-content.svelte     portals into its overlay 
 
 # The e2e
 web/e2e/tests/service-worker-gateway.e2e.ts            the gateway navigation retried: it races the worker's clients.claim(), which Chromium can abort
+
+[with/local-signer]
+# AND BELOW THIS LINE, WHAT `with/local-signer` MODIFIES FROM `main`: the app
+# sends through a LOCAL SIGNER, a key it holds and the account delegates to on
+# GreetingsRegistry (@etherplay/delegation), with the signer's gas surfaced and
+# a payment rail to top it up.
+
+# The repo and its workspace
+README.md                                              the LAN rehearsal script this branch adds (scripts/rehearse-lan.sh)
+.offshoot-omissions                                    this branch's own omission below main's: contracts/deployments/sepolia, which is main's contracts
+pnpm-lock.yaml                                         @etherplay/delegation in the contracts package
+scripts/run-e2e-tests.sh                               a faucet in the e2e stack, since the local signer's gas is funded and not Hardhat's
+
+# The contracts: greetings belong to the account, posted by its delegate
+contracts/package.json                                 depends on @etherplay/delegation
+contracts/remappings.txt                               the @etherplay/delegation remapping
+contracts/rocketh/config.ts                            the payment rail's configuration, the signer's top-up
+contracts/src/GreetingsRegistry/GreetingsRegistry.sol  setMessageFor: a delegate posts for its account, credentials bound to this contract
+contracts/src/GreetingsRegistry/IGreetingsRegistry.sol setMessageFor in the interface
+contracts/test/solidity/GreetingsRegistry/GreetingsRegistry.t.sol  the delegation's cases beside main's
+
+# The web app's configuration and composition
+web/.env                                               who signs: the executors' variables replacing PUBLIC_EXECUTION_MODE
+web/playwright.config.ts                               workers capped for the stalling wallet, and its cause named
+web/src/lib/context/app.ts                             the payment dialog told what it is for
+web/src/lib/context/config.ts                          the delegation registry's address and the payment rail's
+web/src/lib/context/core.ts                            the local signer composed: the executors, the signer's RPC, the payment rail's client, its guards
+web/src/lib/context/index.ts                           the context exports the payment and delegation pieces
+web/src/lib/context/types.ts                           the context's types for the executors, the payment rail and its purpose
+web/src/lib/context/AcrossPages.svelte                 the funding flow and the delegation wired across pages
+web/src/lib/dev-accounts.ts                            the dev executors (which key signs) beside main's dev accounts
+
+# Accounts and operations: several senders act for one account
+web/src/lib/account/AccountData.ts                     operations keyed by the account, whatever sender acted for it
+web/src/lib/account/connectors.ts                      several clients (the wallet and the local signer), the payment rail's client tracked
+web/src/lib/account/recorded-nonces.ts                 a nonce is evidence about one sender, filtered by sender
+web/src/lib/view/index.ts                              a greeting is set by setMessage or setMessageFor
+web/src/lib/view/operation.ts                          which executor sent an operation
+
+# The UI
+web/src/lib/core/connection/ConnectionFlow.svelte      a refusal told from a cancellation, and a stray click not losing the connection
+web/src/lib/core/connection/mode.ts                    the execution mode is the executors' now, one line left
+web/src/lib/core/transaction/AccountCannotSendModal.svelte  names who signs instead of an execution mode
+web/src/lib/core/transaction/InsufficientFundsModal.svelte  which payer is short and the top-up of the signer as one flow
+web/src/lib/ui/navbar/navbar.svelte                    the account drawer with the signer's funding, portalled into its layer
+web/src/routes/demo/+page.svelte                       the demo offers the signer's top-up when a send fails for want of gas
+web/src/routes/demo/lib/setGreeting.ts                 a greeting sent by the local signer through setMessageFor
+
+# The e2e
+web/e2e/fixtures/stalling-wallet.ts                    the stalled write goes through /contracts here, since the demo's Send never reaches the wallet
+web/e2e/fixtures/test.ts                               the delegation, the faucet and the burner's funding in the fixtures
+web/e2e/impersonate-addresses.json                     the faucet's address
+web/e2e/tests/demo.e2e.ts                              a greeting belongs to the account, posted by its delegate
+web/e2e/tests/escape-hatch.e2e.ts                      the reconnect names the address it needs; the wallet list reached collapsed or not
+web/e2e/tests/pending-operation.e2e.ts                 the inspector's cases given the delegation fixture they need
+
+# Unit tests of the above
+web/test/e2e-account-claims.test.ts                    the stalling-wallet guard matches an import, not a mention (967b10b2; generic, its home is main: a K item)
+web/test/lib/account/connectors.test.ts                several clients and the payment rail's
+web/test/lib/account/operations-migration.test.ts      recorded nonces filtered by sender
+web/test/lib/account/replacement-correlation.test.ts   the connector takes a list of clients
+web/test/lib/account/stored-operations.svelte.test.ts  operations keyed by the account, readStoredOperations gone
+web/test/lib/context/fatal.test.ts                     the signer's and the payment rail's failures
+web/test/lib/context/ssr-context.test.ts               the executors and the payment rail on the server
+web/test/lib/core/connection/executor.test.ts          who signs, per executor
+web/test/lib/core/connection/mode.test.ts              the execution mode is the executors' now
+web/test/lib/view/operation.test.ts                    which executor sent an operation
+web/test/lib/view/pending-operations.test.ts           the optimistic entry keyed by the account, the signer sending for it
