@@ -163,9 +163,23 @@ const merging = git(['rev-parse', '-q', '--verify', 'MERGE_HEAD'], {
 
 /** The node's stems as refs, from the config, or `{error}`. */
 function stemsFromConfig() {
-	const text =
-		git(['show', 'offshoot:fanout.config.json'], {allowFailure: true}) ??
-		git(['show', 'origin/offshoot:fanout.config.json'], {allowFailure: true});
+	// The local `offshoot` branch first, as offshoot-fanout reads it, unless
+	// `origin/offshoot` is a newer version of it: a local config branch nobody
+	// fast-forwarded would otherwise hide every branch added to the config since.
+	const local = git(['rev-parse', '-q', '--verify', 'refs/heads/offshoot'], {
+		allowFailure: true,
+	});
+	const remote = git(
+		['rev-parse', '-q', '--verify', 'refs/remotes/origin/offshoot'],
+		{allowFailure: true},
+	);
+	const ref =
+		local && remote && local !== remote && isAncestor(local, remote)
+			? remote
+			: (local ?? remote);
+	const text = ref
+		? git(['show', `${ref}:fanout.config.json`], {allowFailure: true})
+		: undefined;
 	if (!text) {
 		return {
 			error:
@@ -177,7 +191,20 @@ function stemsFromConfig() {
 	}
 	const config = JSON.parse(text);
 	const branches = config.branches ?? {main: {}};
-	const entry = branches[node];
+	let entry = branches[node];
+	let unknown;
+	if (!entry) {
+		// A list that came from another repo by cascade names one of THAT repo's
+		// branches. It is the stem's list byte for byte when this node has not
+		// written its own (checked below, with this repo's `main` stems), and
+		// only otherwise a list that is wrong here.
+		unknown =
+			`${LIST} names the node \`${node}\` (its last \`[branch]\` marker, or ` +
+			`\`main\` without one), and fanout.config.json lists no such branch ` +
+			`(it lists ${Object.keys(branches).join(', ')}). A list that came from ` +
+			`another repo by cascade is not this one's: write this node's own.`;
+		entry = branches.main;
+	}
 	if (!entry) {
 		return {
 			fatal:
@@ -190,6 +217,7 @@ function stemsFromConfig() {
 	if (entry.stem) {
 		const stems = Array.isArray(entry.stem) ? entry.stem : [entry.stem];
 		return {
+			unknown,
 			stems: stems.map((branch) => ({
 				name: branch,
 				candidates: [`refs/heads/${branch}`, `refs/remotes/origin/${branch}`],
@@ -206,6 +234,7 @@ function stemsFromConfig() {
 	}
 	const branch = entry.stemBranch ?? 'main';
 	return {
+		unknown,
 		stems: [
 			{name: `stem/${branch}`, candidates: [`refs/remotes/stem/${branch}`]},
 		],
@@ -244,6 +273,7 @@ const fromEnv = (process.env.OFFSHOOT_STEM_REFS ?? '')
 
 let stems;
 let configError;
+let unknownNode;
 if (given.length > 0 || fromEnv.length > 0) {
 	stems = (given.length > 0 ? given : fromEnv).map((ref) => {
 		const commit = git(['rev-parse', '--verify', `${ref}^{commit}`], {
@@ -256,6 +286,7 @@ if (given.length > 0 || fromEnv.length > 0) {
 	const resolved = stemsFromConfig();
 	if (resolved.fatal) refuse(resolved.fatal);
 	if (resolved.error) configError = resolved.error;
+	unknownNode = resolved.unknown;
 	stems = resolved.stems ?? [];
 }
 
@@ -314,6 +345,7 @@ for (const base of compared) {
 		);
 	}
 }
+if (unknownNode) refuse(unknownNode);
 
 function nulSplit(text) {
 	return (text ?? '').split('\0').filter((part) => part.length > 0);
