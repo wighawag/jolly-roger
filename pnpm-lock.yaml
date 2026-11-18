@@ -239,6 +239,9 @@ importers:
       ipfs-gateway-emulator:
         specifier: ^5.1.0
         version: 5.1.0
+      jolly-roger-contracts:
+        specifier: workspace:*
+        version: link:../contracts
       json-stable-stringify:
         specifier: ^1.3.0
         version: 1.3.0
