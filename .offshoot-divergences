@@ -72,3 +72,20 @@ web/src/lib/shadcn/ui/select/select-content.svelte     portals into its overlay 
 
 # The e2e
 web/e2e/tests/service-worker-gateway.e2e.ts            the gateway navigation retried: it races the worker's clients.claim(), which Chromium can abort
+
+[with/embedded-chain]
+# AND BELOW THIS LINE, WHAT `with/embedded-chain` MODIFIES FROM `main`: the
+# app's chain can run in the tab (webevm, in a Worker), so the demo plays
+# offline with the app's own deploy scripts.
+
+package.json                                           the LAN package's pnpmDepsHash for this branch's lockfile
+pnpm-lock.yaml                                         webevm, @eip-1193/over-port and @rocketh/web, the chain in the tab
+contracts/package.json                                 the package is built at install (tsc), because web/src imports it to deploy in the browser
+web/package.json                                       webevm, @eip-1193/over-port and @rocketh/web
+web/src/lib/context/core.ts                            the offline world's wallet needs no UI to ask its questions, and one tab holds two worlds under one leader
+web/src/lib/core/connection/remote.ts                  a connection to a chain in this tab, one wallet with one account surviving a reload
+web/src/lib/core/connection/types.ts                   the world connection's types
+web/src/lib/core/tab-leader/TabLeaderService.ts        one leader election per tab and world, so a second world's transactions complete (a78d73a2; core, a candidate for main)
+web/src/lib/core/tab-leader/storage-lock.ts            the same fix, in the storage lock
+web/test/lib/core/tab-leader/storage-lock.test.ts      the two-worlds case of that fix
+web/src/routes/+page.svelte                            the home page's "Play Offline" button to /offline-demo/
