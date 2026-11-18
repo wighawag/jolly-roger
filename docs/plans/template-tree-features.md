@@ -874,3 +874,8 @@ Reminders the user asked to keep, so a later step does not lose them. A step tha
 - **Pushed**: missiv `main` 57587d5..721e682 (a fast-forward of a fresh fetch, `tf-S3/main` with f048b28 and the version commit on top of the four items); jolly-roger `work` from this branch, rebased onto a fresh `origin/work`.
 - **Not published yet**: `pnpm changeset publish` (in `~/dev/worktrees/missiv/tf-S3/main`, at 721e682, built) stopped at npm's one-time password prompt, so npm still has 0.3.x; no tag was made. Left to the user: `pnpm changeset publish --otp=<code>` there (it publishes the six packages at 0.4.0 and tags them), then `git push origin --tags`. S3's box is ticked once that is done.
 - **Next**: the publish above; then the messaging lane is done until F3. The tree lane's next step is C1b.
+
+### 2026-11-17, the push lane closed
+
+- **After S1's tick**: delegated-identity 0.1.1 (`f92d373`, published by the user) dropped viem from its runtime dependencies (EIP-191 hashing and recovery on @noble; only `@noble/hashes` and `@noble/secp256k1` remain; viem a dev dependency cross-checking it, 20 tests), API and wire unchanged, so every `^0.1.0` dependent takes it; `@etherplay/connect-core` 0.7.5 re-exports its publication message (the K4 item, already marked done there).
+- **Closed**: the push lane has nothing left. Its preview worktrees are removed (push-notification-server, missiv and jolly-roger `tf-S1/*`); every commit on them is on `origin`.
