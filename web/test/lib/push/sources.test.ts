@@ -2,22 +2,25 @@
 // account, the configuration from the environment, the worker's registration.
 import {describe, expect, it} from 'vitest';
 import {get, writable} from 'svelte/store';
-import {hexToString, verifyMessage} from 'viem';
-import {generatePrivateKey, privateKeyToAccount} from 'viem/accounts';
 import {
 	notificationsConfig,
 	notifiedAccount,
 	serviceWorkerReady,
-	walletOwnershipSigner,
+	publicationSigner,
 	type ConnectionLike,
 } from '$lib/push/sources.js';
+import {originPublicKeyPublicationMessage} from 'delegated-identity';
 
 const signedIn = (address: string, key: string, saved?: string) =>
 	({
 		step: 'SignedIn',
 		account: {
 			address,
-			signer: {privateKey: key},
+			signer: {
+				origin: 'http://app.example',
+				publicKey: `pub-${key}`,
+				privateKey: key,
+			},
 			...(saved ? {savedPublicKeyPublicationSignature: saved} : {}),
 		},
 	}) as unknown as ConnectionLike;
@@ -45,12 +48,16 @@ describe('notifiedAccount', () => {
 		const seen: unknown[] = [];
 		const stop = account.subscribe((value) => seen.push(value));
 		connection.set(signedIn('0xA', '0x1'));
+		// connect keeping the wallet's publication signature mid-enable: the same
+		// account, so the push client does not re-check in the middle of an action
+		connection.set(signedIn('0xA', '0x1', '0xsig'));
 		connection.set(signedIn('0xB', '0x2'));
 		stop();
 		// a store of an object re-emits it; what downstream compares is its identity
 		expect(seen[1]).toBe(seen[0]);
-		expect(seen[2]).not.toBe(seen[0]);
-		expect(seen[2]).toMatchObject({address: '0xB'});
+		expect(seen[2]).toBe(seen[0]);
+		expect(seen[3]).not.toBe(seen[0]);
+		expect(seen[3]).toMatchObject({address: '0xB'});
 	});
 });
 
@@ -116,34 +123,51 @@ describe('serviceWorkerReady', () => {
 	});
 });
 
-describe('walletOwnershipSigner', () => {
-	it("asks the wallet for personal_sign of the message, the account's own signature", async () => {
-		const wallet = privateKeyToAccount(generatePrivateKey());
-		const asked: unknown[] = [];
-		const provider = {
-			request: async ({
-				method,
-				params,
-			}: {
-				method: string;
-				params?: unknown[];
-			}) => {
-				asked.push(method);
-				const [data] = params as [`0x${string}`, string];
-				return wallet.signMessage({message: hexToString(data)});
+describe('publicationSigner', () => {
+	function connectionOf(state: ConnectionLike) {
+		const store = writable(state);
+		let asked = 0;
+		return {
+			subscribe: store.subscribe,
+			getSignatureForPublicKeyPublication: async () => {
+				asked++;
+				return '0xsigned' as `0x${string}`;
 			},
+			asked: () => asked,
 		};
-		const signature = await walletOwnershipSigner(provider)(
-			wallet.address,
-			'the message',
+	}
+	const message = originPublicKeyPublicationMessage(
+		'http://app.example',
+		'pub-0x1' as `0x${string}`,
+	);
+
+	it("is connect's signature for the account signed in and the message it signs", async () => {
+		const connection = connectionOf(signedIn('0xA', '0x1'));
+		expect(await publicationSigner(connection)('0xa', message)).toBe(
+			'0xsigned',
 		);
-		expect(asked).toEqual(['personal_sign']);
-		expect(
-			await verifyMessage({
-				address: wallet.address,
-				message: 'the message',
-				signature,
-			}),
-		).toBe(true);
+		expect(connection.asked()).toBe(1);
+	});
+
+	it("refuses another message: the app domain is not connect's signing origin", async () => {
+		const connection = connectionOf(signedIn('0xA', '0x1'));
+		const other = originPublicKeyPublicationMessage(
+			'http://elsewhere.example',
+			'pub-0x1' as `0x${string}`,
+		);
+		await expect(publicationSigner(connection)('0xA', other)).rejects.toThrow(
+			/signing origin/,
+		);
+		expect(connection.asked()).toBe(0);
+	});
+
+	it('refuses an account that is not the one signed in', async () => {
+		const connection = connectionOf(signedIn('0xA', '0x1'));
+		await expect(publicationSigner(connection)('0xB', message)).rejects.toThrow(
+			/not the account signed in/,
+		);
+		const idle = connectionOf({step: 'Idle'} as ConnectionLike);
+		await expect(publicationSigner(idle)('0xA', message)).rejects.toThrow();
+		expect(connection.asked() + idle.asked()).toBe(0);
 	});
 });

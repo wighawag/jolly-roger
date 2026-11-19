@@ -14,13 +14,13 @@
  *   registers itself with the same identity: the same delegate key and the same
  *   ownership signature, signed for the trigger service's origin.
  *
- * So the wallet is asked once, at most: the ownership signature is the
- * account's own when `@etherplay/connect` already holds it (a hosted account's
- * `savedPublicKeyPublicationSignature`), else the wallet signs it on the first
- * `enable()` and it is KEPT (`storage`, localStorage by default) for the
- * trigger registration, its renewal on every later load and `disable()`. It is
- * a public authorisation of a public key, sent to both services anyway, so
- * keeping it is not keeping a secret.
+ * So the wallet is asked once, at most, and that is connect's to ensure: the
+ * ownership signature is the account's `savedPublicKeyPublicationSignature`
+ * (a hosted account's from sign-in; a wallet's once it answered, which
+ * `@etherplay/connect` 0.18 keeps on the persisted account), else
+ * `signOwnership` (connect's `getSignatureForPublicKeyPublication`) is asked,
+ * and connect keeps what the wallet answers, for the trigger registration, its
+ * renewal on every later load and `disable()`. Nothing is cached here.
  *
  * A trigger expires unless renewed (etherfold ADR-0012), so on load, once the
  * device is known to be registered, the trigger is registered again (which
@@ -104,16 +104,17 @@ export type NotificationsOptions = {
 	kind: string;
 	account: Readable<NotifiedAccount>;
 	serviceWorker: Readable<ServiceWorkerRegistration | undefined>;
-	/** the wallet signing the publication message, when no signature is at hand */
+	/**
+	 * The wallet's signature over the publication message, when the account
+	 * carries none: `@etherplay/connect`'s `getSignatureForPublicKeyPublication`,
+	 * which asks a wallet at most once per account and origin key (0.18) and
+	 * keeps the answer on the account.
+	 */
 	signOwnership: (address: string, message: string) => Promise<`0x${string}`>;
-	/** where the wallet's ownership signature is kept; localStorage by default */
-	storage?: Pick<Storage, 'getItem' | 'setItem'>;
 	fetch?: typeof fetch;
 	permission?: () => NotificationPermission | undefined;
 	supported?: () => boolean;
 };
-
-const PROOF_KEY_PREFIX = 'delegated-identity:ownership:';
 
 export function createNotifications(
 	options: NotificationsOptions,
@@ -136,12 +137,7 @@ export function createNotifications(
 	// narrowed, for the closures below
 	const services: NotificationsConfig = config;
 	const doFetch = options.fetch ?? ((input, init) => fetch(input, init));
-	const storage =
-		options.storage ??
-		(typeof localStorage !== 'undefined' ? localStorage : undefined);
 	const appOrigin = fromDomainToOrigin(config.domain);
-	// beside the storage, so a browser refusing it still prompts once per session
-	const proofs = new Map<string, `0x${string}`>();
 
 	function publicationOf(of: NonNullable<NotifiedAccount>) {
 		return originPublicKeyPublicationMessage(
@@ -149,45 +145,15 @@ export function createNotifications(
 			delegatePublicKey(of.delegatePrivateKey),
 		);
 	}
-	function proofKey(address: string, message: string) {
-		return `${PROOF_KEY_PREFIX}${address.toLowerCase()}:${message}`;
-	}
-	function keptProof(
-		address: string,
-		message: string,
-	): `0x${string}` | undefined {
-		const key = proofKey(address, message);
-		const kept = proofs.get(key) ?? storage?.getItem(key) ?? undefined;
-		return kept as `0x${string}` | undefined;
-	}
-	/** The signature at hand, the wallet NOT asked. */
+	/** The signature at hand, the wallet NOT asked: the account's own. */
 	function knownOwnership(of: NonNullable<NotifiedAccount>) {
-		return of.ownershipSignature ?? keptProof(of.address, publicationOf(of));
+		return of.ownershipSignature;
 	}
-	/** The signature at hand, or the wallet's, which is then kept. */
-	async function ownership(
-		address: string,
-		message: string,
-	): Promise<`0x${string}`> {
-		const kept = keptProof(address, message);
-		if (kept) {
-			return kept;
-		}
-		const signature = await options.signOwnership(address, message);
-		const key = proofKey(address, message);
-		proofs.set(key, signature);
-		try {
-			storage?.setItem(key, signature);
-		} catch {
-			// a full or refused storage: kept for this session only
-		}
-		return signature;
-	}
-
-	/** The account's own signature, a kept one, or the wallet's. */
+	/** The account's own signature, or the signer's (which asks the wallet at most once). */
 	async function ownershipOf(of: NonNullable<NotifiedAccount>) {
 		return (
-			of.ownershipSignature ?? (await ownership(of.address, publicationOf(of)))
+			of.ownershipSignature ??
+			(await options.signOwnership(of.address, publicationOf(of)))
 		);
 	}
 
@@ -197,7 +163,7 @@ export function createNotifications(
 		domain: config.domain,
 		account: options.account,
 		serviceWorker: options.serviceWorker,
-		signOwnership: ownership,
+		signOwnership: options.signOwnership,
 		fetch: doFetch,
 		permission: options.permission,
 		supported: options.supported,

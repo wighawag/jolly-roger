@@ -22,8 +22,9 @@ import {
 	notificationsConfig,
 	notifiedAccount,
 	serviceWorkerReady,
-	walletOwnershipSigner,
+	publicationSigner,
 	type ConnectionLike,
+	type PublicationSigning,
 } from '$lib/push/sources.js';
 import {NEW_GREETING} from '$lib/onchain/notifier/greetings.js';
 import type {TypedDeployments} from '$lib/deployments-store.js';
@@ -143,7 +144,7 @@ export function createAppContext(core: CoreServices): AppMembers {
 		serviceWorker: serviceWorkerReady(
 			typeof navigator !== 'undefined' ? navigator.serviceWorker : undefined,
 		),
-		signOwnership: walletOwnershipSigner(connection.provider),
+		signOwnership: publicationSigner(connection as PublicationSigning),
 	});
 
 	// `config` is not returned: it is this half's own construction detail, and

@@ -172,8 +172,8 @@ importers:
         specifier: ^0.2.2
         version: 0.2.2(@etherfold/browser@0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3))(vitest@4.1.11)
       '@etherfold/platform-nodejs-triggers':
-        specifier: ^0.1.0
-        version: 0.1.0(hono@4.13.3)(typescript@6.0.3)(zod@4.4.3)
+        specifier: ^0.1.1
+        version: 0.1.1(hono@4.13.3)(typescript@6.0.3)(zod@4.4.3)
       '@etherfold/processor-entities':
         specifier: ^0.4.2
         version: 0.4.2(typescript@6.0.3)(zod@4.4.3)
@@ -190,8 +190,8 @@ importers:
         specifier: 0.2.1
         version: 0.2.1(viem@2.55.19(typescript@6.0.3)(zod@4.4.3))
       '@etherplay/connect':
-        specifier: ^0.17.3
-        version: 0.17.3
+        specifier: ^0.18.0
+        version: 0.18.0
       '@internationalized/date':
         specifier: ^3.12.3
         version: 3.12.3
@@ -593,8 +593,8 @@ packages:
   '@etherfold/platform-nodejs-fetcher@0.2.5':
     resolution: {integrity: sha512-hTpBCzinV1mIgWTutHLOOCQkd1vz5jaYeLwmVSNW6cLbSnuNy6CNVi1e3e5cPUIYg6Z1rCXE/pb2oghJqXkjXA==}
 
-  '@etherfold/platform-nodejs-triggers@0.1.0':
-    resolution: {integrity: sha512-+xC71dqd+ARv3kpg94Q6hztrTppJDrKVhV/2haQ042cKvM6VOEkNQFzbGgzQc8f2gSR+cSyYFG3iQAL8Hcf9lw==}
+  '@etherfold/platform-nodejs-triggers@0.1.1':
+    resolution: {integrity: sha512-w8yMHAZXKboHzirSeT1XHCFrXY4cC4boxMpMuRHvh41qLPuK+i1iM/9Ds86HFL9WXfOmk6bfFf8uvBsSASo51A==}
     hasBin: true
 
   '@etherfold/platform-nodejs@0.3.3':
@@ -615,8 +615,8 @@ packages:
   '@etherfold/state-store@0.5.1':
     resolution: {integrity: sha512-0NXxg0cE2zKrwyWD3nrHf0lp1QZX/YQCBI4CAapmtgOI4NHdCIICbek45rIMfgYv/1k1BEULSech6F+K3ohgaQ==}
 
-  '@etherfold/triggers@0.1.0':
-    resolution: {integrity: sha512-AmmpyIQa1md1Oaexnc1jEPNITbOMwFxfBOtMM7npZ19MlAk0hUbuV7efuDI31mEk89leiOWut6ssDUxeYDaaVw==}
+  '@etherfold/triggers@0.2.0':
+    resolution: {integrity: sha512-xKKcWyqekoJEvLvlFPtypp2fKszz9jkvYpYRDY9fz/r5h45DR68+tdmKWsSopII18HAiUfj77hFouWgDkexuRA==}
 
   '@etherfold/utils@0.8.5':
     resolution: {integrity: sha512-zIdHvvkML9Tah1s3kZpr8SC2zz0zVFYP7dMjr0BZIluipB31kyGKrw6lTpJWArXLH6fdzMWUX41P6pJDaHJAUg==}
@@ -637,8 +637,8 @@ packages:
   '@etherplay/connect-core@0.7.5':
     resolution: {integrity: sha512-BERRuoLmNKo9huuy/BX4Q6fnri6YR2X8EMwA7qKX/PPp/H5nGca4fcEitIiET8ZnCd1k2fvX0ApvL78jP5pSxg==}
 
-  '@etherplay/connect@0.17.3':
-    resolution: {integrity: sha512-Jy0dOti+eMb42oBKPtFf7Vu9OOPuoAt92k48qmpZQ3RlFVoPI56X+RKocMa0IsLjQYiNtpltgHcqNofnwQvR4g==}
+  '@etherplay/connect@0.18.0':
+    resolution: {integrity: sha512-pYPpKKl+1Rs7nwvjP8k/Eo9KiT5j6YfFpHPLlNWy9OeiNpOQnkpDByCXDECstvn4W3XNSBzDWLQmW7IhcTQj1g==}
 
   '@etherplay/delegation@0.1.2':
     resolution: {integrity: sha512-tq/4ke1H1zkdxyUOXD6e2gWgLUTTuPRE7HVPwKMJOBFl3tJ24wO75a3TH+eHgWhGdsLTzXZLASHziA7rxjdOeA==}
@@ -3711,9 +3711,9 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@etherfold/platform-nodejs-triggers@0.1.0(hono@4.13.3)(typescript@6.0.3)(zod@4.4.3)':
+  '@etherfold/platform-nodejs-triggers@0.1.1(hono@4.13.3)(typescript@6.0.3)(zod@4.4.3)':
     dependencies:
-      '@etherfold/triggers': 0.1.0(typescript@6.0.3)(zod@4.4.3)
+      '@etherfold/triggers': 0.2.0(typescript@6.0.3)(zod@4.4.3)
       '@hono/node-server': 2.1.1(hono@4.13.3)
       '@libsql/client': 0.17.4
       remote-sql: 0.0.7
@@ -3803,7 +3803,7 @@ snapshots:
 
   '@etherfold/state-store@0.5.1': {}
 
-  '@etherfold/triggers@0.1.0(typescript@6.0.3)(zod@4.4.3)':
+  '@etherfold/triggers@0.2.0(typescript@6.0.3)(zod@4.4.3)':
     dependencies:
       delegated-identity: 0.1.1
       hono: 4.13.3
@@ -3860,11 +3860,12 @@ snapshots:
       '@scure/bip39': 1.6.0
       delegated-identity: 0.1.1
 
-  '@etherplay/connect@0.17.3':
+  '@etherplay/connect@0.18.0':
     dependencies:
       '@etherplay/connect-core': 0.7.5
       '@etherplay/wallet-connector': 0.2.1
       '@etherplay/wallet-connector-ethereum': 0.4.0
+      delegated-identity: 0.1.1
       sveltore: 1.0.0
 
   '@etherplay/delegation@0.1.2':

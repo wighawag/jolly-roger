@@ -82,14 +82,6 @@ function fakeBrowser() {
 	};
 }
 
-function memoryStorage() {
-	const items = new Map<string, string>();
-	return {
-		getItem: (key: string) => items.get(key) ?? null,
-		setItem: (key: string, value: string) => void items.set(key, value),
-	};
-}
-
 function until(
 	store: Readable<NotificationsState>,
 	predicate: (state: NotificationsState) => boolean,
@@ -160,17 +152,29 @@ describe('createNotifications, against the push server and the trigger service i
 		throw new Error(`no such host: ${url}`);
 	}) as typeof fetch;
 
-	function newAccount(saved?: boolean) {
+	// `signOwnership` stands for @etherplay/connect 0.18's
+	// getSignatureForPublicKeyPublication: the wallet asked at most once, its
+	// answer kept on the account (so a reload starts with it, `reloadedAccount`)
+	function newAccount() {
 		const wallet = privateKeyToAccount(generatePrivateKey());
 		const delegatePrivateKey = generatePrivateKey();
-		const signOwnership = vi.fn(async (_address: string, message: string) =>
+		const walletPrompts = vi.fn(async (message: string) =>
 			wallet.signMessage({message}),
+		);
+		let kept: `0x${string}` | undefined;
+		const signOwnership = vi.fn(
+			async (_address: string, message: string) =>
+				(kept ??= await walletPrompts(message)),
 		);
 		const account: NonNullable<NotifiedAccount> = {
 			address: wallet.address,
 			delegatePrivateKey,
 		};
-		return {wallet, account, signOwnership, saved};
+		const reloadedAccount = (): NotifiedAccount => ({
+			...account,
+			...(kept ? {ownershipSignature: kept} : {}),
+		});
+		return {wallet, account, signOwnership, walletPrompts, reloadedAccount};
 	}
 
 	async function savedSignature(of: ReturnType<typeof newAccount>) {
@@ -185,7 +189,6 @@ describe('createNotifications, against the push server and the trigger service i
 	function toggle(
 		of: ReturnType<typeof newAccount>,
 		browser: ReturnType<typeof fakeBrowser>,
-		storage = memoryStorage(),
 		account?: NotifiedAccount,
 	) {
 		return createNotifications({
@@ -194,7 +197,6 @@ describe('createNotifications, against the push server and the trigger service i
 			account: writable(account ?? of.account),
 			serviceWorker: writable(browser.registration),
 			signOwnership: of.signOwnership,
-			storage,
 			fetch: network,
 			permission: browser.permission,
 			supported: () => true,
@@ -261,12 +263,12 @@ describe('createNotifications, against the push server and the trigger service i
 		const subscriptions = await subscriptionsOf(of.wallet.address);
 		expect(subscriptions.map((s) => s.kind)).toEqual([NEW_GREETING]);
 		// one wallet prompt for both services: the trigger reuses the device's proof
-		expect(of.signOwnership).toHaveBeenCalledTimes(1);
+		expect(of.walletPrompts).toHaveBeenCalledTimes(1);
 	});
 
 	it('asks the wallet nothing when the account already carries its ownership signature', async () => {
 		const of = newAccount();
-		const notifications = toggle(of, fakeBrowser(), memoryStorage(), {
+		const notifications = toggle(of, fakeBrowser(), {
 			...of.account,
 			ownershipSignature: await savedSignature(of),
 		});
@@ -282,15 +284,14 @@ describe('createNotifications, against the push server and the trigger service i
 	it('renews the trigger on load, without a prompt, so it does not expire while the device is on', async () => {
 		const of = newAccount();
 		const browser = fakeBrowser();
-		const storage = memoryStorage();
-		const first = toggle(of, browser, storage);
+		const first = toggle(of, browser);
 		await until(first, settled);
 		await first.enable();
 		await until(first, (s) => settled(s) && s.status === 'on');
 		const [registered] = await subscriptionsOf(of.wallet.address);
 
 		now += 60_000;
-		const reloaded = toggle(of, browser, storage);
+		const reloaded = toggle(of, browser, of.reloadedAccount());
 		expect(await until(reloaded, settled)).toMatchObject({
 			status: 'on',
 			trigger: 'on',
@@ -298,14 +299,13 @@ describe('createNotifications, against the push server and the trigger service i
 		const [renewed] = await subscriptionsOf(of.wallet.address);
 		expect(renewed.id).toBe(registered.id);
 		expect(renewed.expiresAt).toBe(registered.expiresAt + 60_000);
-		expect(of.signOwnership).toHaveBeenCalledTimes(1);
+		expect(of.walletPrompts).toHaveBeenCalledTimes(1);
 	});
 
 	it('re-registers on load a trigger that expired', async () => {
 		const of = newAccount();
 		const browser = fakeBrowser();
-		const storage = memoryStorage();
-		const first = toggle(of, browser, storage);
+		const first = toggle(of, browser);
 		await until(first, settled);
 		await first.enable();
 		await until(first, (s) => settled(s) && s.status === 'on');
@@ -314,7 +314,7 @@ describe('createNotifications, against the push server and the trigger service i
 		await triggers.registry.expire();
 		expect(await subscriptionsOf(of.wallet.address)).toEqual([]);
 
-		const reloaded = toggle(of, browser, storage);
+		const reloaded = toggle(of, browser, of.reloadedAccount());
 		expect(await until(reloaded, settled)).toMatchObject({trigger: 'on'});
 		expect(await subscriptionsOf(of.wallet.address)).toHaveLength(1);
 	});
@@ -327,13 +327,14 @@ describe('createNotifications, against the push server and the trigger service i
 		await first.enable();
 		await until(first, (s) => settled(s) && s.status === 'on');
 
-		// a new browser profile: the device is registered, but no proof is kept here
-		const reloaded = toggle(of, browser, memoryStorage());
+		// an account that carries no signature (a smart-contract wallet's, which
+		// connect does not keep): the device is registered, the trigger left alone
+		const reloaded = toggle(of, browser, of.account);
 		expect(await until(reloaded, settled)).toMatchObject({
 			status: 'on',
 			trigger: 'unknown',
 		});
-		expect(of.signOwnership).toHaveBeenCalledTimes(1);
+		expect(of.walletPrompts).toHaveBeenCalledTimes(1);
 	});
 
 	it('disables both: the trigger cancelled, the device unregistered', async () => {
@@ -361,7 +362,6 @@ describe('createNotifications, against the push server and the trigger service i
 			account: writable(of.account),
 			serviceWorker: writable(fakeBrowser().registration),
 			signOwnership: of.signOwnership,
-			storage: memoryStorage(),
 			fetch: ((input: string, init?: RequestInit) =>
 				String(input).startsWith('https://elsewhere.example')
 					? triggers.api!.request(
@@ -389,7 +389,6 @@ describe('createNotifications, against the push server and the trigger service i
 			account,
 			serviceWorker: writable(fakeBrowser().registration),
 			signOwnership: of.signOwnership,
-			storage: memoryStorage(),
 			fetch: network,
 			permission: () => 'default',
 			supported: () => true,

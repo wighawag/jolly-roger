@@ -9,13 +9,14 @@
  *   when it holds one (a hosted account, which can never sign it again);
  * - the CONFIGURATION, from the public environment: the push server's API
  *   root, its VAPID key and the trigger service's origin, all three or none;
- * - the WALLET's signature over the publication message, asked through the
- *   connection's provider (`personal_sign`) when connect holds none;
+ * - the WALLET's signature over the publication message, when the account
+ *   carries none: connect's `getSignatureForPublicKeyPublication`, which asks a
+ *   wallet at most once per account and origin key and keeps the answer;
  * - the WORKER's registration, once it is ready (none in dev unless the worker
  *   is enabled there, `PUBLIC_ENABLE_SW_IN_DEV`).
  */
-import {derived, readable, type Readable} from 'svelte/store';
-import {toHex} from 'viem';
+import {derived, get, readable, type Readable} from 'svelte/store';
+import {originPublicKeyPublicationMessage} from 'delegated-identity';
 import type {NotificationsConfig, NotifiedAccount} from './notifications';
 
 /** The part of connect's connection state this reads. */
@@ -24,16 +25,24 @@ export type ConnectionLike =
 			step: 'SignedIn';
 			account: {
 				address: `0x${string}`;
-				signer: {privateKey: `0x${string}`};
+				signer: {
+					origin: string;
+					publicKey: `0x${string}`;
+					privateKey: `0x${string}`;
+				};
 				savedPublicKeyPublicationSignature?: `0x${string}`;
 			};
 	  }
 	| {step: Exclude<string, 'SignedIn'>};
 
 /**
- * The account notifications are for, ONE object per account: a connection
- * update that leaves it unchanged does not make the stores downstream check
- * the services again.
+ * The account notifications are for, ONE object per account and origin key: a
+ * connection update that leaves them unchanged does not make the stores
+ * downstream check the services again. That includes connect keeping the
+ * wallet's publication signature on the account (0.18) DURING an `enable()`:
+ * a new object then would make the push client re-check mid-action. The object
+ * keeps the signature it was made with, and a later ask goes through connect,
+ * which answers from what it kept; a page load reads it from the start.
  */
 export function notifiedAccount(
 	connection: Readable<ConnectionLike>,
@@ -48,8 +57,7 @@ export function notifiedAccount(
 			$connection.account;
 		if (
 			last?.address === address &&
-			last.delegatePrivateKey === signer.privateKey &&
-			last.ownershipSignature === savedPublicKeyPublicationSignature
+			last.delegatePrivateKey === signer.privateKey
 		) {
 			return last;
 		}
@@ -114,20 +122,36 @@ export function serviceWorkerReady(
 	});
 }
 
-/** What `walletOwnershipSigner` needs of an EIP-1193 provider. */
-export type SigningProvider = {
-	request(args: {method: string; params?: unknown[]}): Promise<unknown>;
+/** What `publicationSigner` needs of connect's connection store. */
+export type PublicationSigning = Readable<ConnectionLike> & {
+	getSignatureForPublicKeyPublication(): Promise<`0x${string}`>;
 };
 
 /**
- * The wallet signing the publication message (EIP-191, `personal_sign`), for an
- * account whose connection holds no saved signature: the one wallet prompt
- * notifications may cost, kept afterwards by `./notifications`.
+ * The publication signature, from `@etherplay/connect` (its
+ * `getSignatureForPublicKeyPublication`): a hosted account's saved one, or the
+ * wallet asked at most once per account and origin key, kept on the account.
+ * Connect signs for ITS signing origin and key, so this refuses a message that
+ * is not that one (the app's domain must be connect's signing origin: the
+ * page's, unless the app sets `signingOrigin`) or an account that is not the
+ * one signed in, rather than hand a service a signature it will refuse.
  */
-export function walletOwnershipSigner(provider: SigningProvider) {
-	return async (address: string, message: string) =>
-		(await provider.request({
-			method: 'personal_sign',
-			params: [toHex(message), address],
-		})) as `0x${string}`;
+export function publicationSigner(connection: PublicationSigning) {
+	return async (address: string, message: string) => {
+		const $connection = get(connection);
+		if (
+			$connection.step !== 'SignedIn' ||
+			!('account' in $connection) ||
+			$connection.account.address.toLowerCase() !== address.toLowerCase()
+		) {
+			throw new Error(`${address} is not the account signed in`);
+		}
+		const {origin, publicKey} = $connection.account.signer;
+		if (originPublicKeyPublicationMessage(origin, publicKey) !== message) {
+			throw new Error(
+				`the publication message asked for is not the one the connection signs: is the app's domain connect's signing origin (${origin})?`,
+			);
+		}
+		return connection.getSignatureForPublicKeyPublication();
+	};
 }

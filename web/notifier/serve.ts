@@ -10,15 +10,12 @@
  * Each is the published package, configured here: `createNodeServer` from
  * @push-notification/cli, the `etherfold` command, and `createNodeService`
  * from @etherfold/platform-nodejs-triggers with the app's own trigger
- * definitions (`$lib/onchain/notifier/greetings`). Two things are added around
- * them, which is why this is not the services' own commands:
- *
- * - CORS on the trigger service's registration API, for the app's origin only:
- *   the browser registers its trigger there directly, and the API serves no
- *   CORS of its own (as of @etherfold/triggers 0.1.0);
- * - a RECORDING push sender when NOTIFIER_PUSH_RECORDING is set (the e2e): a
- *   push is kept, not sent to the browser's push service, and listed at
- *   `GET /recorded`, so a test can deliver it to the worker itself.
+ * definitions (`$lib/onchain/notifier/greetings`), bundled in. One thing is
+ * added, which is why this is not the services' own commands: a RECORDING push
+ * sender when NOTIFIER_PUSH_RECORDING is set (the e2e): a push is kept, not
+ * sent to the browser's push service, and listed at `GET /recorded`, so a test
+ * can deliver it to the worker itself. (The trigger service's registration API
+ * answers CORS for the app's origin itself since @etherfold/triggers 0.2.)
  *
  * Configuration is the environment (defaults are the dev stack's), plus
  * `notifier/.env.local`, the dev keys `keys.mjs` writes.
@@ -123,26 +120,6 @@ function listen(name: string, port: number, handler: Handler) {
 		console.log(`${name} on http://${HOST}:${port}`),
 	);
 	return server;
-}
-
-/** CORS for ONE origin, the app's: a preflight answered, every answer marked. */
-function withCors(origin: string, handler: Handler): Handler {
-	const cors = {
-		'access-control-allow-origin': origin,
-		'access-control-allow-methods': 'POST, GET, OPTIONS',
-		'access-control-allow-headers': 'content-type, signature',
-		'access-control-max-age': '600',
-		vary: 'origin',
-	};
-	return async (request) => {
-		if (request.method === 'OPTIONS') {
-			return new Response(null, {status: 204, headers: cors});
-		}
-		const response = await handler(request);
-		const headers = new Headers(response.headers);
-		for (const [key, value] of Object.entries(cors)) headers.set(key, value);
-		return new Response(response.body, {status: response.status, headers});
-	};
 }
 
 const sha256Hex = (text: string) =>
@@ -261,7 +238,9 @@ async function serveTriggers(signal: AbortSignal) {
 	const server = listen(
 		'trigger service',
 		TRIGGERS_PORT,
-		withCors(APP_ORIGIN, (request) => service.api!.fetch(request)),
+		// CORS for the app's origin is the registration API's own (@etherfold/triggers
+		// 0.2: the verifier's app)
+		(request) => service.api!.fetch(request),
 	);
 	try {
 		await service.run({
