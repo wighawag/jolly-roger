@@ -5,7 +5,8 @@
  *   node notifier/.generated/serve.js push       push-notification-server (its Node.js platform)
  *   node notifier/.generated/serve.js index      `etherfold run` of the greetings' processor
  *   node notifier/.generated/serve.js triggers   the trigger service, following that indexer
- *   node notifier/.generated/serve.js all        the three, in one process group
+ *   node notifier/.generated/serve.js missiv     missiv (`with/messaging`): the chat room and direct messages
+ *   node notifier/.generated/serve.js all        the four, in one process group
  *
  * Each is the published package, configured here: `createNodeServer` from
  * @push-notification/cli, the `etherfold` command, and `createNodeService`
@@ -34,6 +35,7 @@ import {
 	pushAction,
 } from '@etherfold/platform-nodejs-triggers';
 import {greetingTriggers} from '$lib/onchain/notifier/greetings';
+import {createNodeServer as createMissivServer} from 'missiv';
 
 const here = path.dirname(fileURLToPath(import.meta.url)); // notifier/.generated
 const notifier = path.join(here, '..');
@@ -52,11 +54,16 @@ const keysFile = path.join(notifier, '.env.local');
 loadEnvFile(keysFile);
 // the trigger service's pane starts beside the push server's, which writes the
 // keys (`keys.mjs`): wait for them rather than race it
-if (process.argv[2] === 'triggers' && !process.env.NOTIFIER_PUSH_TOKEN) {
-	console.log(`waiting for NOTIFIER_PUSH_TOKEN in ${keysFile} ...`);
-	while (!process.env.NOTIFIER_PUSH_TOKEN) {
-		await new Promise((resolve) => setTimeout(resolve, 1000));
-		loadEnvFile(keysFile);
+for (const [service, name] of [
+	['triggers', 'NOTIFIER_PUSH_TOKEN'],
+	['missiv', 'NOTIFIER_MISSIV_PUSH_TOKEN'],
+] as const) {
+	if (process.argv[2] === service && !process.env[name]) {
+		console.log(`waiting for ${name} in ${keysFile} ...`);
+		while (!process.env[name]) {
+			await new Promise((resolve) => setTimeout(resolve, 1000));
+			loadEnvFile(keysFile);
+		}
 	}
 }
 
@@ -67,6 +74,7 @@ const RPC_URL = env.NOTIFIER_RPC_URL ?? 'http://127.0.0.1:8545';
 const PUSH_PORT = Number(env.NOTIFIER_PUSH_PORT ?? 34005);
 const INDEXER_PORT = Number(env.NOTIFIER_INDEXER_PORT ?? 34002);
 const TRIGGERS_PORT = Number(env.NOTIFIER_TRIGGERS_PORT ?? 34006);
+const MISSIV_PORT = Number(env.NOTIFIER_MISSIV_PORT ?? 34007);
 const DATA = env.NOTIFIER_DATA ?? path.join(notifier, '.data');
 const INTERVAL_MS = Number(env.NOTIFIER_INTERVAL_MS ?? 2000);
 const PUSH_TOKEN = env.NOTIFIER_PUSH_TOKEN ?? '';
@@ -176,6 +184,25 @@ async function servePush() {
 	);
 }
 
+/**
+ * missiv (`with/messaging`), its Node.js platform: the HTTP API and the rooms'
+ * sockets on one port, a new direct message pushed to its recipient through the
+ * push server above, with missiv's own token for this app's domain (its host).
+ */
+async function serveMissiv() {
+	const {app, injectWebSocket} = await createMissivServer({
+		db: `file:${path.join(DATA, 'missiv.db')}`,
+		env: {
+			PUSH_SERVER_URL: `http://${HOST}:${PUSH_PORT}`,
+			PUSH_TOKENS: MISSIV_PUSH_TOKEN
+				? `${new URL(APP_ORIGIN).host}=${MISSIV_PUSH_TOKEN}`
+				: '',
+		},
+	});
+	const server = listen('missiv', MISSIV_PORT, (request) => app.fetch(request));
+	injectWebSocket(server);
+}
+
 function serveIndexer(): ChildProcess {
 	const bin = path.join(web, 'node_modules', '.bin', 'etherfold');
 	const child = spawn(
@@ -274,10 +301,13 @@ for (const name of ['SIGINT', 'SIGTERM'] as const) {
 	});
 }
 if (which === 'push' || which === 'all') await servePush();
+if (which === 'missiv' || which === 'all') await serveMissiv();
 if (which === 'index' || which === 'all') children.push(serveIndexer());
 if (which === 'triggers' || which === 'all') {
 	await serveTriggers(controller.signal);
-} else if (!['push', 'index', 'all'].includes(which)) {
-	console.error(`unknown service ${which}: push, index, triggers or all`);
+} else if (!['push', 'index', 'missiv', 'all'].includes(which)) {
+	console.error(
+		`unknown service ${which}: push, index, triggers, missiv or all`,
+	);
 	process.exit(2);
 }

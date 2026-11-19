@@ -193,10 +193,13 @@ web/e2e/impersonate-addresses.json                     a seventh account (6), th
 
 package.json                                           the LAN package's pnpmDepsHash for this branch's lockfile
 pnpm-lock.yaml                                         the missiv client, its protocol and its Node.js server
-web/package.json                                       @missiv/client and @missiv/common for the app, missiv (its Node.js server) for the dev stack and the tests
+web/package.json                                       @missiv/client and @missiv/common for the app, missiv (its Node.js server) for the dev stack and the tests, and the notifier:missiv script
 web/src/lib/context/app.ts                             the messaging store composed beside the notifications, on the same identity
 web/src/lib/context/AcrossPages.svelte                 the messaging panel's launcher and side panel, on every page: AcrossPages holds what is fixed or portalled across pages
 web/src/routes/demo/+page.svelte                       a greeting's author opens a direct conversation with them, in the messaging panel
 web/src/routes/demo/lib/NotifyMe.svelte               a second line once notifications are on: direct messages are notified too (missiv pushes them to the same devices)
-web/notifier/serve.ts                                  the push server also accepts missiv's token for this app (a direct message's push)
+web/notifier/serve.ts                                  a fourth service, missiv, its direct messages pushed through the push server, which accepts missiv's token for this app
 web/notifier/keys.mjs                                  the dev stack's missiv token at the push server
+dev/zellij.kdl                                         a fourth notifier pane: missiv on Node.js
+web/.env                                               PUBLIC_MISSIV, empty: messaging not configured
+web/.env.localhost                                     the dev stack's missiv, same-host

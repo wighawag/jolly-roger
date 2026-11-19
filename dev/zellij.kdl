@@ -34,6 +34,9 @@ layout {
 		pane name="notifier (trigger service)" command="pnpm"  {
 			args "--filter" "./web" "notifier:triggers"
 		}
+		pane name="missiv (messaging)" command="pnpm"  {
+			args "--filter" "./web" "notifier:missiv"
+		}
 	}
 
 	pane split_direction="vertical" {

@@ -84,6 +84,7 @@
 		"notifier:push": "node notifier/keys.mjs && node notifier/build.mjs && node notifier/.generated/serve.js push",
 		"notifier:index": "node notifier/build.mjs && node notifier/.generated/serve.js index",
 		"notifier:triggers": "node notifier/build.mjs && node notifier/.generated/serve.js triggers",
+		"notifier:missiv": "node notifier/build.mjs && node notifier/.generated/serve.js missiv",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
 		"serve": "ipfs-emulator --only -d build -p 8080",
