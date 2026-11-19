@@ -191,6 +191,7 @@ web/e2e/impersonate-addresses.json                     a seventh account (6), th
 # the notifications, a direct message pushed to its recipient by missiv
 # through the same push server (README.messaging.md).
 
+package.json                                           the LAN package's pnpmDepsHash for this branch's lockfile
 pnpm-lock.yaml                                         the missiv client, its protocol and its Node.js server
 web/package.json                                       @missiv/client and @missiv/common for the app, missiv (its Node.js server) for the dev stack and the tests
 web/src/lib/context/app.ts                             the messaging store composed beside the notifications, on the same identity
