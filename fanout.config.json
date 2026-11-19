@@ -26,6 +26,9 @@
         "with/local-signer"
       ]
     },
+    "with/messaging": {
+      "stem": "with/push-notifications"
+    },
     "website": {
       "stem": "main"
     }
