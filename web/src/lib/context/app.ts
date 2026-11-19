@@ -11,14 +11,30 @@ import {
 import type {EIP1193Provider} from 'viem';
 import type {TypedDeployments} from '$lib/deployments-store.js';
 import type {CoreServices} from './core.js';
+import type {SignerGrant} from '$lib/ui/delegation/grant.js';
+
+/**
+ * WHAT THIS APP'S BROWSER KEY IS FOR, in this app's own words.
+ *
+ * The demo posts greetings, so that is what it says. It lives HERE, in the half
+ * a fork replaces, because it is the one piece of the authorisation copy that
+ * is not true of every app: the template owns the sentences it lands in (see
+ * ui/delegation/grant.ts), and they are shown in the two places where being
+ * wrong is most expensive - the dialog asking the user to authorise a key, and
+ * the account panel row saying what that key can do.
+ *
+ * It used to be written out inside those two shared files with "greetings" in
+ * it, so every app on this tree inherited the demo's sentence. If you are
+ * forking this template, this line is one of the few you MUST change.
+ */
+export const SIGNER_GRANT: SignerGrant = {action: 'post greetings'};
 
 /**
  * THIS APP'S HALF OF THE CONTEXT. The part a fork replaces.
  *
  * `./core.ts` composes everything that is true of any app built on this
- * template: the connection, the executors, balances, transaction observation,
- * navigation and overlays. This file is the greeting demo, and it is the only
- * one of the two a descendant is expected to rewrite.
+ * template, plus this branch's local-signer layer. This file is the greeting
+ * demo, and it is the only one of the two a descendant is expected to rewrite.
  *
  * WHY THE SPLIT EXISTS, which is not tidiness. Descendants inherit `core.ts`
  * and merge it down forever, so it wants to differ as little as possible; they
@@ -40,7 +56,8 @@ import type {CoreServices} from './core.js';
  * The framework imports `$app-specific`, so an app whose half lives elsewhere (a
  * game keeps it beside its own code) points the alias there and no framework
  * file is edited. What the alias must provide is what this module exports:
- * `createAppContext`, `AppMembers` and `operationScope`.
+ * `createAppContext`, `AppMembers`, `SIGNER_GRANT`, `operationScope` and
+ * `delegationRegistry`.
  */
 export function createAppContext(core: CoreServices): AppMembers {
 	const {
@@ -77,11 +94,13 @@ export function createAppContext(core: CoreServices): AppMembers {
 	const directViewState = createViewState({
 		onchainState,
 		operations: accountData.watchField('operations'),
-		// The account a pending greeting belongs to. Here it is also the address
-		// that sent it, since this app sends from the authenticated account and
-		// nothing else. They are passed separately so that stays an assumption of
-		// this app rather than one baked into the view, which an app sending from a
-		// key of its own would not share. See lib/view.
+		// Which address a pending greeting is filed under: it has to be the one the
+		// CHAIN will report, or the optimistic entry never reconciles with the
+		// confirmed one and sits in the list as a permanent duplicate.
+		//
+		// The ACCOUNT, because the demo sends `setMessageFor` through the signer
+		// registered as its delegate, and the registry attributes the greeting to
+		// the account rather than to whichever key signed the transaction.
 		account,
 		config,
 	});
@@ -120,5 +139,25 @@ export type AppMembers = {
  * every hot contract replacement.
  */
 export function operationScope(deployments: TypedDeployments): `0x${string}` {
+	return deployments.contracts.GreetingsRegistry.address;
+}
+
+/**
+ * The contract this app's delegation lives in: whichever of its contracts
+ * adopted `UsingDelegation`.
+ *
+ * WHICH contract is the one thing about delegation that is app-specific: the
+ * entry points it exposes are fixed by the library, and their ABI comes from
+ * the same package as the Solidity (see onchain/delegation). So an app that
+ * replaces the demo points this at its own contract and changes nothing else.
+ * Only an address crosses into the framework; what is called on it is typed by
+ * `DELEGATION_ABI`, whichever contract implements it.
+ *
+ * Same rule as above about which address: the one that is stable for the
+ * deployment (the proxy), not an implementation.
+ */
+export function delegationRegistry(
+	deployments: TypedDeployments,
+): `0x${string}` {
 	return deployments.contracts.GreetingsRegistry.address;
 }

@@ -72,12 +72,9 @@ describe('resolveConnectionConfig', () => {
 });
 describe('TARGET_STEP', () => {
 	it('is a configured constant, not read from env', () => {
-		// Not a tautology, and not a style rule: this is the merge guard. The
-		// constant IS this template's identity - the wallet-connected one, where
-		// the account sends its own transactions - and a variant that signs in
-		// differs from it by this single line. That is exactly the kind of line a
-		// merge can flip without anyone noticing, and flipping it silently would
-		// start asking users for a signature the app then never spends.
-		expect(TARGET_STEP).toBe('WalletConnected');
+		// This branch signs in, because its whole point is having a local signer.
+		// A descendant that does not want one changes this single line, and every
+		// other decision follows from it.
+		expect(TARGET_STEP).toBe('SignedIn');
 	});
 });

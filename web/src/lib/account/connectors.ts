@@ -4,6 +4,7 @@ import type {MultiAccountDataStore, TransactionMetadata} from './AccountData';
 import type {TxSource} from '$lib/core/connection/tx-source';
 import type {TransactionObserver} from '@etherkit/tx-observer';
 import {hookTxObserverToAccountData} from '$lib/core/utils/data/synqable-transactions';
+import type {ExecutorStore} from '$lib/core/connection/executor';
 import {createConnector, combineTeardowns} from './connector';
 import {toTransactionIntent} from './operation-intent';
 
@@ -51,15 +52,16 @@ export type UnrecordedBroadcast = (params: {
 
 /**
  * Attach the broadcast/fetched listeners that feed tracked transactions into
- * Account Data. Returns a teardown.
+ * Account Data. Returns a teardown. Reused for every client the connector is
+ * given, fixed or executor-derived.
  */
 function attachTrackedClient(
-	walletClient: TrackedTxEmitter,
+	client: TrackedTxEmitter,
 	accountData: MultiAccountDataStore,
 	onUnrecordedBroadcast?: UnrecordedBroadcast,
 ): () => void {
 	return combineTeardowns([
-		walletClient.on('transaction:broadcasted', (tx) => {
+		client.on('transaction:broadcasted', (tx) => {
 			// NOTHING MAY THROW OUT OF HERE.
 			//
 			// This runs inside the tracker's `emit`, which is fail-fast (no error
@@ -127,7 +129,7 @@ function attachTrackedClient(
 		// only the broadcast. The handler finds its operation BY HASH and patches
 		// that attempt in place, so receiving it twice writes the same values
 		// twice. Nothing here appends, counts or notifies.
-		walletClient.on('transaction:known', (tx) => {
+		client.on('transaction:known', (tx) => {
 			// Same reasoning, milder consequence: the tracker already wraps this emit
 			// in a try/catch, so a throw here is swallowed and logged as "could not
 			// fetch tx", which is a misleading thing to print about a fetch that
@@ -149,17 +151,42 @@ function attachTrackedClient(
 
 /// Listen for broadcasted transactions and save them in the Account Data.
 ///
-/// One client, always attached, for the app's lifetime. The executor sends from
-/// the authenticated account through this same client, so its events always
-/// belong to the current account's data and there is nothing to swap when the
-/// account changes.
+/// Attaches to every client it is given, so a transaction is recorded whichever
+/// account signed it. That is what puts the signer's silent work, the user's own
+/// prompted transactions and anything a payer sends in ONE list: Account Data is
+/// keyed by the authenticated account, not by the sender, so they belong to the
+/// same player and a consumer that wants them apart filters on `from`.
 ///
-/// An app that also sends from a local signer has a SECOND client, and then this
-/// grows a subscription: that client is derived per identity, so it has to be
-/// detached and replaced when the identity changes, or a stale client's late
-/// events get written into the wrong account's data. See the signer variant.
+/// TWO KINDS OF SOURCE, and the split is by LIFETIME rather than by role.
+/// `clients` are built once with the context and never replaced; an executor's
+/// client is derived per identity and can be swapped underneath it. That is the
+/// only difference the connector cares about, which is why `clients` is a LIST
+/// rather than the one wallet client it used to be plus special cases. It began
+/// as a single client because there was a single one, and the second fixed
+/// sender to arrive (the payment rail, which is neither the app's wallet client
+/// nor an executor) had nowhere to go: it was left off, and the one transaction
+/// the user consciously paid money for was the one missing from their list.
+/// Anything that sends and is not swapped goes in the list, and there is no
+/// third case to forget.
+///
+/// Clients are attached by IDENTITY, at most once each:
+/// - a fixed client is attached once and never swapped, and the same object
+///   handed in twice is still attached once;
+/// - an executor whose client is one of the fixed ones adds nothing;
+/// - two executors sharing one client (both pointed at the same signer) attach
+///   it once;
+/// - when an executor exposes a DIFFERENT client (re-sign-in as another
+///   identity derives another key), the previous one is detached first. That is
+///   correctness, not hygiene: `accountData` follows the CURRENT account, so a
+///   stale client's late events would be written into the wrong account's data.
 export function createTrackedWalletConnector(params: {
-	walletClient: TrackedTxEmitter;
+	/**
+	 * The senders that exist for the app's lifetime: the app's wallet client, and
+	 * any other tracked client built alongside it (the payment rail). Order is
+	 * irrelevant, and duplicates are harmless.
+	 */
+	clients: readonly TrackedTxEmitter[];
+	executors: readonly ExecutorStore[];
 	accountData: MultiAccountDataStore;
 	/**
 	 * Where a broadcast goes when account data cannot take it. Optional so this
@@ -169,11 +196,58 @@ export function createTrackedWalletConnector(params: {
 	 */
 	onUnrecordedBroadcast?: UnrecordedBroadcast;
 }) {
-	const {accountData, walletClient, onUnrecordedBroadcast} = params;
+	const {accountData, clients, executors, onUnrecordedBroadcast} = params;
 
-	return createConnector(() =>
-		attachTrackedClient(walletClient, accountData, onUnrecordedBroadcast),
-	);
+	return createConnector(() => {
+		// Deduped by reference, because attaching one client twice would record
+		// every transaction through it twice. Same rule the executors below follow.
+		const fixed = [...new Set(clients)];
+
+		// The fallback goes to EVERY client, not just the app's wallet one. A signer
+		// broadcast or a payment that cannot be filed is lost exactly the same way,
+		// and the ledger already holds a record for it that the hash can be attached
+		// to.
+		const fixedTeardowns = fixed.map((client) =>
+			attachTrackedClient(client, accountData, onUnrecordedBroadcast),
+		);
+
+		// Per-executor, so one executor swapping its client never detaches
+		// another's. Keyed by position rather than by the executor object, which
+		// keeps this independent of how many there are.
+		const attached: (TrackedTxEmitter | undefined)[] = executors.map(
+			() => undefined,
+		);
+		const teardowns: ((() => void) | undefined)[] = executors.map(
+			() => undefined,
+		);
+
+		/** Whether some OTHER slot already listens to this exact client. */
+		const attachedElsewhere = (client: TrackedTxEmitter, self: number) =>
+			attached.some((c, i) => i !== self && c === client);
+
+		const unsubscribes = executors.map((executor, i) =>
+			executor.subscribe(($executor) => {
+				// Transient not-ready states (reconnection steps) keep the current
+				// attachment: detaching would drop follow-up events (e.g.
+				// transaction:fetched) for a same-account reconnect. Only an actual
+				// REPLACEMENT client triggers a swap.
+				if ($executor.status !== 'ready') return;
+				const client = $executor.client;
+				if (fixed.includes(client) || client === attached[i]) return;
+				teardowns[i]?.();
+				attached[i] = client;
+				teardowns[i] = attachedElsewhere(client, i)
+					? undefined
+					: attachTrackedClient(client, accountData, onUnrecordedBroadcast);
+			}),
+		);
+
+		return () => {
+			for (const u of unsubscribes) u();
+			for (const t of teardowns) t?.();
+			for (const t of fixedTeardowns) t();
+		};
+	});
 }
 
 /// Listen for Account Data transaction being added/removed

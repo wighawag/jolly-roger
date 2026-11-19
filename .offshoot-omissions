@@ -100,3 +100,36 @@ zellij.kdl
 # This repo runs a chain as well as a web app, so "the dev layout" stopped being a
 # single thing, and `package.json` names the files in `dev/` directly. The stem
 # has one layout at the root and no reason to move it.
+
+# ---------------------------------------------------------------------------
+# AND BELOW THIS LINE, WHAT THE BRANCH DROPS FROM ITS OWN STEM. Everything above
+# is what `jolly-roger` drops from `template-svelte-shadcn` and is carried by
+# every branch here. `with/local-signer`'s stem is `main`, so an entry that is
+# true of this branch and not of `main` belongs here and nowhere higher.
+
+contracts/deployments/sepolia
+# DROPPED BY `with/local-signer` FROM `main`: main has a Sepolia deployment and
+# this branch does not. Those records describe MAIN's contracts - they arrived by
+# cascade and were never redeployed - so the ABI they carry has no
+# `setMessageFor` and none of the delegation functions this branch's
+# GreetingsRegistry defines. The practical harm was `pnpm attach sepolia`, which
+# exported an ABI belonging to another contract set; the only symptom was a type
+# error several files away, in routes/demo/lib/setGreeting.ts, saying a function
+# did not exist. Deleting says the true thing: THIS BRANCH HAS NO SEPOLIA
+# DEPLOYMENT. When it gets one it belongs under its own environment name
+# (`sepolia-signer`) and on the branch that owns the deployment.
+#
+# A DIRECTORY ENTRY, because the whole directory is what went - all four records
+# under it - which is the case that entry form is for.
+#
+# `with/hosted-account` and `integration` inherit the deletion AND this line
+# through their merges from here, and both readings stay true: neither carries a
+# Sepolia deployment. `with/embedded-chain` and `website` still have main's.
+#
+# THE REASON WAS WRITTEN DOWN IN AUGUST, IN THE ONE PLACE NOTHING COULD FIND IT,
+# which is this file's entire argument. Commit b947f89 (2026-08-17) says all of
+# the above and ends: "Expect a modify/delete conflict here whenever main
+# redeploys sepolia. Resolve it by keeping the deletion." That is the sentence
+# somebody needs mid-merge, and until now it lived only in a commit message five
+# weeks back. `scripts/check-omissions.mjs` reported these four paths on the
+# cascade that delivered it to this branch, 2026-09-25.

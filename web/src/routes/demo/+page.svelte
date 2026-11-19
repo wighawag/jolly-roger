@@ -23,6 +23,7 @@
 		clock,
 		accountCannotSend,
 		errorDetails,
+		topUp,
 	} = context;
 
 	const viewStatus = viewState.status;
@@ -50,6 +51,23 @@
 				greetingInput = '';
 			} else if (result.status === 'cannot-send') {
 				accountCannotSend.show();
+			} else if (result.status === 'cannot-pay') {
+				// The remedy replaces the explanation: "Details" on this failure only
+				// ever showed the node's dump of a problem the toast already named.
+				toast.error('Transaction failed', {
+					description: result.message,
+					duration: 8000,
+					closeButton: true,
+					action: result.canTopUp
+						? {
+								label: 'Top up',
+								onClick: () => topUp.start(topUp.purposes.topUp),
+							}
+						: {
+								label: 'Details',
+								onClick: () => errorDetails.show(result.details),
+							},
+				});
 			} else if (result.status === 'error') {
 				toast.error('Transaction failed', {
 					description: result.message,
@@ -184,9 +202,14 @@
 						<!-- data-testid so e2e can address rows without coupling to the
 						     Tailwind class string, which it previously matched on via
 						     [class*="rounded-lg border px-4 py-3"]. -->
+						<!-- `data-account` carries the FULL address the greeting is filed
+						     under. The rendered one is truncated (and hidden on small
+						     screens), so asserting on it would be asserting on a display
+						     format; whose greeting this is is the thing worth pinning. -->
 						<div
 							class="flex items-center gap-3 rounded-lg border px-4 py-3 sm:gap-4"
 							data-testid="message-row"
+							data-account={message.account}
 						>
 							<EthereumAvatar
 								address={message.account}

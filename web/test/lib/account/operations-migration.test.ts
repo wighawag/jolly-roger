@@ -200,7 +200,13 @@ describe('what the rest of the app can do with a migrated record', () => {
 		// The whole reason both read paths must migrate: this is what turns "a
 		// transaction landed at this nonce" into "and you can see it in your
 		// list". Reading a v1 record with the v2 code returns nothing.
-		expect(collectRecordedNonces(migrate()).sort()).toEqual([12, 12, 13]);
+		// Filtered by sender, which is this variant's addition to the collector:
+		// the list is keyed by the authenticated player and holds whatever any of
+		// its senders did on their behalf.
+		const ACCOUNT = '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266' as const;
+		expect(collectRecordedNonces(migrate(), ACCOUNT).sort()).toEqual([
+			12, 12, 13,
+		]);
 	});
 
 	it('leaves the replacement path able to find the route that signed it', () => {

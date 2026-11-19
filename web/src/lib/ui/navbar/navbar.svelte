@@ -11,7 +11,15 @@
 	import {countPendingOperations} from '$lib/view/operation';
 	import {createSendingPulse} from '$lib/ui/in-flight/sending';
 	import {effectiveGasPrice} from '$lib/core/connection/gasFee';
-	import {FaucetButton, hasFaucet} from '$lib/core/ui/faucet/index.js';
+	import {
+		CreditsIndicator,
+		SignerBalance,
+		createCreditsViewStore,
+	} from '$lib/ui/credits/index.js';
+	import {
+		DelegationRow,
+		createDelegationRowStore,
+	} from '$lib/ui/delegation/index.js';
 	import MenuIcon from '@lucide/svelte/icons/menu';
 	import MessageCircleIcon from '@lucide/svelte/icons/message-circle';
 	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
@@ -37,6 +45,7 @@
 		currentPath: () => string;
 	} = $props();
 
+	const context = getAppContext();
 	const {
 		connection,
 		accountData,
@@ -46,7 +55,21 @@
 		deployments,
 		overlays,
 		inFlight,
-	} = getAppContext();
+	} = context;
+
+	// The signer's own funding view (credits when the chain prices an action,
+	// native currency otherwise). Every decision about what it shows lives in
+	// lib/ui/credits; subscribing here is also what starts the signer-balance
+	// poll, so a deployment with no signer never polls for one.
+	const creditsView = createCreditsViewStore({
+		...context,
+		credits: context.credits,
+	});
+
+	// Whether this browser may act for the account, and whether that can be
+	// withdrawn from here. Subscribing is also what starts the delegation poll,
+	// so a page that never shows the panel never reads it.
+	const delegationRow = createDelegationRowStore(context);
 
 	// A transaction being handed over RIGHT NOW, which is the window before it
 	// becomes an operation the badge below can count. Wordless and immediate on
@@ -235,23 +258,31 @@
 			</Button>
 		{:else if connection.isTargetStepReached($connection)}
 			<div class="m-1 hidden h-8 items-center space-x-2 sm:flex">
-				{#if $balanceStatus.error && formattedBalance !== null}
-					<span class="flex items-center gap-1 text-sm text-muted-foreground">
-						<AlertCircleIcon class="h-3 w-3 text-amber-500" />
-						{formattedBalance}
-						{$deployments.chain.nativeCurrency.symbol}
-					</span>
-				{:else if formattedBalance !== null}
-					<span class="text-sm text-muted-foreground"
-						>{formattedBalance}
-						{$deployments.chain.nativeCurrency.symbol}</span
-					>
-				{:else if $balanceStatus.error}
-					<span class="flex items-center gap-1 text-sm text-destructive">
-						<AlertCircleIcon class="h-3 w-3" />
-						Balance error
-					</span>
+				<!-- The user's own account, shown here only when it is the ONLY balance
+				     there is. With a signer, what the app spends is the in-app balance,
+				     and two figures side by side invite the user to read the wrong one
+				     when deciding whether they can still play. The account balance is
+				     still a row in the panel, one tap away. -->
+				{#if !$creditsView.visible}
+					{#if $balanceStatus.error && formattedBalance !== null}
+						<span class="flex items-center gap-1 text-sm text-muted-foreground">
+							<AlertCircleIcon class="h-3 w-3 text-amber-500" />
+							{formattedBalance}
+							{$deployments.chain.nativeCurrency.symbol}
+						</span>
+					{:else if formattedBalance !== null}
+						<span class="text-sm text-muted-foreground"
+							>{formattedBalance}
+							{$deployments.chain.nativeCurrency.symbol}</span
+						>
+					{:else if $balanceStatus.error}
+						<span class="flex items-center gap-1 text-sm text-destructive">
+							<AlertCircleIcon class="h-3 w-3" />
+							Balance error
+						</span>
+					{/if}
 				{/if}
+				<CreditsIndicator view={$creditsView} onclick={() => menu.open()} />
 			</div>
 		{:else}
 			<Button
@@ -334,6 +365,10 @@
 			{/if}
 		</button>
 	</div>
+	<!-- Open state lives in the overlay registry, not in a local `$state`, which
+	     is what makes a navigation close this panel and the back gesture dismiss
+	     it. `onOpenChange` funnels bits-ui's own dismissals (ESC, click outside)
+	     into the same single close path. -->
 	<Drawer.Root
 		open={$menu.open}
 		onOpenChange={(open) => {
@@ -342,11 +377,11 @@
 		direction="right"
 	>
 		<!-- Lands in the drawer layer, which is Drawer.Content's own default (see
-		     lib/core/ui/layers.ts). That is what keeps the modals this panel opens
-		     ABOVE the panel itself. The target has to be on Content, which supplies
-		     its own portal: a bare `<Drawer.Portal to="..." />` sibling has no
-		     children and silently does nothing, which is what once put this drawer
-		     on top of every modal. -->
+		     lib/core/ui/layers.ts). That is what keeps the modals this panel opens,
+		     Top up above all, ABOVE the panel itself. The target has to be on
+		     Content, which supplies its own portal: a bare `<Drawer.Portal to="..." />`
+		     sibling has no children and silently does nothing, which is what once put
+		     this drawer on top of every modal. -->
 		<Drawer.Content class="select-text **:select-text">
 			{#if connection.isTargetStepReached($connection)}
 				<!-- Account Section -->
@@ -428,9 +463,26 @@
 
 				<!-- Balance & Transactions Section -->
 				<div class="mt-4 flex flex-col gap-2 border-t border-border px-4 pt-4">
+					<!-- FIRST, and renders itself only when a signer exists: this is what
+					     pays for playing, so it is what a user checks. The account below
+					     is what they own, which matters less often. -->
+					<SignerBalance view={$creditsView} />
+
+					<!-- Directly under what the browser SPENDS, because it is the other
+					     half of the same thing: what this browser is allowed to do for
+					     you, and how to take that back. An authorisation the user cannot
+					     withdraw is the failure delegation exists to avoid, so it is a
+					     row here rather than an entry point nobody can reach. -->
+					<DelegationRow view={$delegationRow} />
+
 					<div class="flex flex-col gap-1 rounded-md bg-muted/50 px-3 py-2">
 						<div class="flex items-center justify-between">
-							<span class="text-sm text-muted-foreground">Balance</span>
+							<!-- The user's OWN account, and only theirs. It has no faucet
+							     button any more: funding now runs through the top-up flow
+							     above, which faucets the account that actually pays. A second
+							     button here funded a third account and moved nobody closer to
+							     being able to play. -->
+							<span class="text-sm text-muted-foreground">Your account</span>
 							{#if $balanceStatus.loading && formattedBalance === null}
 								<Spinner class="h-4 w-4" />
 							{:else if formattedBalance !== null}
@@ -465,10 +517,6 @@
 									Retry
 								</button>
 							</div>
-						{/if}
-
-						{#if hasFaucet && $accountBalance.step === 'Loaded' && $accountBalance.value === 0n}
-							<FaucetButton />
 						{/if}
 					</div>
 

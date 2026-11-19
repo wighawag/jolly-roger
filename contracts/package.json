@@ -16,6 +16,9 @@
 		"src",
 		"deployments"
 	],
+	"dependencies": {
+		"@etherplay/delegation": "^0.1.1"
+	},
 	"devDependencies": {
 		"@etherfold/browser": "^0.13.0",
 		"@etherfold/graphql": "^0.2.2",

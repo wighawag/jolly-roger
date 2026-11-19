@@ -31,6 +31,10 @@ importers:
         version: 0.0.1
 
   contracts:
+    dependencies:
+      '@etherplay/delegation':
+        specifier: ^0.1.1
+        version: 0.1.2
     devDependencies:
       '@etherfold/browser':
         specifier: ^0.13.0

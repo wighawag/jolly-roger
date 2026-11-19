@@ -42,11 +42,30 @@ describe('app context off-browser', () => {
 		});
 		expect(get(context.account)).toBe(undefined);
 
+		// The payment rail exists but is dormant: created with autoConnect off, so
+		// it is Idle and NOT loading. That is the difference between "connecting
+		// itself" and "waiting to be asked", and it holds in the browser too - a
+		// page load must not raise a wallet prompt for a purchase nobody started.
+		// `pendingRequests` for the same reason as the connection above: 0.11.0
+		// stamps it on every publish, so it is part of the resting shape of EVERY
+		// connection, dormant ones included. A dormant rail saying "nothing is
+		// outstanding" out loud is right: it is the rail whose flow is handed
+		// `inertActivityLedger()` precisely so it cannot claim otherwise.
+		expect(get(context.payment.connection)).toEqual({
+			step: 'Idle',
+			loading: false,
+			wallet: undefined,
+			wallets: [],
+			pendingRequests: [],
+		});
+
 		// Pollers stay unloaded: no fetch, no interval.
 		expect(get(context.accountBalance)).toEqual({step: 'Unloaded'});
 		expect(get(context.gasFee)).toEqual({step: 'Unloaded'});
+		expect(get(context.signerBalance)).toEqual({step: 'Unloaded'});
 		expect(get(context.accountBalance.status)).toEqual({loading: false});
 		expect(get(context.gasFee.status)).toEqual({loading: false});
+		expect(get(context.signerBalance.status)).toEqual({loading: false});
 
 		// navigator/window absent means "not offline", not a crash.
 		expect(get(context.offline)).toEqual({offline: false});

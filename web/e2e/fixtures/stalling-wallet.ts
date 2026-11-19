@@ -343,8 +343,8 @@ export async function sendAndStall(
 		 * input survived. Optional, and that is the interface working rather than
 		 * a convenience.
 		 *
-		 * WHAT IT IS HAS TO BE THE APP'S BUSINESS, not the caller's. This app sends
-		 * a greeting, so any string does; a descendant's write takes an ADDRESS,
+		 * WHAT IT IS HAS TO BE THE APP'S BUSINESS, not the caller's. This app fills
+		 * `setMessage`'s string argument, so any value does; a descendant's write takes an ADDRESS,
 		 * and a suite that hardcoded 'sending indicator' there filled an invalid
 		 * field, so the form never submitted and nothing ever reached the wallet -
 		 * the same failure this whole helper exists to stop, one layer in. A suite
@@ -355,19 +355,64 @@ export async function sendAndStall(
 		input?: string;
 	},
 ): Promise<void> {
-	await page.goto('/demo/');
+	// THROUGH /contracts ON THIS BRANCH, NOT THE DEMO PAGE, and this is the
+	// override the template's version was written to receive.
+	//
+	// This app posts through a LOCAL SIGNER: the demo page's Send is signed with a
+	// key the app already holds, so it never reaches the user's wallet and a
+	// stalling wallet cannot stand in that window, because for that page the
+	// window does not exist. The ACCOUNT executor still goes to the wallet, and
+	// `/contracts` calls it directly, which makes it the shortest route to a
+	// wallet that has a transaction and is not answering.
+	//
+	// Stated HERE rather than in a suite, because two suites need it and stating
+	// it in one of them is precisely how the other spent thirty seconds waiting
+	// for a wallet that was never going to be asked.
+	await page.goto('/contracts');
 
-	const input = page.getByPlaceholder('Enter your greeting...');
-	await expect(input).toBeEnabled({timeout: 30_000});
-	await input.fill(options?.input ?? 'a request nobody answers');
-	await page.getByRole('button', {name: /send/i}).click();
+	const writeTab = page.getByRole('tab', {name: 'Write'});
+	await expect(writeTab).toBeVisible({timeout: 30_000});
+	await writeTab.click();
+
+	await expect(page.getByText('setMessage nonpayable')).toBeVisible({
+		timeout: 30_000,
+	});
+	await writeForm(page)
+		.getByPlaceholder('Enter text...')
+		.first()
+		.fill(options?.input ?? 'a request nobody answers');
+	await executeButton(page).click();
 
 	await chooseStallingWallet(page);
 
 	// The wallet now has the transaction and is not answering, which is the state
-	// a user gets stuck in.
+	// a user gets stuck in. `waitUntilHolding` also clicks through "Confirm sign
+	// in", which THIS app always shows: the flow parks at WalletConnected until
+	// the user says yes, and skipping it leaves the connection there forever with
+	// no request ever reaching the wallet.
 	await waitUntilHolding(page);
 }
+
+/**
+ * The write form `sendAndStall` drives, and its submit control.
+ *
+ * Exported because a suite asserts on the very control this clicked (that it
+ * says "Executing..." and stops saying it), and two definitions of the same
+ * locator is one definition too many.
+ *
+ * The submit control is matched on the STEM, so it is the same locator whether
+ * it reads "Execute" or "Executing...". `/execute/i` matches only the first of
+ * those, since "executing" does not contain "execute", and a test then reads as
+ * though the button had vanished at exactly the moment it was busy.
+ */
+export const writeForm = (page: Page) =>
+	page
+		.locator('[class*="card"], [class*="function"]')
+		.filter({has: page.getByText('setMessage nonpayable')})
+		.first();
+
+export const executeButton = (page: Page) =>
+	writeForm(page).locator('button', {hasText: /execut/i});
 
 /**
  * Pick this wallet out of however the app is offering wallets today.

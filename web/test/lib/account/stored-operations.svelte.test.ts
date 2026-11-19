@@ -2,7 +2,7 @@ import {describe, it, expect, vi} from 'vitest';
 import {readable} from 'svelte/store';
 import {
 	createAccountData,
-	readStoredOperations,
+	readAllStoredOperations,
 	type TransactionMetadata,
 } from '../../../src/lib/account/AccountData';
 import {collectRecordedNonces} from '../../../src/lib/account/recorded-nonces';
@@ -11,26 +11,50 @@ import type {TypedDeployments} from '../../../src/lib/core/connection/types';
 import v1Record from '../../fixtures/operations-v1-record.json';
 
 /**
- * `readStoredOperations` reads synqable's ON-DISK ENVELOPE directly, without
- * going through the store that wrote it, because the question it answers ("does
- * the app already hold an operation at this nonce?") has to work for an account
- * that is not connected, on a page where no wallet has attached.
+ * `readAllStoredOperations` reads synqable's ON-DISK ENVELOPE directly, without
+ * going through the store that wrote it, because the question it answers ("has
+ * the app already recorded a transaction from this sender at this nonce?") has
+ * to work when nobody is connected, on a page where no wallet has attached.
  *
  * That envelope is not a public contract, so this test writes through the REAL
  * store and reads back through the real reader. If synqable ever changes shape,
  * this fails loudly here rather than quietly turning "we already have this
  * transaction" into "we never saw it", which is the app inventing evidence.
  *
+ * WHY IT READS EVERY LIST RATHER THAN ONE. It used to take an address and look
+ * that account up, which was accurate only while one account sent everything. A
+ * signer's transactions and a payer's are filed under the PLAYER, so looking
+ * them up under their own address read a scope that is never written. Whose list
+ * an operation is in carries no information for this question: a nonce belongs
+ * to the account that signs, so the caller filters on `from` (see
+ * `account/recorded-nonces.ts`, which is where that half is tested).
+ *
+ * NOTHING HERE TESTS ADDRESS CASING ANY MORE, and that is a deletion rather than
+ * an oversight. The old reader built a key containing the account, so it had to
+ * try three spellings (as-given, lowercase, checksummed) or answer NOT KNOWN for
+ * data that was right there. The scan reads the account OUT of the key instead
+ * of building it in, so there is no spelling left to get wrong.
+ *
  * Runs in the browser project (hence `.svelte.test.ts`) because it needs a real
  * localStorage, which is the thing under test.
  */
 
 const ACCOUNT = '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266' as const;
+const OTHER = '0x70997970c51812dc3a010c7d01b50e0d17dc79c8' as const;
 const SCOPE = '0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0' as const;
 
 const deployments = {
 	chain: {id: 31337, genesisHash: '0xgenesis'},
 } as unknown as TypedDeployments;
+
+const read = () => readAllStoredOperations({deployments, scopeAddress: SCOPE});
+
+/** Every nonce the reader found, across every list, in any order. */
+const noncesFound = () =>
+	read()
+		.operations.flatMap((ops) => Object.values(ops))
+		.flatMap((op) => op.attempts.map((attempt) => attempt.nonce))
+		.sort((a, b) => (a ?? 0) - (b ?? 0));
 
 function trackedTransaction(nonce: number) {
 	return {
@@ -46,7 +70,28 @@ function trackedTransaction(nonce: number) {
 	} as never;
 }
 
-describe('readStoredOperations, against what the real store writes', () => {
+/**
+ * A stored envelope in the CURRENT shape. Migration from the previous one has
+ * its own block at the end of this file; these tests are about which lists the
+ * reader can find, so they use what the store writes today.
+ *
+ * `'0n'` is the on-disk form of a bigint (see utils/data/serializer): this is
+ * raw storage, not a value going through the store.
+ */
+const envelope = (nonce: number, from: string = ACCOUNT) => ({
+	$version: 2,
+	data: {
+		operations: {
+			'1': {
+				metadata: {type: 'unknown', name: 'x'},
+				call: {from, to: null, value: '0n', data: '0x'},
+				attempts: [{nonce, hash: '0xa', gasParameters: {}}],
+			},
+		},
+	},
+});
+
+describe('readAllStoredOperations, against what the real store writes', () => {
 	it('reads back an operation the store persisted', async () => {
 		localStorage.clear();
 		const accountData = createAccountData({
@@ -65,117 +110,98 @@ describe('readStoredOperations, against what the real store writes', () => {
 			// Synqable debounces its saves, so wait for the write rather than assume.
 			await vi.waitFor(
 				() => {
-					const stored = readStoredOperations({
-						deployments,
-						scopeAddress: SCOPE,
-						account: ACCOUNT,
-					});
-					expect(stored).toBeDefined();
-					expect(Object.values(stored!)).toHaveLength(1);
+					// The nonce is the whole point: it is what reconciliation compares.
+					expect(noncesFound()).toEqual([7]);
 				},
 				{timeout: 5000},
 			);
-
-			const stored = readStoredOperations({
-				deployments,
-				scopeAddress: SCOPE,
-				account: ACCOUNT,
-			})!;
-			// The nonce is the whole point: it is what reconciliation compares.
-			expect(Object.values(stored).map((op) => op.attempts[0]?.nonce)).toEqual([
-				7,
-			]);
+			expect(read().complete).toBe(true);
 		} finally {
 			stop();
 		}
 	});
+});
 
-	it('says NOT KNOWN, never "none", for an account it has nothing for', () => {
+describe('readAllStoredOperations: what it can and cannot see', () => {
+	it('finds every account this browser has a list for', () => {
+		// The reason it scans: the sender being asked about is routinely not the
+		// owner of the list holding their transaction.
 		localStorage.clear();
-		expect(
-			readStoredOperations({
-				deployments,
-				scopeAddress: SCOPE,
-				account: '0x0000000000000000000000000000000000000001',
-			}),
-		).toBeUndefined();
+		localStorage.setItem(
+			`__private__31337_0xgenesis_${SCOPE}_${ACCOUNT}`,
+			JSON.stringify(envelope(3)),
+		);
+		localStorage.setItem(
+			`__private__31337_0xgenesis_${SCOPE}_${OTHER}`,
+			JSON.stringify(envelope(5)),
+		);
+		expect(noncesFound()).toEqual([3, 5]);
+		expect(read().complete).toBe(true);
 	});
 
-	it('says NOT KNOWN when the envelope is not the shape it expects', () => {
-		// The drift case. Returning `{}` here would tell reconciliation the app
-		// never saw the transaction, which is exactly the lie to avoid.
+	it('ignores lists belonging to another chain or deployment', () => {
+		// The prefix pins chain, genesis and scope. A record is reconciled by
+		// nonce, and a nonce from another chain is not evidence about this one.
+		localStorage.clear();
+		localStorage.setItem(
+			`__private__1_0xgenesis_${SCOPE}_${ACCOUNT}`,
+			JSON.stringify(envelope(3)),
+		);
+		localStorage.setItem(
+			`__private__31337_0xother_${SCOPE}_${ACCOUNT}`,
+			JSON.stringify(envelope(4)),
+		);
+		localStorage.setItem(
+			`__private__31337_0xgenesis_${OTHER}_${ACCOUNT}`,
+			JSON.stringify(envelope(5)),
+		);
+		expect(noncesFound()).toEqual([]);
+		expect(read().complete).toBe(true);
+	});
+
+	it('reports "nothing stored" as complete, not as a failure', () => {
+		// A real answer: with nobody connected there is no live list to be behind,
+		// so an empty storage means the app genuinely recorded nothing.
+		localStorage.clear();
+		expect(read()).toEqual({operations: [], complete: true});
+	});
+});
+
+describe('readAllStoredOperations: an envelope it cannot read', () => {
+	it('reports incomplete when the shape is not what it expects', () => {
+		// The drift case. Reporting `complete` here would let the caller conclude
+		// the app never saw the transaction, which is exactly the lie to avoid.
 		localStorage.clear();
 		localStorage.setItem(
 			`__private__31337_0xgenesis_${SCOPE}_${ACCOUNT}`,
 			JSON.stringify({$version: 2, somethingElse: {operations: {}}}),
 		);
-		expect(
-			readStoredOperations({
-				deployments,
-				scopeAddress: SCOPE,
-				account: ACCOUNT,
-			}),
-		).toBeUndefined();
+		expect(read()).toEqual({operations: [], complete: false});
 	});
-});
 
-describe('readStoredOperations and address casing', () => {
-	// A record can carry a checksummed address while the multi-account store was
-	// handed the provider's lowercase one. Looking under only one spelling
-	// returns NOT KNOWN for data that is right there, and the user is then told a
-	// transaction "may have been sent" while it sits in their list.
-	const CHECKSUMMED = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266' as const;
-	const stored = {
-		$version: 2,
-		data: {
-			operations: {
-				'1': {
-					metadata: {type: 'unknown', name: 'x'},
-					// `'0n'` is the ON-DISK form of a bigint (see utils/data/serializer),
-					// which is what this writes: the fixture is raw storage, not a value
-					// going through the store.
-					call: {from: ACCOUNT, to: null, value: '0n', data: '0x'},
-					attempts: [{nonce: 3, hash: '0xa', gasParameters: {}}],
-				},
-			},
-		},
-	};
-
-	it('finds data written under the lowercase spelling', () => {
+	it('reports incomplete when the contents are not JSON at all', () => {
 		localStorage.clear();
 		localStorage.setItem(
 			`__private__31337_0xgenesis_${SCOPE}_${ACCOUNT}`,
-			JSON.stringify(stored),
+			'not json',
 		);
-		expect(
-			readStoredOperations({
-				deployments,
-				scopeAddress: SCOPE,
-				account: CHECKSUMMED,
-			}),
-		).toBeDefined();
+		expect(read().complete).toBe(false);
 	});
 
-	it('finds data written under the checksummed spelling', () => {
+	it('still returns the lists it COULD read beside the one it could not', () => {
+		// Partial knowledge is worth carrying: the caller decides what an unread
+		// list costs it, and for a list-shaped answer that means NOT KNOWN.
 		localStorage.clear();
 		localStorage.setItem(
-			`__private__31337_0xgenesis_${SCOPE}_${CHECKSUMMED}`,
-			JSON.stringify(stored),
+			`__private__31337_0xgenesis_${SCOPE}_${ACCOUNT}`,
+			JSON.stringify(envelope(3)),
 		);
-		expect(
-			readStoredOperations({
-				deployments,
-				scopeAddress: SCOPE,
-				account: CHECKSUMMED,
-			}),
-		).toBeDefined();
-		expect(
-			readStoredOperations({
-				deployments,
-				scopeAddress: SCOPE,
-				account: ACCOUNT,
-			}),
-		).toBeDefined();
+		localStorage.setItem(
+			`__private__31337_0xgenesis_${SCOPE}_${OTHER}`,
+			'not json',
+		);
+		expect(noncesFound()).toEqual([3]);
+		expect(read().complete).toBe(false);
 	});
 });
 
@@ -186,7 +212,7 @@ describe('readStoredOperations and address casing', () => {
  * not share a code path:
  *
  *   1. `createSyncableStore`, which runs `migrations` on load.
- *   2. `readStoredOperations`, which parses the envelope ITSELF, because the
+ *   2. `readAllStoredOperations`, which parses the envelope ITSELF, because the
  *      question it answers ("does the app already hold an operation at this
  *      nonce?") has to work for an account nobody is connected as.
  *
@@ -194,7 +220,7 @@ describe('readStoredOperations and address casing', () => {
  * keeps returning pre-migration records, `collectRecordedNonces` reads
  * `attempts` off records that only have `transactionIntent`, finds nothing, and
  * the user is told a transaction may have been sent while it sits in their
- * list. That is precisely the failure `readStoredOperations` was added to fix,
+ * list. That is precisely the failure `readAllStoredOperations` was added to fix,
  * so it is asserted here in the terms the caller actually uses.
  *
  * The fixture is the same VERBATIM v1 record the migration's own unit test
@@ -210,11 +236,12 @@ describe('reading a v1 record on both paths', () => {
 
 	it('migrates on the direct localStorage path', () => {
 		seedV1();
-		const stored = readStoredOperations({
-			deployments,
-			scopeAddress: SCOPE,
-			account: ACCOUNT,
-		})!;
+		// `readAllStoredOperations` here, this variant's reader: it scans every
+		// account's list rather than taking one, so the record comes out of the
+		// first (and only) list seeded above.
+		const found = read();
+		expect(found.complete).toBe(true);
+		const stored = found.operations[0];
 
 		expect(stored).toBeDefined();
 		const op = stored['1739000000000'];
@@ -226,7 +253,9 @@ describe('reading a v1 record on both paths', () => {
 
 		// And what the caller actually wanted: the nonces. This is the assertion
 		// that fails if the second read path is left un-migrated.
-		expect(collectRecordedNonces(stored).sort()).toEqual([12, 12, 13]);
+		// Filtered by sender, which is this variant's addition: the list is keyed
+		// by the authenticated player and holds whatever any of its senders did.
+		expect(collectRecordedNonces(stored, ACCOUNT).sort()).toEqual([12, 12, 13]);
 	});
 
 	it('migrates on the store path, and rewrites the record', async () => {
@@ -300,11 +329,7 @@ describe('reading a v1 record on both paths', () => {
 		// cheap way to fix a missed path is to write a second converter, and two
 		// converters drift.
 		seedV1();
-		const direct = readStoredOperations({
-			deployments,
-			scopeAddress: SCOPE,
-			account: ACCOUNT,
-		})!;
+		const direct = read().operations[0];
 		// The store writes the migrated envelope back; reading it again must be a
 		// no-op rather than a second conversion.
 		// Through the app's own serializer, because migrated records hold bigints
@@ -320,11 +345,7 @@ describe('reading a v1 record on both paths', () => {
 				data: {operations: direct},
 			}) as string,
 		);
-		const second = readStoredOperations({
-			deployments,
-			scopeAddress: SCOPE,
-			account: ACCOUNT,
-		})!;
+		const second = read().operations[0];
 		expect(Object.keys(second)).toEqual(Object.keys(direct));
 		expect(second['1739000000000'].attempts).toHaveLength(2);
 	});

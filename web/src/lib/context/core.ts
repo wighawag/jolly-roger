@@ -1,13 +1,37 @@
-import type {CoreContext, TxObserverDebugState} from './types.js';
-import {writable, derived, get, type Readable} from 'svelte/store';
+import type {
+	CoreContext,
+	TrackedPaymentRail,
+	TxObserverDebugState,
+} from './types.js';
+// The same store the connection hands back below, imported here because the
+// permission the app declares has to be known BEFORE the connection is built.
+// Aliased so the name the rest of this function uses keeps coming from the
+// connection, which is where every other consumer gets it.
+import {deployments as deploymentsStore} from '$lib/deployments-store';
+import {createWalletClient, custom, http} from 'viem';
+import {privateKeyToAccount} from 'viem/accounts';
+import {
+	writable,
+	derived,
+	get,
+	type Readable,
+	type Writable,
+} from 'svelte/store';
 import {createAccountData} from '$lib/account/AccountData.js';
 import type {TransactionMetadata} from '$lib/account/AccountData.js';
 import {establishRemoteConnection} from '$lib/core/connection';
+import {
+	createPaymentRail,
+	payerAddressOf,
+} from '$lib/core/connection/remote.js';
 import {createBalanceStore} from '$lib/core/connection/balance';
 import {createGasFeeStore} from '$lib/core/connection/gasFee';
 import {createRpcHealthStore} from '$lib/core/connection/rpcHealth';
 import {createOfflineStore} from '$lib/core/connection/offline';
 import {createClockStore} from '$lib/core/clock';
+import {createDelegationState} from '$lib/onchain/delegation.js';
+import {createDelegationCheckStore} from '$lib/ui/delegation/delegation-check.js';
+import {createConfirmation} from '$lib/core/ui/confirm/confirmation.js';
 import {createTransactionObserver} from '@etherkit/tx-observer';
 import {createTabLeaderService} from '$lib/core/tab-leader';
 import {createTrackedWalletClient} from '@etherkit/viem-tx-tracker';
@@ -24,22 +48,30 @@ import {
 	PUBLIC_USE_BURNER_WALLET,
 	PUBLIC_WALLET_HOST,
 	PUBLIC_IMPERSONATE_ADDRESSES,
+	PUBLIC_FAUCET_LINK,
+	PUBLIC_FAUCET_API,
 } from '$env/static/public';
+import {hasFaucet} from '$lib/core/ui/faucet/index.js';
+import {createTopUpFlow} from '$lib/ui/credits/top-up-flow.js';
+import type {SignerGrant} from '$lib/ui/delegation/grant.js';
 import {burnerOverride} from '$lib';
 import {resolveBurnerWallet} from './burner.js';
 import {
 	resolveConnectionConfig,
 	TARGET_STEP,
 } from '$lib/core/connection/mode.js';
-import {
-	hasConfiguredRpc,
-	resolveAppRpcUrl,
-} from '$lib/core/connection/rpc-config.js';
+import {resolveSignerRpc} from '$lib/core/connection/signer-rpc.js';
+import {resolveAppRpcUrl} from '$lib/core/connection/rpc-config.js';
 import {
 	createNonceCacheStore,
 	inactiveNonceCacheStore,
 } from '$lib/core/connection/nonce-cache-store.js';
-import {createExecutor} from '$lib/core/connection/executor.js';
+import {
+	createExecutor,
+	memoiseSignerClient,
+	type ExecutorStore,
+} from '$lib/core/connection/executor.js';
+import {createSenderRegistry} from './sender-registry.js';
 import {
 	walletIdentityOf,
 	type TxSource,
@@ -52,7 +84,11 @@ import {
 	ephemeralStorage,
 } from '$lib/core/transaction/in-flight-store.js';
 import {guardDispatch} from '$lib/core/transaction/dispatch-guard.js';
-import {resolveURLForThisPage} from '$lib/core/env/same-host.js';
+import {
+	currentPageOrigin,
+	isSameHostURL,
+	resolveURLForThisPage,
+} from '$lib/core/env/same-host.js';
 import {startInFlightTracking} from '$lib/core/transaction/in-flight-tracking.js';
 import {createRecordedNonceReader} from '$lib/account/recorded-nonces.js';
 import {createAccountCannotSendStore} from '$lib/core/transaction/account-cannot-send-store.js';
@@ -72,6 +108,7 @@ import {
 import {
 	resolveAppConfig,
 	operationScopeAddress,
+	delegationRegistryAddress,
 	type ResolvedAppConfig,
 } from './config.js';
 import {startTxObserverLoop} from '$lib/core/tx-observer';
@@ -261,8 +298,23 @@ function buildConnection(params: {
 		chainInfoNodeURL,
 	} = params;
 
+	/**
+	 * Whether this app has a local signer at all.
+	 *
+	 * The one predicate everything downstream uses. Deliberately NOT "is
+	 * PUBLIC_WALLET_HOST set": a wallet-only sign-in has no host and still
+	 * derives a signer, so testing the host would get it wrong.
+	 */
+	const hasLocalSigner = targetStep === 'SignedIn';
+
+	// ----------------------------------------------------------------------------
+	// CONNECTION
+	// ----------------------------------------------------------------------------
+
 	const {
 		connection,
+		signer,
+		chainInfo,
 		walletClient: rawWalletClient,
 		publicClient,
 		account,
@@ -273,6 +325,25 @@ function buildConnection(params: {
 		targetStep,
 		walletHost,
 		walletOnly,
+		// WHAT THIS APP ASKS FOR, declared where the user can still say no: the
+		// authority to act in their name at one contract on one chain, and nowhere
+		// else. The pair is the same one the chain read and every writer use, from
+		// the same place (see context/config's delegationRegistryAddress).
+		//
+		// OPTIONAL, deliberately. Required would make a refusal a wall at the door
+		// for something the user cannot evaluate yet; optional keeps the app
+		// browsable read-only and turns a refusal into a remedy the app offers at
+		// the moment it actually needs the authorisation (see the `re-authorise`
+		// route in ui/delegation/registration). A game that genuinely cannot
+		// function read-only is the case for setting `required: true`.
+		permissions: [
+			{
+				type: 'delegation',
+				required: false,
+				chainId: deploymentsStore.get().chain.id,
+				contract: delegationRegistryAddress(deploymentsStore.get()),
+			},
+		],
 		// The RPC url handed to the WALLET, which is not necessarily the one the
 		// app uses. Without it the exported chain info carries an empty rpc list
 		// (rocketh does not bake a public endpoint into chain info), and a wallet
@@ -285,8 +356,27 @@ function buildConnection(params: {
 		chainInfoNodeURL,
 	});
 
+	// The payment rail: a SECOND connection, used only to buy credits, built here
+	// rather than by establishRemoteConnection because wanting one is this app's
+	// decision and not a property of how it authenticates. A variant that sells
+	// nothing simply never calls this and never pays for the second connection.
+	//
+	// Given the same chainInfo the app connection was built from, so the payer's
+	// wallet is told about the chain exactly as the player's was, including the
+	// wallet-facing RPC override.
+	// THE RESOLVED URL, NOT THE RAW ENV VALUE, and this line merged cleanly
+	// while being wrong: main made service urls follow the page's host and this
+	// branch's payment rail was added afterwards, so nothing conflicted. A rail
+	// left on `PUBLIC_NODE_URL` would reach for `localhost` from a phone, i.e.
+	// the phone, and only when the user tried to PAY.
+	const rawPayment = createPaymentRail(chainInfo, {nodeURL});
+
 	return {
 		connection,
+		signer,
+		chainInfo,
+		rawPayment,
+		hasLocalSigner,
 		rawWalletClient,
 		publicClient,
 		account,
@@ -297,13 +387,27 @@ function buildConnection(params: {
 
 /** Chain-derived configuration, the clock, and per-account storage. */
 function buildChainConfig(params: {
+	targetStep: Parameters<typeof buildConnection>[0]['targetStep'];
+	walletOnly: Parameters<typeof buildConnection>[0]['walletOnly'];
+	fatal: Writable<string | undefined>;
 	deployments: ReturnType<typeof buildConnection>['deployments'];
 	connection: ReturnType<typeof buildConnection>['connection'];
 	account: ReturnType<typeof buildConnection>['account'];
 	/** Already resolved against the page. See core/env/same-host. */
 	nodeURL: string | undefined;
+	/** Configured in the same-host notation, and no page yet (SSR, prerender). */
+	nodeURLAwaitsPage: boolean;
 }) {
-	const {deployments, connection, account, nodeURL} = params;
+	const {
+		deployments,
+		connection,
+		account,
+		targetStep,
+		walletOnly,
+		fatal,
+		nodeURL,
+		nodeURLAwaitsPage,
+	} = params;
 
 	// ----------------------------------------------------------------------------
 	// CHAIN CONFIGURATION
@@ -317,17 +421,51 @@ function buildChainConfig(params: {
 	// adds a field to `config.ts` reads it without touching this file.
 	const chain = deployments.get().chain as AugmentedChainInfo;
 	const appConfig = resolveAppConfig(chain);
-	const {finality, txObserverProcessInterval} = appConfig;
+	// `credits` is this branch's: the top-up flow prices them. `maxMessages` is
+	// no longer pulled apart here, because the app's half is handed the whole
+	// resolved object (see CoreServices).
+	const {finality, txObserverProcessInterval, credits} = appConfig;
 
 	// The app's own RPC url, when it has one. Only the nonce-cache check below
 	// needs it, to compare the wallet's idea of the nonce against a trusted node.
+	// A local signer broadcasts raw transactions. It prefers a real node RPC
+	// (PUBLIC_NODE_URL or an rpcUrl configured on the chain), and REQUIRES one
+	// under hosted sign-in, where the account may have no wallet to fall back to.
+	// Missing is recorded as fatal and surfaced by the init-error screen; the
+	// resolved url also drives the signer client's transport below.
+	// `nodeURL` rather than PUBLIC_NODE_URL since main's same-host change: a
+	// value like `//:8545` follows the host the page was served from, and the
+	// SIGNER's broadcast endpoint needs that more than anything else here -
+	// this is where transactions go, and from a phone on the LAN `localhost`
+	// is the phone.
+	const signerRpc = resolveSignerRpc(
+		{targetStep, walletOnly},
+		nodeURL,
+		chain.rpcUrls?.default?.http,
+		import.meta.env.DEV,
+		{awaitingPage: nodeURLAwaitsPage},
+	);
+	if (!signerRpc.ok) {
+		fatal.set(signerRpc.error);
+	}
+	const signerRpcUrl = signerRpc.ok ? signerRpc.rpcUrl : undefined;
+
+	// The app's own RPC url, when it has one. The nonce-cache check and the
+	// in-flight ledger both need the url rather than the yes/no, to compare an
+	// account's nonce against a node the app trusts.
+	//
+	// NOT `signerRpcUrl` above, even though today they resolve to the same string.
+	// That one answers "where does the local signer BROADCAST", and it is
+	// deliberately undefined when the resolution failed; this one answers "which
+	// node does the app read from". Collapsing them would tie a read the ledger
+	// depends on to a fatal condition about sending.
 	const appRpcUrl = resolveAppRpcUrl(nodeURL, chain.rpcUrls?.default?.http);
 
 	// Whether the app has an RPC of its own (PUBLIC_NODE_URL or a chain rpcUrl).
 	// When it does not, the app can only reach the chain via the connected wallet,
 	// so chain-data fetching must wait until the wallet is connected (otherwise it
 	// would fail and look like a broken RPC). Exposed so the UI can explain this.
-	const hasAppRpc = hasConfiguredRpc(nodeURL, chain.rpcUrls?.default?.http);
+	const hasAppRpc = !!appRpcUrl;
 
 	// Whether the app can read the chain right now: it has its own RPC, or the
 	// wallet is connected (and supplies one). Always a boolean, so UI can gate
@@ -361,6 +499,8 @@ function buildChainConfig(params: {
 	return {
 		chain,
 		appConfig,
+		credits,
+		signerRpcUrl,
 		finality,
 		txObserverProcessInterval,
 		appRpcUrl,
@@ -445,13 +585,21 @@ function buildInFlight(params: {
 
 /** The tracked, dispatch-guarded wallet client. AFTER the ledger it guards. */
 function buildWalletClient(params: {
+	rawPayment: ReturnType<typeof buildConnection>['rawPayment'];
 	clock: ReturnType<typeof buildChainConfig>['clock'];
 	connection: ReturnType<typeof buildConnection>['connection'];
 	rawWalletClient: ReturnType<typeof buildConnection>['rawWalletClient'];
 	publicClient: ReturnType<typeof buildConnection>['publicClient'];
 	inFlight: ReturnType<typeof buildInFlight>['inFlight'];
 }) {
-	const {clock, connection, rawWalletClient, publicClient, inFlight} = params;
+	const {
+		clock,
+		connection,
+		rawWalletClient,
+		publicClient,
+		inFlight,
+		rawPayment,
+	} = params;
 
 	// ----------------------------------------------------------------------------
 	// TRACKED WALLET CLIENT
@@ -460,14 +608,33 @@ function buildWalletClient(params: {
 	// Wrap the raw wallet client with tracking capabilities
 	// This is exposed as `walletClient` for drop-in compatibility
 	// Use `walletClient.walletClient` to access the underlying viem WalletClient if needed
-	// A THUNK, NOT A VALUE, and read at each broadcast rather than here. This
-	// client is built once and lives for the session, while the wallet behind it
-	// does not: the user can connect a different one, or switch account inside
-	// the one they have, between now and any given send. A source captured at
-	// construction would name the wallet that happened to be connected at page
-	// load, which is precisely the transaction-to-wallet mapping this exists to
-	// get right. See core/connection/tx-source.
-	const trackerBuilder = createTrackedWalletClient<
+	//
+	// ONE BUILDER PER ROUTE, AND THAT IS WHY THERE ARE THREE OF THEM BELOW.
+	//
+	// `source` is a BUILDER option, so every client a builder makes carries the
+	// same one. This app sends from three places (the app wallet, the payment
+	// rail, the local signer), and it used to make all three from a single
+	// builder, which after `source` arrived would have stamped `route: 'account'`
+	// on all of them. That is WORSE than leaving them unstamped: `selectSender`
+	// trusts the route, so a stuck rail payment would be routed with total
+	// confidence to the account executor, and the recovery would ask the user's
+	// identity wallet to sign for the payer's address. Unstamped at least falls
+	// back to matching an address among ready executors.
+	//
+	// `test/tracked-clients-declare-source.test.ts` counts CLIENTS against
+	// builders for exactly this reason, so the split is enforced rather than
+	// remembered. (Its counter is a deliberately crude text scan, so this comment
+	// says "clients" rather than spelling the call it looks for.)
+	//
+	// A THUNK, NOT A VALUE, on both WALLET routes, and read at each broadcast
+	// rather than here. These clients are built once and live for the session,
+	// while the wallets behind them do not: the user can connect a different one,
+	// or switch account inside the one they have, between now and any given send.
+	// A source captured at construction would name the wallet that happened to be
+	// connected at page load, which is precisely the transaction-to-wallet mapping
+	// this exists to get right. The signer is the exception and says why at its
+	// own builder. See core/connection/tx-source.
+	const accountTrackerBuilder = createTrackedWalletClient<
 		TransactionMetadata,
 		TxSource
 	>({
@@ -478,32 +645,154 @@ function buildWalletClient(params: {
 			wallet: walletIdentityOf(get(connection)),
 		}),
 	});
-	// GUARDED HERE, ONCE, so every send in the app records itself before dispatch:
-	// the account executor below is handed this client, and so is anything using
-	// `context.walletClient` directly. An app that builds a SECOND tracked client
-	// (a local signer, see executor.ts's buildSignerClient) has to guard that one
-	// too; nothing can do it on its behalf, and it should pass `{prompts: false}`
-	// because a key the app holds sends with no dialog and nobody to instruct.
+
+	// THE RAIL'S OWN CONNECTION, not the app's, and reading the app's here would
+	// be the same bug as sharing one builder: the payer is a wallet chosen per
+	// payment on a SECOND connection, and is routinely not the wallet the user is
+	// signed in with. Recording the app's wallet against a rail payment would send
+	// the recovery to the wrong wallet while looking entirely correct.
+	const railTrackerBuilder = createTrackedWalletClient<
+		TransactionMetadata,
+		TxSource
+	>({
+		populateMetadata: true,
+		clock: () => clock.now(),
+		source: () => ({
+			route: 'rail',
+			wallet: walletIdentityOf(get(rawPayment.connection)),
+		}),
+	});
+
+	// A PLAIN VALUE, and the only one of the three that can be. There is no wallet
+	// to name, and `memoiseSignerClient` binds one client OBJECT per private key,
+	// so a client built here can never outlive the key it signs with the way the
+	// wallet clients outlive the wallets behind them. A thunk would have nothing
+	// to read.
+	const signerTrackerBuilder = createTrackedWalletClient<
+		TransactionMetadata,
+		TxSource
+	>({
+		populateMetadata: true,
+		clock: () => clock.now(),
+		source: {route: 'signer'},
+	});
+	// GUARDED HERE so every send through it records itself before dispatch: the
+	// account executor below is handed this client, and so is anything using
+	// `context.walletClient` directly.
 	//
-	// This one prompts, which is the default, so it says nothing: sends here go to
-	// a wallet the user has to answer.
+	// NOT the only one on this branch. This app builds a SECOND tracked client for
+	// the local signer (`buildSignerClient` below), which is a different object and
+	// therefore needs its own guard. Nothing can do that on its behalf, so the two
+	// call sites are deliberately written to look alike.
+	//
+	// They differ in one word, and it is the one the user sees. This client
+	// PROMPTS, which is the default and therefore unwritten: a send from here goes
+	// to a wallet a human has to answer, so "Wallet Action Required" is a true
+	// instruction. The signer's passes `{prompts: false}`, because it signs with a
+	// key the app already holds and nobody is waiting on anything.
 	const walletClient = guardDispatch(
-		trackerBuilder.using(rawWalletClient, publicClient),
+		accountTrackerBuilder.using(rawWalletClient, publicClient),
 		inFlight,
 	);
 
-	return {walletClient};
+	// THE THIRD CLIENT THAT SENDS, AND THE ONE THAT MOVES REAL MONEY.
+	//
+	// The payment rail carries a wallet client of its own, built by
+	// `createPaymentRail` from a SECOND connection with its own payer. It is a
+	// different OBJECT from the app wallet client and from the signer client, so
+	// wrapping those two leaves this one uncovered, and it is the only one whose
+	// transactions the user paid for on purpose.
+	//
+	// BOTH WRAPPERS, and for a long time it had only the guard. That split was the
+	// worst of the three outcomes available: the silent key's every move was
+	// listed, and the one transaction the user consciously paid real money for was
+	// not. Guarding and tracking answer two different questions and both have to be
+	// answered here - the guard asks "was this request lost", tracking asks "what
+	// did the user do" - and the rail is the client where forgetting either is
+	// most expensive.
+	//
+	// GUARDED, because the window is the same as everywhere else: the tab can die
+	// between the wallet returning a signature and the hash coming back, and a
+	// purchase lost there is one the app has no record of and cannot reconcile.
+	// That it needs a human at a wallet makes the window LONGER than the signer's,
+	// not shorter.
+	//
+	// TRACKED, so the purchase becomes an operation in account data like every
+	// other transaction. Without it a purchase is invisible to everything built on
+	// that ledger: it is missing from the transaction list, and, worse, a reload
+	// while it is in flight leaves the app with nothing to read, so a descendant
+	// selling something has no way to know a purchase is already under way and
+	// lets the user pay for it a second time. The alternative that suggests itself
+	// there - remembering the purchase in local storage - is a second copy of
+	// exactly what the operations ledger exists to hold.
+	//
+	// PROMPTS, unwritten because it is the default, and true here for the same
+	// reason it is true of the app wallet client: a human at a wallet has to
+	// answer. Only the signer's client is silent.
+	//
+	// THE RAIL'S OWN PUBLIC CLIENT, not the app's, and this one is not a nicety.
+	// The tracker RESOLVES THE NONCE and injects it, reading `pending` from the
+	// public client it was given. The nonce it needs is the PAYER's, and the payer
+	// is reachable through the payment connection's provider - their own wallet's
+	// node, which is the only one that has seen their pending transactions. Asking
+	// the app's node for it would answer from a node the payer never sent through,
+	// which is a stale count, a colliding nonce and a purchase that replaces or is
+	// replaced by something else. The two chains agreeing would not make the app's
+	// client right, and they need not even agree: the payer connects their own
+	// wallet, wherever it happens to be pointed.
+	//
+	// Wrapped here rather than inside `createPaymentRail`, because the ledger and
+	// the tracker are this app's and the rail is a core building block that must
+	// not reach for either. Same reason the app wallet client is wrapped at its
+	// call site. `PaymentRail` therefore stays a rail of plain viem clients, and
+	// what the app holds is a `TrackedPaymentRail` (see ./types).
+	const payment: TrackedPaymentRail = {
+		...rawPayment,
+		walletClient: guardDispatch(
+			railTrackerBuilder.using(
+				rawPayment.walletClient,
+				rawPayment.publicClient,
+			),
+			inFlight,
+		),
+	};
+
+	return {walletClient, payment, signerTrackerBuilder};
 }
 
 /** Who signs, what watches the result, and the connectors that file it. */
 function buildExecution(params: {
+	signer: ReturnType<typeof buildConnection>['signer'];
+	account: ReturnType<typeof buildConnection>['account'];
+	deployments: ReturnType<typeof buildConnection>['deployments'];
+	publicClient: ReturnType<typeof buildConnection>['publicClient'];
+	signerRpcUrl: ReturnType<typeof buildChainConfig>['signerRpcUrl'];
+	chainFetchGate: ReturnType<typeof buildChainConfig>['chainFetchGate'];
+	signerTrackerBuilder: ReturnType<
+		typeof buildWalletClient
+	>['signerTrackerBuilder'];
 	connection: ReturnType<typeof buildConnection>['connection'];
 	walletClient: ReturnType<typeof buildWalletClient>['walletClient'];
+	payment: ReturnType<typeof buildWalletClient>['payment'];
 	accountData: ReturnType<typeof buildChainConfig>['accountData'];
 	finality: ReturnType<typeof buildChainConfig>['finality'];
 	inFlight: ReturnType<typeof buildInFlight>['inFlight'];
 }) {
-	const {connection, walletClient, accountData, finality, inFlight} = params;
+	const {
+		connection,
+		walletClient,
+		payment,
+		accountData,
+		finality,
+		inFlight,
+		signer,
+		account,
+		deployments,
+		publicClient,
+		signerRpcUrl,
+		chainFetchGate,
+		signerTrackerBuilder,
+	} = params;
 
 	// ----------------------------------------------------------------------------
 	// TRANSACTION EXECUTOR
@@ -512,26 +801,110 @@ function buildExecution(params: {
 	// plus account address, so the `from` address, the account argument and the
 	// client can never disagree about who is paying.
 	//
-	// One executor here, because this app authenticates only as far as a
-	// connected wallet (see TARGET_STEP in core/connection/mode) and so has no
-	// local signer to offer a second one. An app that flips that switch adds a
-	// `sendFrom: 'signer'` executor beside this one, supplying the client factory
-	// that mode requires; nothing about this one changes.
+	// TRANSACTION EXECUTORS
+	//
+	// TWO of them, named for WHO SIGNS, and call sites pick by intent. There is no
+	// mode and no default: "which account is this transaction from" is a property
+	// of what the transaction DOES, not of how the app is configured.
+	//
+	// - `accountExecutor`: the account the user authenticated as. Prompts. Use it
+	//   for anything only the account may do, or that moves the user's own money
+	//   (getting an asset out of an app, say).
+	// - `signerExecutor`: the local signer, derived at sign-in. Silent, and free
+	//   of the user's attention. Use it for whatever the app does on the user's
+	//   behalf, which for a game is every move.
+	//
+	// Both always exist. The signer one simply never reaches `ready` when the app
+	// does not sign in, so a call site handles that the same way it already
+	// handles "not connected yet" - no optional stores, no branching on config.
+	//
+	// The signer client is built HERE (not inside the executor) because this is
+	// where its concrete pieces live: the chain from deployments, the node RPC
+	// URL, and the same tracker config as `walletClient` (so signer transactions
+	// get identical metadata/observation wiring). The executor only sees the
+	// finished tracked client, keeping it free of construction concerns.
+	//
+	// MEMOISED across both executors, and that matters for correctness rather
+	// than for cost: without it the two would hold DIFFERENT client objects for
+	// the same signer, and the tracking connector, which identifies clients by
+	// reference, would listen to only one of them. See memoiseSignerClient.
+	//
+	// GUARDED INSIDE THE MEMOISATION, which is the whole subtlety of this call
+	// site. `guardDispatch` returns a WRAPPER, so guarding the result of
+	// `buildSignerClient` at each use would hand out a fresh object per call and
+	// recreate the very bug the memoisation exists to prevent: tracking identifies
+	// clients by reference, so the extra object is one nobody listens to, and its
+	// transactions silently stop being reported. Guarding in here keeps one private
+	// key mapped to one client OBJECT, which is already guarded.
+	//
+	// Worth guarding even with no wallet in the loop. The danger window is smaller,
+	// since the app signs locally and no human has to answer, but it is not empty:
+	// the tab can still die between `eth_sendRawTransaction` leaving and the hash
+	// coming back, and that is exactly the case core/transaction exists for.
+	//
+	// AND GUARDED SILENTLY, `{prompts: false}`, which is the one difference from
+	// the wallet client's call site. Guarding is about the RECORD; prompting is
+	// about the USER, and this is the client where those two stop coinciding. The
+	// app holds this key, so a send here opens no dialog and leaves nobody waiting,
+	// and "Wallet Action Required" would be an instruction the user cannot act on
+	// about a wallet that was never asked. In a game loop it is worse than useless:
+	// it appears and vanishes several times a minute, too fast to read, and teaches
+	// the user to ignore the modal for the sends that DO need them.
+	//
+	// The record is untouched by this, deliberately. The send still counts toward
+	// `dispatching`, still arms the unload guard and still lights the sending
+	// indicator, because a transaction nobody was asked about is exactly as losable
+	// as one a wallet is holding. See core/transaction/dispatch-guard.
+	const buildSignerClient = memoiseSignerClient((privateKey) => {
+		const account = privateKeyToAccount(privateKey);
+		const raw = createWalletClient({
+			account,
+			chain: deployments.get().chain,
+			// Broadcast over the resolved node RPC (PUBLIC_NODE_URL or a chain
+			// rpcUrl) when there is one. Hosted sign-in guarantees it (see
+			// resolveSignerRpc above, which makes its absence fatal); under
+			// wallet-only sign-in every account has a wallet, so the connection
+			// provider is a real fallback rather than a hopeful one.
+			transport: signerRpcUrl
+				? http(signerRpcUrl)
+				: custom(connection.provider),
+		});
+		return {
+			client: guardDispatch(
+				signerTrackerBuilder.using(raw, publicClient),
+				inFlight,
+				{
+					prompts: false,
+				},
+			),
+			account,
+		};
+	});
+
 	const accountExecutor = createExecutor({
 		connection,
 		walletClient,
 		sendFrom: 'account',
+		buildSignerClient,
+	});
+
+	const signerExecutor = createExecutor({
+		connection,
+		walletClient,
+		sendFrom: 'signer',
+		buildSignerClient,
 	});
 
 	const accountCannotSend = createAccountCannotSendStore();
 	const errorDetails = createErrorDetailsStore();
 
-	// The address that actually pays. Balance checks and the top-bar balance
-	// follow it, so a shown or gating balance always belongs to the account that
-	// would be spending.
-	const accountAddress = derived(accountExecutor, ($executor) =>
-		$executor.status === 'ready' ? $executor.address : undefined,
-	);
+	// The address each executor sends from, or undefined until it is ready. The
+	// matching balance follows it, so a shown or gating balance always belongs to
+	// the account that would actually pay.
+	const addressOf = (executor: ExecutorStore) =>
+		derived(executor, ($executor) =>
+			$executor.status === 'ready' ? $executor.address : undefined,
+		);
 
 	// ----------------------------------------------------------------------------
 
@@ -548,8 +921,21 @@ function buildExecution(params: {
 
 	const tabLeader = createTabLeaderService();
 
+	// EVERY CLIENT THAT SENDS FEEDS ACCOUNT DATA, so a transaction is recorded
+	// whichever key signed it. Operations are keyed by the AUTHENTICATED account,
+	// not by the sender, so the signer's moves, the account's transactions and
+	// whatever a payer bought belong to the same player and land in one list. A
+	// consumer that wants them apart filters on `from`, which is also what the
+	// pending-operation UI already does when it decides whether the account that
+	// sent something is one this app can replace it from.
+	//
+	// The rail is in `clients` rather than in `executors` because it is neither an
+	// executor nor swappable: it is built once with the context and holds whatever
+	// payer connects to it. Leaving it out was the whole of the bug this list
+	// shape exists to make unrepeatable - see the connector's own header.
 	const trackedWalletConnector = createTrackedWalletConnector({
-		walletClient,
+		clients: [walletClient, payment.walletClient],
+		executors: [accountExecutor, signerExecutor],
 		accountData,
 		// A transaction that was broadcast but could not be filed as an operation
 		// (the account went away between dispatch and answer) goes to the ledger,
@@ -565,11 +951,33 @@ function buildExecution(params: {
 		txObserver,
 	});
 
+	// Whether this browser's signer may act for the account. Scoped to the
+	// account AND its signer, so it resets when either changes, and gated the
+	// same way the message poll is: with no app RPC there is nothing to read it
+	// over until a wallet is connected.
+	const signerAddress = derived(signer, ($signer) => $signer?.address);
+	const delegation = createDelegationState({
+		publicClient,
+		// The one delegation fact this app owns: which of its contracts adopted
+		// the library. The entry points come with the module.
+		registry: delegationRegistryAddress(deployments.get()),
+		// And the chain it is on, because a credential is bound to the PAIR: the
+		// same address on another chain is another contract entirely. Same value
+		// the connection declares its permission for, from the same place.
+		chainId: deployments.get().chain.id,
+		account,
+		signer: signerAddress,
+		fetchGate: chainFetchGate,
+	});
+
 	return {
 		accountExecutor,
+		signerExecutor,
+		addressOf,
+		signerAddress,
+		delegation,
 		accountCannotSend,
 		errorDetails,
-		accountAddress,
 		txObserver,
 		tabLeader,
 		trackedWalletConnector,
@@ -614,10 +1022,18 @@ function buildNavigation(params: {
 /** What the paying account holds, what a call costs, and whether it can pay. */
 function buildBalances(params: {
 	publicClient: ReturnType<typeof buildConnection>['publicClient'];
-	accountAddress: ReturnType<typeof buildExecution>['accountAddress'];
+	accountExecutor: ReturnType<typeof buildExecution>['accountExecutor'];
+	signerExecutor: ReturnType<typeof buildExecution>['signerExecutor'];
+	addressOf: ReturnType<typeof buildExecution>['addressOf'];
 	chainFetchGate: ReturnType<typeof buildChainConfig>['chainFetchGate'];
 }) {
-	const {publicClient, accountAddress, chainFetchGate} = params;
+	const {
+		publicClient,
+		accountExecutor,
+		signerExecutor,
+		addressOf,
+		chainFetchGate,
+	} = params;
 
 	// ----------------------------------------------------------------------------
 	// BALANCE AND COSTS
@@ -626,9 +1042,24 @@ function buildBalances(params: {
 	// Balance of the account that pays. One account sends everything here, so
 	// there is one balance, and it is named for whose it is rather than for the
 	// role it plays.
+	// One balance per executor, named the same way. A call site that named the
+	// executor it sends from names the matching balance, so the two can never
+	// drift apart the way a single "the balance" did.
+	//
+	// Both are plain pollers over one address, and both are inert until something
+	// subscribes: an app that never shows the signer's gas never fetches it, and
+	// a deployment with no signer never has an address to fetch.
 	const accountBalance = createBalanceStore({
 		publicClient,
-		account: accountAddress,
+		account: addressOf(accountExecutor),
+	});
+
+	// The signer's gas. Not the same thing as "what the app spends": the signer
+	// pays for what the app does on the user's behalf, and it starts empty, so
+	// this is what the credits UI reads to tell the user they cannot move yet.
+	const signerBalance = createBalanceStore({
+		publicClient,
+		account: addressOf(signerExecutor),
 	});
 
 	const gasFee = createGasFeeStore({
@@ -654,7 +1085,14 @@ function buildBalances(params: {
 		isLeader: false,
 	});
 
-	return {accountBalance, gasFee, balanceCheck, offline, txObserverDebug};
+	return {
+		accountBalance,
+		signerBalance,
+		gasFee,
+		balanceCheck,
+		offline,
+		txObserverDebug,
+	};
 }
 
 /**
@@ -669,6 +1107,16 @@ function buildBalances(params: {
 export function createCoreContext<App extends AppContext>(params: {
 	createApp: AppFactory<App>;
 	/**
+	 * What this app's browser key is for, in this app's words.
+	 *
+	 * A PARAMETER rather than an import, for the same reason `createApp` is one:
+	 * this file is the template's half and must not reach into the app's half.
+	 * It arrives from `context/index.ts`, which is where the two are composed.
+	 * See ui/delegation/grant for what happens when a shared component is left
+	 * to guess this instead.
+	 */
+	signerGrant: SignerGrant;
+	/**
 	 * Which world this context describes. Defaults to the remote chain the app
 	 * was built against, which is the only world most apps have.
 	 */
@@ -677,7 +1125,11 @@ export function createCoreContext<App extends AppContext>(params: {
 	context: CoreContext & Omit<App, 'start'>;
 	start: () => () => void;
 } {
-	const {createApp, establishConnection = establishRemoteConnection} = params;
+	const {
+		createApp,
+		signerGrant,
+		establishConnection = establishRemoteConnection,
+	} = params;
 	let cleanupBurnerWallet: (() => void) | undefined;
 
 	// Reasons the app cannot run. Collected rather than thrown: the context is
@@ -698,6 +1150,12 @@ export function createCoreContext<App extends AppContext>(params: {
 	// the burner's node are three consumers of one fact.
 	const nodeURL = resolveURLForThisPage(PUBLIC_NODE_URL);
 	const chainInfoNodeURL = resolveURLForThisPage(PUBLIC_CHAIN_INFO_NODE_URL);
+	// The node url IS configured but cannot be resolved yet: the context is
+	// being built on the server, and `//:8545` has no host to follow there.
+	// The signer's RPC check must not call that missing, or the error screen is
+	// prerendered into every page. See `resolveSignerRpc`'s `awaitingPage`.
+	const nodeURLAwaitsPage =
+		isSameHostURL(PUBLIC_NODE_URL) && !currentPageOrigin();
 
 	const burner = resolveBurnerWallet(
 		burnerOverride,
@@ -762,6 +1220,10 @@ export function createCoreContext<App extends AppContext>(params: {
 	// one is a type error here instead of an undefined capture at runtime.
 	const {
 		connection,
+		signer,
+		chainInfo,
+		rawPayment,
+		hasLocalSigner,
 		rawWalletClient,
 		publicClient,
 		account,
@@ -787,7 +1249,18 @@ export function createCoreContext<App extends AppContext>(params: {
 		chainFetchGate,
 		clock,
 		accountData,
-	} = buildChainConfig({deployments, connection, account, nodeURL});
+		credits,
+		signerRpcUrl,
+	} = buildChainConfig({
+		deployments,
+		connection,
+		account,
+		targetStep,
+		walletOnly,
+		fatal,
+		nodeURL,
+		nodeURLAwaitsPage,
+	});
 
 	const {inFlight} = buildInFlight({
 		chain,
@@ -799,19 +1272,23 @@ export function createCoreContext<App extends AppContext>(params: {
 		deployments,
 	});
 
-	const {walletClient} = buildWalletClient({
+	const {walletClient, payment, signerTrackerBuilder} = buildWalletClient({
 		clock,
 		connection,
 		rawWalletClient,
 		publicClient,
 		inFlight,
+		rawPayment,
 	});
 
 	const {
 		accountExecutor,
 		accountCannotSend,
 		errorDetails,
-		accountAddress,
+		signerExecutor,
+		addressOf,
+		signerAddress,
+		delegation,
 		txObserver,
 		tabLeader,
 		trackedWalletConnector,
@@ -819,7 +1296,15 @@ export function createCoreContext<App extends AppContext>(params: {
 	} = buildExecution({
 		connection,
 		walletClient,
+		payment,
 		accountData,
+		signer,
+		account,
+		deployments,
+		publicClient,
+		signerRpcUrl,
+		chainFetchGate,
+		signerTrackerBuilder,
 		finality,
 		inFlight,
 	});
@@ -840,26 +1325,54 @@ export function createCoreContext<App extends AppContext>(params: {
 			: lendTabNavigation({navigation, overlays});
 	let revokeLend = lend();
 
-	const {accountBalance, gasFee, balanceCheck, offline, txObserverDebug} =
-		buildBalances({publicClient, accountAddress, chainFetchGate});
+	const {
+		accountBalance,
+		signerBalance,
+		gasFee,
+		balanceCheck,
+		offline,
+		txObserverDebug,
+	} = buildBalances({
+		publicClient,
+		accountExecutor,
+		signerExecutor,
+		addressOf,
+		chainFetchGate,
+	});
 
-	// EVERY ROUTE THIS APP CAN SEND FROM. One here, because this app has one; a
-	// variant that adds a local signer or a payment rail registers those too, and
-	// a route that can send but is not registered can never replace its own stuck
-	// transactions. See core/connection/senders.
-	const senders: SenderRegistry = [
-		{
-			route: 'account',
-			executor: accountExecutor,
-			balance: accountBalance,
-			// `remember: true`: this is the user's own wallet, and the app connection
-			// auto-connects to whichever it saw last. Recovering it must leave that
-			// intact, or unsticking one transaction costs them the remembered wallet.
-			// A payment rail, whose payer is chosen per purchase, passes false.
-			ensureCanSign: (target) =>
-				ensureCanSignAs(connection, target, {remember: true}),
-		},
-	];
+	// WHAT THE PAYER HOLDS, on the payer's own node.
+	//
+	// Only ever read when a rail payment is being REPLACED, to price the
+	// replacement against the account that will actually pay it. It has to be the
+	// rail's public client for the same reason the rail's tracked client is: the
+	// payer connects their own wallet, wherever it happens to be pointed, and the
+	// app's node has no standing to answer for it.
+	//
+	// Idle while the rail is dormant, which is its normal state: `payerAddressOf`
+	// is undefined with nobody connected, and a polling store with a falsy source
+	// fetches nothing. So this costs nothing until the user is actually paying.
+	const payerBalance = createBalanceStore({
+		publicClient: payment.publicClient,
+		account: derived(payment.connection, ($payment) =>
+			payerAddressOf($payment),
+		),
+	});
+
+	// EVERY ROUTE THIS APP CAN SEND FROM. Three of them: the authenticated
+	// account, the local signer, and whichever wallet paid on the rail. A route
+	// that can send but is not registered can never replace its own stuck
+	// transactions, and that is not hypothetical, it is the bug this whole
+	// mechanism exists for. Composed in ./sender-registry, which is a file of its
+	// own so the composition can be tested without building a chain.
+	const senders: SenderRegistry = createSenderRegistry({
+		connection,
+		payment,
+		accountExecutor,
+		signerExecutor,
+		accountBalance,
+		signerBalance,
+		payerBalance,
+	});
 
 	// ----------------------------------------------------------------------------
 	// THE APP'S OWN HALF
@@ -914,9 +1427,13 @@ export function createCoreContext<App extends AppContext>(params: {
 	const {start: startApp, ...appContext} = app;
 	const {onchainState} = app;
 
+	// Both chain reads that a transaction of ours can invalidate: the messages,
+	// and whether the signer is still a delegate. The registration lands in a
+	// transaction the app itself sent, so without the second one the UI would go
+	// on refusing to send until the next slow poll.
 	const onchainStateRefreshConnector = createOnchainStateRefreshConnector({
 		txObserver,
-		stores: [onchainState],
+		stores: [onchainState, delegation],
 	});
 
 	// Health reflects whether we can read the chain right now. All inputs share
@@ -931,7 +1448,7 @@ export function createCoreContext<App extends AppContext>(params: {
 	// trusted node RPC to compare the wallet against, and only worth the extra
 	// per-connect RPC calls in DEV (where restarting a local node desyncs the
 	// wallet's cached nonce and silently strands transactions). In production, or
-	// with no app RPC, we use the no-op store so nothing runs. `appRpcUrl` is the
+	// with no app RPC, we use the no-op store so nothing runs. signerRpcUrl is the
 	// same resolved app RPC (PUBLIC_NODE_URL or chain rpcUrl) that hasAppRpc
 	// reflects; when hasAppRpc is true it is defined.
 	const nonceCache =
@@ -953,7 +1470,55 @@ export function createCoreContext<App extends AppContext>(params: {
 		void onchainState.update();
 		void gasFee.update();
 		void accountBalance.update();
+		// No-op when there is no signer (the poller's gate refuses the fetch), so
+		// this stays safe in an app that does not sign in.
+		void signerBalance.update();
 	};
+
+	// The yes/no questions the app has to ask before going on: "carry on with
+	// what you were doing?", "really give up on a run the wallet may still act
+	// on?". One mechanism, one modal, and the words come from whoever asks.
+	//
+	// Built on the overlay registry (it is a prompt overlay), which is why it is
+	// created after it and handed it here rather than reaching for a global. See
+	// core/ui/confirm and ADR-0004 (`work` branch).
+	const confirmation = createConfirmation(overlays);
+
+	// Built here rather than in the component that shows it, because the account
+	// panel and the insufficient-funds modal must drive the SAME flow: the modal
+	// opens it for a transaction that is already blocked, and the panel opens it
+	// on its own, and a second instance would let both run at once.
+	const topUp = createTopUpFlow(
+		{
+			connection,
+			payment,
+			signerBalance,
+			credits,
+			signerGrant,
+			deployments,
+			accountExecutor,
+			accountBalance,
+			publicClient,
+			balanceCheck,
+			delegation,
+			confirmation,
+		},
+		{
+			faucetApi: PUBLIC_FAUCET_API,
+			faucetLink: PUBLIC_FAUCET_LINK,
+			hasFaucet,
+		},
+	);
+
+	// Getting past "this browser may not act for you yet" WITHOUT losing what the
+	// user was doing. Built here for the same reason the top-up flow is: the send
+	// that was interrupted waits on it, and the modal that resumes it has to be
+	// driven by the same instance. See ui/delegation/delegation-check.
+	const delegationCheck = createDelegationCheckStore({
+		delegation,
+		topUp,
+		confirmation,
+	});
 
 	const context: CoreContext & Omit<App, 'start'> = {
 		fatal: {subscribe: fatal.subscribe},
@@ -983,6 +1548,19 @@ export function createCoreContext<App extends AppContext>(params: {
 		inFlight,
 		navigation,
 		overlays,
+		signerBalance,
+		credits,
+		signerGrant,
+		payment,
+		signerExecutor,
+		hasLocalSigner,
+		topUp,
+		delegationCheck,
+		confirmation,
+		// This branch's own: whether the signer may act for the account. Core, not
+		// app: the delegation is a property of how this variant authenticates, and
+		// the greeting demo merely reads it.
+		delegation,
 		// The app's half, spread so a descendant adding members never edits this
 		// literal. See AppContext.
 		...appContext,

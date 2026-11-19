@@ -86,13 +86,18 @@ function wiredConnector(options: {existingOperations?: Set<string>} = {}) {
 	const attached: {operationId: string; tx: any}[] = [];
 	const created: any[] = [];
 
+	// `clients`/`executors` rather than a single `walletClient`: this variant
+	// sends from more than one route, so the connector takes a list.
 	const connector = createTrackedWalletConnector({
-		walletClient: {
-			on: (event: string, listener: (tx: unknown) => void) => {
-				if (event === 'transaction:broadcasted') listeners.add(listener);
-				return () => listeners.delete(listener);
-			},
-		} as never,
+		clients: [
+			{
+				on: (event: string, listener: (tx: unknown) => void) => {
+					if (event === 'transaction:broadcasted') listeners.add(listener);
+					return () => listeners.delete(listener);
+				},
+			} as never,
+		],
+		executors: [],
 		accountData: {
 			addTransactionToOperation: (operationId: string, tx: unknown) => {
 				// Mirrors the real one: false when the named operation is gone, so

@@ -9,8 +9,11 @@
 	import {deployments} from '$lib/deployments-store';
 	import {getAppContext} from '$lib';
 	import {deriveInsufficientFundsView} from './insufficient-funds-view';
+	import {payerAddressOf} from '$lib/core/connection/remote';
 
-	const {balanceCheck, accountExecutor} = getAppContext();
+	const {balanceCheck, accountExecutor, signerExecutor, payment, topUp} =
+		getAppContext();
+	const paymentConnection = payment.connection;
 
 	let isOpen = $derived($balanceCheck.step !== 'idle');
 
@@ -20,11 +23,20 @@
 	);
 	let currentBalance = $derived(balanceStoreRef ? $balanceStoreRef : null);
 
-	// EVERY ACCOUNT THIS APP CAN SEND FROM. One, here: this branch has no local
-	// signer and no payment rail, so a transaction is only ever sent by the
-	// account the user signed in as. A descendant that adds a payer adds an entry,
-	// and the view then names it and picks its remedy - which is the whole reason
-	// this is a list rather than an address compared against the sender.
+	// EVERY ACCOUNT THIS APP CAN SEND FROM, which on this branch is three.
+	//
+	// The view classifies the sender against this list rather than comparing it
+	// with one address, and the difference is the bug this replaces: a wallet on
+	// the payment rail is neither the account nor the signer, so under
+	// `accountAddress === sender` it fell into the signer's branch. An empty
+	// MetaMask account the user had just chosen to pay with was then called "your
+	// in-app spending account" and offered a top-up that funds the signer, so the
+	// money went somewhere nobody was waiting on and the transaction failed for
+	// exactly the reason it already had.
+	//
+	// A payer that is not listed here is classified `unknown` and offered
+	// nothing, which is the safe direction: naming the wrong account is worse
+	// than declining to name one.
 	let payers = $derived([
 		{
 			kind: 'account' as const,
@@ -32,6 +44,19 @@
 				$accountExecutor.status === 'ready'
 					? $accountExecutor.address
 					: undefined,
+		},
+		{
+			kind: 'signer' as const,
+			address:
+				$signerExecutor.status === 'ready'
+					? $signerExecutor.address
+					: undefined,
+		},
+		{
+			// Undefined while the rail is dormant, which is most of the time. That
+			// is an absence rather than a wildcard: it simply never matches.
+			kind: 'rail' as const,
+			address: payerAddressOf($paymentConnection),
 		},
 	]);
 
@@ -125,11 +150,38 @@
 			<!-- AT MOST ONE REMEDY, and it is chosen in the view rather than here.
 			     Offering the wrong one is worse than offering nothing: it appears to
 			     work, moves a balance nobody was waiting on, and the transaction fails
-			     anyway. The faucet carries the address it should fund, so this cannot
-			     aim it at whoever happens to be signed in. -->
+			     anyway. That is not a rule this markup has to remember: `remedy` is one
+			     field, so there is no order to test these in and no way to show two. -->
 			{#if !hasSufficientFunds && !isWaitingForBalanceUpdate}
 				{#if view.remedy.kind === 'faucet'}
+					<!-- Carries the address to fund, which is the account that is short:
+					     the authenticated account, or the wallet on the payment rail that
+					     the user picked. The faucet always took a target; only the
+					     two-payer assumption above kept it aimed at whoever was signed
+					     in. -->
 					<FaucetButton target={view.remedy.target} />
+				{:else if view.remedy.kind === 'top-up'}
+					<!-- The account that is short is the in-app signer, which the faucet
+					     deliberately will not fund. Topping up can, and it reports back to
+					     this store when it succeeds, so the footer below switches to
+					     "Continue Transaction" and the blocked transaction carries on.
+
+					     Opens OVER this modal rather than replacing it: this one is still
+					     the thing being resolved. That takes the top-up modal being in the
+					     same layer as this one - it is `layer="system"`, and for a long
+					     time the top-up modal was not, so it opened underneath and this
+					     comment was simply untrue. Declaration order in AcrossPages ranks
+					     them once they share a layer; it cannot reach across two. -->
+					<!-- The purpose is funding the signer, even though the reason the
+					     user is here is a blocked transaction: what they are about to PAY
+					     for is the in-app balance, and this dialog has already explained
+					     the blockage. -->
+					<Button
+						class="w-full"
+						onclick={() => topUp.start(topUp.purposes.topUp)}
+					>
+						Top up the in-app balance
+					</Button>
 				{/if}
 			{/if}
 		</div>

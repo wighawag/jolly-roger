@@ -10,8 +10,11 @@ import type {
 	ChainConnection,
 	ChainInfo,
 	DeploymentsStore,
+	PaymentRail,
 	TypedPublicClient,
 } from '$lib/core/connection/types';
+import type {CreditsConfig} from '$lib/core/connection/credits';
+import type {SignerGrant} from '$lib/ui/delegation/grant';
 import type {ExecutorStore} from '$lib/core/connection/executor';
 import type {SenderRegistry} from '$lib/core/connection/senders';
 import type {TxSource} from '$lib/core/connection/tx-source';
@@ -20,10 +23,14 @@ import type {
 	MultiAccountDataStore,
 	TransactionMetadata,
 } from '$lib/account/AccountData';
+import type {DelegationStore} from '$lib/onchain/delegation';
 import type {AppMembers} from '$app-specific';
 import type {ClockStore} from '$lib/core/clock';
 import type {TransactionObserver} from '@etherkit/tx-observer';
 import type {BalanceCheckStore} from '$lib/core/transaction/balance-check-store';
+import type {TopUpFlow} from '$lib/ui/credits/top-up-flow';
+import type {DelegationCheckStore} from '$lib/ui/delegation/delegation-check';
+import type {ConfirmationStore} from '$lib/core/ui/confirm/confirmation';
 import type {AccountCannotSendStore} from '$lib/core/transaction/account-cannot-send-store';
 import type {ErrorDetailsStore} from '$lib/core/transaction/error-details-store';
 import type {InFlightLedger} from '$lib/core/transaction/in-flight-store';
@@ -48,6 +55,24 @@ export type WalletClient = TrackedWalletClientAutoPopulate<
 	Account | undefined,
 	TxSource
 >;
+
+/**
+ * The payment rail as THIS APP holds it: the rail `createPaymentRail` builds,
+ * with its wallet client tracked and dispatch-guarded.
+ *
+ * A type of its own rather than a change to `PaymentRail`, because the rail is a
+ * core building block (see core/connection/remote) and neither the tracker nor
+ * the in-flight ledger is core's to reach for. `createPaymentRail` keeps handing
+ * back plain viem clients, and the app that composes one wraps it - which is the
+ * same arrangement, and the same reasoning, as the app's own wallet client.
+ *
+ * The difference is not cosmetic and call sites feel it: a tracked client takes
+ * `metadata`, and a plain transfer through it must say what it is or land in the
+ * user's list unnamed (see ui/credits/get-credits).
+ */
+export type TrackedPaymentRail = Omit<PaymentRail, 'walletClient'> & {
+	walletClient: WalletClient;
+};
 
 export type Clock = ClockStore;
 
@@ -85,11 +110,70 @@ export type CoreContext = {
 	/**
 	 * Balance of the authenticated account: what `accountExecutor` spends.
 	 *
-	 * Named for whose it is rather than for the role it plays, so a call site
-	 * that named the executor it sends from names the matching balance and the
-	 * two cannot drift apart.
+	 * One balance per executor, named the same way, so a call site that named the
+	 * executor it sends from names the matching balance and the two cannot drift.
 	 */
 	accountBalance: BalanceStore;
+	/**
+	 * Gas held by the local signer: what `signerExecutor` spends.
+	 *
+	 * Its own account, not a view of another. The signer pays for whatever the
+	 * app does on the user's behalf and it starts empty, so this is what the
+	 * credits UI reads to say the user cannot move yet. Inert with no signer.
+	 */
+	signerBalance: BalanceStore;
+	/**
+	 * How to denominate the signer's gas balance for the user, or undefined to
+	 * show native currency. Set only when the chain declares both an expected
+	 * worst gas price and the gas one action costs; see core/connection/credits.
+	 */
+	credits: CreditsConfig | undefined;
+	/**
+	 * What the key this browser holds is FOR, in this app's terms.
+	 *
+	 * Configuration, and it sits beside `credits` for the same reason: several
+	 * unrelated pieces of UI need the answer (the payment dialog's consent step,
+	 * the account panel's delegation row) and none of them can work it out. It
+	 * comes from `context/app.ts`, the half of the context a fork replaces, via
+	 * `createCoreContext`. See ui/delegation/grant.
+	 */
+	signerGrant: SignerGrant;
+	/**
+	 * The payment rail (buying credits): a second, wallet-only connection plus
+	 * its clients. The payer is not necessarily the player. Dormant until
+	 * something calls `ensureConnected` on it. See core/connection/remote.
+	 *
+	 * Its wallet client is TRACKED and GUARDED like every other sender in this
+	 * app, so what the user bought is in their transaction list and survives a
+	 * reload mid-purchase. See TrackedPaymentRail and context/core.
+	 */
+	payment: TrackedPaymentRail;
+	/**
+	 * Funding the local signer, as a flow the user is walked through.
+	 *
+	 * One per app, not one per component, because two places drive it: the
+	 * account panel, and the insufficient-funds modal when the signer is the
+	 * account that cannot pay. Separate instances would let a second top-up start
+	 * on top of one already running. See ui/credits/top-up-flow.
+	 */
+	topUp: TopUpFlow;
+	/**
+	 * Ensuring this browser may act for the account, without losing the action
+	 * that discovered it could not.
+	 *
+	 * The counterpart of `balanceCheck` for authorisation rather than funds: the
+	 * interrupted call waits on a promise while the user registers, and resumes
+	 * on their say-so. See ui/delegation/delegation-check.
+	 */
+	delegationCheck: DelegationCheckStore;
+	/**
+	 * The yes/no questions the app has to ask before going on: carrying on with
+	 * an interrupted action, or giving up on one a wallet may still act upon.
+	 *
+	 * Knows nothing about what is being asked: the caller supplies the words,
+	 * this holds the promise, and one modal renders it. See core/ui/confirm.
+	 */
+	confirmation: ConfirmationStore;
 	rpcHealth: RpcHealthStore;
 	/**
 	 * Wallet nonce-cache detection (dev + app-RPC only; a no-op store otherwise).
@@ -127,11 +211,23 @@ export type CoreContext = {
 	 */
 	walletClient: WalletClient;
 	/**
-	 * Sends from the AUTHENTICATED ACCOUNT, with a wallet prompt. Prefer it over
-	 * `walletClient` for sending: it resolves the `from` address and client
-	 * together, and reports when the connected account cannot send at all.
+	 * Sends from the AUTHENTICATED ACCOUNT, with a wallet prompt. Use it for
+	 * anything only that account may do, or that moves the user's own money.
+	 * Reports `cannot-send` for an account with no wallet (email/social sign-in).
 	 */
 	accountExecutor: ExecutorStore;
+	/**
+	 * Sends from the LOCAL SIGNER, silently. Use it for whatever the app does on
+	 * the user's behalf. Never `ready` in an app that does not sign in, which a
+	 * call site handles like any other not-ready state.
+	 */
+	signerExecutor: ExecutorStore;
+	/**
+	 * Whether this app signs in, and therefore has a local signer at all
+	 * (`targetStep === 'SignedIn'`). Never test `PUBLIC_WALLET_HOST` for this: a
+	 * wallet-only sign-in has no host and still derives a signer.
+	 */
+	hasLocalSigner: boolean;
 	/**
 	 * EVERY route this app can send from, and reopen.
 	 *
@@ -151,6 +247,16 @@ export type CoreContext = {
 	account: AccountStore;
 	deployments: DeploymentsStore;
 	accountData: MultiAccountDataStore;
+	/**
+	 * Whether this browser's signer may act for the account, read from the chain
+	 * and kept live.
+	 *
+	 * The app has to know BEFORE it lets a send through, or the user gets a bare
+	 * `NotDelegate` revert. Treated the way "needs funds" already is: a state the
+	 * UI reads, explains, and offers the remedy for (the top-up flow, which
+	 * registers and funds in one transaction). See onchain/delegation.
+	 */
+	delegation: DelegationStore;
 	clock: Clock;
 	txObserver: TransactionObserver;
 	txObserverDebug: TxObserverDebugStore;

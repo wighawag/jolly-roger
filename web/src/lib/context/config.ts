@@ -1,6 +1,10 @@
 import type {AugmentedChainInfo} from '$lib/core/connection/types.js';
 import type {TypedDeployments} from '$lib/deployments-store.js';
-import {operationScope} from '$app-specific';
+import {
+	resolveCreditsConfig,
+	type CreditsConfig,
+} from '$lib/core/connection/credits.js';
+import {delegationRegistry, operationScope} from '$app-specific';
 
 // ============================================================================
 // Default configuration values
@@ -38,6 +42,12 @@ export type ResolvedAppConfig = {
 	txObserverProcessInterval: number;
 	/** Max messages to display / load. */
 	maxMessages: number;
+	/**
+	 * How to denominate the signer's gas balance in the UI, or undefined to show
+	 * native currency. Undefined is the normal case for a chain that has not
+	 * declared what an action costs; see core/connection/credits.
+	 */
+	credits: CreditsConfig | undefined;
 };
 
 /**
@@ -54,6 +64,9 @@ export function resolveAppConfig(chain: AugmentedChainInfo): ResolvedAppConfig {
 		blockTimeMs,
 		txObserverProcessInterval: processIntervalFromBlockTime(blockTimeMs),
 		maxMessages: DEFAULT_MAX_MESSAGES,
+		// Deliberately NOT defaulted: an unconfigured chain shows native currency
+		// rather than a move count derived from a made-up action cost.
+		credits: resolveCreditsConfig(chain.properties),
 	};
 }
 
@@ -69,4 +82,21 @@ export function operationScopeAddress(
 	deployments: TypedDeployments,
 ): `0x${string}` {
 	return operationScope(deployments);
+}
+
+/**
+ * The contract this app's delegation lives in.
+ *
+ * App-specific, so the app names it, in `delegationRegistry` in its own module
+ * (`$app-specific`), and this file names no contract.
+ *
+ * ONE PLACE, and it feeds three: the chain read, every writer, and the
+ * permission the app declares at connect time. The credential an owner signs
+ * names this contract, so anything reaching for a different one gets a
+ * signature the contract will not recover.
+ */
+export function delegationRegistryAddress(
+	deployments: TypedDeployments,
+): `0x${string}` {
+	return delegationRegistry(deployments);
 }

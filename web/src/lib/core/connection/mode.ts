@@ -40,7 +40,7 @@ export type TargetStep = 'WalletConnected' | 'SignedIn';
  * lib/context). What a descendant no longer has to do is edit this module, the
  * executor, or the connection to get there.
  */
-export const TARGET_STEP: TargetStep = 'WalletConnected';
+export const TARGET_STEP: TargetStep = 'SignedIn';
 
 export type ConnectionConfig = {
 	targetStep: TargetStep;

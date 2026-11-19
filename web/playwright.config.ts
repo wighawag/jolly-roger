@@ -62,7 +62,35 @@ export default defineConfig({
 	retries: env.CI ? 2 : 0,
 
 	// Limit workers on CI
-	workers: env.CI ? 1 : undefined,
+	//
+	// AND LOCALLY, where Playwright's default is half the cores (8 here). Every
+	// worker boots a full app against the ONE hardhat node the run starts, and
+	// this branch asks far more of it than the template does: a signer, a second
+	// payment connection, delegation reads and credits, on top of everything
+	// `main` already polls. At 8 the node is the bottleneck and whichever suite
+	// happens to be waiting on a chain round-trip loses - which is why the failure
+	// moved around (delegation, hosted-signin, escape-hatch, demo) instead of
+	// pointing at anything.
+	//
+	// Measured, not guessed: every one of those passes alone and with fewer
+	// workers, and the full suite flaked on five of six runs at the default.
+	// `bleeps` capped at 4 for the same reason and the same measurement.
+	//
+	// ONE NAME IN THAT LIST DID NOT BELONG THERE: escape-hatch. It, and the
+	// sending-indicator suite that shares its fixture, were failing on a bug in
+	// `waitUntilHolding` - a "Sign in" click with no timeout, resolved against a
+	// button the closing modal had already removed, which Playwright waits out
+	// forever instead of failing. The loop never reached its own deadline, so the
+	// test died on Playwright's 120s timeout with nothing ever dispatched.
+	//
+	// It is called out because that failure mode is indistinguishable from this
+	// one at a glance (a suite that hangs, and hangs less often when the box is
+	// quieter, because worker count moves the timing of the race) and it cost an
+	// afternoon. The tell is that a genuinely starved node makes the stalling
+	// wallet's error name the RPC method it is waiting on; the fixture bug never
+	// let that error print at all. The cap below is unaffected - the other three
+	// suites are real - but it is not what makes the stalling-wallet suites pass.
+	workers: env.CI ? 1 : 4,
 
 	// Reporter to use
 	reporter: [

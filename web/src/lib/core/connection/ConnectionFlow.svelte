@@ -9,6 +9,8 @@
 	import * as Modal from '$lib/core/ui/modal/index.js';
 	import BasicModal from '../ui/modal/basic-modal.svelte';
 	import NoWalletFlow from './NoWalletFlow.svelte';
+	import GoogleIcon from '$lib/core/ui/oauth/GoogleIcon.svelte';
+	import FacebookIcon from '$lib/core/ui/oauth/FacebookIcon.svelte';
 	import {
 		walletEntryMode,
 		resolveSignInAddress,
@@ -54,10 +56,10 @@
 		 * connection's caller. Opting a flow in is one line at the call site; the
 		 * failure is two identical modals and cross-talk between connections.
 		 *
-		 * This app has one connection, so the default is never taken here. It is
-		 * still the default because a variant that adds a second one inherits the
-		 * safe behaviour rather than the bug, and that variant is exactly who found
-		 * it (work/notes/findings/one-ledger-two-connections-two-wallet-modals.md).
+		 * THIS APP IS WHERE THAT WAS FOUND. It renders two flows, one for the
+		 * account connection and one for the payment rail, and the second one is the
+		 * one that takes the default (see context/AcrossPages.svelte and
+		 * work/notes/findings/one-ledger-two-connections-two-wallet-modals.md).
 		 */
 		inFlight?: ActivityLedger;
 	}
@@ -346,6 +348,36 @@
 					})}
 			>
 				Sign in with Email
+			</Button>
+		</div>
+
+		<!-- Social login options -->
+		<div class="mb-4 flex flex-col gap-3">
+			<Button
+				variant="outline"
+				class="w-full justify-center gap-3"
+				onclick={() =>
+					connection.connect({
+						type: 'oauth',
+						provider: {id: 'google'},
+						usePopup: false,
+					})}
+			>
+				<GoogleIcon class="h-5 w-5" />
+				<span>Continue with Google</span>
+			</Button>
+			<Button
+				variant="outline"
+				class="w-full justify-center gap-3"
+				onclick={() =>
+					connection.connect({
+						type: 'oauth',
+						provider: {id: 'facebook'},
+						usePopup: false,
+					})}
+			>
+				<FacebookIcon class="h-5 w-5" />
+				<span>Continue with Facebook</span>
 			</Button>
 		</div>
 	{/if}

@@ -1,9 +1,12 @@
 import {
 	test as base,
 	expect,
+	type Locator,
 	type Page,
 	type BrowserContext,
 } from '@playwright/test';
+import {createPublicClient, createWalletClient, http} from 'viem';
+import {mnemonicToAccount} from 'viem/accounts';
 import {parseImpersonateAddresses} from '../../src/lib/dev-accounts';
 
 /**
@@ -27,6 +30,13 @@ import {parseImpersonateAddresses} from '../../src/lib/dev-accounts';
  * required rather than defaulted: a silent fallback would mean funding accounts
  * the app does not offer, and failing several steps later on a picker that has
  * no such entry.
+ *
+ * ON THIS BRANCH IT SIZES THE POOL RATHER THAN SUPPLYING IT. The app signs in,
+ * and an impersonated account holds no key, so it can never sign the sign-in
+ * message: `pickSignableAccount` skips every address in this list and
+ * `walletAccountIndex` counts the burner's OWN generated accounts instead. The
+ * list is still what BOUNDS the index, so one suite per index remains the rule
+ * and `test/e2e-account-claims.test.ts` keeps a list to check claims against.
  */
 const IMPERSONATE_ADDRESSES = parseImpersonateAddresses(
 	(globalThis as any).process.env.PUBLIC_IMPERSONATE_ADDRESSES,
@@ -49,6 +59,24 @@ const HARDHAT_RPC_URL =
 	(globalThis as any).process.env.E2E_RPC_URL || `http://127.0.0.1:${RPC_PORT}`;
 
 /**
+ * FUNDING WITHOUT HARDHAT. A node that has no `hardhat_setBalance` (geth, as a
+ * LAN box runs it) is funded by a plain transfer instead, from a key of the
+ * test mnemonic, which such a chain's genesis funds. Learnt from the node's
+ * first refusal, or forced with E2E_FUNDING=transfer.
+ *
+ * One funder PER WORKER (accounts 10 to 19, by Playwright's parallel index),
+ * since workers are separate processes and two senders sharing a key race
+ * each other for its nonce. Never 0 or 1: those deploy and administer, and a
+ * box's faucet pays from 0.
+ */
+let fundByTransfer = (globalThis as any).process.env.E2E_FUNDING === 'transfer';
+const E2E_MNEMONIC =
+	(globalThis as any).process.env.E2E_MNEMONIC ||
+	'test test test test test test test test test test test junk';
+const FUNDER_INDEX =
+	10 + (Number((globalThis as any).process.env.TEST_PARALLEL_INDEX ?? 0) % 10);
+
+/**
  * How many times one call to the node is worth sending: the original, plus a
  * single repeat for a connection that died in transit. Anything higher stops
  * being a transport allowance and starts being a way not to hear about a node
@@ -59,6 +87,14 @@ const RPC_ATTEMPTS = 2;
 const RPC_RETRY_DELAY_MS = 250;
 /** How far a failure message follows `cause` before it stops. Cycles are legal. */
 const MAX_CAUSE_DEPTH = 5;
+/**
+ * How much of the app's connection state a failure message may carry.
+ *
+ * A provider error can hang an entire request/response off `cause`, and a dump
+ * that buries the assertion it was meant to explain has changed which line
+ * nobody reads rather than fixing it.
+ */
+const MAX_DIAGNOSIS_CHARS = 2000;
 /**
  * How long a click at a connect-flow dialog may wait for its target.
  *
@@ -71,6 +107,97 @@ const DIALOG_CLICK_TIMEOUT = 5_000;
 
 // The app's base URL comes from playwright.config.ts (`use.baseURL`), so tests
 // navigate with relative paths and nothing here needs to duplicate it.
+
+/**
+ * Read the addresses the app will actually send from, off its debug context.
+ *
+ * They cannot be known in advance: the burner generates its accounts, and the
+ * signer is derived from a signature at sign-in. Asking the app is the only way
+ * to learn them, and it is also the honest question, since these are exactly
+ * the accounts it will try to spend from.
+ */
+async function appSenderAddresses(
+	page: Page,
+): Promise<{account?: string; signer?: string}> {
+	return page.evaluate(() => {
+		const read = (store: any) => {
+			let value: any;
+			store.subscribe((v: any) => (value = v))();
+			return value;
+		};
+		const context = (globalThis as any).context;
+		if (!context) return {};
+		return {
+			account: read(context.accountExecutor)?.address,
+			signer: read(context.signerExecutor)?.address,
+		};
+	});
+}
+
+/**
+ * Every account the connected wallet holds.
+ *
+ * Needed by the tests that pay with a DIFFERENT account than the one signed in:
+ * the burner generates its accounts per browser context, so their addresses
+ * cannot be known in advance, and an unfunded payer cannot pay.
+ */
+async function walletAccounts(page: Page): Promise<string[]> {
+	return page.evaluate(() => {
+		const read = (store: any) => {
+			let value: any;
+			store.subscribe((v: any) => (value = v))();
+			return value;
+		};
+		const context = (globalThis as any).context;
+		if (!context) return [];
+		return read(context.connection)?.wallet?.accounts ?? [];
+	});
+}
+
+/** The delegation flow's own state, which names the route it actually took. */
+async function topUpState(page: Page): Promise<{
+	phase?: string;
+	route?: string;
+	registering?: boolean;
+	payer?: string;
+}> {
+	return page.evaluate(() => {
+		const read = (store: any) => {
+			let value: any;
+			store.subscribe((v: any) => (value = v))();
+			return value;
+		};
+		const context = (globalThis as any).context;
+		if (!context) return {};
+		const state = read(context.topUp) ?? {};
+		return {
+			phase: state.phase,
+			route: state.route,
+			registering: state.registering,
+			payer: state.payer,
+		};
+	});
+}
+
+/** Whether the chain says this browser's signer may act for the account. */
+async function isDelegateRegistered(page: Page): Promise<boolean> {
+	return page.evaluate(() => {
+		const read = (store: any) => {
+			let value: any;
+			store.subscribe((v: any) => (value = v))();
+			return value;
+		};
+		const context = (globalThis as any).context;
+		if (!context) return false;
+		const delegation = read(context.delegation);
+		const signer = read(context.signerExecutor)?.address;
+		// The read is scoped to this signer, so `allowed` IS the answer about it.
+		// The signer is still required: without one there is nothing authorised and
+		// nothing the value could be describing.
+		if (!signer || delegation?.step !== 'Loaded') return false;
+		return delegation.allowed === true;
+	});
+}
 
 /**
  * An error and everything it was caused by, one line each.
@@ -145,6 +272,7 @@ export async function fundAddressViaHardhat(
 	// Convert ETH to wei (hex)
 	const weiAmount = BigInt(parseFloat(amountInEth) * 1e18);
 	const hexAmount = '0x' + weiAmount.toString(16);
+	if (fundByTransfer) return fundAddressByTransfer(address, weiAmount);
 
 	for (let attempt = 1; attempt <= RPC_ATTEMPTS; attempt++) {
 		try {
@@ -182,6 +310,10 @@ export async function fundAddressViaHardhat(
 					`hardhat_setBalance got a reply that is not JSON: ${raw.slice(0, 200)}`,
 				);
 			}
+			if (body?.error && isUnknownMethod(body.error)) {
+				fundByTransfer = true;
+				return fundAddressByTransfer(address, weiAmount);
+			}
 			if (body?.error) {
 				throw new NodeRefusedCall(
 					`hardhat_setBalance refused for ${address}: ` +
@@ -202,10 +334,119 @@ export async function fundAddressViaHardhat(
 	}
 }
 
+/** The node does not know the method (geth's answer to a `hardhat_*` call). */
+function isUnknownMethod(error: {message?: string; code?: number}): boolean {
+	return (
+		error.code === -32601 ||
+		/does not exist|not available|not found|not supported/i.test(
+			error.message ?? '',
+		)
+	);
+}
+
+/**
+ * Top `address` up to at least `wei` with a transfer from this worker's funder
+ * (see FUNDER_INDEX). AT LEAST rather than exactly, unlike `hardhat_setBalance`:
+ * a transfer only adds, so an address that already holds more keeps it.
+ */
+async function fundAddressByTransfer(
+	address: string,
+	wei: bigint,
+): Promise<void> {
+	const transport = http(HARDHAT_RPC_URL);
+	const publicClient = createPublicClient({transport});
+	const to = address as `0x${string}`;
+	const balance = await publicClient.getBalance({address: to});
+	if (balance >= wei) return;
+	const wallet = createWalletClient({
+		account: mnemonicToAccount(E2E_MNEMONIC, {addressIndex: FUNDER_INDEX}),
+		transport,
+	});
+	const hash = await wallet.sendTransaction({
+		to,
+		value: wei - balance,
+		chain: null,
+	});
+	const receipt = await publicClient.waitForTransactionReceipt({
+		hash,
+		timeout: 60_000,
+	});
+	if (receipt.status !== 'success') {
+		throw new Error(
+			`could not fund ${address} by transfer from account ${FUNDER_INDEX}: ${hash} reverted`,
+		);
+	}
+}
+
+/**
+ * Give the app's sender accounts a balance, and wait until the app has SEEN it.
+ *
+ * Waiting matters: `hardhat_setBalance` is instant on the node but the app only
+ * learns about it on its next poll, and a test that sends immediately would hit
+ * the insufficient-funds modal with a balance that is already stale.
+ */
+async function fundAppSenders(page: Page): Promise<void> {
+	const {account, signer} = await appSenderAddresses(page);
+	for (const address of [account, signer]) {
+		if (address) await fundAddressViaHardhat(address, '100');
+	}
+	if (!signer) return;
+	await expect
+		.poll(async () => (await appBalances(page)).signer ?? '0', {
+			timeout: 30_000,
+			message: 'app should observe the funded signer balance',
+		})
+		.not.toBe('0');
+}
+
+/** Balances as the APP currently sees them, as decimal strings. */
+async function appBalances(
+	page: Page,
+): Promise<{account?: string; signer?: string}> {
+	return page.evaluate(() => {
+		const read = (store: any) => {
+			let value: any;
+			store.subscribe((v: any) => (value = v))();
+			return value;
+		};
+		const context = (globalThis as any).context;
+		if (!context) return {};
+		const asString = (b: any) =>
+			b?.step === 'Loaded' ? b.value.toString() : undefined;
+		return {
+			account: asString(read(context.accountBalance)),
+			signer: asString(read(context.signerBalance)),
+		};
+	});
+}
+
+/**
+ * Named, so a suite can take it as a parameter and pass it down to a helper.
+ * The first send from a fresh browser is answered with this flow rather than
+ * reaching the chain, so any helper that sends has to be able to complete it.
+ */
+export type AuthoriseBrowser = (
+	page: Page,
+	options?: AuthoriseOptions,
+) => Promise<AuthorisationOutcome>;
+
+export interface ConnectOptions {
+	/**
+	 * Fund what the app spends from once connected (default true). False leaves
+	 * a fresh burner EMPTY, for a test of how a player gets ETH: the
+	 * insufficient-funds dialog and the faucet behind its "Get ETH".
+	 */
+	fund?: boolean;
+}
+
 export interface WalletOptions {
 	/**
-	 * Which burner account (index into PUBLIC_IMPERSONATE_ADDRESSES) the connect
-	 * flow picks in the account-picker dialog.
+	 * Which burner account the connect flow picks in the account-picker dialog.
+	 *
+	 * Counted over the accounts that can SIGN, which on this branch means the
+	 * burner's own generated ones: see pickSignableAccount, and the note on
+	 * IMPERSONATE_ADDRESSES for why the impersonated ones are skipped. It is still
+	 * bounded by that list's length, so the pool has a size something can check.
 	 *
 	 * All e2e tests share ONE chain and the GreetingsRegistry keeps ONE message
 	 * per account, so two test files writing from the same account clobber each
@@ -233,7 +474,7 @@ export interface WalletFixtures {
 	 * Connects the wallet using Dev Mode on the current page.
 	 * Can be used when you need more control over when connection happens.
 	 */
-	connectWallet: (page: Page) => Promise<void>;
+	connectWallet: (page: Page, options?: ConnectOptions) => Promise<void>;
 
 	/**
 	 * Waits for a transaction to be confirmed.
@@ -246,6 +487,30 @@ export interface WalletFixtures {
 	 * step that actually broke instead of at a later assertion.
 	 */
 	submitGreeting: (page: Page, message: string) => Promise<void>;
+
+	/**
+	 * Complete the flow that authorises this browser to post in the account's
+	 * name (and funds the signer in the same transaction), if the app is asking
+	 * for it. Returns whether it was asking.
+	 */
+	authoriseBrowser: AuthoriseBrowser;
+
+	/** The addresses the connected wallet holds, which the burner generates. */
+	walletAccounts: (page: Page) => Promise<string[]>;
+
+	/** Fund every account the connected wallet holds, so any of them can pay. */
+	fundWalletAccounts: (page: Page) => Promise<void>;
+
+	/** The authorisation flow's own state, including the route it took. */
+	topUpState: (page: Page) => Promise<{
+		phase?: string;
+		route?: string;
+		registering?: boolean;
+		payer?: string;
+	}>;
+
+	/** Whether the chain says this browser's signer may act for the account. */
+	isDelegateRegistered: (page: Page) => Promise<boolean>;
 
 	/**
 	 * Ensures the test wallet addresses have ETH on the Hardhat node.
@@ -301,12 +566,185 @@ export async function waitForAppReady(page: Page, timeout = 30_000) {
 	).toHaveCount(0, {timeout});
 }
 
-/** Assert the wallet is connected, failing with a clear message if it is not. */
+/**
+ * What the app itself says about the connection, for a failure message.
+ *
+ * The attribute this fixture waits on cannot tell "still connecting" from
+ * "connect threw and gave up": both read `data-connected="false"` for the whole
+ * timeout, and the app's own failure modal collapses anything that is not a
+ * user rejection into "failed to connect to wallet", keeping the real error on
+ * `cause` where nobody looks. So the store is asked directly, and the `cause`
+ * is unpacked INSIDE the page: an `Error` crossing `evaluate` serialises to
+ * `{}`, which would throw away the one thing worth reading.
+ */
+async function describeConnectionState(page: Page): Promise<string> {
+	const state = await page
+		.evaluate(() => {
+			const read = (store: any) => {
+				let value: any;
+				store.subscribe((v: any) => (value = v))();
+				return value;
+			};
+			const describe = (value: any, depth = 0): any => {
+				if (value === null || typeof value !== 'object' || depth > 3)
+					return value;
+				const out: any = {};
+				if (value instanceof Error) {
+					out.name = value.name;
+					out.message = value.message;
+				}
+				for (const key of Object.keys(value))
+					out[key] = describe(value[key], depth + 1);
+				if ((value as any).cause !== undefined)
+					out.cause = describe((value as any).cause, depth + 1);
+				return out;
+			};
+			const context = (globalThis as any).context;
+			if (!context) return {noAppContext: true};
+			const connection = read(context.connection);
+			return {
+				step: connection?.step,
+				connected: connection?.connected,
+				error: connection?.error
+					? {
+							message: connection.error.message,
+							cause: describe(connection.error.cause),
+						}
+					: undefined,
+				// Which modal is on screen, which names the step it is stuck on.
+				dialog:
+					document
+						.querySelector('[role="dialog"]')
+						?.textContent?.replace(/\s+/g, ' ')
+						.trim()
+						.slice(0, 200) ?? null,
+			};
+		})
+		.catch((error) => ({unreadable: causeChain(error)}));
+
+	const text = JSON.stringify(state, null, 2);
+	return text.length > MAX_DIAGNOSIS_CHARS
+		? `${text.slice(0, MAX_DIAGNOSIS_CHARS)}\n... (truncated, ${
+				text.length - MAX_DIAGNOSIS_CHARS
+			} more characters)`
+		: text;
+}
+
+/**
+ * Assert the wallet is connected, and say WHY it is not when it is not.
+ *
+ * A bare attribute timeout here reports that the wait ran out, which is the one
+ * thing already obvious from the stack. The app knows more than that - it may
+ * be resting on a failure with the wallet's own error attached - so the message
+ * carries the connection's state and the `cause` the failure modal hides.
+ */
 async function expectWalletConnected(page: Page, timeout = 30_000) {
-	await expect(
-		page.locator(WALLET_STATUS),
-		'wallet should be connected (navbar data-connected)',
-	).toHaveAttribute('data-connected', 'true', {timeout});
+	try {
+		await expect(
+			page.locator(WALLET_STATUS),
+			'wallet should be connected (navbar data-connected)',
+		).toHaveAttribute('data-connected', 'true', {timeout});
+	} catch (error) {
+		// `cause` keeps the original: the text below is a rendering of it, and a
+		// rendering is not the thing. Playwright's own `TimeoutError` and its stack
+		// are worth having intact for anything that inspects the error rather than
+		// reading it.
+		throw new Error(
+			'wallet should be connected (navbar data-connected)\n' +
+				`the app's own connection state was:\n${await describeConnectionState(page)}\n\n` +
+				`${causeChain(error)}`,
+			{cause: error},
+		);
+	}
+}
+
+/**
+ * Click the account at `index` among the ones that can actually SIGN.
+ *
+ * The burner lists its own generated accounts alongside the impersonated ones
+ * from src/lib/dev-accounts. Impersonated addresses have no private key, so
+ * they can never sign the sign-in message: picking one leaves the connection
+ * stuck at WalletConnected forever, and the only symptom is a fixture timeout
+ * a long way from the cause. They are skipped, so `walletAccountIndex` counts
+ * real accounts and keeps meaning "give this test file its own account".
+ *
+ * They may render as a truncated hex address OR as a resolved ENS name
+ * (vitalik.eth), depending on whether ENS lookup succeeded, so both are
+ * excluded.
+ *
+ * Uses the DIRECT children of the list: each row nests a "Copy address" button,
+ * so a descendant selector would interleave copy buttons into the index space.
+ */
+async function pickSignableAccount(dialog: Locator, index: number) {
+	const rows = dialog.locator('.overflow-y-auto > button');
+	// Empty when impersonation is off, in which case nothing is skipped and this
+	// degenerates to picking the Nth row.
+	const impersonated = IMPERSONATE_ADDRESSES.map((a) =>
+		a.slice(0, 6).toLowerCase(),
+	);
+
+	// POLLED, because the list arrives in pieces and no single moment is the
+	// right one to read it. The caller gets here by matching the dialog's TEXT,
+	// so the heading can be up before any row exists; the rows then render before
+	// their labels do, as addresses and ENS names resolve.
+	//
+	// Every fixed reading of that is wrong in one direction or the other. Reading
+	// immediately saw zero rows and called it fatal ("of 0 rows"), against a
+	// picker that was merely still rendering. Waiting once and then treating an
+	// unlabelled row as ineligible turned "not ready yet" into "not a candidate",
+	// which lost accounts that were about to appear. Re-reading until the answer
+	// is available is the only version that is right at every moment.
+	//
+	// The label is what makes a row eligible or not, so a row with no label is
+	// skipped for THIS pass and reconsidered on the next one.
+	const deadline = Date.now() + 30_000;
+	let lastReason = 'the account list never rendered';
+
+	while (Date.now() < deadline) {
+		const count = await rows.count().catch(() => 0);
+		let seen = -1;
+		let unlabelled = 0;
+
+		for (let i = 0; i < count; i++) {
+			const label = (
+				(await rows
+					.nth(i)
+					.innerText()
+					.catch(() => '')) || ''
+			).trim();
+			if (!label) {
+				unlabelled++;
+				continue;
+			}
+			const lower = label.toLowerCase();
+			if (impersonated.some((prefix) => lower.includes(prefix))) continue;
+			if (/\.eth\b/i.test(label)) continue;
+			seen++;
+			if (seen === index) {
+				// Bounded, and re-resolved on each attempt: the row can go stale
+				// between this scan and the click when a label lands mid-pass. An
+				// unbounded click on a detached element waits for ever, which showed
+				// up not as a failure here but as the whole TEST timing out minutes
+				// later with nothing naming the row.
+				try {
+					await rows.nth(i).click({timeout: 5_000});
+					return;
+				} catch {
+					lastReason = `row ${i} ("${label}") would not take a click`;
+				}
+			}
+		}
+
+		lastReason =
+			`found ${seen + 1} signable of ${count} rows` +
+			(unlabelled ? `, ${unlabelled} still unlabelled` : '');
+		await new Promise((resolve) => setTimeout(resolve, 250));
+	}
+
+	throw new Error(
+		`no signable burner account at index ${index}: ${lastReason}; ` +
+			'impersonated accounts cannot sign the sign-in message',
+	);
 }
 
 /**
@@ -369,51 +807,20 @@ async function connectWalletDevMode(
 				.first()
 				.click();
 		} else if (/accounts available, choose one/i.test(text)) {
-			// Account picker: pick the configured account in the scrollable list.
-			// Use the DIRECT children of the list: each account row button nests a
-			// "Copy address" button inside it, so a descendant selector ('div button')
-			// would interleave copy buttons into the index space and .nth(1) would hit
-			// account 0's copy button instead of account 1.
-			await dialog
-				.locator('.overflow-y-auto > button')
-				.nth(accountIndex)
-				.click();
+			await pickSignableAccount(dialog, accountIndex);
 		} else if (/confirm sign in/i.test(text)) {
 			// Under a sign-in target, the confirm dialog may be the COMBINED
 			// choose+sign-in modal (multi-account wallet): select the configured
-			// account row first (same direct-child locator as the plain picker),
-			// then sign. With no rows (single-account confirm), just sign.
-			const rows = dialog.locator('.overflow-y-auto > button');
-			// WAIT BEFORE COUNTING. This branch is reached on the dialog's TEXT, and
-			// the heading renders before the list body does, so counting immediately
-			// can see zero rows in a dialog that is about to have several. Then the
-			// account is never selected and sign-in proceeds as the wrong one, which
-			// surfaces far away as a transaction from an account with no funds.
+			// account row first, then sign. With no rows (single-account confirm),
+			// just sign.
 			//
-			// Bounded and swallowed, because ZERO IS ALSO A REAL ANSWER here: the
-			// single-account confirm dialog has no rows at all and just signs in.
-			await rows
-				.first()
-				.waitFor({state: 'attached', timeout: 2000})
-				.catch(() => {});
-			// BOUNDED, BOTH OF THEM, because this dialog is closing underneath them.
-			// An unbounded Playwright click does not fail when its target goes away,
-			// it waits for the target to come back - for ever, since the default
-			// `actionTimeout` is 0. This loop is the same shape as the one in
-			// stalling-wallet.ts that hung two whole suites for a fortnight while the
-			// blame went to the hardhat node, and it has the same two racy clicks:
-			// the row can detach as labels land, and Sign In is gone the moment the
-			// signature is answered.
-			//
-			// Swallowed rather than retried here, because the enclosing `while` IS
-			// the retry: it re-reads whichever dialog is now on screen and acts on
-			// that. A click that lost its race has simply nothing left to do.
-			if ((await rows.count()) > accountIndex) {
-				await rows
-					.nth(accountIndex)
-					.click({timeout: DIALOG_CLICK_TIMEOUT})
-					.catch(() => {});
-			}
+			// `pickSignableAccount` is this branch's own row picker (it skips the
+			// impersonated accounts, which cannot sign) and bounds its own click
+			// already. The Sign In click needs the same bound for the same reason: this
+			// dialog closes underneath it the moment the signature is answered, and an
+			// unbounded Playwright click waits for the button to come back rather than
+			// failing. Swallowed because the enclosing `while` is the retry.
+			await pickSignableAccount(dialog, accountIndex);
 			await page
 				.getByRole('button', {name: /^sign in$/i})
 				.click({timeout: DIALOG_CLICK_TIMEOUT})
@@ -498,6 +905,19 @@ async function handleInsufficientFundsModal(page: Page): Promise<void> {
 
 const MESSAGE_ROW = '[data-testid="message-row"]';
 const MESSAGE_PENDING = '[data-testid="message-pending"]';
+// The delegation / top-up flow. Sending a greeting needs this browser's signer
+// to be a registered delegate of the account, and the FIRST time it is not, the
+// send opens this instead: one transaction authorises the signer and funds it.
+const PAYMENT_METHODS = '[data-testid="payment-methods"]';
+const CONFIRM_TOP_UP = '[data-testid="confirm-top-up"]';
+// The explanation of what is being signed, which rides ON the confirm step: it
+// belongs immediately before the wallet opens, and that is where the button is.
+const DELEGATION_CONSENT = '[data-testid="delegation-consent"]';
+// The yes/no question the app asks before going on. Used here for the one that
+// brings an interrupted action back once whatever blocked it is dealt with, so
+// the greeting the user typed is the greeting that goes out. Not tied to any
+// feature: anything can raise it (see core/ui/confirm).
+const CONFIRMATION = '[data-testid="confirmation-confirm"]';
 // The app's own count of operations that have not reached a final state. Not
 // demo-specific, so a suite for any feature can wait on it.
 const PENDING_OPERATIONS = '[data-testid="pending-operations"]';
@@ -523,12 +943,224 @@ async function waitForTransactionComplete(page: Page): Promise<void> {
 }
 
 /**
+ * Walk the payment connection's own connect flow.
+ *
+ * Its own, and NOT `connectWalletDevMode`: that one stops as soon as the APP
+ * connection reports connected, which it already is by the time anything is
+ * being paid for. This one runs until the flow has a payer and an amount, or
+ * until it says nothing can be sent.
+ */
+export async function connectPaymentWallet(
+	page: Page,
+	accountIndex = 1,
+	/**
+	 * The other way this can legitimately END, besides reaching the transfer step.
+	 *
+	 * A payer that cannot prove the authorisation is parked rather than sent
+	 * (`re-authorise`, `unavailable`), and that is an OUTCOME, not a failure to
+	 * connect. Without this the caller waits 45 seconds and is then told the
+	 * payment connection never produced a payer, which is both untrue and the
+	 * opposite of a useful message. Defaults to nothing, so existing callers are
+	 * unchanged.
+	 */
+	alsoSettledOn: string[] = [],
+): Promise<void> {
+	const deadline = Date.now() + 45_000;
+
+	while (Date.now() < deadline) {
+		// Done: the flow is showing what this payer will send.
+		const ready = await page
+			.locator(CONFIRM_TOP_UP)
+			.isVisible()
+			.catch(() => false);
+		if (ready) return;
+
+		for (const selector of alsoSettledOn) {
+			const settled = await page
+				.locator(selector)
+				.isVisible()
+				.catch(() => false);
+			if (settled) return;
+		}
+
+		// The top-up modal is itself a dialog, so every open one is inspected and
+		// only the connect-flow steps are acted on.
+		const dialogs = page.locator('[role="dialog"]');
+		const count = await dialogs.count().catch(() => 0);
+		let acted = false;
+
+		for (let i = 0; i < count; i++) {
+			const dialog = dialogs.nth(i);
+			const text =
+				(await dialog.textContent({timeout: 2000}).catch(() => null)) ?? '';
+
+			if (/wallets? available, choose one/i.test(text)) {
+				await dialog
+					.locator('.overflow-y-auto > button', {hasText: 'Burner Wallet'})
+					.first()
+					.click();
+				acted = true;
+				break;
+			}
+
+			if (/accounts available, choose one/i.test(text)) {
+				await pickSignableAccount(dialog, accountIndex);
+				acted = true;
+				break;
+			}
+
+			const connectEntry = dialog
+				.getByRole('button', {name: /connect .*wallet/i})
+				.first();
+			if (await connectEntry.isVisible().catch(() => false)) {
+				await connectEntry.click();
+				acted = true;
+				break;
+			}
+		}
+
+		if (!acted) await page.waitForTimeout(250);
+	}
+
+	throw new Error('the payment connection never produced a payer');
+}
+
+export type AuthoriseOptions = {
+	/** Which payment method to take. Defaults to the account itself. */
+	via?: 'account' | 'wallet';
+	/** Which wallet account pays, for the `wallet` method. */
+	accountIndex?: number;
+	/**
+	 * Whether to accept the offer to carry on with whatever was interrupted.
+	 * Defaults to true; a test that wants to inspect that step sets it false.
+	 */
+	resume?: boolean;
+};
+
+export type AuthorisationOutcome = {
+	/** Whether the app was asking for the authorisation at all. */
+	offered: boolean;
+	/** How the authorisation was proven, read before it was submitted. */
+	route?: string;
+	/** Whether the explanation was shown BEFORE any signature was requested. */
+	explained: boolean;
+	/** Who paid for it. */
+	payer?: string;
+	/**
+	 * Whether the app offered to carry on with the action that was interrupted,
+	 * rather than dropping it and making the user ask again.
+	 */
+	resumed?: boolean;
+};
+
+/**
+ * Complete the authorisation flow if the app opened it, and report what it did.
+ *
+ * The app refuses to send a greeting until this browser's signer is a
+ * registered delegate of the account, and answers a send with this flow rather
+ * than with a `NotDelegate` revert. So this is the e2e counterpart of that
+ * state: it is absent once the account has authorised the browser, and every
+ * fresh browser context meets it exactly once.
+ *
+ * The route is read from the flow BEFORE confirming, because the flow closes on
+ * success and a closed flow remembers nothing - which is right for the app and
+ * useless for a test that wants to know which of the two paths ran.
+ */
+async function authoriseBrowser(
+	page: Page,
+	options: AuthoriseOptions = {},
+): Promise<AuthorisationOutcome> {
+	// Either the chooser, or - when only one way to pay is available - the step
+	// it would have led to. A list of one is not a choice, so the flow skips it.
+	const chooser = page.locator(PAYMENT_METHODS);
+	const opened = await chooser
+		.or(page.locator(CONFIRM_TOP_UP))
+		.first()
+		.waitFor({state: 'visible', timeout: 15_000})
+		.then(() => true)
+		.catch(() => false);
+	if (!opened) return {offered: false, explained: false};
+
+	const via = options.via ?? 'account';
+	if (await chooser.isVisible().catch(() => false)) {
+		const method = page.locator(`[data-testid="pay-with-${via}"]`);
+		await expect(method, `paying with "${via}" should be on offer`).toBeEnabled(
+			{
+				timeout: 10_000,
+			},
+		);
+		await method.click();
+
+		if (via === 'wallet') {
+			await connectPaymentWallet(page, options.accountIndex ?? 1);
+		}
+	}
+
+	const confirm = page.locator(CONFIRM_TOP_UP);
+	// An EMPTY payer is offered the faucet first, when the app has one: claim,
+	// and the flow comes back with an amount to send.
+	const faucet = page.getByRole('button', {name: /get funds from the faucet/i});
+	await expect(
+		confirm.or(faucet).first(),
+		'the flow should offer an amount to send, or the faucet',
+	).toBeVisible({timeout: 30_000});
+	if (await faucet.isVisible().catch(() => false)) await faucet.click();
+	await expect(confirm, 'the flow should offer an amount to send').toBeEnabled({
+		timeout: 30_000,
+	});
+
+	const before = await topUpState(page);
+
+	// The live-signature route explains what is about to be signed, on this step,
+	// so it is read immediately before the button that opens the wallet. The
+	// direct route shows a transaction instead, which is its own confirmation,
+	// and the pre-signed route has nothing to prompt.
+	const explained = await page
+		.locator(DELEGATION_CONSENT)
+		.isVisible()
+		.catch(() => false);
+
+	await confirm.click();
+
+	// The modal closes only once the registration is IN a block: the whole point
+	// is that nothing can be sent until it is.
+	await expect(
+		page.locator(CONFIRM_TOP_UP),
+		'the authorisation should complete and close the flow',
+	).toHaveCount(0, {timeout: 60_000});
+
+	// Whatever was interrupted is offered back, named. Optional because this
+	// helper is also used to authorise a browser with nothing waiting on it.
+	const resumed = await page
+		.locator(CONFIRMATION)
+		.waitFor({state: 'visible', timeout: 10_000})
+		.then(() => true)
+		.catch(() => false);
+	if (resumed && (options.resume ?? true)) {
+		await page.locator(CONFIRMATION).click();
+	}
+
+	return {
+		offered: true,
+		route: before.route,
+		payer: before.payer,
+		explained,
+		resumed,
+	};
+}
+
+/**
  * Submit a greeting and wait until it is on-chain and settled.
  *
  * Tests previously open-coded fill -> click -> waitForTransaction and then
  * asserted the text separately. Each step could silently no-op, so the failure
  * always landed on the final assertion regardless of which step actually broke.
  * Doing it in one place means the error names the step that failed.
+ *
+ * The first send from a fresh browser does not reach the chain: the signer is
+ * not a delegate yet, so the app opens the authorisation flow instead. That is
+ * the state the app is designed to have, not an error, so this completes it and
+ * sends again rather than failing.
  */
 async function submitGreeting(page: Page, message: string): Promise<void> {
 	const input = page.getByPlaceholder('Enter your greeting...');
@@ -546,6 +1178,18 @@ async function submitGreeting(page: Page, message: string): Promise<void> {
 
 	// A write can surface a funding prompt before it reaches the chain.
 	await handleInsufficientFundsModal(page);
+
+	// A first send from a fresh browser is answered with the authorisation flow
+	// instead of reaching the chain. The send is not lost: it waits, and the app
+	// offers it back once this browser may act. So there is nothing to re-click.
+	const authorised = await authoriseBrowser(page);
+	if (authorised.offered) {
+		expect(
+			authorised.resumed,
+			'the interrupted send should be offered back, not dropped',
+		).toBe(true);
+		await handleInsufficientFundsModal(page);
+	}
 
 	// The row appears optimistically with a pending spinner, then settles.
 	const row = page.locator(MESSAGE_ROW).filter({hasText: message});
@@ -668,6 +1312,14 @@ export const test = base.extend<WalletFixtures & WalletOptions>({
 		// Never hand a test a page that is not actually connected.
 		await expectWalletConnected(page);
 
+		// Fund whatever the app will spend from. This has to happen AFTER
+		// connecting: the burner generates its accounts and the signer is derived
+		// at sign-in, so neither address exists before this point. The signer
+		// especially starts empty by nature - it is a fresh key, not the user's
+		// funded wallet - and it is what the demo sends through, so without this
+		// every write test would fail for want of gas.
+		await fundAppSenders(page);
+
 		// The input must be interactive before the test starts driving it.
 		await expect(input).toBeEnabled({timeout: 30_000});
 
@@ -678,9 +1330,14 @@ export const test = base.extend<WalletFixtures & WalletOptions>({
 	 * Provides a function to connect wallet on demand.
 	 */
 	connectWallet: async ({fundWallets, walletAccountIndex}, use) => {
-		// Ensure wallets are funded before connecting
+		// Ensure any impersonated wallets are funded before connecting
 		await fundWallets();
-		await use((page: Page) => connectWalletDevMode(page, walletAccountIndex));
+		await use(async (page: Page, options?: ConnectOptions) => {
+			await connectWalletDevMode(page, walletAccountIndex);
+			// The accounts the app spends from only exist once connected; see
+			// fundAppSenders.
+			if (options?.fund ?? true) await fundAppSenders(page);
+		});
 	},
 
 	/**
@@ -695,6 +1352,38 @@ export const test = base.extend<WalletFixtures & WalletOptions>({
 	 */
 	submitGreeting: async ({}, use) => {
 		await use(submitGreeting);
+	},
+
+	authoriseBrowser: async ({}, use) => {
+		await use(authoriseBrowser);
+	},
+
+	walletAccounts: async ({}, use) => {
+		await use(walletAccounts);
+	},
+
+	/**
+	 * Fund every account the wallet holds.
+	 *
+	 * For the tests that pay with an account OTHER than the one signed in: the
+	 * burner generates its accounts per browser context, so which one the payment
+	 * picker lands on cannot be known in advance, and an unfunded payer cannot
+	 * pay. Funding all of them removes the guess.
+	 */
+	fundWalletAccounts: async ({}, use) => {
+		await use(async (page: Page) => {
+			for (const address of await walletAccounts(page)) {
+				await fundAddressViaHardhat(address, '100');
+			}
+		});
+	},
+
+	topUpState: async ({}, use) => {
+		await use(topUpState);
+	},
+
+	isDelegateRegistered: async ({}, use) => {
+		await use(isDelegateRegistered);
 	},
 });
 

@@ -1,6 +1,16 @@
 /**
  * Accounts the burner wallet is allowed to impersonate in local/dev setups.
  *
+ * IMPERSONATION CANNOT SIGN, which is the fact this branch has to keep in mind.
+ * An impersonated account can send transactions through the node, because the
+ * node holds no key either, but it cannot SIGN anything. So it cannot sign the
+ * message that derives the local signer, and an app that signs in
+ * (`TARGET_STEP === 'SignedIn'`) never gets past `WalletConnected` with one
+ * selected. The symptom is a connect flow that silently stalls, which is why the
+ * e2e fixtures skip these accounts when picking one (see
+ * `e2e/fixtures/test.ts`'s pickSignableAccount) rather than discovering it as a
+ * timeout somewhere else.
+ *
  * CONFIGURATION, not code: the list comes from `PUBLIC_IMPERSONATE_ADDRESSES`
  * (comma-separated), which `.env.localhost` populates for local development.
  * This module only parses it, so the app wiring (`context/index.ts`) and the e2e
