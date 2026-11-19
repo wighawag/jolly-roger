@@ -171,6 +171,7 @@ web/src/lib/context/app.ts                             both stems' compositions 
 web/src/routes/demo/+page.svelte                       both stems' changes (the count badge, the signer's top-up), and this node's "notify me" toggle under the form
 
 # This node's own changes
+package.json                                           the LAN package's pnpmDepsHash for this branch's lockfile
 .offshoot-omissions                                    the root's unwired push-notifications module dropped: @push-notification/client replaces it
 web/package.json                                       the push client and delegated-identity; the push server, the trigger service, etherfold and esbuild for the dev stack and the tests; the notifier's scripts, and `check` type-checking it
 dev/zellij.kdl                                         three panes for the notifier: the push server, `etherfold run` of the greetings, the trigger service
