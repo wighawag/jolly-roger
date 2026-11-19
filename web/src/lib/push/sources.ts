@@ -74,22 +74,22 @@ const trimmed = (url: string) => url.replace(/\/+$/, '');
 
 /**
  * The services, or undefined when any is unset (notifications are then "not
- * configured", R2) or off the browser. `domain` is the page's origin: what
- * connect's origin key and saved signature are for, and what both services'
- * configuration must name.
+ * configured", R2), or `'off-browser'` when they are set but there is no page
+ * yet (a server render or the prerender, where nothing can be subscribed and
+ * the page must not say "not configured" only to flip). `domain` is the page's
+ * origin: what connect's origin key and saved signature are for, and what both
+ * services' configuration must name.
  */
 export function notificationsConfig(
 	env: NotificationsEnv,
 	pageOrigin: string | undefined,
-): NotificationsConfig | undefined {
+): NotificationsConfig | 'off-browser' | undefined {
 	const {PUBLIC_PUSH_SERVER, PUBLIC_VAPID_PUBLIC_KEY, PUBLIC_NOTIFIER} = env;
-	if (
-		!PUBLIC_PUSH_SERVER ||
-		!PUBLIC_VAPID_PUBLIC_KEY ||
-		!PUBLIC_NOTIFIER ||
-		!pageOrigin
-	) {
+	if (!PUBLIC_PUSH_SERVER || !PUBLIC_VAPID_PUBLIC_KEY || !PUBLIC_NOTIFIER) {
 		return undefined;
+	}
+	if (!pageOrigin) {
+		return 'off-browser';
 	}
 	return {
 		pushServer: trimmed(PUBLIC_PUSH_SERVER),

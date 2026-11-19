@@ -70,13 +70,19 @@ describe('notificationsConfig', () => {
 		});
 	});
 
-	it('is undefined when any of them is empty, or off the browser', () => {
+	it('is undefined when any of them is empty, on the browser or off it', () => {
 		for (const name of Object.keys(env)) {
 			expect(
 				notificationsConfig({...env, [name]: ''}, 'http://x'),
 			).toBeUndefined();
+			expect(
+				notificationsConfig({...env, [name]: ''}, undefined),
+			).toBeUndefined();
 		}
-		expect(notificationsConfig(env, undefined)).toBeUndefined();
+	});
+
+	it("is 'off-browser' when they are set but there is no page yet", () => {
+		expect(notificationsConfig(env, undefined)).toBe('off-browser');
 	});
 
 	it('drops a trailing slash, so the paths it signs are the ones the services see', () => {

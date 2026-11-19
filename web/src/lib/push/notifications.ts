@@ -28,7 +28,8 @@
  * at hand: a page load never prompts the wallet.
  *
  * With no `config` (either service unset, R2 of the service-layers spec), the
- * store is `{status: 'not-configured'}` and its actions do nothing.
+ * store is `{status: 'not-configured'}` and its actions do nothing; off the
+ * browser it is `loading`, for the page the browser then renders.
  *
  * Svelte-store-compatible, and works only while subscribed, as the push client
  * it wraps.
@@ -94,8 +95,11 @@ export type Notifications = Readable<NotificationsState> & {
 };
 
 export type NotificationsOptions = {
-	/** undefined when either service is not configured */
-	config: NotificationsConfig | undefined;
+	/**
+	 * undefined when either service is not configured; `'off-browser'` when they
+	 * are but there is no page to subscribe (a server render), shown as loading
+	 */
+	config: NotificationsConfig | 'off-browser' | undefined;
 	/** the trigger service's subscription kind this toggle registers */
 	kind: string;
 	account: Readable<NotifiedAccount>;
@@ -115,8 +119,12 @@ export function createNotifications(
 	options: NotificationsOptions,
 ): Notifications {
 	const config = options.config;
-	if (!config) {
-		const state = readable<NotificationsState>({status: 'not-configured'});
+	if (!config || config === 'off-browser') {
+		const state = readable<NotificationsState>(
+			config
+				? {status: 'loading', trigger: 'unknown', busy: false}
+				: {status: 'not-configured'},
+		);
 		return {
 			subscribe: state.subscribe,
 			enable: async () => {},
@@ -125,6 +133,8 @@ export function createNotifications(
 		};
 	}
 
+	// narrowed, for the closures below
+	const services: NotificationsConfig = config;
 	const doFetch = options.fetch ?? ((input, init) => fetch(input, init));
 	const storage =
 		options.storage ??
@@ -211,10 +221,10 @@ export function createNotifications(
 		of: NonNullable<NotifiedAccount>,
 		ownershipSignature: `0x${string}`,
 	) {
-		const url = new URL(`${config!.notifier}/${route}`);
+		const url = new URL(`${services.notifier}/${route}`);
 		const body = JSON.stringify({
 			address: of.address,
-			domain: config!.domain,
+			domain: services.domain,
 			ownershipSignature,
 			kind: options.kind,
 		});

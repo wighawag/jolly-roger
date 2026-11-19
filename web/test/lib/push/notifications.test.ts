@@ -229,6 +229,24 @@ describe('createNotifications, against the push server and the trigger service i
 		expect(of.signOwnership).not.toHaveBeenCalled();
 	});
 
+	it('is loading, not "not configured", off the browser when the services are set', async () => {
+		const of = newAccount();
+		const notifications = createNotifications({
+			config: 'off-browser',
+			kind: NEW_GREETING,
+			account: writable(of.account),
+			serviceWorker: writable(undefined),
+			signOwnership: of.signOwnership,
+		});
+		expect(get(notifications)).toEqual({
+			status: 'loading',
+			trigger: 'unknown',
+			busy: false,
+		});
+		await notifications.enable();
+		expect(of.signOwnership).not.toHaveBeenCalled();
+	});
+
 	it('enables both halves for the wallet: the device at the push server, the trigger at the notifier', async () => {
 		const of = newAccount();
 		const notifications = toggle(of, fakeBrowser());
