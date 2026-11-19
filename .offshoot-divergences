@@ -155,3 +155,17 @@ web/test/lib/core/connection/executor.test.ts          who signs, per executor
 web/test/lib/core/connection/mode.test.ts              the execution mode is the executors' now
 web/test/lib/view/operation.test.ts                    which executor sent an operation
 web/test/lib/view/pending-operations.test.ts           the optimistic entry keyed by the account, the signer sending for it
+
+[with/push-notifications]
+# AND BELOW THIS LINE, WHAT `with/push-notifications` MODIFIES FROM ITS TWO
+# STEMS, `with/indexer` then `with/local-signer` (merged in that order): a
+# device subscribed to Web Push (@push-notification/client) and a trigger
+# registered with the trigger service (@etherfold/platform-nodejs-triggers),
+# both proven by the local signer's delegate key, so a new greeting by anyone
+# else reaches the account as a push (README.push-notifications.md).
+
+# Where the two stems meet, a file holds both
+contracts/package.json                                 both stems' changes: @etherplay/delegation (local-signer) and etherfold's packages with the utils export (indexer)
+pnpm-lock.yaml                                         both stems' dependencies, re-resolved together
+web/src/lib/context/app.ts                             both stems' compositions in one: the greetings' indexed counts (indexer) and the payment dialog's purpose (local-signer)
+web/src/routes/demo/+page.svelte                       both stems' changes: the greeting-count badge (indexer) and the signer's top-up on a failed send (local-signer)
