@@ -97,6 +97,12 @@
 					{#key `${$view.address}:${$view.accepted}`}
 						<ConversationView view={$view} {panel} />
 					{/key}
+				{:else if $panel.view.kind === 'conversation'}
+					<span
+						class="flex items-center gap-2 text-sm text-muted-foreground"
+						data-testid="messaging-conversation-loading"
+						><Spinner class="h-4 w-4" /> Loading the conversation...</span
+					>
 				{/if}
 			{/if}
 		</div>

@@ -1,5 +1,5 @@
 /**
- * THE NOTIFIER'S THREE SERVICES, for the dev stack and the e2e: bundled by
+ * THE NOTIFIER'S SERVICES (three, and missiv from `with/messaging`), for the dev stack and the e2e: bundled by
  * `build.mjs` into `.generated/serve.js`, then
  *
  *   node notifier/.generated/serve.js push       push-notification-server (its Node.js platform)

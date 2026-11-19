@@ -53,6 +53,7 @@ export type ConversationView = {
 export type MessagingPanel = Readable<PanelState> & {
 	/** undefined when messaging is not configured */
 	inbox: Readable<Inbox> | undefined;
+	/** undefined unless a conversation is open AND the inbox has answered (shown loading) */
 	conversationView: Readable<ConversationView | undefined>;
 	toggle(): void;
 	close(): void;
@@ -107,11 +108,13 @@ export function createMessagingPanel(
 			if (!services || $panel.view.kind !== 'conversation') {
 				return undefined;
 			}
+			// not before the list answered: whether it is a request is not known yet,
+			// and opening it in the reading mode would accept it
+			if ($inbox.step !== 'Fetched') {
+				return undefined;
+			}
 			const address = $panel.view.address;
-			const item =
-				$inbox.step === 'Fetched'
-					? $inbox.items.find((i) => i.address === address)
-					: undefined;
+			const item = $inbox.items.find((i) => i.address === address);
 			// a conversation not in the list yet is one this account starts
 			const accepted = !item || item.accepted || $acceptedHere.has(address);
 			return {

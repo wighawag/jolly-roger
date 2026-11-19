@@ -60,8 +60,8 @@ describe('inboxOf', () => {
 	});
 });
 
-function fakeServices(conversations: string[] = []) {
-	const list = writable<ConversationList>({
+function fetched(conversations: string[]): ConversationList {
+	return {
 		step: 'Fetched',
 		address: ME,
 		conversations: conversations.map((other) =>
@@ -69,7 +69,14 @@ function fakeServices(conversations: string[] = []) {
 		),
 		numUnread: 0,
 		numUnaccepted: conversations.length,
-	});
+	};
+}
+
+function fakeServices(
+	conversations: string[] = [],
+	initial: ConversationList = fetched(conversations),
+) {
+	const list = writable<ConversationList>(initial);
 	const stores = new Map<string, CurrentConversation>();
 	const services = {
 		room: {} as MessagingServices['room'],
@@ -124,6 +131,22 @@ describe('createMessagingPanel', () => {
 		expect(services.accept).toHaveBeenCalledWith(BOB);
 		expect(get(panel.conversationView)?.accepted).toBe(true);
 		expect(services.conversation).toHaveBeenLastCalledWith(BOB, {read: true});
+		stop();
+	});
+
+	it('opens no conversation store before the inbox answered, so looking cannot accept a request', () => {
+		const {services, list} = fakeServices([], {step: 'Fetching', address: ME});
+		const panel = createMessagingPanel(services);
+		const stop = panel.conversationView.subscribe(() => {});
+		panel.openConversation(BOB);
+		expect(get(panel.conversationView)).toBeUndefined();
+		expect(services.conversation).not.toHaveBeenCalled();
+
+		// the list answers: BOB wrote first, so it is a request, read without answering
+		list.set(fetched([BOB]));
+		expect(get(panel.conversationView)?.accepted).toBe(false);
+		expect(services.conversation).toHaveBeenCalledTimes(1);
+		expect(services.conversation).toHaveBeenLastCalledWith(BOB, {read: false});
 		stop();
 	});
 

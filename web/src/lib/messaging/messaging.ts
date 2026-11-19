@@ -29,7 +29,7 @@
  * With no `config` (`PUBLIC_MISSIV` unset, R2 of the service-layers spec) the
  * store is `{status: 'not-configured'}` and there are no services.
  */
-import {derived, readable, writable, type Readable} from 'svelte/store';
+import {derived, get, readable, writable, type Readable} from 'svelte/store';
 import {
 	API,
 	createMissivRegistration,
@@ -237,7 +237,14 @@ export function createMessaging(options: MessagingOptions): Messaging {
 		return store;
 	}
 
+	// the registration as it is now, whether or not anything is subscribed
+	function now(): MissivRegistration {
+		current = get(registration);
+		return current;
+	}
+
 	function registered() {
+		const current = now();
 		if (current.step !== 'Registered') {
 			throw new Error('not registered with missiv');
 		}
@@ -280,15 +287,15 @@ export function createMessaging(options: MessagingOptions): Messaging {
 		services,
 		panel: createMessagingPanel(services),
 		async register() {
-			if (current.step !== 'Unregistered' || current.registering) {
+			const of = now();
+			if (of.step !== 'Unregistered' || of.registering) {
 				return;
 			}
-			const {address, signer} = current;
+			const {address, signer} = of;
 			const message = originPublicKeyPublicationMessage(
 				appOrigin,
 				signer.publicKey as `0x${string}`,
 			);
-			const of = current;
 			declined.set(undefined);
 			let signature: `0x${string}`;
 			try {
@@ -301,6 +308,16 @@ export function createMessaging(options: MessagingOptions): Messaging {
 						cause,
 					},
 				});
+				return;
+			}
+			// the account (or its key) changed while the wallet signed: the
+			// signature is for a key no longer in use
+			const after = now();
+			if (
+				after.step !== 'Unregistered' ||
+				after.address !== address ||
+				after.signer.privateKey !== signer.privateKey
+			) {
 				return;
 			}
 			// missiv's refusal is on the registration's own state
