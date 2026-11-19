@@ -144,6 +144,13 @@ export E2E_PUSH_SERVER="http://127.0.0.1:${NOTIFIER_PUSH_PORT}"
 export E2E_PUSH_TOKEN="e2e-notifier-token"
 export PUBLIC_PUSH_SERVER="${E2E_PUSH_SERVER}/api"
 export PUBLIC_NOTIFIER="http://127.0.0.1:${NOTIFIER_TRIGGERS_PORT}"
+# missiv (`with/messaging`), started with them: its own port (the dev stack's is
+# 34007), a direct message pushed through the recording push server with
+# missiv's own token. The app is built against it (PUBLIC_MISSIV).
+NOTIFIER_MISSIV_PORT="${E2E_MISSIV_PORT:-34107}"
+export E2E_MISSIV="http://127.0.0.1:${NOTIFIER_MISSIV_PORT}"
+export E2E_MISSIV_PUSH_TOKEN="e2e-missiv-token"
+export PUBLIC_MISSIV="$E2E_MISSIV"
 NOTIFIER_PGID=""
 NOTIFIER_DATA_DIR=""
 NOTIFIER_LOG="${TMPDIR:-/tmp}/$(basename "$REPO_DIR")-e2e-notifier.log"
@@ -489,11 +496,11 @@ cd "$CONTRACTS_DIR"
 pnpm export localhost --ts ../web/src/lib/deployments.ts
 echo -e "${GREEN}✓ Contracts deployed and exported${NC}"
 
-echo -e "\n${GREEN}🔔 Starting the notifier (push server, indexer, trigger service)...${NC}"
-for port in "$NOTIFIER_PUSH_PORT" "$NOTIFIER_INDEXER_PORT" "$NOTIFIER_TRIGGERS_PORT"; do
+echo -e "\n${GREEN}🔔 Starting the notifier (push server, indexer, trigger service, missiv)...${NC}"
+for port in "$NOTIFIER_PUSH_PORT" "$NOTIFIER_INDEXER_PORT" "$NOTIFIER_TRIGGERS_PORT" "$NOTIFIER_MISSIV_PORT"; do
     if curl -s -o /dev/null "http://127.0.0.1:${port}" 2>/dev/null; then
         echo -e "${RED}✗ Something already answers on port ${port}.${NC}"
-        echo -e "${RED}  Set E2E_NOTIFIER_PUSH_PORT, E2E_NOTIFIER_INDEXER_PORT or E2E_NOTIFIER_TRIGGERS_PORT.${NC}"
+        echo -e "${RED}  Set E2E_NOTIFIER_PUSH_PORT, E2E_NOTIFIER_INDEXER_PORT, E2E_NOTIFIER_TRIGGERS_PORT or E2E_MISSIV_PORT.${NC}"
         exit 1
     fi
 done
@@ -516,6 +523,8 @@ setsid env \
     NOTIFIER_PUSH_PORT="$NOTIFIER_PUSH_PORT" \
     NOTIFIER_INDEXER_PORT="$NOTIFIER_INDEXER_PORT" \
     NOTIFIER_TRIGGERS_PORT="$NOTIFIER_TRIGGERS_PORT" \
+    NOTIFIER_MISSIV_PORT="$NOTIFIER_MISSIV_PORT" \
+    NOTIFIER_MISSIV_PUSH_TOKEN="$E2E_MISSIV_PUSH_TOKEN" \
     NOTIFIER_DATA="$NOTIFIER_DATA_DIR" \
     NOTIFIER_INTERVAL_MS=500 \
     NOTIFIER_PUSH_RECORDING=1 \
@@ -538,7 +547,8 @@ fi
 for i in {1..60}; do
     if curl -s -o /dev/null "${E2E_PUSH_SERVER}/recorded" &&
         curl -s -o /dev/null "http://127.0.0.1:${NOTIFIER_INDEXER_PORT}/status" &&
-        curl -s -o /dev/null -X OPTIONS "${PUBLIC_NOTIFIER}/subscriptions"; then
+        curl -s -o /dev/null -X OPTIONS "${PUBLIC_NOTIFIER}/subscriptions" &&
+        curl -s -o /dev/null "${E2E_MISSIV}/"; then
         echo -e "${GREEN}✓ Notifier is ready${NC}"
         break
     fi
