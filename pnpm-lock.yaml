@@ -198,6 +198,12 @@ importers:
       '@lucide/svelte':
         specifier: ^1.33.0
         version: 1.33.0(svelte@5.56.9)
+      '@missiv/client':
+        specifier: ^0.4.0
+        version: 0.4.0(svelte@5.56.9)
+      '@missiv/common':
+        specifier: ^0.4.0
+        version: 0.4.0
       '@observator/svelte':
         specifier: ^0.3.1
         version: 0.3.1(svelte@5.56.9)
@@ -273,6 +279,9 @@ importers:
       ldenv:
         specifier: ^0.6.0
         version: 0.6.0
+      missiv:
+        specifier: ^0.4.0
+        version: 0.4.0(typescript@6.0.3)
       mode-watcher:
         specifier: ^1.1.0
         version: 1.1.0(svelte@5.56.9)
@@ -734,6 +743,13 @@ packages:
     peerDependencies:
       hono: ^4
 
+  '@hono/node-ws@1.3.1':
+    resolution: {integrity: sha512-vo/MwCnpJAVHBkGzWjCJ28wF45fYHAfbPZcH2rodZODHtch2GHA94KtMfusmVycTUtsLAsaNsHhtY6P8X3RQsA==}
+    engines: {node: '>=18.14.1'}
+    peerDependencies:
+      '@hono/node-server': ^1.19.11
+      hono: ^4.6.0
+
   '@hono/standard-validator@0.4.1':
     resolution: {integrity: sha512-Q0+1dgMKAXEvsmJ5FNoamwnfrf/I5JNnKn7WzfynH8nJlNe1lNOW1+vlKpEQZbrBLEgmxIeys6HjRotDvZzq+A==}
     peerDependencies:
@@ -744,6 +760,12 @@ packages:
     resolution: {integrity: sha512-Hn90DOOJ62ICJQplQvCDVpi9Jcn6EhtRaiffyJIS53wA5RmRLtMCDQGVc0bor8vQD7JIwpkweWjs+3cycp+IvA==}
     peerDependencies:
       hono: '>=4.0.0'
+
+  '@hono/zod-validator@0.4.3':
+    resolution: {integrity: sha512-xIgMYXDyJ4Hj6ekm9T9Y27s080Nl9NXHcJkOvkXPhubOLj8hZkOL8pDnnXfvCf5xEE8Q4oMFenQUZZREUY2gqQ==}
+    peerDependencies:
+      hono: '>=3.9.0'
+      zod: ^3.19.1
 
   '@img/colour@1.1.0':
     resolution: {integrity: sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ==}
@@ -996,6 +1018,17 @@ packages:
     resolution: {integrity: sha512-b+osTYG2V4dge5Lr7tnaTaahhy/4vH7Xb8zcqVjmctjwgkpXS0NNOJPkGzHHZoxtw/OO+2YAU28omeMfYCaawg==}
     peerDependencies:
       svelte: ^5
+
+  '@missiv/client@0.4.0':
+    resolution: {integrity: sha512-ISEGVLCxAFSvLND97ittOvv8EOT4yrn8ukLwnZ3gVSqABPgr5V9uRo5dHqJlza+pi8SElwpfad2B6Z0ZxmZ7Zw==}
+    peerDependencies:
+      svelte: ^5.0.0
+
+  '@missiv/common@0.4.0':
+    resolution: {integrity: sha512-GHqMbjQEVTZFrVlW9AtMoWRj3vSNupVWaFWipZU2XmCPTHlzz6buNT8nWCMUuPx3RtY/wah/Y7UOufAhsLH+zg==}
+
+  '@missiv/server@0.4.0':
+    resolution: {integrity: sha512-Lf4GF8eyDtAY4nBTFieF6p2pJqvJ/Netyz1QiFgQFhbpWsJnRbb10f45PrL65cnWpU+PFA3BkQOUL1GXtSAMmA==}
 
   '@neon-rs/load@0.0.4':
     resolution: {integrity: sha512-kTPhdZyTQxB+2wpiRcFWrDcejc4JI6tkPuS7UZCG4l6Zvc5kU/gGQ/ozvHTh1XR5tS+UlfAfGuPajjzQjCiHCw==}
@@ -1955,6 +1988,10 @@ packages:
     resolution: {integrity: sha512-Vw8qHK3bZM9y/P10u3Vib8o/DdkvA2OtPtZvD871QKjy74Wj1WSKFILMPRPSdUSx5RFK1arlJzEtA4PkFgnbuA==}
     engines: {node: '>=18'}
 
+  commander@13.1.0:
+    resolution: {integrity: sha512-/rFeCpNJQbhSZjGVwO9RFV3xPqbnERS8MmIQzCtD/zl6gpJuV/bMLuN92oG3F7d8oDEHHRrujSXNUr8fpjntKw==}
+    engines: {node: '>=18'}
+
   commander@14.0.3:
     resolution: {integrity: sha512-H+y0Jo/T1RZ9qPP4Eh1pkcQcLRglraJaSLoyOtHxu6AapkjWVCy2Sit1QQ4x3Dng8qDlSsZEet7g5Pq06MvTgw==}
     engines: {node: '>=20'}
@@ -2079,6 +2116,9 @@ packages:
 
   eip-1193-accounts-wrapper@0.3.0:
     resolution: {integrity: sha512-9HT8cs5djo8Xm9xfsdJRmCGnDEhCWpoIONEVKARQtr/ldMpHanyoqB3cRX/WgwcFUGkHWGQN7CTOtAARp5l2MQ==}
+
+  eip-1193@0.6.6:
+    resolution: {integrity: sha512-pnEP5TRFfK0v0EbPsrOuJ1RvKDh8Ykh5OyvB+jlIgkJGdUt0nhC3fM/k2TsrOq6Qk+q1E0dpaikfdRzJ6/fi5g==}
 
   eip-1193@0.7.4:
     resolution: {integrity: sha512-NYtXIpM8dwiMmeJjdRkCzIdpTXU7ANdeO4fW+SpZE3Pia4ljnfXCyY40TZrQ5iJtaUMcJ1aSUsKxtdh0iwFiyw==}
@@ -2630,6 +2670,10 @@ packages:
   minimist@1.2.8:
     resolution: {integrity: sha512-2yyAR8qBkN3YuheJanUpWC5U3bb5osDywNB8RzDVlDwDHbocAJveqqj1u8+SVD7jkWT4yvsHCpWqqWqAxb0zCA==}
 
+  missiv@0.4.0:
+    resolution: {integrity: sha512-FzMrVJK3mFeCaaVFbIBUAAMmY4l8JeFQH5Z4piN9vq/xabj89stheeWOg+sVNrUsCfE/P6i9hw5kecbFqhWWfQ==}
+    hasBin: true
+
   mode-watcher@1.1.0:
     resolution: {integrity: sha512-mUT9RRGPDYenk59qJauN1rhsIMKBmWA3xMF+uRwE8MW/tjhaDSCCARqkSuDTq8vr4/2KcAxIGVjACxTjdk5C3g==}
     peerDependencies:
@@ -2888,6 +2932,9 @@ packages:
   readdirp@5.1.1:
     resolution: {integrity: sha512-Kko+Y5XQ6fM+Ce3dq3m9YGxnacYZYl9cA1wZjaF3Vbry2L3i1qVg8+CAgNPsXRArPMUMCaOR7oa9Nqntc43JKA==}
     engines: {node: '>= 20.19.0'}
+
+  remote-procedure-call@0.1.2:
+    resolution: {integrity: sha512-p8YUdRGDPB+Npl4JowdD4C+isPiAqg8gQws5OHX/hNs4Gn00sR2a8zMT34AJVtlgaap/escL5doGZbPkFiG5yg==}
 
   remote-procedure-call@0.2.0:
     resolution: {integrity: sha512-InL83ydnzos4cppZyWcKBT2mAOU9IiiBHHuhdKFuZjm17/mO4K4FzLdljt09D4ni4zZmwZ5rspvzTr+PQs310w==}
@@ -3973,6 +4020,15 @@ snapshots:
     dependencies:
       hono: 4.13.3
 
+  '@hono/node-ws@1.3.1(@hono/node-server@1.19.19(hono@4.13.3))(hono@4.13.3)':
+    dependencies:
+      '@hono/node-server': 1.19.19(hono@4.13.3)
+      hono: 4.13.3
+      ws: 8.21.3
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+
   '@hono/standard-validator@0.4.1(@standard-schema/spec@1.1.0)(hono@4.13.3)':
     dependencies:
       '@standard-schema/spec': 1.1.0
@@ -3981,6 +4037,11 @@ snapshots:
   '@hono/swagger-ui@0.5.3(hono@4.13.3)':
     dependencies:
       hono: 4.13.3
+
+  '@hono/zod-validator@0.4.3(hono@4.13.3)(zod@3.25.76)':
+    dependencies:
+      hono: 4.13.3
+      zod: 3.25.76
 
   '@img/colour@1.1.0': {}
 
@@ -4207,6 +4268,42 @@ snapshots:
   '@lucide/svelte@1.33.0(svelte@5.56.9)':
     dependencies:
       svelte: 5.56.9
+
+  '@missiv/client@0.4.0(svelte@5.56.9)':
+    dependencies:
+      '@missiv/common': 0.4.0
+      '@noble/ciphers': 1.3.0
+      '@noble/hashes': 1.8.0
+      '@noble/secp256k1': 2.3.0
+      '@scure/base': 1.2.6
+      delegated-identity: 0.1.1
+      svelte: 5.56.9
+
+  '@missiv/common@0.4.0':
+    dependencies:
+      '@noble/hashes': 1.8.0
+      '@noble/secp256k1': 2.3.0
+      delegated-identity: 0.1.1
+      zod: 3.25.76
+
+  '@missiv/server@0.4.0(typescript@6.0.3)':
+    dependencies:
+      '@hono/zod-validator': 0.4.3(hono@4.13.3)(zod@3.25.76)
+      '@missiv/common': 0.4.0
+      '@noble/hashes': 1.8.0
+      '@noble/secp256k1': 2.3.0
+      delegated-identity: 0.1.1
+      eip-1193: 0.6.6
+      hono: 4.13.3
+      named-logs: 0.3.2
+      remote-procedure-call: 0.1.2
+      remote-sql: 0.0.6
+      viem: 2.55.19(typescript@6.0.3)(zod@3.25.76)
+      zod: 3.25.76
+    transitivePeerDependencies:
+      - bufferutil
+      - typescript
+      - utf-8-validate
 
   '@neon-rs/load@0.0.4': {}
 
@@ -5219,6 +5316,8 @@ snapshots:
 
   commander@12.1.0: {}
 
+  commander@13.1.0: {}
+
   commander@14.0.3: {}
 
   commander@15.0.0: {}
@@ -5336,6 +5435,8 @@ snapshots:
       - typescript
       - utf-8-validate
       - zod
+
+  eip-1193@0.6.6: {}
 
   eip-1193@0.7.4: {}
 
@@ -5963,6 +6064,23 @@ snapshots:
 
   minimist@1.2.8: {}
 
+  missiv@0.4.0(typescript@6.0.3):
+    dependencies:
+      '@hono/node-server': 1.19.19(hono@4.13.3)
+      '@hono/node-ws': 1.3.1(@hono/node-server@1.19.19(hono@4.13.3))(hono@4.13.3)
+      '@libsql/client': 0.15.15
+      '@missiv/server': 0.4.0(typescript@6.0.3)
+      commander: 13.1.0
+      hono: 4.13.3
+      ldenv: 0.3.16
+      named-logs-context: 0.1.1
+      remote-sql-libsql: 0.0.6
+    transitivePeerDependencies:
+      - '@libsql/core'
+      - bufferutil
+      - typescript
+      - utf-8-validate
+
   mode-watcher@1.1.0(svelte@5.56.9):
     dependencies:
       runed: 0.25.0(svelte@5.56.9)
@@ -6177,6 +6295,11 @@ snapshots:
   readdirp@4.1.2: {}
 
   readdirp@5.1.1: {}
+
+  remote-procedure-call@0.1.2:
+    dependencies:
+      named-logs: 0.2.4
+      promise-throttle: 1.1.2
 
   remote-procedure-call@0.2.0:
     dependencies:

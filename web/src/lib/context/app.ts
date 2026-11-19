@@ -27,6 +27,8 @@ import {
 	type PublicationSigning,
 } from '$lib/push/sources.js';
 import {NEW_GREETING} from '$lib/onchain/notifier/greetings.js';
+import {createMessaging, type Messaging} from '$lib/messaging/messaging.js';
+import {messagingAccount, messagingConfig} from '$lib/messaging/sources.js';
 import type {TypedDeployments} from '$lib/deployments-store.js';
 import type {CoreServices} from './core.js';
 import type {SignerGrant} from '$lib/ui/delegation/grant.js';
@@ -147,9 +149,23 @@ export function createAppContext(core: CoreServices): AppMembers {
 		signOwnership: publicationSigner(connection as PublicationSigning),
 	});
 
+	// MESSAGING (`with/messaging`): the domain's chat room and direct messages
+	// on missiv, proven by the same delegate key and the same wallet signature as
+	// the notifications (`$lib/messaging`, README.messaging.md). With
+	// PUBLIC_MISSIV unset the panel says messaging is not configured.
+	const messaging = createMessaging({
+		config: messagingConfig(
+			{PUBLIC_MISSIV: resolveURLForThisPage(env.PUBLIC_MISSIV)},
+			typeof location !== 'undefined' ? location.origin : undefined,
+			MESSAGING_NAMESPACE,
+		),
+		account: messagingAccount(connection as Readable<ConnectionLike>),
+		signOwnership: publicationSigner(connection as PublicationSigning),
+	});
+
 	// `config` is not returned: it is this half's own construction detail, and
 	// core neither uses it nor puts it in the context.
-	return {onchainState, viewState, notifications};
+	return {onchainState, viewState, notifications, messaging};
 }
 
 /**
@@ -166,7 +182,12 @@ export type AppMembers = {
 	viewState: CountedViewStateStore;
 	/** "notify me of new greetings": this device and the account's trigger */
 	notifications: Notifications;
+	/** the chat room and direct messages (`with/messaging`) */
+	messaging: Messaging;
 };
+
+/** The app's conversations within missiv's domain (the page's host). */
+const MESSAGING_NAMESPACE = 'greetings';
 
 /**
  * The address that scopes local operation data: which of this app's contracts
