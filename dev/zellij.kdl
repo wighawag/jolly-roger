@@ -25,6 +25,18 @@ layout {
 	}
 
 	pane split_direction="vertical" {
+		pane name="push server" command="pnpm"  {
+			args "--filter" "./web" "notifier:push"
+		}
+		pane name="indexer (etherfold run)" command="pnpm"  {
+			args "--filter" "./web" "notifier:index"
+		}
+		pane name="notifier (trigger service)" command="pnpm"  {
+			args "--filter" "./web" "notifier:triggers"
+		}
+	}
+
+	pane split_direction="vertical" {
 		pane name="watch and compile" command="pnpm"  {
 			args "contracts:compile:watch"
 		}

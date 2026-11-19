@@ -1,0 +1,11 @@
+{
+	// the notifier's services (serve.ts), type-checked by `pnpm check`: it is
+	// outside src/, so svelte-check does not see it (the .mjs scripts are plain JS)
+	"extends": "../tsconfig.json",
+	"compilerOptions": {
+		"noEmit": true,
+		"types": ["node"],
+		"paths": {"$lib": ["../src/lib"], "$lib/*": ["../src/lib/*"]}
+	},
+	"include": ["serve.ts"]
+}

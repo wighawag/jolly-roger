@@ -1,0 +1,4 @@
+# built by build.mjs from the app's sources and the deployment
+.generated/
+# the services' databases
+.data/
