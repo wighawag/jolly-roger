@@ -70,6 +70,7 @@ const TRIGGERS_PORT = Number(env.NOTIFIER_TRIGGERS_PORT ?? 34006);
 const DATA = env.NOTIFIER_DATA ?? path.join(notifier, '.data');
 const INTERVAL_MS = Number(env.NOTIFIER_INTERVAL_MS ?? 2000);
 const PUSH_TOKEN = env.NOTIFIER_PUSH_TOKEN ?? '';
+const MISSIV_PUSH_TOKEN = env.NOTIFIER_MISSIV_PUSH_TOKEN ?? '';
 const INDEXER = 'greetings';
 
 function required(name: string, value: string | undefined) {
@@ -140,8 +141,15 @@ async function servePush() {
 				env.NOTIFIER_VAPID_PRIVATE_KEY,
 			),
 			VAPID_SUBJECT: env.NOTIFIER_VAPID_SUBJECT,
-			// the trigger service's token, for this app only
-			PUSH_TOKENS: `${APP_ORIGIN}:${sha256Hex(required('NOTIFIER_PUSH_TOKEN', PUSH_TOKEN))}`,
+			// the trigger service's token, for this app only, and missiv's
+			// (`with/messaging`: a direct message pushed to its recipient), when set
+			PUSH_TOKENS: [
+				required('NOTIFIER_PUSH_TOKEN', PUSH_TOKEN),
+				MISSIV_PUSH_TOKEN,
+			]
+				.filter((token) => token)
+				.map((token) => `${APP_ORIGIN}:${sha256Hex(token)}`)
+				.join(','),
 		},
 		...(recording
 			? {

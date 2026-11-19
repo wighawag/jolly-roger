@@ -3,7 +3,9 @@
 // - a VAPID key pair (P-256, the Web Push application server key): both halves
 //   into notifier/.env.local for the push server, the PUBLIC half also into
 //   web/.env.local as PUBLIC_VAPID_PUBLIC_KEY, which the app subscribes with;
-// - the trigger service's token at the push server (NOTIFIER_PUSH_TOKEN).
+// - the trigger service's token at the push server (NOTIFIER_PUSH_TOKEN);
+// - missiv's token at the push server (NOTIFIER_MISSIV_PUSH_TOKEN,
+//   `with/messaging`: missiv pushes a direct message to its recipient).
 //
 //   node notifier/keys.mjs   (pnpm notifier:keys)
 //
@@ -55,6 +57,17 @@ if (!valueOf(notifier, 'NOTIFIER_PUSH_TOKEN')) {
 	);
 	console.log(
 		`push token written to ${path.relative(process.cwd(), notifierEnv)}`,
+	);
+}
+
+notifier = read(notifierEnv);
+if (!valueOf(notifier, 'NOTIFIER_MISSIV_PUSH_TOKEN')) {
+	appendFileSync(
+		notifierEnv,
+		`# missiv's token at the push server (with/messaging: a direct message's push)\nNOTIFIER_MISSIV_PUSH_TOKEN=${base64url(randomBytes(24))}\n`,
+	);
+	console.log(
+		`missiv's push token written to ${path.relative(process.cwd(), notifierEnv)}`,
 	);
 }
 

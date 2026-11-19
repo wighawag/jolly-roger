@@ -8,7 +8,17 @@
 	import BellOffIcon from '@lucide/svelte/icons/bell-off';
 	import type {Notifications} from '$lib/push/notifications';
 
-	let {notifications}: {notifications: Notifications} = $props();
+	let {
+		notifications,
+		directMessages = false,
+	}: {
+		notifications: Notifications;
+		/**
+		 * with/messaging: the account is registered with missiv, which pushes a
+		 * direct message to every device registered here
+		 */
+		directMessages?: boolean;
+	} = $props();
 </script>
 
 <div
@@ -55,6 +65,14 @@
 		>
 	{/if}
 </div>
+{#if directMessages && $notifications.status === 'on'}
+	<p
+		class="flex items-center gap-2 text-sm text-muted-foreground"
+		data-testid="notify-me-direct-messages"
+	>
+		<BellIcon class="h-4 w-4" /> Direct messages to you are notified too.
+	</p>
+{/if}
 {#if $notifications.status !== 'not-configured' && $notifications.error}
 	<p class="text-sm text-destructive" data-testid="notify-me-error">
 		{String($notifications.error)}

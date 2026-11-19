@@ -7,13 +7,18 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {get, writable, type Readable} from 'svelte/store';
 import {generatePrivateKey, privateKeyToAccount} from 'viem/accounts';
 import {createNodeServer} from 'missiv';
+import {createNodeServer as createPushServer} from '@push-notification/cli';
 import {
 	originPublicKeyPublicationMessage,
 	type Account,
 	type ConversationList,
 	type ConversationState,
 } from '@missiv/client';
-import {delegatePublicKey} from 'delegated-identity';
+import {
+	delegatePublicKey,
+	REQUEST_SIGNATURE_HEADER,
+	signRequest,
+} from 'delegated-identity';
 import {
 	createMessaging,
 	roomURL,
@@ -58,6 +63,16 @@ function until<T>(
 }
 const hold = (store: Readable<unknown>) => store.subscribe(() => {});
 
+async function sha256Hex(text: string) {
+	const digest = await crypto.subtle.digest(
+		'SHA-256',
+		new TextEncoder().encode(text),
+	);
+	return [...new Uint8Array(digest)]
+		.map((b) => b.toString(16).padStart(2, '0'))
+		.join('');
+}
+
 describe('createMessaging, not configured', () => {
 	it('says so, and has no services', () => {
 		const messaging = createMessaging({
@@ -95,13 +110,34 @@ describe('createMessaging, against missiv in process', () => {
 	let missiv: Awaited<ReturnType<typeof createNodeServer>>;
 	let pushes: {url: string; headers: Headers; body: any}[];
 
+	let pushServer: Awaited<ReturnType<typeof createPushServer>>;
+	let delivered: {endpoint: string; payload: any}[];
+
 	beforeEach(async () => {
 		pushes = [];
+		delivered = [];
 		missiv = await createNodeServer({
 			db: ':memory:',
 			env: {
 				PUSH_SERVER_URL: PUSH,
 				PUSH_TOKENS: 'greetings.example=missiv-token',
+			},
+		});
+		// push-notification-server as the notifier configures it: the trigger
+		// service's token and missiv's, both for this app
+		pushServer = await createPushServer({
+			db: ':memory:',
+			env: {
+				VAPID_PUBLIC_KEY: '',
+				VAPID_PRIVATE_KEY: '',
+				PUSH_TOKENS: `${APP}:${await sha256Hex('trigger-token')},${APP}:${await sha256Hex('missiv-token')}`,
+			},
+			getPushSender: () => async (subscription, payload) => {
+				delivered.push({
+					endpoint: subscription.endpoint,
+					payload: JSON.parse(String(payload)),
+				});
+				return {ok: true, status: 201};
 			},
 		});
 		// missiv's push notifier calls the push server with the global fetch
@@ -117,7 +153,7 @@ describe('createMessaging, against missiv in process', () => {
 					headers: new Headers(init?.headers),
 					body: JSON.parse(String(init?.body)),
 				});
-				return new Response(JSON.stringify({ok: true}), {status: 200});
+				return pushServer.request(url, init);
 			}
 			return realFetch(input, init);
 		}) as typeof fetch);
@@ -131,6 +167,35 @@ describe('createMessaging, against missiv in process', () => {
 		if (url.startsWith(MISSIV)) return missiv.app.request(url, init);
 		throw new Error(`no such host: ${url}`);
 	}) as typeof fetch;
+
+	/** This account's device registered at the push server, as "notify me" does. */
+	async function registerDevice(of: ReturnType<typeof newAccount>) {
+		const body = JSON.stringify({
+			address: of.account!.address,
+			domain: APP,
+			subscription: {
+				endpoint: `https://push.invalid/${of.account!.address}`,
+				expirationTime: null,
+				keys: {p256dh: 'p256dh', auth: 'auth'},
+			},
+			ownershipSignature: await of.signOwnership(
+				of.account!.address,
+				originPublicKeyPublicationMessage(APP, delegatePublicKey(of.delegate)),
+			),
+		});
+		const response = await pushServer.request(`${PUSH}/api/register`, {
+			method: 'POST',
+			headers: {
+				'content-type': 'application/json',
+				[REQUEST_SIGNATURE_HEADER]: await signRequest(
+					{serverOrigin: PUSH, method: 'POST', path: '/api/register', body},
+					of.delegate,
+				),
+			},
+			body,
+		});
+		expect(response.status).toBe(200);
+	}
 
 	// `signOwnership` stands for connect's getSignatureForPublicKeyPublication:
 	// the wallet asked at most once, its answer kept
@@ -248,6 +313,7 @@ describe('createMessaging, against missiv in process', () => {
 		const bob = newAccount();
 		const a = await registered(alice);
 		const b = await registered(bob);
+		await registerDevice(bob);
 		const bobAddress = bob.account!.address;
 		const aliceAddress = alice.account!.address;
 
@@ -304,7 +370,7 @@ describe('createMessaging, against missiv in process', () => {
 			content: 'hello bob',
 		});
 
-		// one push, to Bob's wallet under the app's domain, naming no content
+		// one push, missiv's, to Bob's wallet under the app's domain, naming no content
 		await vi.waitFor(() => expect(pushes).toHaveLength(1));
 		expect(pushes[0].url).toBe(`${PUSH}/api/push`);
 		expect(pushes[0].headers.get('authorization')).toBe('Bearer missiv-token');
@@ -317,6 +383,12 @@ describe('createMessaging, against missiv in process', () => {
 			},
 		});
 		expect(JSON.stringify(pushes[0].body)).not.toContain('hello bob');
+		// and the push server delivered it to Bob's device
+		await vi.waitFor(() => expect(delivered).toHaveLength(1));
+		expect(delivered[0]).toMatchObject({
+			endpoint: `https://push.invalid/${bobAddress}`,
+			payload: {notification: {title: 'New message'}},
+		});
 
 		stopToBob();
 		stopList();

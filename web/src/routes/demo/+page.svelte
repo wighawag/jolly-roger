@@ -131,7 +131,10 @@
 			</Button>
 		</form>
 
-		<NotifyMe {notifications} />
+		<NotifyMe
+			{notifications}
+			directMessages={$messaging.status === 'registered'}
+		/>
 
 		<!-- Messages List -->
 		<div class="space-y-3">
