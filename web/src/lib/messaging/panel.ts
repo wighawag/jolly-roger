@@ -103,11 +103,11 @@ export function createMessagingPanel(
 
 	const conversationView = derived(
 		[state, inbox ?? writable<Inbox>({step: 'Idle'}), acceptedHere] as const,
-		([$state, $inbox, $acceptedHere]): ConversationView | undefined => {
-			if (!services || $state.view.kind !== 'conversation') {
+		([$panel, $inbox, $acceptedHere]): ConversationView | undefined => {
+			if (!services || $panel.view.kind !== 'conversation') {
 				return undefined;
 			}
-			const address = $state.view.address;
+			const address = $panel.view.address;
 			const item =
 				$inbox.step === 'Fetched'
 					? $inbox.items.find((i) => i.address === address)
