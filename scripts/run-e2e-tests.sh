@@ -131,6 +131,23 @@ FAUCET_PGID=""
 FAUCET_CWD=""
 FAUCET_LOG="${TMPDIR:-/tmp}/$(basename "$REPO_DIR")-e2e-faucet.log"
 
+# The notifier (`with/push-notifications`, web/notifier/serve.ts): the push
+# server (RECORDING: a push is kept and listed at /recorded, never sent to a
+# browser push service), `etherfold run` of the greetings and the trigger
+# service, in one process group. Their own ports, not the dev stack's 34005,
+# 34002 and 34006. The app is built against them (PUBLIC_*), and the suite
+# reads the recorded pushes and checks registrations with the token.
+NOTIFIER_PUSH_PORT="${E2E_NOTIFIER_PUSH_PORT:-34105}"
+NOTIFIER_INDEXER_PORT="${E2E_NOTIFIER_INDEXER_PORT:-34102}"
+NOTIFIER_TRIGGERS_PORT="${E2E_NOTIFIER_TRIGGERS_PORT:-34106}"
+export E2E_PUSH_SERVER="http://127.0.0.1:${NOTIFIER_PUSH_PORT}"
+export E2E_PUSH_TOKEN="e2e-notifier-token"
+export PUBLIC_PUSH_SERVER="${E2E_PUSH_SERVER}/api"
+export PUBLIC_NOTIFIER="http://127.0.0.1:${NOTIFIER_TRIGGERS_PORT}"
+NOTIFIER_PGID=""
+NOTIFIER_DATA_DIR=""
+NOTIFIER_LOG="${TMPDIR:-/tmp}/$(basename "$REPO_DIR")-e2e-notifier.log"
+
 # Cleanup function to kill background processes
 #
 # Only ever stops what THIS run started. Port 8545 (and 4173) may belong to a
@@ -163,6 +180,13 @@ cleanup() {
         kill -9 -- "-$FAUCET_PGID" 2>/dev/null || true
     fi
     [ -n "$FAUCET_CWD" ] && rm -rf "$FAUCET_CWD"
+    if [ -n "$NOTIFIER_PGID" ]; then
+        echo "Stopping the notifier this run started (PGID: $NOTIFIER_PGID)..."
+        kill -- "-$NOTIFIER_PGID" 2>/dev/null || true
+        sleep 1
+        kill -9 -- "-$NOTIFIER_PGID" 2>/dev/null || true
+    fi
+    [ -n "$NOTIFIER_DATA_DIR" ] && rm -rf "$NOTIFIER_DATA_DIR"
 
     # The preview server is started and stopped by Playwright's `webServer`, so
     # it is not ours to kill.
@@ -464,6 +488,67 @@ echo -e "\n${GREEN}📋 Exporting deployments...${NC}"
 cd "$CONTRACTS_DIR"
 pnpm export localhost --ts ../web/src/lib/deployments.ts
 echo -e "${GREEN}✓ Contracts deployed and exported${NC}"
+
+echo -e "\n${GREEN}🔔 Starting the notifier (push server, indexer, trigger service)...${NC}"
+for port in "$NOTIFIER_PUSH_PORT" "$NOTIFIER_INDEXER_PORT" "$NOTIFIER_TRIGGERS_PORT"; do
+    if curl -s -o /dev/null "http://127.0.0.1:${port}" 2>/dev/null; then
+        echo -e "${RED}✗ Something already answers on port ${port}.${NC}"
+        echo -e "${RED}  Set E2E_NOTIFIER_PUSH_PORT, E2E_NOTIFIER_INDEXER_PORT or E2E_NOTIFIER_TRIGGERS_PORT.${NC}"
+        exit 1
+    fi
+done
+cd "$WEB_DIR"
+node notifier/build.mjs localhost
+# a throwaway VAPID pair: the suite stubs the browser's subscription and the
+# push server records instead of sending, so no push service ever sees it
+VAPID_KEYS="$(node -e '
+  const {generateKeyPairSync} = require("node:crypto");
+  const jwk = generateKeyPairSync("ec", {namedCurve: "prime256v1"}).privateKey.export({format: "jwk"});
+  const point = Buffer.concat([Buffer.from([4]), Buffer.from(jwk.x, "base64url"), Buffer.from(jwk.y, "base64url")]);
+  console.log(point.toString("base64url") + " " + jwk.d);
+')"
+export PUBLIC_VAPID_PUBLIC_KEY="${VAPID_KEYS% *}"
+NOTIFIER_DATA_DIR="$(mktemp -d)"
+setsid env \
+    NOTIFIER_HOST=127.0.0.1 \
+    NOTIFIER_APP_ORIGIN="http://localhost:${E2E_PORT:-4173}" \
+    NOTIFIER_RPC_URL="$RPC_URL" \
+    NOTIFIER_PUSH_PORT="$NOTIFIER_PUSH_PORT" \
+    NOTIFIER_INDEXER_PORT="$NOTIFIER_INDEXER_PORT" \
+    NOTIFIER_TRIGGERS_PORT="$NOTIFIER_TRIGGERS_PORT" \
+    NOTIFIER_DATA="$NOTIFIER_DATA_DIR" \
+    NOTIFIER_INTERVAL_MS=500 \
+    NOTIFIER_PUSH_RECORDING=1 \
+    NOTIFIER_PUSH_TOKEN="$E2E_PUSH_TOKEN" \
+    NOTIFIER_VAPID_PUBLIC_KEY="$PUBLIC_VAPID_PUBLIC_KEY" \
+    NOTIFIER_VAPID_PRIVATE_KEY="${VAPID_KEYS#* }" \
+    node notifier/.generated/serve.js all >"$NOTIFIER_LOG" 2>&1 &
+NOTIFIER_PID=$!
+for _ in $(seq 1 25); do
+    NOTIFIER_PGID="$(ps -o pgid= -p "$NOTIFIER_PID" 2>/dev/null | tr -d ' ')"
+    [ -n "$NOTIFIER_PGID" ] && [ "$NOTIFIER_PGID" != "$(ps -o pgid= -p $$ | tr -d ' ')" ] && break
+    NOTIFIER_PGID=""
+    sleep 0.2
+done
+if [ -z "$NOTIFIER_PGID" ]; then
+    echo -e "${RED}✗ Could not find the notifier's process group; stopping.${NC}"
+    kill "$NOTIFIER_PID" 2>/dev/null || true
+    exit 1
+fi
+for i in {1..60}; do
+    if curl -s -o /dev/null "${E2E_PUSH_SERVER}/recorded" &&
+        curl -s -o /dev/null "http://127.0.0.1:${NOTIFIER_INDEXER_PORT}/status" &&
+        curl -s -o /dev/null -X OPTIONS "${PUBLIC_NOTIFIER}/subscriptions"; then
+        echo -e "${GREEN}✓ Notifier is ready${NC}"
+        break
+    fi
+    if [ $i -eq 60 ]; then
+        echo -e "${RED}✗ The notifier failed to start: ${NOTIFIER_LOG}${NC}"
+        tail -20 "$NOTIFIER_LOG" 2>/dev/null || true
+        exit 1
+    fi
+    sleep 1
+done
 
 # Build web app
 echo -e "\n${GREEN}🔨 Building web app...${NC}"

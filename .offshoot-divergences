@@ -177,4 +177,7 @@ dev/zellij.kdl                                         three panes for the notif
 web/.env.localhost                                     the dev stack's push server and trigger service, same-host
 web/.env                                               the push server, its VAPID public key and the trigger service, empty: notifications not configured
 web/README.md                                          the push-notifications module it linked is omitted here, so the line names $lib/push instead
+web/src/lib/core/service-worker/index.ts               a push posted to a focused page shows: the page read the message as the notification, so its title was undefined (a root fix: K3)
 web/src/service-worker/index.ts                        the push and click handlers call $lib/push/payload (tested there), whose type is the push server's, so the payload is declared once
+scripts/run-e2e-tests.sh                               the notifier started for the run (recording push server, indexer, trigger service), the app built against it
+web/e2e/impersonate-addresses.json                     a seventh account (6), the push-notifications suite's subscriber
