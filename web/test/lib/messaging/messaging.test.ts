@@ -235,7 +235,7 @@ describe('createMessaging, against missiv in process', () => {
 		});
 		const stop = hold(messaging);
 		await until(messaging, (s) => s.status === 'unregistered');
-		await expect(messaging.register()).rejects.toThrow();
+		await messaging.register();
 		const state = get(messaging);
 		expect(state.status === 'unregistered' && state.error?.code).toBe(
 			'forbidden',
@@ -274,6 +274,19 @@ describe('createMessaging, against missiv in process', () => {
 		expect(
 			requested.step === 'Fetched' && requested.conversations[0].accepted,
 		).toBe(false);
+
+		// shown as a request, it is read without being answered
+		const request = b.messaging.services!.conversation(aliceAddress, {
+			read: false,
+		});
+		const stopRequest = hold(request);
+		await until(
+			request,
+			(c: ConversationState) => c.step === 'Fetched' && c.messages.length === 1,
+		);
+		await new Promise((resolve) => setTimeout(resolve, 50));
+		expect(get(list)).toMatchObject({step: 'Fetched', numUnaccepted: 1});
+		stopRequest();
 
 		// accepted, it is a conversation, and its message reads
 		await b.messaging.services!.accept(aliceAddress);
@@ -347,6 +360,22 @@ describe('createMessaging, against missiv in process', () => {
 		stopFromAlice();
 		a.stop();
 		b.stop();
+	});
+
+	it('says when the wallet declines to sign, and registers on a second try', async () => {
+		const alice = newAccount();
+		alice.signOwnership.mockRejectedValueOnce(new Error('User rejected'));
+		const messaging = messagingOf(alice);
+		const stop = hold(messaging);
+		await until(messaging, (s) => s.status === 'unregistered');
+		await messaging.register();
+		const state = get(messaging);
+		expect(state.status === 'unregistered' && state.error?.message).toMatch(
+			/the wallet did not sign: User rejected/,
+		);
+		await messaging.register();
+		await until(messaging, (s) => s.status === 'registered');
+		stop();
 	});
 
 	it('refuses accept and reject before registration', async () => {

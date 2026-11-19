@@ -29,7 +29,7 @@
  * With no `config` (`PUBLIC_MISSIV` unset, R2 of the service-layers spec) the
  * store is `{status: 'not-configured'}` and there are no services.
  */
-import {derived, readable, type Readable} from 'svelte/store';
+import {derived, readable, writable, type Readable} from 'svelte/store';
 import {
 	API,
 	createMissivRegistration,
@@ -44,6 +44,7 @@ import {
 	type RoomSocket,
 } from '@missiv/client';
 import {getConversationID} from '@missiv/common';
+import {createMessagingPanel, type MessagingPanel} from './panel';
 
 /** An error as missiv's stores show it. */
 export type StoreError = {message: string; code?: string; cause?: unknown};
@@ -78,8 +79,16 @@ export type Room = ReturnType<typeof openRoom>;
 export type MessagingServices = {
 	room: Room;
 	conversations: ConversationListStore;
-	/** One direct conversation, the same store for the same address; viewing it marks it read when accepted. */
-	conversation(address: `0x${string}`): CurrentConversation;
+	/**
+	 * One direct conversation, the same store for the same address and `read`.
+	 * With `read` (the default), showing it accepts it and marks it read; a
+	 * request is shown with `read: false` until `accept`, so looking at it
+	 * answers nothing.
+	 */
+	conversation(
+		address: `0x${string}`,
+		options?: {read?: boolean},
+	): CurrentConversation;
 	/** Accept a conversation request: it then counts as unread, not as a request. */
 	accept(address: `0x${string}`): Promise<void>;
 	/** Reject a conversation: its sender is blocked from reaching this account here. */
@@ -87,10 +96,15 @@ export type MessagingServices = {
 };
 
 export type Messaging = Readable<MessagingState> & {
-	/** Registers this account's delegate key at missiv (asks the wallet at most once). */
+	/**
+	 * Registers this account's delegate key at missiv (asks the wallet at most
+	 * once). Never rejects: a refusal, the wallet's included, is the state's `error`.
+	 */
 	register(): Promise<void>;
 	/** missiv's stores; undefined when messaging is not configured, or off the browser */
 	services: MessagingServices | undefined;
+	/** the panel's state (which view, the inbox, the conversation shown), for the shell and the pages */
+	panel: MessagingPanel;
 };
 
 export type MessagingOptions = {
@@ -145,6 +159,7 @@ export function createMessaging(options: MessagingOptions): Messaging {
 			subscribe: state.subscribe,
 			register: async () => {},
 			services: undefined,
+			panel: createMessagingPanel(undefined),
 		};
 	}
 	const {endpoint, domain, namespace, appOrigin} = config;
@@ -164,10 +179,23 @@ export function createMessaging(options: MessagingOptions): Messaging {
 
 	// the account the registration's store last saw (a store works only while subscribed)
 	let current: MissivRegistration = {step: 'Idle', domain};
-	const state = derived(registration, ($registration) => {
-		current = $registration;
-		return stateOf($registration);
-	});
+	// a refusal before missiv was reached (the wallet declined), for the account it was about
+	const declined = writable<
+		{of: MissivRegistration; error: StoreError} | undefined
+	>(undefined);
+	const state = derived(
+		[registration, declined] as const,
+		([$registration, $declined]) => {
+			current = $registration;
+			const own = stateOf($registration);
+			return $declined?.of.step === 'Unregistered' &&
+				$registration.step === 'Unregistered' &&
+				!$registration.error &&
+				$declined.of.address === $registration.address
+				? {...own, error: $declined.error}
+				: own;
+		},
+	);
 
 	const room = openRoom({
 		url: roomURL(config),
@@ -185,9 +213,14 @@ export function createMessaging(options: MessagingOptions): Messaging {
 	});
 
 	const opened = new Map<string, CurrentConversation>();
-	function conversation(address: `0x${string}`): CurrentConversation {
+	function conversation(
+		address: `0x${string}`,
+		mode?: {read?: boolean},
+	): CurrentConversation {
 		const other = address.toLowerCase() as `0x${string}`;
-		let store = opened.get(other);
+		const read = mode?.read ?? true;
+		const key = `${other}:${read}`;
+		let store = opened.get(key);
 		if (!store) {
 			store = openOneConversation({
 				registration,
@@ -195,12 +228,11 @@ export function createMessaging(options: MessagingOptions): Messaging {
 				domain,
 				namespace,
 				otherUser: {address: other},
-				// a conversation shown is read; a request is accepted by `accept`, not by looking
-				markAsAcceptedAndRead: true,
+				markAsAcceptedAndRead: read,
 				pollingInterval: options.conversationPollingInterval ?? 2,
 				...fetchOption,
 			});
-			opened.set(other, store);
+			opened.set(key, store);
 		}
 		return store;
 	}
@@ -212,38 +244,41 @@ export function createMessaging(options: MessagingOptions): Messaging {
 		return current;
 	}
 
+	const services: MessagingServices = {
+		room,
+		conversations,
+		conversation,
+		async accept(address) {
+			const {address: me, signer} = registered();
+			await api.acceptConversation(
+				{
+					type: 'acceptConversation',
+					domain,
+					namespace,
+					conversationID: getConversationID(me, address),
+					lastMessageReadTimestampMS: Date.now(),
+				},
+				{privateKey: signer.privateKey},
+			);
+		},
+		async reject(address) {
+			const {address: me, signer} = registered();
+			await api.rejectConversation(
+				{
+					type: 'rejectConversation',
+					domain,
+					namespace,
+					conversationID: getConversationID(me, address),
+				},
+				{privateKey: signer.privateKey},
+			);
+		},
+	};
+
 	return {
 		subscribe: state.subscribe,
-		services: {
-			room,
-			conversations,
-			conversation,
-			async accept(address) {
-				const {address: me, signer} = registered();
-				await api.acceptConversation(
-					{
-						type: 'acceptConversation',
-						domain,
-						namespace,
-						conversationID: getConversationID(me, address),
-						lastMessageReadTimestampMS: Date.now(),
-					},
-					{privateKey: signer.privateKey},
-				);
-			},
-			async reject(address) {
-				const {address: me, signer} = registered();
-				await api.rejectConversation(
-					{
-						type: 'rejectConversation',
-						domain,
-						namespace,
-						conversationID: getConversationID(me, address),
-					},
-					{privateKey: signer.privateKey},
-				);
-			},
-		},
+		services,
+		panel: createMessagingPanel(services),
 		async register() {
 			if (current.step !== 'Unregistered' || current.registering) {
 				return;
@@ -253,8 +288,25 @@ export function createMessaging(options: MessagingOptions): Messaging {
 				appOrigin,
 				signer.publicKey as `0x${string}`,
 			);
-			const signature = await options.signOwnership(address, message);
-			await registration.register(signature.toLowerCase() as `0x${string}`);
+			const of = current;
+			declined.set(undefined);
+			let signature: `0x${string}`;
+			try {
+				signature = await options.signOwnership(address, message);
+			} catch (cause) {
+				declined.set({
+					of,
+					error: {
+						message: `the wallet did not sign: ${cause instanceof Error ? cause.message : String(cause)}`,
+						cause,
+					},
+				});
+				return;
+			}
+			// missiv's refusal is on the registration's own state
+			await registration
+				.register(signature.toLowerCase() as `0x${string}`)
+				.catch(() => {});
 		},
 	};
 }

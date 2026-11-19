@@ -11,9 +11,14 @@
 	import AccountCannotSendModal from '$lib/core/transaction/AccountCannotSendModal.svelte';
 	import ErrorDetailsModal from '$lib/core/transaction/ErrorDetailsModal.svelte';
 	import InFlightRequestsModal from '$lib/core/transaction/InFlightRequestsModal.svelte';
+	import MessagingPanel from '$lib/ui/messaging/MessagingPanel.svelte';
 
-	const {connection, payment, inFlight} = getAppContext();
+	const {connection, payment, inFlight, messaging} = getAppContext();
 </script>
+
+<!-- with/messaging: the launcher (fixed) and its side panel (the drawer layer),
+     on every page. -->
+<MessagingPanel {messaging} />
 
 {#if params.transactions}
 	<DebugOperations />

@@ -195,3 +195,5 @@ package.json                                           the LAN package's pnpmDep
 pnpm-lock.yaml                                         the missiv client, its protocol and its Node.js server
 web/package.json                                       @missiv/client and @missiv/common for the app, missiv (its Node.js server) for the dev stack and the tests
 web/src/lib/context/app.ts                             the messaging store composed beside the notifications, on the same identity
+web/src/lib/context/AcrossPages.svelte                 the messaging panel's launcher and side panel, on every page: AcrossPages holds what is fixed or portalled across pages
+web/src/routes/demo/+page.svelte                       a greeting's author opens a direct conversation with them, in the messaging panel

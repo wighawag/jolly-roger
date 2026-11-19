@@ -7,6 +7,7 @@
 	import MessageSquareIcon from '@lucide/svelte/icons/message-square';
 	import SendIcon from '@lucide/svelte/icons/send';
 	import AlertCircleIcon from '@lucide/svelte/icons/alert-circle';
+	import MailIcon from '@lucide/svelte/icons/mail';
 	import {getAppContext} from '$lib';
 	import Address from '$lib/core/ui/ethereum/Address.svelte';
 	import EthereumAvatar from '$lib/core/ui/ethereum/EthereumAvatar.svelte';
@@ -26,6 +27,7 @@
 		errorDetails,
 		topUp,
 		notifications,
+		messaging,
 	} = context;
 
 	const viewStatus = viewState.status;
@@ -224,6 +226,21 @@
 								value={message.account}
 								class="hidden shrink-0 text-sm sm:inline-flex"
 							/>
+							{#if $messaging.status !== 'not-configured'}
+								<!-- with/messaging: a direct conversation with this account, in
+								     the shell's messaging panel. -->
+								<Button
+									variant="ghost"
+									size="sm"
+									class="shrink-0"
+									title="Message this account"
+									data-testid="message-author"
+									onclick={() =>
+										messaging.panel.openConversation(message.account)}
+								>
+									<MailIcon class="h-4 w-4" />
+								</Button>
+							{/if}
 							{#if message.greetingCount !== undefined}
 								<!-- with/indexer: how many greetings this account has sent, from
 								     the indexer; absent until it answers (lib/onchain/indexer). -->
