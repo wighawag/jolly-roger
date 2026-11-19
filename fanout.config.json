@@ -20,6 +20,12 @@
         "with/embedded-chain"
       ]
     },
+    "with/push-notifications": {
+      "stem": [
+        "with/indexer",
+        "with/local-signer"
+      ]
+    },
     "website": {
       "stem": "main"
     }
