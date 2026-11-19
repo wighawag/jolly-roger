@@ -13,6 +13,7 @@
 	import {toast} from 'svelte-sonner';
 	import {setGreeting as submitGreeting} from './lib/setGreeting';
 	import {formatRelativeTime, getStaleMessage} from './lib/staleness';
+	import NotifyMe from './lib/NotifyMe.svelte';
 
 	const context = getAppContext();
 	const {
@@ -24,6 +25,7 @@
 		accountCannotSend,
 		errorDetails,
 		topUp,
+		notifications,
 	} = context;
 
 	const viewStatus = viewState.status;
@@ -126,6 +128,8 @@
 				<span class="ml-1">Send</span>
 			</Button>
 		</form>
+
+		<NotifyMe {notifications} />
 
 		<!-- Messages List -->
 		<div class="space-y-3">

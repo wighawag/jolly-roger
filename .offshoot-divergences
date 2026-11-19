@@ -167,11 +167,12 @@ web/test/lib/view/pending-operations.test.ts           the optimistic entry keye
 # Where the two stems meet, a file holds both
 contracts/package.json                                 both stems' changes: @etherplay/delegation (local-signer) and etherfold's packages with the utils export (indexer)
 pnpm-lock.yaml                                         both stems' dependencies, re-resolved together, and this node's: the push client, the push server and the trigger service
-web/src/lib/context/app.ts                             both stems' compositions in one: the greetings' indexed counts (indexer) and the payment dialog's purpose (local-signer)
-web/src/routes/demo/+page.svelte                       both stems' changes: the greeting-count badge (indexer) and the signer's top-up on a failed send (local-signer)
+web/src/lib/context/app.ts                             both stems' compositions in one (the indexed counts, the payment dialog's purpose), and this node's notifications store
+web/src/routes/demo/+page.svelte                       both stems' changes (the count badge, the signer's top-up), and this node's "notify me" toggle under the form
 
 # This node's own changes
 .offshoot-omissions                                    the root's unwired push-notifications module dropped: @push-notification/client replaces it
 web/package.json                                       the push client and delegated-identity; the push server, the trigger service, etherfold and esbuild for the dev stack and the tests
+web/.env                                               the push server, its VAPID public key and the trigger service, empty: notifications not configured
 web/README.md                                          the push-notifications module it linked is omitted here, so the line names $lib/push instead
 web/src/service-worker/index.ts                        the push and click handlers call $lib/push/payload (tested there), whose type is the push server's, so the payload is declared once

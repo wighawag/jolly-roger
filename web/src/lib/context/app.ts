@@ -9,6 +9,23 @@ import {
 	type CountedViewStateStore,
 } from '$lib/onchain/indexer/counts.js';
 import type {EIP1193Provider} from 'viem';
+import type {Readable} from 'svelte/store';
+// dynamic, not static: three optional services a deployment configures (and
+// a test of the context mocks only the static variables it knows)
+import {env} from '$env/dynamic/public';
+import {resolveURLForThisPage} from '$lib/core/env/same-host.js';
+import {
+	createNotifications,
+	type Notifications,
+} from '$lib/push/notifications.js';
+import {
+	notificationsConfig,
+	notifiedAccount,
+	serviceWorkerReady,
+	walletOwnershipSigner,
+	type ConnectionLike,
+} from '$lib/push/sources.js';
+import {NEW_GREETING} from '$lib/onchain/notifier/greetings.js';
 import type {TypedDeployments} from '$lib/deployments-store.js';
 import type {CoreServices} from './core.js';
 import type {SignerGrant} from '$lib/ui/delegation/grant.js';
@@ -107,9 +124,31 @@ export function createAppContext(core: CoreServices): AppMembers {
 
 	const viewState = withGreetingCounts(directViewState, greetingCounts);
 
+	// PUSH NOTIFICATIONS (`with/push-notifications`): "notify me of new
+	// greetings", this device registered at the push server and the account's
+	// trigger at the trigger service, both proven by the delegate key connect
+	// derives for this app (`$lib/push`, README.push-notifications.md). With
+	// either service unset it says notifications are not configured.
+	const notifications = createNotifications({
+		config: notificationsConfig(
+			{
+				PUBLIC_PUSH_SERVER: resolveURLForThisPage(env.PUBLIC_PUSH_SERVER),
+				PUBLIC_VAPID_PUBLIC_KEY: env.PUBLIC_VAPID_PUBLIC_KEY,
+				PUBLIC_NOTIFIER: resolveURLForThisPage(env.PUBLIC_NOTIFIER),
+			},
+			typeof location !== 'undefined' ? location.origin : undefined,
+		),
+		kind: NEW_GREETING,
+		account: notifiedAccount(connection as Readable<ConnectionLike>),
+		serviceWorker: serviceWorkerReady(
+			typeof navigator !== 'undefined' ? navigator.serviceWorker : undefined,
+		),
+		signOwnership: walletOwnershipSigner(connection.provider),
+	});
+
 	// `config` is not returned: it is this half's own construction detail, and
 	// core neither uses it nor puts it in the context.
-	return {onchainState, viewState};
+	return {onchainState, viewState, notifications};
 }
 
 /**
@@ -124,6 +163,8 @@ export function createAppContext(core: CoreServices): AppMembers {
 export type AppMembers = {
 	onchainState: OnchainStateStore;
 	viewState: CountedViewStateStore;
+	/** "notify me of new greetings": this device and the account's trigger */
+	notifications: Notifications;
 };
 
 /**

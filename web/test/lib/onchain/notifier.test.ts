@@ -50,7 +50,7 @@ describe('the greetings trigger definitions', () => {
 
 	it('render the greeting as a declarative push that opens the demo', () => {
 		const kind = greetingTriggers(REGISTRY).subscriptions[NEW_GREETING];
-		expect(kind.render(logOf('0xabc', 'gm'), '0xdef')).toEqual({
+		expect(kind.render(logOf('0xabc', 'gm'))).toEqual({
 			message: {
 				web_push: 8030,
 				notification: {
@@ -131,7 +131,7 @@ describe('the greetings trigger definitions', () => {
 
 		// what the trigger service's push action sends for a match
 		const kind = greetingTriggers(REGISTRY).subscriptions[NEW_GREETING];
-		const rendered = kind.render(logOf('0xabc', 'gm'), wallet.address);
+		const rendered = kind.render(logOf('0xabc', 'gm'));
 		const response = await push.request('https://push.example/api/push', {
 			method: 'POST',
 			headers: {
