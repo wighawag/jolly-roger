@@ -1,4 +1,18 @@
 /**
+ * THE APP'S MAIN PAGE, as the suites that visit it name it: its route, the
+ * heading that page renders, the label of the home page's link to it, and its
+ * contract (as /contracts lists it). A demo here, a game below this template,
+ * hence the name. The app names the same page in `GAME` of its `$app-specific`
+ * module (`src/lib/context/app.ts` here); a descendant changes both.
+ */
+export const GAME = {
+	route: '/demo/',
+	heading: /greetings registry/i,
+	homeLink: /check the demo/i,
+	contract: 'GreetingsRegistry',
+} as const;
+
+/**
  * The routes a smoke test walks, in ONE place so a descendant overrides a list
  * rather than editing a suite.
  *
@@ -16,13 +30,14 @@
  * practice means one route per kind of page the app has. Not every route. A
  * smoke pass that walks thirty pages is a slow way to learn the same fact.
  *
- * WHAT A DESCENDANT DOES: replaces the entries it does not have. An app with no
- * `/demo/` swaps in its own main route. Keep `/` first: it is the only entry
- * every descendant is guaranteed to share.
+ * WHAT A DESCENDANT DOES: replaces the entries it does not have. Its main page
+ * is `GAME.route`, so an app with no `/demo/` changes `GAME` above and leaves
+ * this list alone. Keep `/` first: it is the only entry every descendant is
+ * guaranteed to share.
  */
 export const SMOKE_ROUTES = [
 	'/',
-	'/demo/',
+	GAME.route,
 	'/transactions/',
 	'/explorer/',
 ] as const;

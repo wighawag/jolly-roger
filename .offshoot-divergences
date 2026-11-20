@@ -58,7 +58,7 @@ web/src/lib/index.ts                                   where this app is compose
 web/src/lib/kit/README.md                              the adapter's scope as it stands here, its claims narrowed to what is true
 web/src/routes/+layout.svelte                          the shell: the chrome as a list a descendant extends, the overlay layers, a surface's own chrome
 web/src/routes/+layout.ts                              the version logged at start and the named-logs init logger, beside the stem's service-worker toggle
-web/src/routes/+page.svelte                            jolly-roger's home page, through the kit's paths and the shadcn button
+web/src/routes/+page.svelte                            jolly-roger's home page, its button to the app's main page (`GAME` of `$app-specific`), through the kit's paths and the shadcn button
 web/src/routes/+error.svelte                           the error page in the shadcn style and clamped to the viewport like the rest of the app
 web/test/framework-boundary.test.ts                    the boundary rule stated as inherited from template-svelte, with this repo's ADR-0004 and its own leak list
 
