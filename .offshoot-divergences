@@ -83,8 +83,8 @@ pnpm-lock.yaml                                         webevm, @eip-1193/over-po
 contracts/package.json                                 the package is built at install (tsc), because web/src imports it to deploy in the browser
 web/package.json                                       webevm, @eip-1193/over-port and @rocketh/web
 web/src/lib/context/core.ts                            the offline world's wallet needs no UI to ask its questions, and one tab holds two worlds under one leader
-web/src/lib/core/connection/remote.ts                  a connection to a chain in this tab, one wallet with one account surviving a reload
-web/src/lib/core/connection/types.ts                   the world connection's types
+web/src/lib/core/connection/remote.ts                  a connection to a chain in this tab, one wallet with one account surviving a reload; it reports the node url it used, and may describe records other than the build's
+web/src/lib/core/connection/types.ts                   the world connection's types, with the node url a connection reports
 web/src/lib/core/tab-leader/TabLeaderService.ts        one leader election per tab and world, so a second world's transactions complete (a78d73a2; core, a candidate for main)
 web/src/lib/core/tab-leader/storage-lock.ts            the same fix, in the storage lock
 web/test/lib/core/tab-leader/storage-lock.test.ts      the two-worlds case of that fix

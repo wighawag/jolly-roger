@@ -118,6 +118,29 @@ export type EstablishedConnection = {
 	 * dispatch time and never inferred from a count.
 	 */
 	walletPrompts?: boolean;
+	/**
+	 * WHERE THE CHAIN THIS CONNECTION IS ON CAN BE REACHED OVER HTTP, if
+	 * anywhere.
+	 *
+	 * A WORLD-SCOPED FACT, which is why it is reported back rather than taken
+	 * from the app's own configuration. The app hands a candidate url IN (its
+	 * `PUBLIC_NODE_URL`, resolved against the page), and a factory that made a
+	 * connection to a DIFFERENT chain has not used it: an embedded world's chain
+	 * lives in the tab and is reachable through a provider and by no url at all.
+	 *
+	 * What reads it is the LOCAL SIGNER's transport. A signer broadcasts raw
+	 * transactions, so it needs somewhere to broadcast them, and the app's url is
+	 * the right answer for exactly one world - the app's own. Found the only way
+	 * this could be found: a commit made in an embedded world was posted to
+	 * `http://127.0.0.1:8545`, the remote chain's node, from a tab whose whole
+	 * game was somewhere else. It cannot show up in a dev run with no
+	 * `PUBLIC_NODE_URL` set, because then the app has no url either and the
+	 * signer already falls back to the connection's provider.
+	 *
+	 * Undefined means "through the connection's own provider", which is what the
+	 * signer client falls back to.
+	 */
+	nodeURL?: string;
 	/** Debug-only runtime flag: when set, all RPC requests fail (see rpc-fault). */
 	forceRpcFailure: import('svelte/store').Writable<boolean>;
 };
