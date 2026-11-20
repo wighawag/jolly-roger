@@ -8,45 +8,37 @@
 	import {
 		getInputFieldType,
 		getInputPlaceholder,
-		validateInputValue,
 		getInputKey,
 		getInputLabel,
 	} from '../lib/utils';
+	import {syncInputErrors} from '../lib/input-errors';
 
 	interface Props {
 		inputs: readonly AbiParameter[];
 		values: Record<string, any>;
 		errors: Record<string, string>;
+		/**
+		 * Prefixes every input's id, so two forms on one page do not both have an
+		 * `input-0` (a label would then focus the other form's input). Without it
+		 * the ids are `input-<index>`.
+		 */
+		idPrefix?: string;
 	}
 
-	let {inputs, values, errors}: Props = $props();
+	let {inputs, values, errors, idPrefix = ''}: Props = $props();
 
-	// Watch for changes in values and validate
-	// Skip validation for address types since AddressInput handles its own validation
+	// An address is validated by AddressInput itself.
 	$effect(() => {
-		for (const [index, input] of inputs.entries()) {
-			const key = getInputKey(input, index);
-			// Skip address type validation - AddressInput handles it
-			if (input.type === 'address') {
-				delete errors[key];
-				continue;
-			}
-			if (values[key] !== undefined) {
-				const validation = validateInputValue(input.type, String(values[key]));
-				if (!validation.valid && validation.error) {
-					errors[key] = validation.error;
-				} else {
-					delete errors[key];
-				}
-			}
-		}
+		syncInputErrors(inputs, values, errors, {
+			selfValidated: (input) => input.type === 'address',
+		});
 	});
 </script>
 
 <div class="space-y-3">
 	{#each inputs as input, index (index)}
 		<div class="space-y-1">
-			<Label for={`input-${index}`} class="text-sm">
+			<Label for={`${idPrefix}input-${index}`} class="text-sm">
 				{getInputLabel(input, index)}
 				<span class="ml-2 text-xs text-muted-foreground"
 					>({input.internalType || input.type})</span
@@ -55,13 +47,13 @@
 
 			{#if input.type === 'address'}
 				<AddressInput
-					id={`input-${index}`}
+					id={`${idPrefix}input-${index}`}
 					bind:value={values[getInputKey(input, index)]}
 					class="text-sm"
 				/>
 			{:else if getInputFieldType(input.type) === 'select'}
 				<select
-					id={`input-${index}`}
+					id={`${idPrefix}input-${index}`}
 					class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
 					bind:value={values[getInputKey(input, index)]}
 				>
@@ -71,7 +63,7 @@
 				</select>
 			{:else}
 				<Input
-					id={`input-${index}`}
+					id={`${idPrefix}input-${index}`}
 					type={getInputFieldType(input.type)}
 					placeholder={getInputPlaceholder(input.type)}
 					bind:value={values[getInputKey(input, index)]}
