@@ -1,5 +1,5 @@
 import {defineCapability} from './define';
-import type {ENSService} from '$lib/core/ens';
+import type {ENSService} from '$lib/core/ens/types';
 
 /**
  * The ENS capability: resolve names / addresses / avatars.
