@@ -3,7 +3,7 @@ import {get} from 'svelte/store';
 import {createContext} from '$lib/context/index';
 import {createEmbeddedWorld, type EmbeddedWorld} from '$lib/embedded';
 import buildTimeDeployments from '$lib/deployments';
-import {config, extensions, GAME_SCRIPTS, GAME_CONTRACT} from '../game-world';
+import {config, extensions, APP_SCRIPTS, APP_CONTRACT} from '../app-world';
 
 // No `.svelte.` infix, so this runs in the `server` project: node, no DOM.
 // That is not a compromise, it is the harness this deserves - webevm's core
@@ -46,7 +46,7 @@ async function buildWorld(overrides?: {provision?: Provision}) {
 			nativeCurrency: {name: 'Ether', symbol: 'ETH', decimals: 18},
 		},
 		rocketh: {config, extensions},
-		scripts: GAME_SCRIPTS,
+		scripts: APP_SCRIPTS,
 		accounts: {deployer: DEPLOYER, admin: ADMIN},
 		initialBalances: {
 			[DEPLOYER_ADDRESS]: 10n ** 24n,
@@ -68,7 +68,7 @@ describe('an embedded world', () => {
 		expect(inTab.chain.id).not.toBe(buildTimeDeployments.chain.id);
 		// Case-insensitive: a deterministic (CREATE2) deploy records a
 		// checksummed address.
-		expect(inTab.contracts[GAME_CONTRACT].address).toMatch(/^0x[0-9a-f]{40}$/i);
+		expect(inTab.contracts[APP_CONTRACT].address).toMatch(/^0x[0-9a-f]{40}$/i);
 
 		// NOT "and a different ADDRESS from the build-time one", which is false
 		// and was asserted here until the first developer ran the stack. This
@@ -83,7 +83,7 @@ describe('an embedded world', () => {
 		// records THIS world's is that the code is there, on this chain.
 		const code = await world.provider.request({
 			method: 'eth_getCode',
-			params: [inTab.contracts[GAME_CONTRACT].address, 'latest'],
+			params: [inTab.contracts[APP_CONTRACT].address, 'latest'],
 		});
 		expect(code).toMatch(/^0x[0-9a-f]{2,}$/);
 
@@ -118,7 +118,7 @@ describe('an embedded world', () => {
 		const deployments = world.deployments.get();
 		await expect(
 			context.publicClient.getCode({
-				address: deployments.contracts[GAME_CONTRACT].address,
+				address: deployments.contracts[APP_CONTRACT].address,
 			}),
 		).resolves.toMatch(/^0x[0-9a-f]+$/);
 		await expect(context.publicClient.getChainId()).resolves.toBe(CHAIN_ID);
@@ -138,7 +138,7 @@ describe('an embedded world', () => {
 				env as unknown as {
 					deployments: Record<string, {address: string}>;
 				}
-			).deployments[GAME_CONTRACT].address;
+			).deployments[APP_CONTRACT].address;
 			expect(accounts.deployer).toBe(DEPLOYER);
 			// It can act on the chain, which is what makes it able to give
 			// anything: gas here, an ERC20 stake or an identity token in a game.
@@ -152,7 +152,7 @@ describe('an embedded world', () => {
 		world = await buildWorld({provision});
 
 		expect(deployedWhenCalled).toBe(
-			world.deployments.get().contracts[GAME_CONTRACT].address,
+			world.deployments.get().contracts[APP_CONTRACT].address,
 		);
 		expect(balanceSet).toBe(10000n);
 		const balance = await world.provider.request({
