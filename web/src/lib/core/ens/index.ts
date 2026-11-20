@@ -5,36 +5,16 @@ import {PUBLIC_ENS_NODE_URL} from '$env/static/public';
 
 const logger = logs('ens');
 
-export type ENSResult = {
-	name: string | null;
-	loading: boolean;
-	error?: Error;
-};
-
-export type ENSAddressResult = {
-	address: `0x${string}` | null;
-	loading: boolean;
-	error?: Error;
-};
-
-export type ENSAvatarResult = {
-	avatar: string | null;
-	loading: boolean;
-	error?: Error;
-};
-
-export type ENSCache = Map<`0x${string}`, ENSResult>;
-export type ENSAddressCache = Map<string, ENSAddressResult>;
-export type ENSAvatarCache = Map<`0x${string}`, ENSAvatarResult>;
-
-export type ENSService = {
-	fetchENS: (address: `0x${string}`) => Promise<string | null>;
-	getENSState: (address: `0x${string}`) => ENSResult;
-	resolveAddress: (name: string) => Promise<`0x${string}` | null>;
-	getAddressState: (name: string) => ENSAddressResult;
-	fetchENSAvatar: (address: `0x${string}`) => Promise<string | null>;
-	getENSAvatarState: (address: `0x${string}`) => ENSAvatarResult;
-};
+export type * from './types';
+import type {
+	ENSResult,
+	ENSAddressResult,
+	ENSAvatarResult,
+	ENSCache,
+	ENSAddressCache,
+	ENSAvatarCache,
+	ENSService,
+} from './types';
 
 // Create the public client once for all ENS lookups
 /**
