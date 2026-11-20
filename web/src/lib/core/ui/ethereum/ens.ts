@@ -1,5 +1,5 @@
 import {writable, type Readable} from 'svelte/store';
-import type {ENSService} from '$lib/core/ens';
+import type {ENSService} from '$lib/core/ens/types';
 
 export type ENSNameState = {name: string | null; loading: boolean};
 
