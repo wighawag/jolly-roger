@@ -1,6 +1,6 @@
 <script lang="ts">
 	import {route} from '$lib';
-	import {GAME} from '$app-specific';
+	import {MAIN_PAGE} from '$app-specific';
 	import {url} from '$lib/kit/paths';
 	import Button from '$lib/shadcn/ui/button/button.svelte';
 	import DefaultHead from '../lib/metadata/DefaultHead.svelte';
@@ -58,10 +58,10 @@
 		<!-- Action Buttons -->
 		<div class="mb-8 flex flex-wrap justify-center gap-4">
 			<Button
-				href={route(GAME.route)}
+				href={route(MAIN_PAGE.route)}
 				size="lg"
 				class="min-w-40 bg-linear-to-r from-pink-600 via-pink-500 to-rose-500 font-semibold text-white shadow-lg transition-all duration-300 hover:from-pink-700 hover:via-pink-600 hover:to-rose-600 hover:shadow-xl"
-				>{GAME.homeLink}</Button
+				>{MAIN_PAGE.homeLink}</Button
 			>
 			<!-- The same demo, against a chain that runs in this tab: no node, no
 			     network, the app's own deploy scripts run in the browser. The word is
