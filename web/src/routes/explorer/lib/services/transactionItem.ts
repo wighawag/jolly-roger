@@ -3,6 +3,7 @@ import {
 	decodeTransaction,
 	type DecodedTransactionData,
 } from './transactionDecoder';
+import type {DecodingContracts} from '../utils';
 
 export interface TransactionItemData {
 	decodedData: DecodedTransactionData;
@@ -17,6 +18,7 @@ export interface TransactionItemData {
 export async function loadTransactionItemData(
 	tx: Transaction,
 	publicClient: PublicClient,
+	contracts: DecodingContracts,
 ): Promise<TransactionItemData> {
 	let receipt: TransactionReceipt | null = null;
 	try {
@@ -25,6 +27,11 @@ export async function loadTransactionItemData(
 		// Transaction might still be pending; decode without a receipt.
 	}
 
-	const decodedData = await decodeTransaction(tx, receipt, publicClient);
+	const decodedData = await decodeTransaction(
+		tx,
+		receipt,
+		publicClient,
+		contracts,
+	);
 	return {decodedData, receipt};
 }

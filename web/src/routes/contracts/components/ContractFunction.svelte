@@ -5,6 +5,7 @@
 	import FunctionInputs from './FunctionInputs.svelte';
 	import {
 		formatFunctionSignature,
+		getFunctionSignature,
 		isViewFunction,
 		formatOutputJSON,
 	} from '../lib/utils';
@@ -15,7 +16,6 @@
 	import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
 	import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
 	import InfoIcon from '@lucide/svelte/icons/info';
-	import Address from '$lib/core/ui/ethereum/Address.svelte';
 	import type {
 		AnyConnectionStore,
 		UnderlyingEthereumProvider,
@@ -59,6 +59,11 @@
 	let error = $state<string | null>(null);
 
 	let isView = $derived(isViewFunction(abiItem.stateMutability));
+	// The address and the full signature (overloads share a name), so no two
+	// cards on the page share an input id.
+	let idPrefix = $derived(
+		`${contractAddress}-${getFunctionSignature(abiItem)}-`,
+	);
 
 	async function handleFetch() {
 		loading = true;
@@ -162,6 +167,7 @@
 					inputs={abiItem.inputs}
 					values={inputValues}
 					errors={inputErrors}
+					{idPrefix}
 				/>
 			</div>
 		{/if}
