@@ -1,6 +1,6 @@
 import {describe, it, expect} from 'vitest';
 import {get} from 'svelte/store';
-import {GAME_CONTRACT} from '../game-world';
+import {APP_CONTRACT} from '../app-world';
 import {
 	createEmbeddedDeployments,
 	expectedContractNames,
@@ -21,24 +21,24 @@ describe('the deployment records of the world in the tab', () => {
 				chain: {name: 'Embedded'},
 				name: 'embedded',
 				contracts: {},
-				expected: [GAME_CONTRACT],
+				expected: [APP_CONTRACT],
 			}),
-		).toThrow(new RegExp(GAME_CONTRACT));
+		).toThrow(new RegExp(APP_CONTRACT));
 	});
 
 	it('carries the minted chain id and the records it was given', () => {
 		const contracts = {
-			[GAME_CONTRACT]: record('0x0000000000000000000000000000000000000001'),
+			[APP_CONTRACT]: record('0x0000000000000000000000000000000000000001'),
 		};
 		const store = createEmbeddedDeployments({
 			chainId: 9007199254740000,
 			chain: {name: 'Embedded', properties: {averageBlockTimeMs: 1}},
 			name: 'embedded',
 			contracts,
-			expected: [GAME_CONTRACT],
+			expected: [APP_CONTRACT],
 		});
 		expect(store.get().chain.id).toBe(9007199254740000);
-		expect(store.get().contracts[GAME_CONTRACT].address).toBe(
+		expect(store.get().contracts[APP_CONTRACT].address).toBe(
 			'0x0000000000000000000000000000000000000001',
 		);
 		// and it is a real store, because the context subscribes to it
@@ -51,7 +51,7 @@ describe('the deployment records of the world in the tab', () => {
 			chain: {name: 'Embedded'},
 			name: 'embedded',
 			contracts: {
-				[GAME_CONTRACT]: record('0x0000000000000000000000000000000000000001'),
+				[APP_CONTRACT]: record('0x0000000000000000000000000000000000000001'),
 			},
 			expected: [],
 		});
@@ -85,7 +85,7 @@ describe('whether a restored world is still a world', () => {
 		await expect(
 			restoreIsCoherent({
 				provider: chainAt(5),
-				vfs: store([`deployments/embedded/${GAME_CONTRACT}.json`]),
+				vfs: store([`deployments/embedded/${APP_CONTRACT}.json`]),
 			}),
 		).resolves.toBe(true);
 	});
@@ -98,7 +98,7 @@ describe('whether a restored world is still a world', () => {
 		await expect(
 			restoreIsCoherent({
 				provider: chainAt(0),
-				vfs: store([`deployments/embedded/${GAME_CONTRACT}.json`]),
+				vfs: store([`deployments/embedded/${APP_CONTRACT}.json`]),
 			}),
 		).resolves.toBe(false);
 	});
