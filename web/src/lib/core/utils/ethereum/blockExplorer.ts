@@ -25,7 +25,7 @@ export type ExplorerChainInfo = {
 /** The links an app offers for addresses and transactions. */
 export type BlockExplorer = {
 	/** Whether the app serves its own explorer at `/explorer/`. */
-	internal: boolean;
+	internal(): boolean;
 	/** Whether the chain names a block explorer (read at call time). */
 	external(): boolean;
 	/** The block explorer's page for a transaction, or null without one. */
@@ -37,12 +37,13 @@ export type BlockExplorer = {
 };
 
 /**
- * A `BlockExplorer` for a chain. `chain` is read at every call rather than
- * once, so a chain that changes (HMR, a store that moves) is followed.
+ * A `BlockExplorer` for a chain. `chain` and `internal` are read at every call
+ * rather than once, so a chain that changes (HMR, a store that moves) is
+ * followed, and creating one at module scope reads no configuration yet.
  */
 export function createBlockExplorer(options: {
 	chain: () => ExplorerChainInfo;
-	internal: boolean;
+	internal: () => boolean;
 }): BlockExplorer {
 	const {chain, internal} = options;
 	const baseUrl = () => chain().blockExplorers?.default?.url || null;
@@ -80,7 +81,7 @@ export function resolveLinkTo(
 ): ResolvedLinkTo {
 	if (linkTo !== 'auto') return linkTo;
 	if (!explorer) return false;
-	const hasInternal = explorer.internal;
+	const hasInternal = explorer.internal();
 	const hasExternal = explorer.external();
 	if (hasInternal && hasExternal) return 'both';
 	if (hasInternal) return 'internal';

@@ -123,14 +123,15 @@ export const sendingIndicator: SendingIndicatorPlacement = 'floating';
 /**
  * Where `Address` and `TransactionHash` link to: this app's explorer when
  * `PUBLIC_USE_INTERNAL_EXPLORER` is `true`, and the deployed chain's block
- * explorer when it names one. Provided by routes/+layout.svelte as the
+ * explorer when it names one, both read at each call. Provided by routes/+layout.svelte as the
  * `block-explorer` capability, so `core/ui/ethereum/` knows neither the
- * environment nor the deployments. The chain is read at each call, so HMR and
- * a moved deployments store are followed.
+ * environment nor the deployments. Reading at each call follows HMR and a
+ * moved deployments store, and keeps this module's import free of reads (a
+ * test that mocks `$env/static/public` without this variable still imports it).
  */
 export const blockExplorer = createBlockExplorer({
 	chain: () => deployments.get().chain,
-	internal: PUBLIC_USE_INTERNAL_EXPLORER === 'true',
+	internal: () => PUBLIC_USE_INTERNAL_EXPLORER === 'true',
 });
 
 const [getAppContextFunction, setAppContext] = createContext<() => Context>();

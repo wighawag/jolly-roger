@@ -17,7 +17,7 @@ describe('createBlockExplorer', () => {
 	it("builds the chain's explorer urls and name", () => {
 		const explorer = createBlockExplorer({
 			chain: () => etherscan,
-			internal: false,
+			internal: () => false,
 		});
 		expect(explorer.txUrl(HASH)).toBe('https://etherscan.io/tx/0xabcdef');
 		expect(explorer.addressUrl(ADDRESS)).toBe(
@@ -25,21 +25,27 @@ describe('createBlockExplorer', () => {
 		);
 		expect(explorer.name()).toBe('Etherscan');
 		expect(explorer.external()).toBe(true);
-		expect(explorer.internal).toBe(false);
+		expect(explorer.internal()).toBe(false);
 	});
 
 	it('answers null when the chain names no explorer', () => {
-		const explorer = createBlockExplorer({chain: () => none, internal: true});
+		const explorer = createBlockExplorer({
+			chain: () => none,
+			internal: () => true,
+		});
 		expect(explorer.txUrl(HASH)).toBeNull();
 		expect(explorer.addressUrl(ADDRESS)).toBeNull();
 		expect(explorer.name()).toBeNull();
 		expect(explorer.external()).toBe(false);
-		expect(explorer.internal).toBe(true);
+		expect(explorer.internal()).toBe(true);
 	});
 
 	it('reads the chain at call time, not when created', () => {
 		let chain = none;
-		const explorer = createBlockExplorer({chain: () => chain, internal: false});
+		const explorer = createBlockExplorer({
+			chain: () => chain,
+			internal: () => false,
+		});
 		expect(explorer.txUrl(HASH)).toBeNull();
 		chain = etherscan;
 		expect(explorer.txUrl(HASH)).toBe('https://etherscan.io/tx/0xabcdef');
@@ -47,13 +53,22 @@ describe('createBlockExplorer', () => {
 });
 
 describe('resolveLinkTo', () => {
-	const both = createBlockExplorer({chain: () => etherscan, internal: true});
-	const internalOnly = createBlockExplorer({chain: () => none, internal: true});
+	const both = createBlockExplorer({
+		chain: () => etherscan,
+		internal: () => true,
+	});
+	const internalOnly = createBlockExplorer({
+		chain: () => none,
+		internal: () => true,
+	});
 	const externalOnly = createBlockExplorer({
 		chain: () => etherscan,
-		internal: false,
+		internal: () => false,
 	});
-	const neither = createBlockExplorer({chain: () => none, internal: false});
+	const neither = createBlockExplorer({
+		chain: () => none,
+		internal: () => false,
+	});
 
 	it('resolves auto from what the explorer offers', () => {
 		expect(resolveLinkTo('auto', both)).toBe('both');

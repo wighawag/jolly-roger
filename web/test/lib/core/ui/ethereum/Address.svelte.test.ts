@@ -81,7 +81,10 @@ describe('Address.svelte', () => {
 
 	it('links internally and to the provided explorer for linkTo "auto"', async () => {
 		const screen = await render(WithBlockExplorer, {
-			explorer: createBlockExplorer({chain: () => etherscan, internal: true}),
+			explorer: createBlockExplorer({
+				chain: () => etherscan,
+				internal: () => true,
+			}),
 			component: Address,
 			innerProps: {value: ADDRESS, linkTo: 'auto'},
 		});
@@ -99,7 +102,10 @@ describe('Address.svelte', () => {
 
 	it('links the text to the provided explorer when there is no internal one', async () => {
 		const screen = await render(WithBlockExplorer, {
-			explorer: createBlockExplorer({chain: () => etherscan, internal: false}),
+			explorer: createBlockExplorer({
+				chain: () => etherscan,
+				internal: () => false,
+			}),
 			component: Address,
 			innerProps: {value: ADDRESS, linkTo: 'auto'},
 		});
