@@ -5,6 +5,7 @@ import {
 	type DecodedTransactionData,
 } from '../services/transactionDecoder';
 import {decodeLogs, type DecodedEvent} from '../utils';
+import {deployments} from '$lib/deployments-store';
 
 export interface TransactionDetailsState {
 	tx: Transaction | null;
@@ -59,9 +60,18 @@ export function createTransactionDetailsStore(params: {
 				block = await publicClient.getBlock({blockNumber: receipt.blockNumber});
 			}
 
-			const decodedTxData = await decodeTransaction(tx, receipt, publicClient);
+			// Read at call time, so a changed deployments store is followed.
+			const contracts = deployments.get().contracts;
+			const decodedTxData = await decodeTransaction(
+				tx,
+				receipt,
+				publicClient,
+				contracts,
+			);
 			const decodedEvents =
-				receipt && receipt.logs.length > 0 ? decodeLogs(receipt.logs) : [];
+				receipt && receipt.logs.length > 0
+					? decodeLogs(receipt.logs, contracts)
+					: [];
 
 			set({
 				tx,

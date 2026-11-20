@@ -1,5 +1,4 @@
 import type {Abi, Address, Log, Transaction, TransactionReceipt} from 'viem';
-import {deployments} from '$lib/deployments-store';
 import {decodeEventLog} from 'viem';
 import {
 	formatGas,
@@ -27,10 +26,18 @@ export interface DecodedEvent {
 }
 
 /**
- * Find contract in deployments by address
+ * The contracts to decode with, by name: the shape of jolly-roger's
+ * `deployments.get().contracts`, which its callers pass, read at call time
  */
-export function findContractByAddress(address: Address): ContractInfo | null {
-	const contracts = deployments.get().contracts;
+export type DecodingContracts = Record<string, {address: string; abi: unknown}>;
+
+/**
+ * Find a contract of `contracts` by address
+ */
+export function findContractByAddress(
+	address: Address,
+	contracts: DecodingContracts,
+): ContractInfo | null {
 	for (const [name, contract] of Object.entries(contracts)) {
 		if (contract.address.toLowerCase() === address.toLowerCase()) {
 			return {
@@ -72,13 +79,16 @@ function decodeLogWithAbi(log: Log, abi: Abi): DecodedEvent | null {
 }
 
 /**
- * Decode logs using deployments.ts data
+ * Decode logs with the ABIs of `contracts`
  */
-export function decodeLogs(logs: Log[]): DecodedEvent[] {
+export function decodeLogs(
+	logs: Log[],
+	contracts: DecodingContracts,
+): DecodedEvent[] {
 	const decodedEvents: DecodedEvent[] = [];
 
 	for (const log of logs) {
-		const contractInfo = findContractByAddress(log.address);
+		const contractInfo = findContractByAddress(log.address, contracts);
 		if (contractInfo) {
 			const decoded = decodeLogWithAbi(log, contractInfo.abi);
 			if (decoded) {
@@ -290,14 +300,3 @@ export function formatPreciseTimestamp(timestamp: number): string {
 		timeZoneName: 'short',
 	});
 }
-
-// ============================================================================
-// Block Explorer Utilities (re-exported from shared location)
-// ============================================================================
-
-export {
-	getBlockExplorerTxUrl,
-	getBlockExplorerAddressUrl,
-	getBlockExplorerName,
-	hasBlockExplorer,
-} from '$lib/core/utils/ethereum/blockExplorer';

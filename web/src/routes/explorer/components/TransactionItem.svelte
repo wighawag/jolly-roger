@@ -17,6 +17,7 @@
 	import {loadTransactionItemData} from '../lib/services/transactionItem';
 	import {formatTimestamp, formatValue, getEip1559FeeInfo} from '../lib/utils';
 	import {route} from '$lib';
+	import {deployments} from '$lib/deployments-store';
 
 	interface Props {
 		tx: Transaction;
@@ -41,7 +42,11 @@
 	async function loadItem(hash: `0x${string}`) {
 		loading = true;
 		try {
-			const data = await loadTransactionItemData(tx, publicClient);
+			const data = await loadTransactionItemData(
+				tx,
+				publicClient,
+				deployments.get().contracts,
+			);
 			receipt = data.receipt;
 			decodedData = data.decodedData;
 			decodedHash = hash;

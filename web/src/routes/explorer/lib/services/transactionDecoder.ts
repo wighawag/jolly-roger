@@ -3,24 +3,24 @@
 // below, so the failure was silent: any call with a numeric argument simply
 // came back undecoded, which looks like an ABI mismatch and is not.
 import {toPlainJson} from '$lib/core/utils/format/json';
-import type {Abi, Transaction, TransactionReceipt, PublicClient} from 'viem';
+import type {
+	Abi,
+	AbiParameter,
+	Transaction,
+	TransactionReceipt,
+	PublicClient,
+} from 'viem';
 import {
 	decodeFunctionData,
 	decodeErrorResult,
 	decodeAbiParameters,
 	BaseError,
 	ContractFunctionRevertedError,
+	toFunctionSelector,
 } from 'viem';
-import {deployments} from '$lib/deployments-store';
-
-/**
- * Contract info for decoding
- */
-export interface ContractInfo {
-	name: string;
-	address: string;
-	abi: Abi;
-}
+// One declaration of the contracts the decoding takes (`utils.ts` imports
+// nothing of the services, so there is no cycle).
+import {findContractByAddress, type DecodingContracts} from '../utils';
 
 /**
  * Decoded error data structure
@@ -39,7 +39,18 @@ export interface DecodedTransactionData {
 	functionName?: string;
 	contractName?: string;
 	args?: Record<string, unknown> | unknown[];
+	/**
+	 * The decoded function's inputs, from the ABI item its selector names (so
+	 * exact for overloads), which name and type `args` for display.
+	 */
+	inputs?: readonly AbiParameter[];
 	isDecoded: boolean;
+	/**
+	 * The call's 4-byte selector, set when the transaction carries data that
+	 * was not decoded (to an address no contract has, or a function its ABI
+	 * lacks), so a call is never shown as a transfer.
+	 */
+	selector?: `0x${string}`;
 	status: 'success' | 'failed' | 'pending';
 	error?: string;
 	decodedError?: DecodedErrorData;
@@ -55,23 +66,6 @@ export interface FormattedDecodedTransaction {
 }
 
 /**
- * Find contract in deployments by address
- */
-function findContractByAddress(address: `0x${string}`): ContractInfo | null {
-	const contracts = deployments.get().contracts;
-	for (const [name, contract] of Object.entries(contracts)) {
-		if (contract.address.toLowerCase() === address.toLowerCase()) {
-			return {
-				name,
-				address: contract.address,
-				abi: contract.abi as Abi,
-			};
-		}
-	}
-	return null;
-}
-
-/**
  * Decode transaction function call data using ABI
  */
 function decodeFunctionCall(
@@ -80,6 +74,7 @@ function decodeFunctionCall(
 ): {
 	functionName?: string;
 	args?: Record<string, unknown> | unknown[];
+	inputs?: readonly AbiParameter[];
 } | null {
 	try {
 		// Try to decode the function call
@@ -87,10 +82,16 @@ function decodeFunctionCall(
 			abi,
 			data: tx.input,
 		});
+		const selector = tx.input.slice(0, 10);
+		const item = abi.find(
+			(entry) =>
+				entry.type === 'function' && toFunctionSelector(entry) === selector,
+		);
 
 		return {
 			functionName: decoded.functionName,
 			args: decoded.args ? toPlainJson(decoded.args) : undefined,
+			inputs: item && item.type === 'function' ? item.inputs : undefined,
 		};
 	} catch (e) {
 		// Decoding failed
@@ -292,8 +293,15 @@ async function decodeTransactionError(
 				};
 			}
 
-			// Extract message from error
-			return {error: e.shortMessage || e.message || 'Transaction reverted'};
+			// The node's own explanation first. viem copies the deepest cause's
+			// `details` up the chain, while the short message is the error class's
+			// generic text: a replay the node refuses (a block below its state
+			// history, "historical state not available") otherwise reads "Missing
+			// or invalid parameters", which a user cannot tell from a bad call.
+			return {
+				error:
+					e.details || e.shortMessage || e.message || 'Transaction reverted',
+			};
 		}
 
 		// Generic error
@@ -326,6 +334,13 @@ export function formatDecodedError(error: DecodedErrorData): string {
 }
 
 /**
+ * The 4-byte selector a call's data starts with
+ */
+function selectorOf(input: `0x${string}`): `0x${string}` {
+	return input.slice(0, 10) as `0x${string}`;
+}
+
+/**
  * Get transaction status from receipt
  */
 function getTransactionStatus(
@@ -342,12 +357,14 @@ function getTransactionStatus(
  * @param tx - The transaction object
  * @param receipt - The transaction receipt (can be null for pending transactions)
  * @param publicClient - The viem public client
+ * @param contracts - The contracts to decode with, by name
  * @returns Decoded transaction data
  */
 export async function decodeTransaction(
 	tx: Transaction,
 	receipt: TransactionReceipt | null,
 	publicClient: PublicClient,
+	contracts: DecodingContracts,
 ): Promise<DecodedTransactionData> {
 	const status = getTransactionStatus(receipt);
 
@@ -375,14 +392,19 @@ export async function decodeTransaction(
 	}
 
 	// Try to find contract by address
-	const contractInfo = findContractByAddress(tx.to);
+	const contractInfo = findContractByAddress(tx.to, contracts);
 
-	// If it's a simple transfer (no function data or no contract found)
-	if (!contractInfo || tx.input === '0x' || tx.input === '0x0') {
+	const hasData = tx.input !== '0x' && tx.input !== '0x0';
+
+	// A transfer (no data), or a call to an address no contract has
+	if (!contractInfo || !hasData) {
 		const result: DecodedTransactionData = {
 			isDecoded: false,
 			status,
 		};
+		if (hasData) {
+			result.selector = selectorOf(tx.input);
+		}
 
 		// If simple transfer failed, try to decode the error
 		if (status === 'failed' && receipt) {
@@ -407,6 +429,7 @@ export async function decodeTransaction(
 			functionName: decodedCall.functionName,
 			contractName: contractInfo.name,
 			args: decodedCall.args,
+			inputs: decodedCall.inputs,
 			isDecoded: true,
 			status,
 		};
@@ -429,6 +452,8 @@ export async function decodeTransaction(
 	// Contract call but couldn't decode
 	const result: DecodedTransactionData = {
 		isDecoded: false,
+		contractName: contractInfo.name,
+		selector: selectorOf(tx.input),
 		status,
 	};
 
@@ -466,8 +491,13 @@ export function formatDecodedTransaction(
 		}
 
 		if (data.args) {
-			methodDetails = formatDecodedArgs(data.args);
+			methodDetails = formatDecodedArgs(data.args, data.inputs);
 		}
+	} else if (data.selector) {
+		methodLabel = data.contractName
+			? `${data.contractName}: unknown function`
+			: 'Call to an unknown contract';
+		methodDetails = data.selector;
 	} else if (!data.functionName) {
 		methodLabel = 'Transfer';
 	} else if (data.functionName === 'Contract Creation') {
@@ -489,10 +519,13 @@ export function formatDecodedTransaction(
 /**
  * Format decoded function arguments for display
  * @param args - The decoded arguments
+ * @param inputs - The ABI item's inputs: with them each argument is named and
+ *   formatted by its type (`incBy(by: 5)`), without them as before
  * @returns Formatted string representation
  */
 export function formatDecodedArgs(
 	args: Record<string, unknown> | unknown[],
+	inputs?: readonly AbiParameter[],
 ): string {
 	if (!args) {
 		return '';
@@ -502,6 +535,14 @@ export function formatDecodedArgs(
 	if (Array.isArray(args)) {
 		if (args.length === 0) {
 			return '()';
+		}
+		if (inputs) {
+			return `(${args
+				.map((arg, index) => {
+					const input = inputs[index];
+					return `${input?.name || `arg${index}`}: ${formatTypedArg(input?.type ?? '', arg)}`;
+				})
+				.join(', ')})`;
 		}
 		return `(${args.map((arg) => formatArgValue(arg)).join(', ')})`;
 	}
@@ -513,6 +554,19 @@ export function formatDecodedArgs(
 	}
 
 	return `(${entries.map(([key, value]) => `${key}: ${formatArgValue(value)}`).join(', ')})`;
+}
+
+/**
+ * An argument as text by its ABI type, after `toPlainJson`: a number (its
+ * decimal string), an address or a bool bare, a string quoted, a tuple or an
+ * array as JSON.
+ */
+function formatTypedArg(type: string, value: unknown): string {
+	if (typeof value === 'string' && type !== 'string') return value;
+	if (typeof value === 'boolean' || typeof value === 'number') {
+		return String(value);
+	}
+	return JSON.stringify(value) ?? String(value);
 }
 
 /**
