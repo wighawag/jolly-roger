@@ -74,8 +74,8 @@ export const SIGNER_GRANT: SignerGrant = {action: 'post greetings'};
  * The framework imports `$app-specific`, so an app whose half lives elsewhere (a
  * game keeps it beside its own code) points the alias there and no framework
  * file is edited. What the alias must provide is what this module exports:
- * `createAppContext`, `AppMembers`, `SIGNER_GRANT`, `operationScope` and
- * `delegationRegistry`.
+ * `createAppContext`, `AppMembers`, `SIGNER_GRANT`, `operationScope`,
+ * `delegationRegistry` and `GAME`.
  */
 export function createAppContext(core: CoreServices): AppMembers {
 	const {
@@ -151,6 +151,20 @@ export function createAppContext(core: CoreServices): AppMembers {
 	// core neither uses it nor puts it in the context.
 	return {onchainState, viewState, notifications};
 }
+
+/**
+ * THE APP'S MAIN PAGE, named once for the inherited chrome that links to it:
+ * the navbar's link (`name`) and the home page's button (`homeLink`), both to
+ * `route`. Here it is the greetings demo; below this template it is a game,
+ * hence the name. A descendant renames or moves its main page HERE, in its own
+ * `$app-specific` module, and edits no shared file. The e2e suites name the
+ * same page in `GAME` of `web/e2e/routes.ts`; a descendant changes both.
+ */
+export const GAME = {
+	name: 'Demo',
+	route: '/demo/',
+	homeLink: 'Check The Demo',
+} as const;
 
 /**
  * What this app adds to the app context. `Context` (see `./types.ts`) is the
