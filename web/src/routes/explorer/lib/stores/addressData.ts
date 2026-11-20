@@ -2,6 +2,7 @@ import {writable} from 'svelte/store';
 import type {AbiFunction, PublicClient} from 'viem';
 import {getContractFunctions} from '../../../contracts/lib/utils';
 import {findContractByAddress, isContract, type ContractInfo} from '../utils';
+import {deployments} from '$lib/deployments-store';
 
 export interface AddressDataState {
 	balance: bigint;
@@ -57,7 +58,10 @@ export function createAddressDataStore(params: {publicClient: PublicClient}) {
 			let contractInfo: ContractInfo | null = null;
 			let contractFunctions: AbiFunction[] = [];
 			if (isContract(code)) {
-				contractInfo = findContractByAddress(address);
+				contractInfo = findContractByAddress(
+					address,
+					deployments.get().contracts,
+				);
 				if (contractInfo) {
 					contractFunctions = getContractFunctions(contractInfo.abi);
 				}
