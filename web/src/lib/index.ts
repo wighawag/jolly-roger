@@ -25,7 +25,7 @@ import type {Context} from './context/types';
 import type {SendingIndicatorPlacement} from './ui/in-flight/sending';
 import {env} from '$env/dynamic/public';
 import {PUBLIC_USE_INTERNAL_EXPLORER} from '$env/static/public';
-import {deployments} from './deployments-store';
+import {deployments, type AugmentedChainInfo} from './deployments-store';
 import {createBlockExplorer} from './core/utils/ethereum/blockExplorer';
 
 export const hashParams = getHashParamsFromLocation();
@@ -130,7 +130,9 @@ export const sendingIndicator: SendingIndicatorPlacement = 'floating';
  * test that mocks `$env/static/public` without this variable still imports it).
  */
 export const blockExplorer = createBlockExplorer({
-	chain: () => deployments.get().chain,
+	// Augmented: `blockExplorers` is optional there, and a generated chain that
+	// names none (a local node) would share no property with the explorer's type.
+	chain: () => deployments.get().chain as AugmentedChainInfo,
 	internal: () => PUBLIC_USE_INTERNAL_EXPLORER === 'true',
 });
 
