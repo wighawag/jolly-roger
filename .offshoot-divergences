@@ -165,4 +165,4 @@ web/src/routes/+page.svelte                            the home page's "Play Off
 
 contracts/package.json                                 both stems' changes: @etherplay/delegation (local-signer) and the package built at install (embedded-chain)
 pnpm-lock.yaml                                         both stems' dependencies, re-resolved together
-web/src/lib/context/core.ts                            both stems' compositions in one: the local signer and the payment rail beside the world in the tab and its tab leader
+web/src/lib/context/core.ts                            both stems' compositions in one: the local signer and the payment rail beside the world in the tab and its tab leader, both broadcasting through the node url the connection reports (a world's provider, not the app's node)
