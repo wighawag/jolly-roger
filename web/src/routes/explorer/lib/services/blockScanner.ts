@@ -1,5 +1,4 @@
 import type {PublicClient, Transaction} from 'viem';
-import {deployments} from '$lib/deployments-store';
 
 /**
  * Transaction summary structure for the transaction list
@@ -34,13 +33,6 @@ export interface BlockIndexSummary {
 }
 
 /**
- * Get chain ID from deployments
- */
-function getChainId(): number {
-	return deployments.get().chain.id;
-}
-
-/**
  * LocalStorage key generators for block index
  */
 function getLatestScannedBlockKey(chainId: number): string {
@@ -61,12 +53,11 @@ function getBlockIndexSummaryKey(chainId: number): string {
 /**
  * Load the latest scanned block number from localStorage
  */
-function loadLatestScannedBlock(): number | null {
+function loadLatestScannedBlock(chainId: number): number | null {
 	if (typeof window === 'undefined') {
 		return null;
 	}
 	try {
-		const chainId = getChainId();
 		const key = getLatestScannedBlockKey(chainId);
 		const data = localStorage.getItem(key);
 		if (data) {
@@ -86,12 +77,11 @@ function loadLatestScannedBlock(): number | null {
 /**
  * Save the latest scanned block number to localStorage
  */
-function saveLatestScannedBlock(blockNumber: bigint): void {
+function saveLatestScannedBlock(chainId: number, blockNumber: bigint): void {
 	if (typeof window === 'undefined') {
 		return;
 	}
 	try {
-		const chainId = getChainId();
 		const key = getLatestScannedBlockKey(chainId);
 		const data = {
 			blockNumber: Number(blockNumber),
@@ -107,12 +97,11 @@ function saveLatestScannedBlock(blockNumber: bigint): void {
  * Load block index from localStorage
  * Only blocks with transactions are stored
  */
-function loadBlockIndex(): Map<number, BlockIndexEntry> {
+function loadBlockIndex(chainId: number): Map<number, BlockIndexEntry> {
 	if (typeof window === 'undefined') {
 		return new Map();
 	}
 	try {
-		const chainId = getChainId();
 		const summaryKey = getBlockIndexSummaryKey(chainId);
 		const summaryData = localStorage.getItem(summaryKey);
 
@@ -154,7 +143,7 @@ function loadBlockIndex(): Map<number, BlockIndexEntry> {
  * Save a block index entry to localStorage
  * Only saves blocks with transactions (txCount > 0)
  */
-function saveBlockIndexEntry(entry: BlockIndexEntry): void {
+function saveBlockIndexEntry(chainId: number, entry: BlockIndexEntry): void {
 	if (typeof window === 'undefined') {
 		return;
 	}
@@ -165,7 +154,6 @@ function saveBlockIndexEntry(entry: BlockIndexEntry): void {
 	}
 
 	try {
-		const chainId = getChainId();
 		const entryKey = getBlockIndexEntryKey(chainId, entry.blockNumber);
 		localStorage.setItem(entryKey, JSON.stringify(entry));
 	} catch (e) {
@@ -176,12 +164,11 @@ function saveBlockIndexEntry(entry: BlockIndexEntry): void {
 /**
  * Update block index summary
  */
-function updateBlockIndexSummary(blocks: number[]): void {
+function updateBlockIndexSummary(chainId: number, blocks: number[]): void {
 	if (typeof window === 'undefined') {
 		return;
 	}
 	try {
-		const chainId = getChainId();
 		const summaryKey = getBlockIndexSummaryKey(chainId);
 
 		// Calculate total txs from stored entries
@@ -219,12 +206,14 @@ function updateBlockIndexSummary(blocks: number[]): void {
 /**
  * Prune old block index entries (older than maxAge)
  */
-function pruneBlockIndex(maxAge: number = 24 * 60 * 60 * 1000): void {
+function pruneBlockIndex(
+	chainId: number,
+	maxAge: number = 24 * 60 * 60 * 1000,
+): void {
 	if (typeof window === 'undefined') {
 		return;
 	}
 	try {
-		const chainId = getChainId();
 		const summaryKey = getBlockIndexSummaryKey(chainId);
 		const summaryData = localStorage.getItem(summaryKey);
 
@@ -257,7 +246,7 @@ function pruneBlockIndex(maxAge: number = 24 * 60 * 60 * 1000): void {
 
 		// Update summary with valid blocks
 		if (validBlocks.length !== summary.blocks.length) {
-			updateBlockIndexSummary(validBlocks);
+			updateBlockIndexSummary(chainId, validBlocks);
 		}
 	} catch (e) {
 		console.warn('Failed to prune block index:', e);
@@ -327,7 +316,7 @@ export function blockToTransactionSummaries(block: {
 /**
  * Scan blocks in parallel batches
  */
-async function scanBlocksInBatches(
+export async function scanBlocksInBatches(
 	publicClient: PublicClient,
 	blockNumbers: bigint[],
 	batchSize: number,
@@ -403,6 +392,7 @@ async function scanBlocksStandard(
  * Optimized mode: Scan blocks using localStorage index
  */
 async function scanBlocksWithIndex(
+	chainId: number,
 	publicClient: PublicClient,
 	targetCount: number,
 	batchSize: number,
@@ -412,10 +402,10 @@ async function scanBlocksWithIndex(
 	const latestBlock = await publicClient.getBlockNumber();
 
 	// Load latest scanned block from localStorage
-	const latestScannedBlock = loadLatestScannedBlock();
+	const latestScannedBlock = loadLatestScannedBlock(chainId);
 
 	// Load block index
-	const blockIndex = loadBlockIndex();
+	const blockIndex = loadBlockIndex(chainId);
 
 	// Calculate which blocks to fetch based on index
 	let blocksToFetch: number[] = [];
@@ -485,18 +475,18 @@ async function scanBlocksWithIndex(
 
 		// Save new entries
 		for (const entry of newEntries) {
-			saveBlockIndexEntry(entry);
+			saveBlockIndexEntry(chainId, entry);
 		}
 
 		// Update summary
 		const allBlocks = Array.from(blockIndex.keys()).sort((a, b) => b - a);
-		updateBlockIndexSummary(allBlocks);
+		updateBlockIndexSummary(chainId, allBlocks);
 
 		// Save latest scanned block
-		saveLatestScannedBlock(latestBlock);
+		saveLatestScannedBlock(chainId, latestBlock);
 
 		// Prune old entries
-		pruneBlockIndex();
+		pruneBlockIndex(chainId);
 	}
 
 	// Return only targetCount transactions
@@ -512,7 +502,8 @@ async function scanBlocksWithIndex(
  * @param targetCount - Number of transactions to retrieve (default: 20)
  * @param batchSize - Number of blocks to fetch in parallel (default: 5)
  * @param maxBlocksToScan - Maximum number of blocks to scan (default: 100)
- * @param useIndex - Whether to use localStorage index optimization (default: false)
+ * @param useIndex - Whether to use localStorage index optimization (default: false);
+ *   the index is kept per chain, the client's (its `chain`, else `getChainId()`)
  * @returns Array of transaction summaries
  */
 export async function scanLatestTransactions(
@@ -523,7 +514,11 @@ export async function scanLatestTransactions(
 	useIndex: boolean = false,
 ): Promise<TransactionSummary[]> {
 	if (useIndex) {
+		// The client's own chain, so the index can never mix two chains' blocks
+		// under one key.
+		const chainId = publicClient.chain?.id ?? (await publicClient.getChainId());
 		const result = await scanBlocksWithIndex(
+			chainId,
 			publicClient,
 			targetCount,
 			batchSize,

@@ -203,7 +203,9 @@ import {render} from 'vitest-browser-svelte';
 // SvelteKit's generated `$env/*` modules are not available in the raw browser
 // test runtime. If the component (or its import chain) reads them, stub them:
 vi.mock('$env/dynamic/public', () => ({env: {}}));
-vi.mock('$env/static/public', () => ({PUBLIC_USE_INTERNAL_EXPLORER: 'true'}));
+// What the app root provides (the route, ENS, the block explorer) is a
+// capability: a test renders the component without it, or under a wrapper
+// that provides it (see `WithBlockExplorer.svelte` beside this test).
 
 import Address from '$lib/core/ui/ethereum/Address.svelte';
 
