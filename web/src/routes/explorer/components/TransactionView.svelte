@@ -4,6 +4,7 @@
 	import {bigIntReplacer} from '$lib/core/utils/format/json';
 	import DefaultHead from '$lib/metadata/DefaultHead.svelte';
 	import {getAppContext} from '$lib';
+	import {deployments} from '$lib/deployments-store';
 	import * as Card from '$lib/shadcn/ui/card';
 	import * as Alert from '$lib/shadcn/ui/alert';
 	import * as Separator from '$lib/shadcn/ui/separator';
@@ -454,7 +455,10 @@
 						{:else}
 							<div class="space-y-4">
 								{#each decodedEvents as event}
-									{@const contractInfo = findContractByAddress(event.address)}
+									{@const contractInfo = findContractByAddress(
+										event.address,
+										deployments.get().contracts,
+									)}
 									<div class="rounded-lg border p-4">
 										<div class="mb-2 flex items-start justify-between">
 											<div>

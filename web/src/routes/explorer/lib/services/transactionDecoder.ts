@@ -11,16 +11,9 @@ import {
 	BaseError,
 	ContractFunctionRevertedError,
 } from 'viem';
-import {deployments} from '$lib/deployments-store';
-
-/**
- * Contract info for decoding
- */
-export interface ContractInfo {
-	name: string;
-	address: string;
-	abi: Abi;
-}
+// One declaration of the contracts the decoding takes (`utils.ts` imports
+// nothing of the services, so there is no cycle).
+import {findContractByAddress, type DecodingContracts} from '../utils';
 
 /**
  * Decoded error data structure
@@ -52,23 +45,6 @@ export interface FormattedDecodedTransaction {
 	methodLabel: string;
 	methodDetails?: string;
 	statusText: string;
-}
-
-/**
- * Find contract in deployments by address
- */
-function findContractByAddress(address: `0x${string}`): ContractInfo | null {
-	const contracts = deployments.get().contracts;
-	for (const [name, contract] of Object.entries(contracts)) {
-		if (contract.address.toLowerCase() === address.toLowerCase()) {
-			return {
-				name,
-				address: contract.address,
-				abi: contract.abi as Abi,
-			};
-		}
-	}
-	return null;
 }
 
 /**
@@ -342,12 +318,14 @@ function getTransactionStatus(
  * @param tx - The transaction object
  * @param receipt - The transaction receipt (can be null for pending transactions)
  * @param publicClient - The viem public client
+ * @param contracts - The contracts to decode with, by name
  * @returns Decoded transaction data
  */
 export async function decodeTransaction(
 	tx: Transaction,
 	receipt: TransactionReceipt | null,
 	publicClient: PublicClient,
+	contracts: DecodingContracts,
 ): Promise<DecodedTransactionData> {
 	const status = getTransactionStatus(receipt);
 
@@ -375,7 +353,7 @@ export async function decodeTransaction(
 	}
 
 	// Try to find contract by address
-	const contractInfo = findContractByAddress(tx.to);
+	const contractInfo = findContractByAddress(tx.to, contracts);
 
 	// If it's a simple transfer (no function data or no contract found)
 	if (!contractInfo || tx.input === '0x' || tx.input === '0x0') {
