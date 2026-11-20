@@ -268,8 +268,15 @@ async function decodeTransactionError(
 				};
 			}
 
-			// Extract message from error
-			return {error: e.shortMessage || e.message || 'Transaction reverted'};
+			// The node's own explanation first. viem copies the deepest cause's
+			// `details` up the chain, while the short message is the error class's
+			// generic text: a replay the node refuses (a block below its state
+			// history, "historical state not available") otherwise reads "Missing
+			// or invalid parameters", which a user cannot tell from a bad call.
+			return {
+				error:
+					e.details || e.shortMessage || e.message || 'Transaction reverted',
+			};
 		}
 
 		// Generic error
