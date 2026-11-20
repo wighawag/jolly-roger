@@ -40,14 +40,10 @@
 	import CheckIcon from '@lucide/svelte/icons/check';
 	import CopyIcon from '@lucide/svelte/icons/copy';
 	import ExternalLinkIcon from '@lucide/svelte/icons/external-link';
-	import {useRoute} from '$lib/core/capabilities';
+	import {useRoute, useBlockExplorer} from '$lib/core/capabilities';
 	import {createCopyToClipboard} from '$lib/core/ui/clipboard/copy-to-clipboard';
 	import {truncateHex} from '$lib/core/utils/format';
-	import {
-		getBlockExplorerTxUrl,
-		hasBlockExplorer,
-		resolveLinkTo,
-	} from '$lib/core/utils/ethereum/blockExplorer';
+	import {resolveLinkTo} from '$lib/core/utils/ethereum/blockExplorer';
 
 	let {
 		class: className,
@@ -63,6 +59,8 @@
 
 	// Ambient route resolver - falls back to base-path resolution when unprovided.
 	const route = useRoute();
+	// Optional: without it `auto` resolves to no link.
+	const blockExplorer = useBlockExplorer();
 	const clipboard = createCopyToClipboard();
 
 	function formatHash(hash: string): string {
@@ -78,19 +76,19 @@
 
 	const displayText = $derived(formatHash(value));
 	const internalUrl = $derived(route(`/explorer/tx/${value}`));
-	const externalUrl = $derived(getBlockExplorerTxUrl(value));
-	const resolvedLinkTo = $derived(resolveLinkTo(linkTo));
+	const externalUrl = $derived(blockExplorer?.txUrl(value) ?? null);
+	const resolvedLinkTo = $derived(resolveLinkTo(linkTo, blockExplorer));
 	// When internal is available (internal or both), text links to internal
 	const showInternalLink = $derived(
 		resolvedLinkTo === 'internal' || resolvedLinkTo === 'both',
 	);
 	// When external-only, text links directly to external (no icon)
 	const showExternalAsTextLink = $derived(
-		resolvedLinkTo === 'external' && hasBlockExplorer(),
+		resolvedLinkTo === 'external' && externalUrl !== null,
 	);
 	// When both, show external icon as secondary action
 	const showExternalIcon = $derived(
-		resolvedLinkTo === 'both' && hasBlockExplorer(),
+		resolvedLinkTo === 'both' && externalUrl !== null,
 	);
 </script>
 
