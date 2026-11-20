@@ -3,13 +3,20 @@
 // below, so the failure was silent: any call with a numeric argument simply
 // came back undecoded, which looks like an ABI mismatch and is not.
 import {toPlainJson} from '$lib/core/utils/format/json';
-import type {Abi, Transaction, TransactionReceipt, PublicClient} from 'viem';
+import type {
+	Abi,
+	AbiParameter,
+	Transaction,
+	TransactionReceipt,
+	PublicClient,
+} from 'viem';
 import {
 	decodeFunctionData,
 	decodeErrorResult,
 	decodeAbiParameters,
 	BaseError,
 	ContractFunctionRevertedError,
+	toFunctionSelector,
 } from 'viem';
 // One declaration of the contracts the decoding takes (`utils.ts` imports
 // nothing of the services, so there is no cycle).
@@ -32,6 +39,11 @@ export interface DecodedTransactionData {
 	functionName?: string;
 	contractName?: string;
 	args?: Record<string, unknown> | unknown[];
+	/**
+	 * The decoded function's inputs, from the ABI item its selector names (so
+	 * exact for overloads), which name and type `args` for display.
+	 */
+	inputs?: readonly AbiParameter[];
 	isDecoded: boolean;
 	/**
 	 * The call's 4-byte selector, set when the transaction carries data that
@@ -62,6 +74,7 @@ function decodeFunctionCall(
 ): {
 	functionName?: string;
 	args?: Record<string, unknown> | unknown[];
+	inputs?: readonly AbiParameter[];
 } | null {
 	try {
 		// Try to decode the function call
@@ -69,10 +82,16 @@ function decodeFunctionCall(
 			abi,
 			data: tx.input,
 		});
+		const selector = tx.input.slice(0, 10);
+		const item = abi.find(
+			(entry) =>
+				entry.type === 'function' && toFunctionSelector(entry) === selector,
+		);
 
 		return {
 			functionName: decoded.functionName,
 			args: decoded.args ? toPlainJson(decoded.args) : undefined,
+			inputs: item && item.type === 'function' ? item.inputs : undefined,
 		};
 	} catch (e) {
 		// Decoding failed
@@ -410,6 +429,7 @@ export async function decodeTransaction(
 			functionName: decodedCall.functionName,
 			contractName: contractInfo.name,
 			args: decodedCall.args,
+			inputs: decodedCall.inputs,
 			isDecoded: true,
 			status,
 		};
@@ -471,7 +491,7 @@ export function formatDecodedTransaction(
 		}
 
 		if (data.args) {
-			methodDetails = formatDecodedArgs(data.args);
+			methodDetails = formatDecodedArgs(data.args, data.inputs);
 		}
 	} else if (data.selector) {
 		methodLabel = data.contractName
@@ -499,10 +519,13 @@ export function formatDecodedTransaction(
 /**
  * Format decoded function arguments for display
  * @param args - The decoded arguments
+ * @param inputs - The ABI item's inputs: with them each argument is named and
+ *   formatted by its type (`incBy(by: 5)`), without them as before
  * @returns Formatted string representation
  */
 export function formatDecodedArgs(
 	args: Record<string, unknown> | unknown[],
+	inputs?: readonly AbiParameter[],
 ): string {
 	if (!args) {
 		return '';
@@ -512,6 +535,14 @@ export function formatDecodedArgs(
 	if (Array.isArray(args)) {
 		if (args.length === 0) {
 			return '()';
+		}
+		if (inputs) {
+			return `(${args
+				.map((arg, index) => {
+					const input = inputs[index];
+					return `${input?.name || `arg${index}`}: ${formatTypedArg(input?.type ?? '', arg)}`;
+				})
+				.join(', ')})`;
 		}
 		return `(${args.map((arg) => formatArgValue(arg)).join(', ')})`;
 	}
@@ -523,6 +554,19 @@ export function formatDecodedArgs(
 	}
 
 	return `(${entries.map(([key, value]) => `${key}: ${formatArgValue(value)}`).join(', ')})`;
+}
+
+/**
+ * An argument as text by its ABI type, after `toPlainJson`: a number (its
+ * decimal string), an address or a bool bare, a string quoted, a tuple or an
+ * array as JSON.
+ */
+function formatTypedArg(type: string, value: unknown): string {
+	if (typeof value === 'string' && type !== 'string') return value;
+	if (typeof value === 'boolean' || typeof value === 'number') {
+		return String(value);
+	}
+	return JSON.stringify(value) ?? String(value);
 }
 
 /**

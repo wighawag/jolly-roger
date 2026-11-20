@@ -8,12 +8,14 @@ import {
 	InvalidInputRpcError,
 	RpcRequestError,
 	encodeFunctionData,
+	getAddress,
 	type PublicClient,
 	type Transaction,
 	type TransactionReceipt,
 } from 'viem';
 import {
 	decodeTransaction,
+	formatDecodedArgs,
 	formatDecodedTransaction,
 } from '../../../src/routes/explorer/lib/services/transactionDecoder';
 import type {DecodingContracts} from '../../../src/routes/explorer/lib/utils';
@@ -135,5 +137,87 @@ describe('a transaction the explorer cannot decode', () => {
 			methodLabel: 'Counter: unknown function',
 			methodDetails: '0xdeadbeef',
 		});
+	});
+});
+
+describe("a decoded call's arguments", () => {
+	const succeeded = {
+		status: 'success',
+		blockNumber: 1n,
+		logs: [],
+	} as unknown as TransactionReceipt;
+	const unusedClient = {} as PublicClient;
+
+	it('are named and typed, a number unquoted', async () => {
+		const decoded = await decodeTransaction(
+			tx(),
+			succeeded,
+			unusedClient,
+			contracts,
+		);
+		expect(formatDecodedTransaction(decoded)).toMatchObject({
+			methodLabel: 'Counter.incBy',
+			methodDetails: '(by: 5)',
+		});
+	});
+
+	it('are named from the overload the selector names', async () => {
+		const overloaded = [
+			{
+				type: 'function',
+				name: 'set',
+				stateMutability: 'nonpayable',
+				inputs: [{type: 'uint256', name: 'amount'}],
+				outputs: [],
+			},
+			{
+				type: 'function',
+				name: 'set',
+				stateMutability: 'nonpayable',
+				inputs: [{type: 'address', name: 'owner'}],
+				outputs: [],
+			},
+		] as const;
+		const decoded = await decodeTransaction(
+			tx({
+				input: encodeFunctionData({
+					abi: [overloaded[1]],
+					functionName: 'set',
+					args: [SENDER],
+				}),
+			}),
+			succeeded,
+			unusedClient,
+			{Counter: {address: COUNTER, abi: overloaded}},
+		);
+		expect(formatDecodedTransaction(decoded).methodDetails).toBe(
+			`(owner: ${getAddress(SENDER)})`,
+		);
+	});
+
+	it('print a bool and an address bare, a string quoted, a tuple and an array as JSON', () => {
+		const inputs = [
+			{type: 'bool', name: 'flag'},
+			{type: 'address', name: 'to'},
+			{type: 'string', name: 'note'},
+			{
+				type: 'tuple',
+				name: 'pair',
+				components: [
+					{type: 'uint256', name: 'a'},
+					{type: 'uint256', name: 'b'},
+				],
+			},
+			{type: 'uint256[]', name: 'ids'},
+			{type: 'uint8', name: ''},
+		] as const;
+		expect(
+			formatDecodedArgs(
+				[true, SENDER, 'hi', {a: '1', b: '2'}, ['3', '4'], '9'],
+				inputs,
+			),
+		).toBe(
+			`(flag: true, to: ${SENDER}, note: "hi", pair: {"a":"1","b":"2"}, ids: ["3","4"], arg5: 9)`,
+		);
 	});
 });
