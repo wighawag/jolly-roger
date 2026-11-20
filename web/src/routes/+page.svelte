@@ -1,5 +1,6 @@
 <script lang="ts">
 	import {route} from '$lib';
+	import {GAME} from '$app-specific';
 	import {url} from '$lib/kit/paths';
 	import Button from '$lib/shadcn/ui/button/button.svelte';
 	import Features from '$lib/website/Features.svelte';
@@ -57,7 +58,9 @@
 
 		<!-- Action Buttons -->
 		<div class="mb-8 flex flex-wrap justify-center gap-4">
-			<Button href={route('/demo/')} size="lg" class="min-w-40">Check The Demo</Button>
+			<Button href={route(GAME.route)} size="lg" class="min-w-40"
+				>{GAME.homeLink}</Button
+			>
 			<Button
 				href="https://github.com/wighawag/jolly-roger"
 				variant="secondary"
