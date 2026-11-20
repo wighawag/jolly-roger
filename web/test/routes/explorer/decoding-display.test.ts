@@ -12,7 +12,10 @@ import {
 	type Transaction,
 	type TransactionReceipt,
 } from 'viem';
-import {decodeTransaction} from '../../../src/routes/explorer/lib/services/transactionDecoder';
+import {
+	decodeTransaction,
+	formatDecodedTransaction,
+} from '../../../src/routes/explorer/lib/services/transactionDecoder';
 import type {DecodingContracts} from '../../../src/routes/explorer/lib/utils';
 
 const counterAbi = [
@@ -75,5 +78,62 @@ describe('a replay the node refuses', () => {
 		const decoded = await decodeTransaction(tx(), failed, client, contracts);
 
 		expect(decoded.error).toBe('historical state not available');
+	});
+});
+
+describe('a transaction the explorer cannot decode', () => {
+	const succeeded = {
+		status: 'success',
+		blockNumber: 1n,
+		logs: [],
+	} as unknown as TransactionReceipt;
+	const unusedClient = {} as PublicClient;
+	const unknownCall =
+		'0xdeadbeef0000000000000000000000000000000000000000000000000000000000000001';
+
+	it('is a transfer when it carries no data', async () => {
+		const decoded = await decodeTransaction(
+			tx({input: '0x', value: 1n}),
+			succeeded,
+			unusedClient,
+			contracts,
+		);
+		expect(decoded.selector).toBeUndefined();
+		expect(formatDecodedTransaction(decoded)).toMatchObject({
+			methodLabel: 'Transfer',
+			methodDetails: undefined,
+		});
+	});
+
+	it('is a call to an unknown contract when no contract has its address', async () => {
+		const decoded = await decodeTransaction(
+			tx({to: SENDER}),
+			succeeded,
+			unusedClient,
+			contracts,
+		);
+		expect(decoded.selector).toBe('0x70119d06');
+		expect(formatDecodedTransaction(decoded)).toMatchObject({
+			methodLabel: 'Call to an unknown contract',
+			methodDetails: '0x70119d06',
+		});
+	});
+
+	it('is an unknown function of a known contract when its ABI does not decode it', async () => {
+		const decoded = await decodeTransaction(
+			tx({input: unknownCall}),
+			succeeded,
+			unusedClient,
+			contracts,
+		);
+		expect(decoded).toMatchObject({
+			isDecoded: false,
+			contractName: 'Counter',
+			selector: '0xdeadbeef',
+		});
+		expect(formatDecodedTransaction(decoded)).toMatchObject({
+			methodLabel: 'Counter: unknown function',
+			methodDetails: '0xdeadbeef',
+		});
 	});
 });

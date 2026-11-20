@@ -33,6 +33,12 @@ export interface DecodedTransactionData {
 	contractName?: string;
 	args?: Record<string, unknown> | unknown[];
 	isDecoded: boolean;
+	/**
+	 * The call's 4-byte selector, set when the transaction carries data that
+	 * was not decoded (to an address no contract has, or a function its ABI
+	 * lacks), so a call is never shown as a transfer.
+	 */
+	selector?: `0x${string}`;
 	status: 'success' | 'failed' | 'pending';
 	error?: string;
 	decodedError?: DecodedErrorData;
@@ -309,6 +315,13 @@ export function formatDecodedError(error: DecodedErrorData): string {
 }
 
 /**
+ * The 4-byte selector a call's data starts with
+ */
+function selectorOf(input: `0x${string}`): `0x${string}` {
+	return input.slice(0, 10) as `0x${string}`;
+}
+
+/**
  * Get transaction status from receipt
  */
 function getTransactionStatus(
@@ -362,12 +375,17 @@ export async function decodeTransaction(
 	// Try to find contract by address
 	const contractInfo = findContractByAddress(tx.to, contracts);
 
-	// If it's a simple transfer (no function data or no contract found)
-	if (!contractInfo || tx.input === '0x' || tx.input === '0x0') {
+	const hasData = tx.input !== '0x' && tx.input !== '0x0';
+
+	// A transfer (no data), or a call to an address no contract has
+	if (!contractInfo || !hasData) {
 		const result: DecodedTransactionData = {
 			isDecoded: false,
 			status,
 		};
+		if (hasData) {
+			result.selector = selectorOf(tx.input);
+		}
 
 		// If simple transfer failed, try to decode the error
 		if (status === 'failed' && receipt) {
@@ -414,6 +432,8 @@ export async function decodeTransaction(
 	// Contract call but couldn't decode
 	const result: DecodedTransactionData = {
 		isDecoded: false,
+		contractName: contractInfo.name,
+		selector: selectorOf(tx.input),
 		status,
 	};
 
@@ -453,6 +473,11 @@ export function formatDecodedTransaction(
 		if (data.args) {
 			methodDetails = formatDecodedArgs(data.args);
 		}
+	} else if (data.selector) {
+		methodLabel = data.contractName
+			? `${data.contractName}: unknown function`
+			: 'Call to an unknown contract';
+		methodDetails = data.selector;
 	} else if (!data.functionName) {
 		methodLabel = 'Transfer';
 	} else if (data.functionName === 'Contract Creation') {
