@@ -42,15 +42,11 @@
 	import CopyIcon from '@lucide/svelte/icons/copy';
 	import LoaderCircleIcon from '@lucide/svelte/icons/loader-circle';
 	import ExternalLinkIcon from '@lucide/svelte/icons/external-link';
-	import {useRoute, useENS} from '$lib/core/capabilities';
+	import {useRoute, useENS, useBlockExplorer} from '$lib/core/capabilities';
 	import {createENSNameStore} from './ens';
 	import {createCopyToClipboard} from '$lib/core/ui/clipboard/copy-to-clipboard';
 	import {truncateHex} from '$lib/core/utils/format';
-	import {
-		getBlockExplorerAddressUrl,
-		hasBlockExplorer,
-		resolveLinkTo,
-	} from '$lib/core/utils/ethereum/blockExplorer';
+	import {resolveLinkTo} from '$lib/core/utils/ethereum/blockExplorer';
 
 	let {
 		class: className,
@@ -70,6 +66,8 @@
 	// optional; the store is inert when the capability is unprovided.
 	const route = useRoute();
 	const ensService = useENS();
+	// Optional too: without it `auto` resolves to no link.
+	const blockExplorer = useBlockExplorer();
 	const clipboard = createCopyToClipboard();
 
 	// ENS name resolution (fetch + stale-guard + loading) lives in the store.
@@ -93,19 +91,19 @@
 
 	const displayText = $derived(ensName || formatAddress(value));
 	const internalUrl = $derived(route(`/explorer/address/${value}`));
-	const externalUrl = $derived(getBlockExplorerAddressUrl(value));
-	const resolvedLinkTo = $derived(resolveLinkTo(linkTo));
+	const externalUrl = $derived(blockExplorer?.addressUrl(value) ?? null);
+	const resolvedLinkTo = $derived(resolveLinkTo(linkTo, blockExplorer));
 	// When internal is available (internal or both), text links to internal
 	const showInternalLink = $derived(
 		resolvedLinkTo === 'internal' || resolvedLinkTo === 'both',
 	);
 	// When external-only, text links directly to external (no icon)
 	const showExternalAsTextLink = $derived(
-		resolvedLinkTo === 'external' && hasBlockExplorer(),
+		resolvedLinkTo === 'external' && externalUrl !== null,
 	);
 	// When both, show external icon as secondary action
 	const showExternalIcon = $derived(
-		resolvedLinkTo === 'both' && hasBlockExplorer(),
+		resolvedLinkTo === 'both' && externalUrl !== null,
 	);
 </script>
 
