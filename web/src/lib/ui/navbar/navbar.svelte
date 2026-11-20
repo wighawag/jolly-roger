@@ -1,6 +1,6 @@
 <script lang="ts">
 	import {getAppContext, route} from '$lib';
-	import {GAME} from '$app-specific';
+	import {MAIN_PAGE} from '$app-specific';
 	import Button, {buttonVariants} from '$lib/shadcn/ui/button/button.svelte';
 	import EthereumAvatar from '../../core/ui/ethereum/EthereumAvatar.svelte';
 	import {Spinner} from '$lib/shadcn/ui/spinner/index.js';
@@ -183,12 +183,14 @@
 				Home
 			</a>
 			<a
-				href={route(GAME.route)}
-				class="rounded px-2 py-1 text-sm transition-colors {isActive(GAME.route)
+				href={route(MAIN_PAGE.route)}
+				class="rounded px-2 py-1 text-sm transition-colors {isActive(
+					MAIN_PAGE.route,
+				)
 					? 'bg-primary/20 font-semibold text-primary'
 					: 'text-muted-foreground hover:text-foreground hover:underline'}"
 			>
-				{GAME.name}
+				{MAIN_PAGE.name}
 			</a>
 			<a
 				href={route('/about/')}
