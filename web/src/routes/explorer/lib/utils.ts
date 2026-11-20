@@ -290,14 +290,3 @@ export function formatPreciseTimestamp(timestamp: number): string {
 		timeZoneName: 'short',
 	});
 }
-
-// ============================================================================
-// Block Explorer Utilities (re-exported from shared location)
-// ============================================================================
-
-export {
-	getBlockExplorerTxUrl,
-	getBlockExplorerAddressUrl,
-	getBlockExplorerName,
-	hasBlockExplorer,
-} from '$lib/core/utils/ethereum/blockExplorer';

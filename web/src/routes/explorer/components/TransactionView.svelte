@@ -28,10 +28,9 @@
 		findContractByAddress,
 		formatPreciseTimestamp,
 		formatTimestamp,
-		getBlockExplorerTxUrl,
 		getEip1559FeeInfo,
-		hasBlockExplorer,
 	} from '../lib/utils';
+	import {useBlockExplorer} from '$lib/core/capabilities';
 	import {getTransactionDetailsStore} from '../lib/stores/transactionDetails';
 	import {formatDecodedTransaction} from '../lib/services/transactionDecoder';
 
@@ -40,6 +39,8 @@
 	}
 
 	let {txHash}: Props = $props();
+
+	const blockExplorer = useBlockExplorer();
 
 	let {publicClient} = getAppContext();
 
@@ -163,8 +164,8 @@
 					</div>
 				</div>
 				<div class="flex gap-2">
-					{#if hasBlockExplorer() && txHash}
-						{@const explorerUrl = getBlockExplorerTxUrl(txHash)}
+					{#if blockExplorer && txHash}
+						{@const explorerUrl = blockExplorer.txUrl(txHash)}
 						{#if explorerUrl}
 							<Button
 								href={explorerUrl}

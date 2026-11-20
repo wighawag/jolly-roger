@@ -22,12 +22,8 @@
 	import Address from '$lib/core/ui/ethereum/Address.svelte';
 	import ContractFunction from '../../contracts/components/ContractFunction.svelte';
 	import {isViewFunction} from '../../contracts/lib/utils';
-	import {
-		isContract,
-		formatBytecode,
-		getBlockExplorerAddressUrl,
-		hasBlockExplorer,
-	} from '../lib/utils';
+	import {isContract, formatBytecode} from '../lib/utils';
+	import {useBlockExplorer} from '$lib/core/capabilities';
 	import {getAddressDataStore} from '../lib/stores/addressData';
 	import {formatEther} from 'viem';
 
@@ -36,6 +32,8 @@
 	}
 
 	let {address}: Props = $props();
+
+	const blockExplorer = useBlockExplorer();
 
 	let {
 		publicClient,
@@ -134,8 +132,8 @@
 					{/if}
 				</div>
 				<div class="flex gap-2">
-					{#if hasBlockExplorer() && address}
-						{@const explorerUrl = getBlockExplorerAddressUrl(address)}
+					{#if blockExplorer && address}
+						{@const explorerUrl = blockExplorer.addressUrl(address)}
 						{#if explorerUrl}
 							<Button
 								href={explorerUrl}

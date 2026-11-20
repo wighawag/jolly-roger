@@ -6,6 +6,7 @@ export type {
 } from './define';
 export {provideRoute, useRoute, type RouteResolver} from './route';
 export {provideENS, useENS} from './ens';
+export {provideBlockExplorer, useBlockExplorer} from './block-explorer';
 export {provideNavigation, useNavigation} from './navigation';
 export {
 	provideDocumentLocation,
