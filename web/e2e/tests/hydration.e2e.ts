@@ -1,5 +1,5 @@
 import {test, expect, describe} from '../fixtures/test';
-import {GAME} from '../routes';
+import {MAIN_PAGE} from '../routes';
 
 // The app server-renders its chrome in the disconnected state and the browser's
 // first render is that same state, which is what makes prerendering safe
@@ -10,7 +10,7 @@ import {GAME} from '../routes';
 // this is the gate for SSR/CSR *divergence*, which a successful build cannot
 // catch.
 describe('Hydration', () => {
-	for (const path of ['/', GAME.route]) {
+	for (const path of ['/', MAIN_PAGE.route]) {
 		test(`hydrates ${path} without a mismatch`, async ({page}) => {
 			const complaints: string[] = [];
 			const record = (text: string) => {
