@@ -1,12 +1,13 @@
-import {describe, it, expect, vi} from 'vitest';
+import {describe, it, expect} from 'vitest';
 import {render} from 'vitest-browser-svelte';
 
-// blockExplorer reads $env/static/public; stub it so the internal-link branch
-// is deterministic. The component itself no longer imports the $lib app barrel,
-// so no $env/dynamic/public stub is needed.
-vi.mock('$env/static/public', () => ({PUBLIC_USE_INTERNAL_EXPLORER: 'true'}));
-
 import TransactionHash from '$lib/core/ui/ethereum/TransactionHash.svelte';
+import {createBlockExplorer} from '$lib/core/utils/ethereum/blockExplorer';
+import WithBlockExplorer from './WithBlockExplorer.svelte';
+
+const etherscan = {
+	blockExplorers: {default: {name: 'Etherscan', url: 'https://etherscan.io'}},
+};
 
 const HASH =
 	'0xabcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789';
@@ -49,5 +50,43 @@ describe('TransactionHash.svelte', () => {
 		await expect
 			.element(link)
 			.toHaveAttribute('href', expect.stringContaining(`/explorer/tx/${HASH}`));
+	});
+
+	it('renders no link for linkTo "auto" when no block explorer is provided', async () => {
+		const screen = await render(TransactionHash, {value: HASH, linkTo: 'auto'});
+		await expect.element(screen.getByRole('link')).not.toBeInTheDocument();
+	});
+
+	it('links internally and to the provided explorer for linkTo "auto"', async () => {
+		const screen = await render(WithBlockExplorer, {
+			explorer: createBlockExplorer({
+				chain: () => etherscan,
+				internal: () => true,
+			}),
+			component: TransactionHash,
+			innerProps: {value: HASH, linkTo: 'auto'},
+		});
+		const links = screen.getByRole('link');
+		await expect
+			.element(links.first())
+			.toHaveAttribute('href', expect.stringContaining(`/explorer/tx/${HASH}`));
+		await expect
+			.element(links.last())
+			.toHaveAttribute('href', `https://etherscan.io/tx/${HASH}`);
+	});
+
+	it('links the text to the provided explorer when there is no internal one', async () => {
+		const screen = await render(WithBlockExplorer, {
+			explorer: createBlockExplorer({
+				chain: () => etherscan,
+				internal: () => false,
+			}),
+			component: TransactionHash,
+			innerProps: {value: HASH, linkTo: 'auto'},
+		});
+		const link = screen.getByRole('link');
+		await expect
+			.element(link)
+			.toHaveAttribute('href', `https://etherscan.io/tx/${HASH}`);
 	});
 });

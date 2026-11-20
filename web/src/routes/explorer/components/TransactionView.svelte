@@ -4,6 +4,7 @@
 	import {bigIntReplacer} from '$lib/core/utils/format/json';
 	import DefaultHead from '$lib/metadata/DefaultHead.svelte';
 	import {getAppContext} from '$lib';
+	import {deployments} from '$lib/deployments-store';
 	import * as Card from '$lib/shadcn/ui/card';
 	import * as Alert from '$lib/shadcn/ui/alert';
 	import * as Separator from '$lib/shadcn/ui/separator';
@@ -28,10 +29,9 @@
 		findContractByAddress,
 		formatPreciseTimestamp,
 		formatTimestamp,
-		getBlockExplorerTxUrl,
 		getEip1559FeeInfo,
-		hasBlockExplorer,
 	} from '../lib/utils';
+	import {useBlockExplorer} from '$lib/core/capabilities';
 	import {getTransactionDetailsStore} from '../lib/stores/transactionDetails';
 	import {formatDecodedTransaction} from '../lib/services/transactionDecoder';
 
@@ -40,6 +40,8 @@
 	}
 
 	let {txHash}: Props = $props();
+
+	const blockExplorer = useBlockExplorer();
 
 	let {publicClient} = getAppContext();
 
@@ -163,8 +165,8 @@
 					</div>
 				</div>
 				<div class="flex gap-2">
-					{#if hasBlockExplorer() && txHash}
-						{@const explorerUrl = getBlockExplorerTxUrl(txHash)}
+					{#if blockExplorer && txHash}
+						{@const explorerUrl = blockExplorer.txUrl(txHash)}
 						{#if explorerUrl}
 							<Button
 								href={explorerUrl}
@@ -453,7 +455,10 @@
 						{:else}
 							<div class="space-y-4">
 								{#each decodedEvents as event}
-									{@const contractInfo = findContractByAddress(event.address)}
+									{@const contractInfo = findContractByAddress(
+										event.address,
+										deployments.get().contracts,
+									)}
 									<div class="rounded-lg border p-4">
 										<div class="mb-2 flex items-start justify-between">
 											<div>
