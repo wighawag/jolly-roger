@@ -22,26 +22,33 @@
 </script>
 
 <!--
-	THE PAINT OF A NOTIFICATION, and the one notification file a kit rewrites.
+	THE PAINT OF A NOTIFICATION, here in Tailwind UI classes: the one
+	notification file this kit rewrites. The behaviour (which notifications, their
+	actions, the live region) is the root's, in `./Notifications.svelte`,
+	`../service-worker/VersionAndInstallNotfications.svelte` and `./view.ts`.
 
-	Which notifications show, which actions they offer and the live region they
-	are announced in are the behaviour, in `./Notifications.svelte`,
-	`../service-worker/VersionAndInstallNotfications.svelte` and `./view.ts`, the
-	same at every level. This file only paints what it is handed, here in plain
-	CSS; a level with a UI kit (Tailwind, shadcn) replaces it, keeping these
-	props, so restyling the notifications is one modified file.
+	Entering: "transform ease-out duration-300 transition"
+	  From: "translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
+	  To: "translate-y-0 opacity-100 sm:translate-x-0"
+	Leaving: "transition ease-in duration-100"
+	  From: "opacity-100"
+	  To: "opacity-0"
 -->
 <div
-	class={['notification-panel', className, classes.root]}
+	class={[
+		'pointer-events-auto w-full max-w-sm overflow-hidden rounded-lg bg-white shadow-lg ring-1 ring-black/5',
+		className,
+		classes.root,
+	]}
 	transition:fly={{delay: 250, duration: 300, x: +100}}
 >
-	<div class="notification-content">
-		<div class={['icon-container', classes.icon]}>
+	<div class="flex items-start p-4">
+		<div class={['shrink-0', classes.icon]}>
 			{#if notification.icon}
 				<img src={notification.icon} alt="icon" />
 			{:else}
 				<svg
-					class="notification-icon"
+					class="size-6 text-gray-400"
 					fill="none"
 					viewBox="0 0 24 24"
 					stroke-width="1.5"
@@ -57,24 +64,28 @@
 				</svg>
 			{/if}
 		</div>
-		<div class="notification-text">
-			<p class={['notification-title', classes.title]}>
+		<div class="ml-3 w-0 flex-1 pt-0.5">
+			<p class={['text-sm font-medium text-gray-900', classes.title]}>
 				{notification.title}
 			</p>
 			{#if notification.body}
-				<p class={['notification-body', classes.body]}>
+				<p class={['mt-1 text-sm text-gray-500', classes.body]}>
 					{notification.body}
 				</p>
 			{/if}
 			{#if actions.length > 0}
-				<div class={['button-container', classes.actions]}>
+				<div class={['mt-3 flex space-x-7', classes.actions]}>
 					{#each actions as action}
 						<button
 							type="button"
 							class={[
-								'notification-button',
-								action.primary && 'primary',
-								action.primary ? classes.primaryButton : classes.button,
+								'rounded-md bg-white text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none',
+								action.primary
+									? [
+											'text-indigo-600 hover:text-indigo-500',
+											classes.primaryButton,
+										]
+									: ['text-gray-700 hover:text-gray-500', classes.button],
 							]}
 							onclick={() => action.onClick()}>{action.label}</button
 						>
@@ -84,90 +95,3 @@
 		</div>
 	</div>
 </div>
-
-<style>
-	.notification-panel {
-		pointer-events: auto;
-		width: 100%;
-		max-width: 24rem;
-		overflow: hidden;
-		border-radius: 0.5rem;
-		background-color: white;
-		border: 1px solid rgb(0 0 0 / 0.05);
-		box-shadow:
-			0 10px 15px -3px rgb(0 0 0 / 0.1),
-			0 4px 6px -4px rgb(0 0 0 / 0.1);
-	}
-
-	.notification-content {
-		display: flex;
-		align-items: flex-start;
-		padding: 1rem;
-	}
-
-	.icon-container {
-		flex-shrink: 0;
-	}
-
-	.notification-icon {
-		width: 1.5rem;
-		height: 1.5rem;
-		color: rgb(156 163 175);
-	}
-
-	.notification-text {
-		margin-left: 0.75rem;
-		width: 0;
-		flex: 1;
-		padding-top: 0.125rem;
-	}
-
-	.notification-title {
-		font-size: 0.875rem;
-		font-weight: 500;
-		color: rgb(17 24 39);
-	}
-
-	.notification-body {
-		margin-top: 0.25rem;
-		font-size: 0.875rem;
-		color: rgb(107 114 128);
-	}
-
-	.button-container {
-		margin-top: 0.75rem;
-		display: flex;
-		gap: 1.75rem;
-	}
-
-	.notification-button {
-		border-radius: 0.375rem;
-		background: transparent;
-		font-size: 0.875rem;
-		font-weight: 500;
-		color: rgb(55 65 81);
-		border: none;
-		cursor: pointer;
-		padding: 0;
-	}
-
-	.notification-button:hover {
-		color: rgb(107 114 128);
-	}
-
-	.notification-button.primary {
-		color: rgb(79 70 229);
-	}
-
-	.notification-button.primary:hover {
-		color: rgb(67 56 202);
-	}
-
-	.notification-button:focus {
-		outline: none;
-	}
-
-	.notification-button:focus-visible {
-		box-shadow: 0 0 0 2px rgb(99 102 241);
-	}
-</style>
