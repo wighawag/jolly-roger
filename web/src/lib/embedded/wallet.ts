@@ -78,7 +78,7 @@ export type EmbeddedWallet = {
  * IT IS STILL ANNOUNCED over EIP-6963, even though the world's connection is
  * handed the handle directly and never looks at the announcements. Two small
  * reasons: a player who opens the app's ordinary wallet picker should be able
- * to SEE the thing their offline game is using rather than wonder what signed,
+ * to SEE the thing their offline app is using rather than wonder what signed,
  * and the announcement is what makes the wallet reachable from a console or a
  * test without holding the world object.
  *
@@ -114,7 +114,7 @@ export async function announceEmbeddedWallet(params: {
 		nodeURL: provider,
 		// ONE ACCOUNT, because ten is a question nobody asked. A wallet offering
 		// several makes the connection show an account picker, which is a second
-		// dialog between a player and a game they have already chosen to play.
+		// dialog between a player and an app they have already chosen to use.
 		// A bound on derivation rather than a filter: the others are never
 		// derived, so nothing downstream can reveal them. Several only when the
 		// caller has several people to seat, and then the world's connection

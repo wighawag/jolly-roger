@@ -216,7 +216,7 @@ let announced: (() => void) | undefined;
  *
  * NOT a teardown of the world, deliberately: the chain outlives the page that
  * showed it, and disposing of it on unmount is how a router deletes somebody's
- * game.
+ * world.
  */
 export function stopAnnouncingOfflineWallet(): void {
 	announced?.();

@@ -64,7 +64,7 @@ export type DeployedContractRecord = {
  * saying anything here and something else has to. A missing contract is a
  * deploy script the world forgot to run, and without this it surfaces as
  * `Cannot read properties of undefined` somewhere far away, in a tab, after
- * the player has started a game.
+ * the player has started using the app.
  */
 export function createEmbeddedDeployments(params: {
 	chainId: number;

@@ -51,7 +51,7 @@ describe('the config an in-tab deploy runs under', () => {
 	});
 
 	it('merges deploy data per key, so a world declaring one does not erase the others', () => {
-		// This is where a game says what its OFFLINE deployment is - for a
+		// This is where an app says what its OFFLINE deployment is - for a
 		// commit-reveal game, the manual cycle policy and zero phase durations.
 		const composed = composeWorldConfig({
 			config: appConfig,

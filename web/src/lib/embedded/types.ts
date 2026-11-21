@@ -11,7 +11,7 @@ export type EIP1193ProviderLike = {
  * One rocketh deploy script, as `@rocketh/web` takes it.
  *
  * `module` is the script's default export. Typed loosely on purpose: the
- * scripts belong to the GAME, they are compiled from that package's own
+ * scripts belong to the APP, they are compiled from that package's own
  * sources, and this layer only carries them from the app to rocketh. Naming
  * rocketh's generic `ModuleObject` here would make every app's deploy script
  * satisfy a type parameterised by that app's own named accounts and data,

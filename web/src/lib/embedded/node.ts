@@ -53,7 +53,7 @@ export type StartEmbeddedNodeParams = {
  * a mempool, and in the tab there is no second node holding it, so a
  * transaction resident in it exists in exactly one place; automine mines one
  * block per raw transaction, so nothing is ever resident. And it moves the
- * chain's clock underneath a game that has deliberately been given no clock.
+ * chain's clock underneath an app that has deliberately been given no clock.
  *
  * THE ONE THING TO KNOW BEFORE DEPLOYING A *TIMED* GAME IN THE TAB, measured
  * 2026-09-19: `eth_call` and `eth_estimateGas` run against the LAST MINED
@@ -75,7 +75,7 @@ const MINING = {type: 'auto'} as const;
  * a seat the world plays, the player's own commit. The polling state store
  * downstream does exactly that (template-commit-reveal's `onchain/state.ts`
  * reads the head, and its games pin each `readContract` batch to it), so this is
- * the mechanism's to answer, not each game's.
+ * the mechanism's to answer, not each app's.
  *
  * Up to webevm 0.7.0 the node ignored the pin and answered from the head. Since
  * 0.8.0 it refuses a state read below its head unless it keeps a window of

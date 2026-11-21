@@ -2,7 +2,7 @@ import {setupEnvironment, createVFSDeploymentStore} from '@rocketh/web';
 import type {DeployScript, EIP1193ProviderLike, RockethSetup} from './types.js';
 
 /**
- * RUN THE GAME'S OWN DEPLOY SCRIPTS, in the tab, against the chain in the tab.
+ * RUN THE APP'S OWN DEPLOY SCRIPTS, in the tab, against the chain in the tab.
  *
  * The alternative was to bake a state dump at build time and load it. Running
  * the real scripts wins for a reason that is about this repo rather than about
@@ -41,14 +41,14 @@ export type DeployWorldParams = {
 	 * per-network `data`, so it is what decides the cycle policy, the phase
 	 * durations and every other figure the deployment declares. A world names
 	 * its own rather than borrowing `localhost`, so that changing what an
-	 * offline game is does not change what a developer's local chain is.
+	 * offline world is does not change what a developer's local chain is.
 	 */
 	environment: string;
 	/** Named account -> private key. Every account the scripts name needs one. */
 	accounts: Record<string, `0x${string}`>;
 	/**
 	 * Per-environment deploy data for this world, merged into the app's config
-	 * under `environment`. This is where a game says what its OFFLINE deployment
+	 * under `environment`. This is where an app says what its OFFLINE deployment
 	 * is - for a commit-reveal game, the manual cycle policy and zero phase
 	 * durations.
 	 */
