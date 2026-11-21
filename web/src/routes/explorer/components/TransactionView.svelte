@@ -33,7 +33,7 @@
 	} from '../lib/utils';
 	import {useBlockExplorer} from '$lib/core/capabilities';
 	import {getTransactionDetailsStore} from '../lib/stores/transactionDetails';
-	import {formatDecodedTransaction} from '../lib/services/transactionDecoder';
+	import {transactionHeadline} from '../lib/services/transactionDecoder';
 
 	interface Props {
 		txHash: `0x${string}` | null;
@@ -54,7 +54,11 @@
 	let error = $derived($details.error);
 	let decodedEvents = $derived($details.decodedEvents);
 	let decodedTxData = $derived($details.decodedTxData);
-	let formattedTxData = $derived(formatDecodedTransaction(decodedTxData));
+	// What the page is headed by: the decoder's label (and selector) for this
+	// transaction, whatever it is.
+	let headline = $derived(
+		tx ? transactionHeadline(tx, decodedTxData) : undefined,
+	);
 
 	// Fetch when txHash changes
 	$effect(() => {
@@ -118,20 +122,14 @@
 			>
 				<div class="flex-1">
 					<!-- Transaction Method/Function -->
-					{#if decodedTxData.isDecoded && formattedTxData.methodLabel}
-						<div class="text-2xl font-bold">{formattedTxData.methodLabel}</div>
-						{#if formattedTxData.methodDetails}
-							<div
-								class="truncate text-sm text-muted-foreground"
-								title={formattedTxData.methodDetails}
-							>
-								{formattedTxData.methodDetails}
-							</div>
-						{/if}
-					{:else if tx.to}
-						<div class="text-2xl font-bold">Contract Call</div>
-					{:else}
-						<div class="text-2xl font-bold">Contract Creation</div>
+					<div class="text-2xl font-bold">{headline?.label}</div>
+					{#if headline?.details}
+						<div
+							class="truncate text-sm text-muted-foreground"
+							title={headline.details}
+						>
+							{headline.details}
+						</div>
 					{/if}
 
 					<!-- Transaction Hash -->
