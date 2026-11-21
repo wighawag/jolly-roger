@@ -12,6 +12,9 @@
 
 {@render children()}
 
-<Notifications {notifications} />
-
+<!-- The update notice before the notifications, so a notification paints over
+     it where they meet: what the user has to act on beats a reload that can
+     wait. -->
 <VersionAndInstallNotfications {serviceWorker} />
+
+<Notifications {notifications} />
