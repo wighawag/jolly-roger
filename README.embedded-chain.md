@@ -13,6 +13,8 @@ Named for the CAPABILITY and not for the library. The library has already been r
 | the mechanism | `web/src/lib/embedded/` (chain id, node, deploy, deployment records, wallet, world) |
 | its tests | `web/test/lib/embedded/` (20: 18 in node, 2 in a browser) |
 | **this app's** offline world | `web/src/lib/offline.ts` |
+| the boot every app's world shares: the opener, the boot's memo, the world's connect | `web/src/lib/offline-world.ts` (its tests `web/test/lib/offline-world.test.ts`) |
+| the demo end to end | `web/e2e/tests/offline-demo.e2e.ts` |
 | the demo that shows it | `web/src/routes/offline-demo/+page.svelte` |
 | shared files edited | seven, listed below |
 
