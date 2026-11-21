@@ -32,11 +32,30 @@ export type NotificationAction = {
 };
 
 /**
+ * How a card is laid out: `card`, a panel in a stack (the notifications), or
+ * `banner`, one row across the top of the page (the update notice, by
+ * default). Each kit's card honours both.
+ */
+export type NotificationLayout = 'card' | 'banner';
+
+/**
+ * Where the update notice shows: `banner`, across the top (the default, so it
+ * never shares the corner the notifications stack in), or `corner`, a card
+ * stacked where the notifications are.
+ */
+export type NoticePlacement = 'banner' | 'corner';
+
+/**
  * The parts of a card a caller may add classes to, through a component's
  * `classes` prop. Every card honours `root`; the others are the kit's to
  * honour where it has that part.
  */
 export type NotificationClasses = {
+	/**
+	 * The region the update notice is placed in (its full-width strip as a
+	 * banner), honoured by the component rather than the card
+	 */
+	region?: string;
 	/** Root container of the notification */
 	root?: string;
 	/** Icon wrapper */
