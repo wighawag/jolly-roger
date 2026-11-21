@@ -4,11 +4,14 @@
 		NotificationAction,
 		NotificationClasses,
 		NotificationData,
+		NotificationLayout,
 	} from './view';
 
 	interface Props {
 		notification: NotificationData;
 		actions: NotificationAction[];
+		/** a panel in a stack, or one row across the page */
+		layout?: NotificationLayout;
 		class?: string;
 		classes?: Partial<NotificationClasses>;
 	}
@@ -16,6 +19,7 @@
 	const {
 		notification,
 		actions,
+		layout = 'card',
 		class: className = '',
 		classes = {},
 	}: Props = $props();
@@ -32,7 +36,12 @@
 	props, so restyling the notifications is one modified file.
 -->
 <div
-	class={['notification-panel', className, classes.root]}
+	class={[
+		'notification-panel',
+		layout === 'banner' && 'banner',
+		className,
+		classes.root,
+	]}
 	transition:fly={{delay: 250, duration: 300, x: +100}}
 >
 	<div class="notification-content">
@@ -58,14 +67,16 @@
 			{/if}
 		</div>
 		<div class="notification-text">
-			<p class={['notification-title', classes.title]}>
-				{notification.title}
-			</p>
-			{#if notification.body}
-				<p class={['notification-body', classes.body]}>
-					{notification.body}
+			<div>
+				<p class={['notification-title', classes.title]}>
+					{notification.title}
 				</p>
-			{/if}
+				{#if notification.body}
+					<p class={['notification-body', classes.body]}>
+						{notification.body}
+					</p>
+				{/if}
+			</div>
 			{#if actions.length > 0}
 				<div class={['button-container', classes.actions]}>
 					{#each actions as action}
@@ -122,14 +133,37 @@
 		padding-top: 0.125rem;
 	}
 
+	.banner {
+		max-width: 42rem;
+	}
+
+	.banner .notification-content {
+		align-items: center;
+		padding: 0.75rem 1rem;
+	}
+
+	.banner .notification-text {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem 1.5rem;
+		padding-top: 0;
+	}
+
+	.banner .button-container {
+		margin-top: 0;
+	}
+
 	.notification-title {
+		margin: 0;
 		font-size: 0.875rem;
 		font-weight: 500;
 		color: rgb(17 24 39);
 	}
 
 	.notification-body {
-		margin-top: 0.25rem;
+		margin: 0.25rem 0 0;
 		font-size: 0.875rem;
 		color: rgb(107 114 128);
 	}
