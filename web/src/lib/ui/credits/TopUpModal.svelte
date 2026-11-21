@@ -6,9 +6,13 @@
 	import AlertTriangleIcon from '@lucide/svelte/icons/alert-triangle';
 	import CoinsIcon from '@lucide/svelte/icons/coins';
 	import KeyRoundIcon from '@lucide/svelte/icons/key-round';
-	import {hasFaucet} from '$lib/core/ui/faucet/index.js';
+	import {faucetConfigured} from '$lib/core/ui/faucet/index.js';
+	import {useFaucet} from '$lib/core/capabilities';
 	import {getAppContext} from '$lib';
 	import {deployments} from '$lib/deployments-store';
+
+	// Offered only when the app provides a faucet with an API or a link.
+	const hasFaucet = faucetConfigured(useFaucet());
 
 	// Every decision below (which methods exist, which step, how much, what it
 	// buys, whether this also authorises the browser) is made in

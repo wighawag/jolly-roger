@@ -129,12 +129,9 @@ web/src/routes/demo/+page.svelte                       the demo offers the signe
 web/src/routes/demo/lib/setGreeting.ts                 a greeting sent by the local signer through setMessageFor
 
 # The e2e
-web/e2e/fixtures/stalling-wallet.ts                    the stalled write goes through /contracts here, since the demo's Send never reaches the wallet
 web/e2e/fixtures/test.ts                               the delegation, the faucet and the burner's funding in the fixtures
 web/e2e/impersonate-addresses.json                     the faucet's address
 web/e2e/tests/demo.e2e.ts                              a greeting belongs to the account, posted by its delegate
-web/e2e/tests/escape-hatch.e2e.ts                      the reconnect names the address it needs; the wallet list reached collapsed or not
-web/e2e/tests/pending-operation.e2e.ts                 the inspector's cases given the delegation fixture they need
 
 # Unit tests of the above
 web/test/e2e-account-claims.test.ts                    the stalling-wallet guard matches an import, not a mention (967b10b2; generic, its home is main: a K item)
