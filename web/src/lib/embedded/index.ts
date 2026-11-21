@@ -1,10 +1,10 @@
 /**
- * AN EMBEDDED CHAIN: the mechanism, with no route and no opinion about what a
- * game does with it.
+ * AN EMBEDDED CHAIN: the mechanism, with no route and no opinion about what an
+ * app does with it.
  *
  * `embedded-chain` is the MECHANISM's word and belongs to the framework;
- * `offline` is the EXPERIENCE a player chooses and belongs to the game. Nothing
- * in this folder says `offline`, deliberately, and a game's own launch menu
+ * `offline` is the EXPERIENCE a player chooses and belongs to the app. Nothing
+ * in this folder says `offline`, deliberately, and an app's own launch menu
  * should.
  *
  * WHY THE MECHANISM IS HERE AND NOT IN THE ROUTE THAT DEMOS IT. A descendant of

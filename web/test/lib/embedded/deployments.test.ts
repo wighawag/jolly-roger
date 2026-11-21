@@ -14,7 +14,7 @@ describe('the deployment records of the world in the tab', () => {
 		// cannot carry the build-time literal type), so the type system stops
 		// saying anything and this has to. Without it, a deploy script the world
 		// forgot surfaces as `Cannot read properties of undefined`, in a tab,
-		// after the player has started a game.
+		// after the player has started using the app.
 		expect(() =>
 			createEmbeddedDeployments({
 				chainId: 9007199254740000,

@@ -35,15 +35,15 @@ export type EmbeddedWorld = {
 };
 
 /**
- * WHO IS GIVEN WHAT, BEFORE THE GAME STARTS - and it is a hook rather than a
+ * WHO IS GIVEN WHAT, BEFORE THE APP STARTS - and it is a hook rather than a
  * list because the answer is never the framework's.
  *
- * An offline player needs gas, and every game beyond the simplest needs more:
- * this template's reference game needs an ERC20 stake bonded at commit time,
- * an NFT-identity game needs a token it owns, another game needs a starting
- * position. Written into the world per branch, that list lands in the ALLOWED
+ * An offline player needs gas, and every app beyond the simplest needs more:
+ * template-commit-reveal's reference game needs an ERC20 stake bonded at commit
+ * time, an NFT-identity game needs a token it owns, another game needs a
+ * starting position. Written into the world per branch, that list lands in the ALLOWED
  * divergence tables of every branch that has it and is maintained in four
- * places. Written as a hook, the world supplies the chain and the game
+ * places. Written as a hook, the world supplies the chain and the app
  * supplies the meaning, and a branch adds a FILE rather than editing a shared
  * one.
  *
@@ -55,7 +55,7 @@ export type EmbeddedWorld = {
 export type ProvisionParams = {
 	env: EmbeddedWorld['env'];
 	node: Awaited<ReturnType<typeof startEmbeddedNode>>;
-	/** Handed straight through from the spec, so a game can address its player. */
+	/** Handed straight through from the spec, so an app can address its player. */
 	accounts: Record<string, `0x${string}`>;
 };
 
