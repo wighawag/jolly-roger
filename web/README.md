@@ -28,7 +28,6 @@ Several hard problems are already solved, with the reasoning next to the code. E
 - [`core/funding/`](src/lib/core/funding/README.md) : who can pay, how much they can send, and the two funding failures nobody anticipates (an empty payer needing the faucet, and a wallet reporting a stale balance right after being funded).
 - [`core/capabilities/`](src/lib/core/capabilities/README.md) : what is passed down the component tree, and what is not.
 - [`core/ui/`](src/lib/core/ui/README.md) : overlays, modals and the confirmation mechanism.
-- [`core/service-worker/push-notifications/`](src/lib/core/service-worker/push-notifications/README.md) : the notification pipeline.
 - [`kit/`](src/lib/kit/README.md) : the framework boundary, and the test that enforces it.
 
 The _why_ behind the non-obvious decisions is written down as ADRs on the `work` branch, cited from the code as "ADR-0004 (`work` branch)". They are not checked out; read one with `git show work:docs/adr/0004-view-and-system-overlays.md`.

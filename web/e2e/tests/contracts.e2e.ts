@@ -1,4 +1,14 @@
 import {test, expect, describe} from '../fixtures/test';
+import {MAIN_PAGE} from '../routes';
+import {
+	executeButton,
+	fillWrite,
+	openContract,
+	openWrite,
+	READ_FUNCTION,
+	WRITE_CONTRACT,
+	WRITE_FUNCTION,
+} from '../fixtures/contracts-page';
 
 describe('Contracts Page', () => {
 	test('should show contract selection dropdown', async ({page}) => {
@@ -11,13 +21,13 @@ describe('Contracts Page', () => {
 		await expect(selector).toBeVisible({timeout: 5000});
 	});
 
-	test('should display GreetingsRegistry contract by default', async ({
+	test("should display the main page's contract once selected", async ({
 		page,
 	}) => {
-		await page.goto('/contracts');
+		await openContract(page);
 
-		// Should show the GreetingsRegistry contract (as button or heading)
-		await expect(page.getByText('GreetingsRegistry').first()).toBeVisible({
+		// Should show the contract (as button or heading)
+		await expect(page.getByText(WRITE_CONTRACT).first()).toBeVisible({
 			timeout: 5000,
 		});
 	});
@@ -31,7 +41,7 @@ describe('Contracts Page', () => {
 	});
 
 	test('should have Read and Write tabs', async ({page}) => {
-		await page.goto('/contracts');
+		await openContract(page);
 
 		// Should have Read and Write tabs
 		await expect(page.getByRole('tab', {name: 'Read'})).toBeVisible({
@@ -41,7 +51,7 @@ describe('Contracts Page', () => {
 	});
 
 	test('should display view functions in Read tab', async ({page}) => {
-		await page.goto('/contracts');
+		await openContract(page);
 
 		// Wait for Read tab to be visible and click it
 		const readTab = page.getByRole('tab', {name: 'Read'});
@@ -53,40 +63,37 @@ describe('Contracts Page', () => {
 			page.getByRole('heading', {name: 'View Functions'}),
 		).toBeVisible({timeout: 5000});
 
-		// Should list the getLastMessages or messages function
-		await expect(
-			page
-				.getByText('getLastMessages')
-				.first()
-				.or(page.getByText('messages').first()),
-		).toBeVisible({timeout: 5000});
+		// Should list the contract's view function (`MAIN_PAGE.read`)
+		await expect(page.getByText(READ_FUNCTION).first()).toBeVisible({
+			timeout: 5000,
+		});
 	});
 
 	test('should display write functions in Write tab', async ({page}) => {
-		await page.goto('/contracts');
+		await openContract(page);
 
 		// Wait for Write tab to be visible and click it
 		const writeTab = page.getByRole('tab', {name: 'Write'});
 		await expect(writeTab).toBeVisible({timeout: 5000});
 		await writeTab.click();
 
-		// Should show the setMessage function
-		await expect(page.getByText('setMessage').first()).toBeVisible({
+		// Should show the write (`MAIN_PAGE.write`)
+		await expect(page.getByText(WRITE_FUNCTION).first()).toBeVisible({
 			timeout: 5000,
 		});
 	});
 
 	test('should be able to call a view function', async ({page}) => {
-		await page.goto('/contracts');
+		await openContract(page);
 
 		// Wait for Read tab and click it
 		const readTab = page.getByRole('tab', {name: 'Read'});
 		await expect(readTab).toBeVisible({timeout: 5000});
 		await readTab.click();
 
-		// Find the getLastMessages function card and expand it or click call
+		// Find the view function's card and expand it or click call
 		const functionCard = page.locator('[class*="card"]').filter({
-			hasText: 'getLastMessages',
+			hasText: READ_FUNCTION,
 		});
 
 		// If there's a limit input, fill it
@@ -134,44 +141,20 @@ describe('Contracts Page', () => {
 });
 
 describe('Contracts Page - Write Functions', () => {
-	// Write from the SECOND burner account: the GreetingsRegistry keeps one
-	// message per account and the demo suite (running in a parallel worker)
-	// writes from the first account. Distinct accounts = no cross-file clobber.
+	// Its own burner account: files run in parallel workers, and two files
+	// sending from the same account race each other for a nonce (and the
+	// greetings demo keeps one message per account, which the demo suite writes
+	// from the first).
 	test.use({walletAccountIndex: 1});
 
 	test('should trigger wallet connection when calling write function', async ({
 		page,
 	}) => {
-		await page.goto('/contracts');
-
-		// Wait for Write tab to be visible and click it
-		const writeTab = page.getByRole('tab', {name: 'Write'});
-		await expect(writeTab).toBeVisible({timeout: 10000});
-		await writeTab.click();
-
-		// Wait for setMessage text to appear
-		const setMessageText = page.getByText('setMessage nonpayable');
-		await expect(setMessageText).toBeVisible({timeout: 10000});
-
-		// Find the parent section containing the function
-		const functionSection = page
-			.locator('[class*="card"], [class*="function"]')
-			.filter({
-				has: setMessageText,
-			})
-			.first();
-
-		// Fill in the message input (placeholder "Enter text...")
-		const messageInput = functionSection
-			.getByPlaceholder('Enter text...')
-			.first();
-		await messageInput.fill('Test message from contracts page');
+		await openWrite(page);
+		await fillWrite(page, 'Test message from contracts page');
 
 		// Click the Execute button (or Connect + Execute if wallet not connected)
-		const executeButton = functionSection.getByRole('button', {
-			name: /execute/i,
-		});
-		await executeButton.click();
+		await executeButton(page).click();
 
 		// If wallet is not connected, some step of the connect flow should appear:
 		// the connect entry (dev-mode or wallet button), or, when the single wallet
@@ -210,17 +193,13 @@ describe('Contracts Page - Write Functions', () => {
 
 		const page = connectedPage;
 
-		// Navigate to contracts page (connectedPage starts at /demo)
-		await page.goto('/contracts');
+		// To /contracts by a client-side navigation (connectedPage starts on the
+		// main page), so the connection it made is the one the write uses.
+		await openWrite(page);
 
-		// Wait for page to load
-		await expect(
-			page.getByText('Interact with deployed smart contracts'),
-		).toBeVisible({timeout: 10000});
-
-		// Wait for the connection to finish re-establishing after navigation.
-		// Interacting before it settles makes the execute click open the connect
-		// modal instead of sending the tx.
+		// Wait for the connection to be the app's before executing: interacting
+		// before it settles makes the execute click open the connect modal instead
+		// of sending the tx.
 		//
 		// Assert the app's own connection flag: waiting for the "Loading Connect"
 		// button to be hidden is satisfied both when connected AND when plainly
@@ -232,57 +211,26 @@ describe('Contracts Page - Write Functions', () => {
 			{timeout: 30000},
 		);
 
-		// Wait for Write tab to be visible and click it
-		const writeTab = page.getByRole('tab', {name: 'Write'});
-		await expect(writeTab).toBeVisible({timeout: 10000});
-		await writeTab.click();
+		const label = `Contract test ${Date.now()}`;
+		await fillWrite(page, label);
+		await executeButton(page).click();
 
-		// Wait for setMessage text to appear
-		const setMessageText = page.getByText('setMessage nonpayable');
-		await expect(setMessageText).toBeVisible({timeout: 10000});
-
-		// Find the parent section containing the function
-		const functionSection = page
-			.locator('[class*="card"], [class*="function"]')
-			.filter({
-				has: setMessageText,
-			})
-			.first();
-
-		// Fill in a message
-		const uniqueMessage = `Contract test ${Date.now()}`;
-		const messageInput = functionSection
-			.getByPlaceholder('Enter text...')
-			.first();
-		await messageInput.fill(uniqueMessage);
-
-		// Click the Execute button (wallet already connected)
-		const executeButton = functionSection.getByRole('button', {
-			name: /execute/i,
-		});
-		await executeButton.click();
-
-		// Under parallel load the connection may still be re-establishing after
-		// the navigation, in which case executing re-opens the connect flow (e.g.
-		// the account picker). The connect helper walks whatever dialogs appear
-		// and returns quickly when none do.
+		// Under parallel load the connection may still be re-establishing, in
+		// which case executing re-opens the connect flow (e.g. the account picker).
+		// The connect helper walks whatever dialogs appear and returns quickly when
+		// none do.
 		await connectWallet(page);
 
 		// Wait for transaction
 		await waitForTransaction(page);
 
-		// Should show success or the message should be visible on demo page
-		await page.goto('/demo');
-
-		// Wait for demo page to load
-		await expect(page.getByPlaceholder('Enter your greeting...')).toBeVisible({
-			timeout: 10000,
-		});
-
-		// Check for the message (might have prefix from contract)
-		await expect(page.getByText(uniqueMessage)).toBeVisible({
-			timeout: 30000,
-		});
+		// Where the main page shows what the write sent (the greetings demo
+		// does), read it back there; a write that shows nothing is done once mined.
+		if (MAIN_PAGE.write.shownOnMainPage) {
+			await page.goto(MAIN_PAGE.route);
+			// The label might carry a prefix from the contract.
+			await expect(page.getByText(label)).toBeVisible({timeout: 30000});
+		}
 	});
 });
 
@@ -295,7 +243,7 @@ describe('Contracts Page - Accessibility', () => {
 	});
 
 	test('should have accessible tab controls', async ({page}) => {
-		await page.goto('/contracts');
+		await openContract(page);
 
 		// Tabs should be visible and keyboard navigable
 		const readTab = page.getByRole('tab', {name: 'Read'});

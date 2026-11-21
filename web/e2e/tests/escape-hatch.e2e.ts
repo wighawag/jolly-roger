@@ -2,15 +2,14 @@ import type {Page} from '@playwright/test';
 import {test, expect, describe} from '../fixtures/test';
 import {
 	approveHeldTransaction,
-	executeButton,
 	installStallingWallet,
 	isHoldingTransaction,
 	lockStallingWallet,
 	sendAndStall as stallARequest,
 	sentHashes,
 	STALLING_WALLET_NAME,
-	writeForm,
 } from '../fixtures/stalling-wallet';
+import {executeButton, writeArgs, writeInput} from '../fixtures/contracts-page';
 
 /**
  * The escape hatch, driven through the window it exists for (ADR-0004, `work`).
@@ -27,21 +26,6 @@ import {
  * It is driven with a stalling wallet rather than the burner because the burner
  * answers instantly and is suppressed from the wallet-action prompt entirely, so
  * none of this is reachable with it. See e2e/fixtures/stalling-wallet.ts.
- *
- * DRIVEN THROUGH /contracts ON THIS BRANCH, not the demo page, and the reason is
- * the whole point of the branch. This app posts through a LOCAL SIGNER: the demo
- * page's Send never reaches the user's wallet, so a stalling wallet cannot stand
- * in that window because the window is not there. The account executor is what
- * still prompts, and `/contracts` calls it directly, which makes it the shortest
- * route to a wallet that has a transaction and is not answering. The behaviour
- * under test is the same code (`core/connection/wallet-activity.ts`), reached
- * the way THIS app reaches it.
- *
- * It also has to SIGN IN, which the template above does not: the flow stops at
- * WalletConnected until the user confirms, and the stalling wallet answers the
- * sign-in signature with a fixed fake one. Nothing verifies it locally (the
- * signature is entropy for deriving the signer), and using a real key here would
- * make this fixture able to authenticate as that account elsewhere.
  */
 describe('Stopping waiting for the wallet', () => {
 	// Sends transactions, from the stalling wallet's own account rather than a
@@ -119,17 +103,11 @@ describe('Stopping waiting for the wallet', () => {
 	 * Send, leave the wallet holding it, and check the app says so.
 	 *
 	 * The walk itself is `sendAndStall` in the fixture, shared with the sending
-	 * indicator's suite, and on THIS branch it drives `/contracts` rather than the
-	 * demo page: this app posts through a local signer, so the demo page's Send
-	 * never reaches the user's wallet and a stalling wallet cannot stand in a
-	 * window that is not there. The account executor still prompts, and
-	 * `/contracts` calls it directly. That fact is stated once, in the fixture,
-	 * because the sending-indicator suite needs exactly the same thing and got
-	 * left behind when it was stated here instead.
-	 *
-	 * What stays here is the ASSERTION, which is this suite's subject rather than
-	 * its setup: the modal is the thing that offers the escape hatch, so every
-	 * test below starts from it being on screen.
+	 * indicator's suite: the main page's write on /contracts, which reaches the
+	 * wallet on every node (see the fixture). What stays here is the ASSERTION,
+	 * which is this suite's subject rather than its setup: the modal is the thing
+	 * that offers the escape hatch, so every test below starts from it being on
+	 * screen.
 	 */
 	async function sendAndStall(page: Page, message: string) {
 		await installStallingWallet(page, {nodeUrl});
@@ -223,9 +201,7 @@ describe('Stopping waiting for the wallet', () => {
 		await expect(execute).toHaveText(/^execute$/i, {timeout: 15_000});
 		// And what they typed is still there. They have not been told anything
 		// happened, so taking their text away would be the app deciding it did.
-		await expect(
-			writeForm(page).getByPlaceholder('Enter text...').first(),
-		).toHaveValue(message);
+		await expect(writeInput(page)).toHaveValue(writeArgs(message)[0]);
 		// Released without withdrawing anything: the wallet still has the request.
 		expect(await isHoldingTransaction(page)).toBe(true);
 	});
