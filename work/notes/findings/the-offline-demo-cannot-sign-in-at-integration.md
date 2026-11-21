@@ -2,8 +2,9 @@
 title: "At `integration`, the offline demo cannot send: the world's connection never signs in"
 slug: the-offline-demo-cannot-sign-in-at-integration
 type: finding
-status: open
+status: fixed
 created: 2026-11-20
+fixed: 2026-11-21
 source: measured by plan step K1a (docs/plans/template-tree-features.md) with a throwaway e2e case on `/offline-demo/` at `tf-K1a/integration`, under the e2e script's `PUBLIC_NODE_URL`, before and after the world's node url fix.
 ---
 
@@ -26,3 +27,10 @@ Before K1a, under a configured `PUBLIC_NODE_URL`, the world's context believed i
 ## What would fix it
 
 The world signs in and registers its key itself, as template-commit-reveal's does (its boot is K2's subject: the offline world's shared boot), or the offline demo at `integration` targets `WalletConnected` for its world. Either way an `/offline-demo/` e2e case at `integration` then pins the node url fix end to end (K1-3 wanted one and could not have it).
+
+## Fixed (2026-11-21, plan step K2a)
+
+The first option: the world signs in and authorises its key itself, at boot. At `with/embedded-chain`, `web/src/lib/offline-world.ts` (new) holds the boot every app's offline world shares, including `connectTheWorld` (template-commit-reveal's `connectOfflinePlayer`: connect, then `requestSignature()` when the app targets `SignedIn`), and `offline.ts` calls it at boot on every node that has a world (05cd8d72, 306a886d). At `integration`, `web/src/lib/ui/delegation/authorise-here.ts` (template-commit-reveal's `authoriseTheBrowsersKey`, moved up, 530a57de, its cases red first in b339fd8a) is called by `offline.ts` after the sign-in (897ad6e9, one divergence entry: where the local signer meets the world).
+
+Pinned by `web/e2e/tests/offline-demo.e2e.ts` (c96ad224, `with/embedded-chain`'s, inherited): the world's connection at its target step before any click, a greeting sent and settled, no dialog. On `origin/integration` 80762ffd it failed at the first assertion (the connection stuck before `SignedIn`); on the merge of the boot connect without the authorisation it failed at the send (the greeting never appeared); on `tf-K2a/integration` it passes, under the e2e script's `PUBLIC_NODE_URL`, so it is also K1-3's end-to-end case of the world's node url fix. The "Connect to load messages" consequence above is gone with it: the world is connected before the page reads.
+
