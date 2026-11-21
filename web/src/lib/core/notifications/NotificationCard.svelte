@@ -4,11 +4,14 @@
 		NotificationAction,
 		NotificationClasses,
 		NotificationData,
+		NotificationLayout,
 	} from './view';
 
 	interface Props {
 		notification: NotificationData;
 		actions: NotificationAction[];
+		/** a panel in a stack, or one row across the page */
+		layout?: NotificationLayout;
 		class?: string;
 		classes?: Partial<NotificationClasses>;
 	}
@@ -16,6 +19,7 @@
 	const {
 		notification,
 		actions,
+		layout = 'card',
 		class: className = '',
 		classes = {},
 	}: Props = $props();
@@ -36,13 +40,19 @@
 -->
 <div
 	class={[
-		'pointer-events-auto w-full max-w-sm overflow-hidden rounded-lg bg-white shadow-lg ring-1 ring-black/5',
+		'pointer-events-auto w-full overflow-hidden rounded-lg bg-white shadow-lg ring-1 ring-black/5',
+		layout === 'banner' ? 'max-w-2xl' : 'max-w-sm',
 		className,
 		classes.root,
 	]}
 	transition:fly={{delay: 250, duration: 300, x: +100}}
 >
-	<div class="flex items-start p-4">
+	<div
+		class={[
+			'flex',
+			layout === 'banner' ? 'items-center px-4 py-3' : 'items-start p-4',
+		]}
+	>
 		<div class={['shrink-0', classes.icon]}>
 			{#if notification.icon}
 				<img src={notification.icon} alt="icon" />
@@ -64,17 +74,32 @@
 				</svg>
 			{/if}
 		</div>
-		<div class="ml-3 w-0 flex-1 pt-0.5">
-			<p class={['text-sm font-medium text-gray-900', classes.title]}>
-				{notification.title}
-			</p>
-			{#if notification.body}
-				<p class={['mt-1 text-sm text-gray-500', classes.body]}>
-					{notification.body}
+		<div
+			class={[
+				'ml-3 w-0 flex-1',
+				layout === 'banner'
+					? 'flex flex-wrap items-center justify-between gap-x-6 gap-y-3'
+					: 'pt-0.5',
+			]}
+		>
+			<div>
+				<p class={['text-sm font-medium text-gray-900', classes.title]}>
+					{notification.title}
 				</p>
-			{/if}
+				{#if notification.body}
+					<p class={['mt-1 text-sm text-gray-500', classes.body]}>
+						{notification.body}
+					</p>
+				{/if}
+			</div>
 			{#if actions.length > 0}
-				<div class={['mt-3 flex space-x-7', classes.actions]}>
+				<div
+					class={[
+						'flex space-x-7',
+						layout !== 'banner' && 'mt-3',
+						classes.actions,
+					]}
+				>
 					{#each actions as action}
 						<button
 							type="button"
