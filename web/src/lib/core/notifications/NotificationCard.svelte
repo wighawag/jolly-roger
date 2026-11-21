@@ -3,19 +3,11 @@
 	import {Button} from '$lib/core/ui/button';
 	import {fly} from 'svelte/transition';
 	import {cn} from '$lib/core/utils/tailwind/index.js';
-	import type {NotificationClasses} from './types';
-
-	export type NotificationData = {
-		title: string;
-		body?: string;
-		icon?: string;
-	};
-
-	export interface NotificationAction {
-		label: string;
-		onClick: () => void;
-		primary?: boolean;
-	}
+	import type {
+		NotificationAction,
+		NotificationClasses,
+		NotificationData,
+	} from './view';
 
 	interface Props {
 		actions: NotificationAction[];
@@ -33,9 +25,13 @@
 </script>
 
 <!--
-Notification panel, dynamically insert this into the live region when it needs to be displayed
+	THE PAINT OF A NOTIFICATION, here on shadcn's Card and Button: the one
+	notification file this kit rewrites. The behaviour (which notifications, their
+	actions, the live region they are announced in) is the root's, in
+	`./Notifications.svelte`, `../service-worker/VersionAndInstallNotfications.svelte`
+	and `./view.ts`.
 
-Enters with fly transition from right
+	Enters with fly transition from right
 -->
 <div
 	class={cn(
