@@ -12,10 +12,16 @@ just cites the ADR by number.
 ## Use one
 
 ```ts
-import {useRoute, useENS, useBlockExplorer} from '$lib/core/capabilities';
+import {
+	useRoute,
+	useENS,
+	useBlockExplorer,
+	useFaucet,
+} from '$lib/core/capabilities';
 const route = useRoute(); // always usable (falls back to base-path resolution)
 const ens = useENS(); // ENSService | undefined (pure enhancement)
 const explorer = useBlockExplorer(); // BlockExplorer | undefined (no explorer links without it)
+const faucet = useFaucet(); // Faucet | undefined (no faucet offered without it)
 ```
 
 ## Provide at the app root
@@ -25,10 +31,12 @@ import {
 	provideRoute,
 	provideENS,
 	provideBlockExplorer,
+	provideFaucet,
 } from '$lib/core/capabilities';
 provideRoute(route);
 provideENS(createENSService());
 provideBlockExplorer(blockExplorer); // composed in $lib/index.ts
+provideFaucet(faucet); // composed in $lib/index.ts
 ```
 
 ## Define a new one

@@ -1,4 +1,5 @@
 import {expect, type Page} from '@playwright/test';
+import {sendWrite, WRITE_FUNCTION} from './contracts-page';
 
 /**
  * A wallet that HOLDS a transaction request until the test lets it go.
@@ -291,11 +292,11 @@ export function walletWaitingOn(
  * Exported next to the walk that sends it, because it is the same fact: change
  * which write the walk drives and this changes with it. A suite that asserts the
  * app named what it is sending (the sending notice does) reads it from here
- * rather than repeating a literal - `setMessage` is the template's
- * GreetingsRegistry, and a descendant that does not deploy it inherited an
- * assertion for a function it never calls.
+ * rather than repeating a literal: a descendant that does not deploy the
+ * template's GreetingsRegistry inherited an assertion for a `setMessage` it
+ * never calls. It is the main page's write (`MAIN_PAGE.write` of `../routes`).
  */
-export const STALLED_SEND_NAME = 'setMessage';
+export const STALLED_SEND_NAME = WRITE_FUNCTION;
 
 /**
  * Get this app to hand the stalling wallet a transaction, and leave it holding
@@ -307,14 +308,19 @@ export const STALLED_SEND_NAME = 'setMessage';
  * sending indicator), and both used to open-code the same walk: pick the page,
  * fill it, submit, choose the wallet, wait. That is the shape `e2e/routes.ts`
  * exists to prevent, and it rotted the same way: a descendant that sends through
- * a LOCAL SIGNER has no wallet in the demo page's Send at all, so the walk has
+ * a LOCAL SIGNER has no wallet in the demo page's Send at all, so the walk had
  * to change, and when only one of the two copies was adapted the other spent
  * thirty seconds waiting for a wallet that was never going to be asked. It did
  * not look like a stale test either; it looked like the indicator was broken.
  *
- * So a descendant overrides THIS function and inherits both suites. What it must
- * end up in is the only part that is fixed: a wallet holding a request, with
- * nothing else on screen waiting on the test.
+ * So the walk goes THROUGH /contracts, the main page's write
+ * (`fixtures/contracts-page.ts`), on every node: the ACCOUNT executor, which
+ * `/contracts` calls directly, is the one route that reaches the user's wallet
+ * whether or not the app also posts through a local signer, which makes it the
+ * shortest route to a wallet that has a transaction and is not answering. A node
+ * whose contract differs sets `MAIN_PAGE.write` and inherits both suites. What
+ * the walk must end up in is the only part that is fixed: a wallet holding a
+ * request, with nothing else on screen waiting on the test.
  *
  * The two tolerances below are here for the same reason, and both are inert in
  * this app:
@@ -343,24 +349,18 @@ export async function sendAndStall(
 		 * input survived. Optional, and that is the interface working rather than
 		 * a convenience.
 		 *
-		 * WHAT IT IS HAS TO BE THE APP'S BUSINESS, not the caller's. This app sends
-		 * a greeting, so any string does; a descendant's write takes an ADDRESS,
-		 * and a suite that hardcoded 'sending indicator' there filled an invalid
-		 * field, so the form never submitted and nothing ever reached the wallet -
-		 * the same failure this whole helper exists to stop, one layer in. A suite
-		 * that does not care omits it and gets whatever this app can send; a suite
-		 * that does care is a suite already adapted per app, and passes something
-		 * valid here.
+		 * WHAT IT BECOMES IS THE APP'S BUSINESS, not the caller's: it is a LABEL,
+		 * turned into the write's arguments by `MAIN_PAGE.write.args`. A
+		 * descendant's write once took an ADDRESS, and a suite that hardcoded
+		 * 'sending indicator' there filled an invalid field, so the form never
+		 * submitted and nothing ever reached the wallet - the same failure this
+		 * whole helper exists to stop, one layer in. A suite that does not care
+		 * omits it.
 		 */
 		input?: string;
 	},
 ): Promise<void> {
-	await page.goto('/demo/');
-
-	const input = page.getByPlaceholder('Enter your greeting...');
-	await expect(input).toBeEnabled({timeout: 30_000});
-	await input.fill(options?.input ?? 'a request nobody answers');
-	await page.getByRole('button', {name: /send/i}).click();
+	await sendWrite(page, options?.input);
 
 	await chooseStallingWallet(page);
 
