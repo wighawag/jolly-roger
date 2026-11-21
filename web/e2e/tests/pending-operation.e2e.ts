@@ -52,9 +52,17 @@ describe('Transaction inspector', () => {
 			'an operation should be recorded before leaving the page',
 		).toBeVisible({timeout: 30000});
 
-		const drawer = page.getByRole('dialog');
+		// SCOPED TO ITS LAYER, as overlays.e2e.ts always has been.
+		// `page.getByRole('dialog')` matches every dialog in every layer, and a
+		// modal still closing (its dialog in the DOM, `data-state="closed"`) made
+		// it a strict-mode violation rather than a wait (found in bomber-world, and
+		// in template-commit-reveal before it): the retry then clicked "Open menu"
+		// again and TOGGLED the drawer shut. So it opens only while it is shut.
+		const drawer = page.locator('#--layer-drawer [role="dialog"]');
 		await expect(async () => {
-			await page.getByLabel('Open menu').click();
+			if (!(await drawer.isVisible().catch(() => false))) {
+				await page.getByLabel('Open menu').click();
+			}
 			await expect(drawer).toBeVisible({timeout: 2000});
 		}).toPass({timeout: 30000});
 		await drawer.getByRole('link', {name: /your transactions/i}).click();
