@@ -12,7 +12,8 @@
 	import {countPendingOperations} from '$lib/view/operation';
 	import {createSendingPulse} from '$lib/ui/in-flight/sending';
 	import {effectiveGasPrice} from '$lib/core/connection/gasFee';
-	import {FaucetButton, hasFaucet} from '$lib/core/ui/faucet/index.js';
+	import {FaucetButton, faucetConfigured} from '$lib/core/ui/faucet/index.js';
+	import {useFaucet} from '$lib/core/capabilities';
 	import MenuIcon from '@lucide/svelte/icons/menu';
 	import MessageCircleIcon from '@lucide/svelte/icons/message-circle';
 	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
@@ -20,6 +21,9 @@
 	import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw';
 	import GitIcon from '$lib/icons/GitIcon.svelte';
 	import {navbarMenuPrompt} from './overlays';
+
+	// Offered only when the app provides a faucet with an API or a link.
+	const hasFaucet = faucetConfigured(useFaucet());
 
 	let {
 		repoURL,

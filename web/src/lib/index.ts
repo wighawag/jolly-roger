@@ -24,9 +24,14 @@ import {createContext} from 'svelte';
 import type {Context} from './context/types';
 import type {SendingIndicatorPlacement} from './ui/in-flight/sending';
 import {env} from '$env/dynamic/public';
-import {PUBLIC_USE_INTERNAL_EXPLORER} from '$env/static/public';
+import {
+	PUBLIC_USE_INTERNAL_EXPLORER,
+	PUBLIC_FAUCET_API,
+	PUBLIC_FAUCET_LINK,
+} from '$env/static/public';
 import {deployments, type AugmentedChainInfo} from './deployments-store';
 import {createBlockExplorer} from './core/utils/ethereum/blockExplorer';
+import {createFaucet} from './core/ui/faucet/faucet';
 
 export const hashParams = getHashParamsFromLocation();
 
@@ -134,6 +139,17 @@ export const blockExplorer = createBlockExplorer({
 	// names none (a local node) would share no property with the explorer's type.
 	chain: () => deployments.get().chain as AugmentedChainInfo,
 	internal: () => PUBLIC_USE_INTERNAL_EXPLORER === 'true',
+});
+
+/**
+ * Where an empty account is funded from: the faucet's API, else its page.
+ * Provided by routes/+layout.svelte as the `faucet` capability, so
+ * `core/ui/faucet` reads neither the environment nor the deployments. Read at
+ * each call, as the block explorer's configuration is, and for the same reasons.
+ */
+export const faucet = createFaucet({
+	api: () => PUBLIC_FAUCET_API,
+	link: () => PUBLIC_FAUCET_LINK,
 });
 
 const [getAppContextFunction, setAppContext] = createContext<() => Context>();

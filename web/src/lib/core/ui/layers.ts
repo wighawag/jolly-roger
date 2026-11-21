@@ -13,9 +13,8 @@
  *  - A node appended to `body` lands AFTER these layer containers, so an
  *    overlay that forgot its target silently jumps above everything.
  *
- * That combination cost us a real bug: the account drawer was portalled to
- * `body`, so the top-up modal it opened itself rendered UNDERNEATH it, and the
- * click just looked broken.
+ * That combination is a real bug waiting to happen: a drawer portalled to
+ * `body` covers the modal it opened itself, and the click just looks broken.
  *
  * WHERE THE NUMBERS ARE, AND WHY NOT HERE
  *
@@ -28,8 +27,7 @@
  * about which layers exist or about their order, so neither can be edited alone.
  *
  * Within one layer, DOM order still decides, and that is deliberate: two modals
- * open at once should stack in the order they were declared (see
- * `context/AcrossPages.svelte`, where that order is load-bearing).
+ * open at once should stack in the order they were declared.
  */
 
 export type Layer = {
@@ -68,8 +66,8 @@ export const LAYERS = [
 	layer(
 		'notice',
 		'--layer-notice',
-		'The update / install banner. An ambient report of something that ' +
-			'happened, so a modal (the task in hand) covers it.',
+		'The update notice. An ambient report of something that happened, so a ' +
+			'modal (the task in hand) covers it.',
 	),
 	layer(
 		'toast',
@@ -86,14 +84,14 @@ export const LAYERS = [
 	layer(
 		'system',
 		'--layer-system',
-		'Modals whose visibility is DERIVED FROM DOMAIN STATE (ADR-0004): the ' +
-			'connection flow, the balance and error reports. Above ordinary modals ' +
-			'because each is a live question about something already in flight, so ' +
-			'it must be able to cover whatever raised it. A layer rather than a ' +
-			'declaration order, because a PAGE remounts on every navigation and ' +
-			'takes a fresh slot at the end of its layer while AcrossPages keeps the ' +
-			'one it took at startup - so the two used to stack differently ' +
-			'depending on how the user arrived.',
+		'Modals whose visibility is derived from state the app holds (a flow ' +
+			'in progress, an error report) rather than from a click. Above ordinary ' +
+			'modals because each is a live question about something already in ' +
+			'flight, so it must be able to cover whatever raised it. A layer rather ' +
+			'than a declaration order, because a PAGE remounts on every navigation ' +
+			'and takes a fresh slot at the end of its layer while a modal mounted ' +
+			'once at startup keeps the one it took then - so the two would stack ' +
+			'differently depending on how the user arrived.',
 	),
 	layer(
 		'popover',
@@ -105,14 +103,10 @@ export const LAYERS = [
 	layer(
 		'progress',
 		'--layer-progress',
-		'Non-interactive activity indicators: the navigation progress bar, and ' +
-			"the sending notice that explains the browser's unload prompt. On top " +
-			'of everything because they are small and pointer-events: none, so being ' +
-			'above a modal costs nothing and being under one would hide them. The ' +
-			'sending notice needs that: it is the same fact as the wallet-action ' +
-			'modal in the system layer (a dispatch being awaited), and a sentence ' +
-			'about what leaving the page would cost is worth least when the user is ' +
-			'held by a modal and most likely to give up and reload.',
+		'Non-interactive activity indicators, such as the navigation progress ' +
+			'bar. On top of everything because they are small and pointer-events: ' +
+			'none, so being above a modal costs nothing and being under one would ' +
+			'hide them.',
 	),
 ] as const satisfies readonly Layer[];
 

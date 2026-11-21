@@ -1,5 +1,6 @@
 import type {Page} from '@playwright/test';
 import {test, expect, describe} from '../fixtures/test';
+import {sendWrite} from '../fixtures/contracts-page';
 
 /**
  * The transaction inspector, driven the way a user reaches it.
@@ -36,12 +37,15 @@ describe('Transaction inspector', () => {
 	 * persisted asynchronously, so a reload immediately after the badge appears
 	 * can discard an operation that was only ever in memory. Going through the
 	 * menu is both what a user does and what keeps the app alive.
+	 *
+	 * The send is the main page's write on /contracts (`fixtures/contracts-page.ts`,
+	 * which reaches it by a client-side navigation for the same reason), from the
+	 * ACCOUNT, the route the suite asserts: on every node, whether or not the app
+	 * also posts through a local signer, so a node sets `MAIN_PAGE.write` and
+	 * inherits this file.
 	 */
 	async function submitAndOpenTransactions(page: Page, message: string) {
-		const input = page.getByPlaceholder('Enter your greeting...');
-		await expect(input).toBeEnabled({timeout: 30000});
-		await input.fill(message);
-		await page.getByRole('button', {name: /send/i}).click();
+		await sendWrite(page, message);
 
 		await expect(
 			page.locator('[data-testid="pending-operations"]'),

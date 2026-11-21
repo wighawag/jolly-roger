@@ -12,6 +12,7 @@
 	import {formatGwei} from 'viem';
 	import {
 		formatDecodedTransaction,
+		transactionHeadline,
 		type DecodedTransactionData,
 	} from '../lib/services/transactionDecoder';
 	import {loadTransactionItemData} from '../lib/services/transactionItem';
@@ -37,6 +38,12 @@
 
 	// Track the hash we've decoded to prevent re-decoding
 	let decodedHash = $state<string | null>(null);
+
+	// What the row is listed under: the decoder's label once this transaction is
+	// decoded, what it says of itself until then.
+	let headline = $derived(
+		transactionHeadline(tx, decodedHash === tx.hash ? decodedData : undefined),
+	);
 
 	// Load receipt + decode when tx.hash changes and we haven't decoded it yet.
 	async function loadItem(hash: `0x${string}`) {
@@ -127,26 +134,28 @@
 				</div>
 
 				<!-- Method/Function Name -->
-				{#if decodedData.isDecoded && decodedData.functionName}
+				{#if headline.kind !== 'creation'}
 					<div>
-						<div class="text-sm font-medium">{formattedData.methodLabel}</div>
-						{#if formattedData.methodDetails}
+						<div
+							class={headline.kind === 'function'
+								? 'text-sm font-medium'
+								: 'font-mono text-sm text-muted-foreground'}
+						>
+							{headline.label}
+						</div>
+						{#if headline.details}
 							<div
 								class="truncate text-xs text-muted-foreground"
-								title={formattedData.methodDetails}
+								title={headline.details}
 							>
-								{formattedData.methodDetails}
+								{headline.details}
 							</div>
 						{/if}
-					</div>
-				{:else if tx.to}
-					<div class="font-mono text-sm text-muted-foreground">
-						Contract Call
 					</div>
 				{:else}
 					<div class="space-y-1">
 						<div class="font-mono text-sm text-muted-foreground">
-							Contract Creation
+							{headline.label}
 						</div>
 						{#if contractAddress}
 							<div class="flex items-center gap-1 text-xs">

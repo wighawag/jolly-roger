@@ -7,6 +7,7 @@ export type {
 export {provideRoute, useRoute, type RouteResolver} from './route';
 export {provideENS, useENS} from './ens';
 export {provideBlockExplorer, useBlockExplorer} from './block-explorer';
+export {provideFaucet, useFaucet} from './faucet';
 export {provideNavigation, useNavigation} from './navigation';
 export {
 	provideDocumentLocation,
