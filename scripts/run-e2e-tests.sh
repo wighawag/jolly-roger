@@ -313,7 +313,7 @@ else
     ln -s "$REPO_DIR/web/node_modules" "$WEB_DIR/node_modules"
 fi
 
-# What a GAME builds in its main checkout and its app needs (a workspace
+# What an APP builds in its main checkout and needs (a workspace
 # package's gitignored `dist`, say), as the root package.json's
 # "e2e": {"linkBuilt": [...]} declares it: nothing for this template. A path
 # not built fails the run here, naming it, rather than as an import deep in the

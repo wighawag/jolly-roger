@@ -1,68 +1,106 @@
 <script lang="ts">
 	import type {ServiceWorkerStore} from '.';
-	import * as Alert from '$ui/alert/index.js';
-	import {Button} from '$lib/core/ui/button';
-	import {cn} from '../utils/tailwind';
-
-	/**
-	 * Classes that can be customized on Update Notification components
-	 * Use with the `classes` prop to style specific elements
-	 */
-	interface Classes {
-		/** Root container */
-		root?: string;
-		alert?: string;
-	}
+	import NotificationCard from '../notifications/NotificationCard.svelte';
+	import {
+		isUpdateAvailable,
+		UPDATE_NOTICE,
+		updateActions,
+		type NoticePlacement,
+		type NotificationClasses,
+	} from '../notifications/view';
 
 	interface Props {
 		serviceWorker: ServiceWorkerStore;
+		/** optional icon shown instead of the default glyph */
+		src?: string;
+		/**
+		 * `banner` (the default) across the top, clear of the corner the
+		 * notifications stack in; `corner` a card stacked like them
+		 */
+		placement?: NoticePlacement;
+		/** added to the card's root */
 		class?: string;
-		classes?: Partial<Classes>;
+		classes?: Partial<NotificationClasses>;
 	}
 
-	const {serviceWorker, class: className, classes = {}}: Props = $props();
-
-	function skip() {
-		serviceWorker.skip();
-	}
-
-	function accept() {
-		serviceWorker.skipWaiting();
-	}
-
-	const updateAvailable = $derived(
-		$serviceWorker &&
-			!$serviceWorker.notSupported &&
-			!$serviceWorker.registering &&
-			$serviceWorker.updateAvailable &&
-			$serviceWorker.registration,
-	);
+	const {
+		serviceWorker,
+		src,
+		placement = 'banner',
+		class: className,
+		classes = {},
+	}: Props = $props();
 </script>
 
-{#if updateAvailable}
-	<div
-		class={cn(
-			'fixed top-0 left-0 z-50 w-full border-b p-2 shadow-sm',
-			className,
-			classes.root,
-		)}
-	>
-		<Alert.Root
-			class={cn(
-				'mx-auto flex max-w-2xl flex-col items-start justify-between gap-4 py-3 sm:flex-row sm:items-center sm:py-2',
-				classes.alert,
-			)}
-		>
-			<div>
-				<Alert.Title>Update Available</Alert.Title>
-				<Alert.Description
-					>A new version is ready. Update to get it.</Alert.Description
-				>
-			</div>
-			<div class="flex gap-2">
-				<Button variant="outline" size="sm" onclick={skip}>Later</Button>
-				<Button size="sm" onclick={accept}>Update Now</Button>
-			</div>
-		</Alert.Root>
+<!--
+	The update notice's live region, render this permanently at the end of the
+	document: a strip across the top (`placement="banner"`, the default) or the
+	corner the notifications use (`"corner"`). The behaviour only: the notice is
+	a notification with two actions,
+	painted by `../notifications/NotificationCard.svelte` (the file a kit
+	rewrites), its state, wording and buttons decided by
+	`../notifications/view.ts`.
+-->
+<div
+	aria-live="assertive"
+	class={[
+		placement === 'banner' ? 'notice-banner' : 'notification-region',
+		isUpdateAvailable($serviceWorker) && classes.region,
+	]}
+>
+	<div class="notification-stack">
+		{#if isUpdateAvailable($serviceWorker)}
+			<NotificationCard
+				notification={{...UPDATE_NOTICE, icon: src}}
+				actions={updateActions(serviceWorker)}
+				layout={placement === 'banner' ? 'banner' : 'card'}
+				class={className}
+				{classes}
+			/>
+		{/if}
 	</div>
-{/if}
+</div>
+
+<style>
+	.notice-banner {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		display: flex;
+		padding: 0.5rem;
+		pointer-events: none;
+	}
+
+	.notice-banner .notification-stack {
+		align-items: center;
+	}
+
+	.notification-region {
+		position: fixed;
+		inset: 0;
+		display: flex;
+		align-items: flex-end;
+		padding: 1.5rem 1rem;
+		pointer-events: none;
+	}
+
+	.notification-stack {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		width: 100%;
+		gap: 1rem;
+	}
+
+	@media (min-width: 640px) {
+		.notification-region {
+			align-items: flex-start;
+			padding: 1.5rem;
+		}
+
+		.notification-stack {
+			align-items: flex-end;
+		}
+	}
+</style>

@@ -196,23 +196,17 @@ html {
    OVERLAY LAYERS: the one place that decides what covers what.
    ==========================================================================
 
-   Every floating surface the app SHIPS TO USERS (the navbar drawer, dialogs,
-   popovers, toasts, push notifications, the update banner, the navigation
-   progress bar) is rendered inside one of these layers in `+layout.svelte`, and
-   the ORDER OF THE NUMBERS BELOW IS THE ANSWER. To change what covers what,
-   change a number here.
+   Every floating surface the app ships (drawers, dialogs, popovers and select
+   menus, notifications, the update notice, the navigation progress bar) is
+   rendered inside one of these layers in `+layout.svelte`, and the ORDER OF THE
+   NUMBERS BELOW IS THE ANSWER. To change what covers what, change a number
+   here.
 
    WHICH LAYERS EXIST is declared in `lib/core/ui/layers.ts`, not here, because
    a layer is two things that must not drift: a container to render, and a
    PORTAL TARGET for the components that send themselves into it. That list
    supplies both, and `test/lib/core/ui/layers.test.ts` fails when this file and
    that list disagree about a layer's existence or its position in the order.
-
-   Two DEBUG surfaces deliberately stay outside: `debug/TxObserverDebugOverlay`
-   (`z-9999`, so it can sit above anything it is being used to inspect) and
-   `ui/debug/DebugOperations` (`z-50`, so it stays under modals). Both are
-   dev-only and query-param gated, and a debug tool that a dialog can hide is
-   not much of a debug tool.
 
    HOW IT WORKS. A layer element is `position: relative` with a `z-index`, which
    makes it a STACKING CONTEXT. Everything painted inside it, including
@@ -226,30 +220,30 @@ html {
    intercept no clicks; only their (fixed-position) contents are visible.
 
    WHY THE NUMBERS START AT 100. Page chrome uses the ordinary Tailwind scale
-   (the navbar is `z-50`, the banners `z-40`) in the ROOT stacking context, so
-   any layer has to outrank all of it. The gaps of ten leave room to slot a new
-   layer in without renumbering.
+   (`z-50` and below) in the ROOT stacking context, so any layer has to outrank
+   all of it. The gaps of ten leave room to slot a new layer in without
+   renumbering.
 
    THE ORDER, AND WHY. A modal is the task the user is doing right now, so it
-   covers the ambient reports of things that merely happened (toasts, push
-   notifications) and the chrome that raised it (the drawer). SYSTEM overlays sit
-   one rank above ordinary modals: their visibility is derived from domain state
-   (`$connection.step`, `$balanceCheck.step`, `$errorDetails`, see ADR-0004), so
-   each one is a live question about something already in flight and has to be
-   able to cover whatever raised it. The progress bar sits on top of everything
-   because it is 2px tall and `pointer-events: none`, so being above a modal
-   costs nothing and being under one would hide it.
+   covers the ambient reports of things that merely happened (notifications, the
+   update notice) and the chrome that raised it (a drawer). SYSTEM modals sit
+   one rank above ordinary modals: their visibility is derived from state the
+   app holds rather than from a click, so each one is a live question about
+   something already in flight and has to be able to cover whatever raised it.
+   Popovers and select menus sit above both kinds of modal, because a modal
+   CONTAINS them. The progress bar sits on top of everything because it is 2px
+   tall and `pointer-events: none`, so being above a modal costs nothing and
+   being under one would hide it.
 
    WHY SYSTEM IS A LAYER AND NOT JUST A DECLARATION ORDER. Within one layer the
    order is fixed when a component mounts (see below), and that is stable only
    for components that mount together and stay mounted. A PAGE's modals do not:
    the router unmounts and remounts them on every navigation, so they take a
-   fresh slot at the END of the layer, while `context/AcrossPages.svelte` keeps
-   the slot it took when the app started. The same two modals therefore stacked
-   one way on a cold load and the other way after a single navigation - which is
-   how "Wallet Action Required" ended up BEHIND a mint dialog that was waiting on
-   it. Declaration order cannot express a guarantee across that boundary; a layer
-   can. Pinned by test/lib/core/ui/modal/modal-remount.svelte.test.ts.
+   fresh slot at the END of the layer, while a modal mounted once by the layout
+   keeps the slot it took when the app started. The same two modals would
+   therefore stack one way on a cold load and the other way after a single
+   navigation. Declaration order cannot express a guarantee across that
+   boundary; a layer can.
 
    ---------------------------------------------------------------------------
    TO REORDER LAYERS: swap the numbers below. That is the whole change.
@@ -258,63 +252,32 @@ html {
    container and names the portal target), then add a `--z-layer-<name>` here and
    the matching `[data-layer='<name>']` rule below. The gaps of ten mean you can
    usually do this without touching any other number. A unit test asserts that
-   the two files list the same layers in the same order, and an e2e test asserts
-   that every layer element has a real z-index and that no two share one, so a
-   typo in a custom property fails the suite instead of silently falling back to
-   `auto`.
+   the two files list the same layers in the same order, so a typo in a custom
+   property fails the suite instead of silently falling back to `auto`.
 
    WITHIN ONE LAYER, order is DECLARATION ORDER, and OPEN ORDER IS IRRELEVANT.
    bits-ui's portal mounts a consumer into the layer when the component owning
    the dialog mounts, and keeps that slot for its lifetime, rendering the dialog
    into it as it opens and closes. So a dialog's position is fixed before it has
-   ever been opened, and reopening it cannot move it to the top. Verified in
-   test/lib/core/ui/modal/modal-stacking.svelte.test.ts, which also pins the
-   surprising case: a dialog declared FIRST but opened LAST still paints
-   underneath.
+   ever been opened, and reopening it cannot move it to the top: a dialog
+   declared FIRST but opened LAST still paints underneath.
 
    The consequence to remember: a dialog raised from another dialog is on top
-   only because it is DECLARED AFTER it, AND ONLY IF THE TWO SHARE A LAYER. That
-   holds inside one component (a modal and the prompts it raises, declared below
-   it) and across components, which is why the order of components in
-   `context/AcrossPages.svelte` is load-bearing and documented there.
-
-   CHECK THE LAYER FIRST, THEN THE ORDER, and in that order, because this comment
-   used to say only the second half and that is precisely how the bug survived:
-   the top-up modal, raised from a system modal, named no layer and so took this
-   one, a rank below. It rendered UNDER the dialog whose button opened it, and
-   every reading of the declaration order said it should be on top. Declaration
-   order ranks modals WITHIN a layer; it cannot reach across two, and no amount
-   of moving lines in AcrossPages will make it. `layer` is now a required prop
-   for that reason (see core/ui/modal/modal.svelte), and
-   test/lib/core/ui/modal/modal-layer-stacking.svelte.test.ts pins both halves.
+   only because it is DECLARED AFTER it, AND ONLY IF THE TWO SHARE A LAYER.
+   Declaration order ranks modals WITHIN a layer; it cannot reach across two.
+   CHECK THE LAYER FIRST, THEN THE ORDER.
    --------------------------------------------------------------------------- */
 :root {
-	/* The navbar's height, read by the navbar itself AND by everything that has
-	   to sit clear of it: the in-flow bars, which stick just below it, and the
-	   floating sending notice, which lives in an overlay layer at the end of the
-	   document and so cannot ask the navbar how tall it is. A second hardcoded
-	   number would drift the moment the chrome changed, and the symptom would be
-	   a surface overlapping the navbar on one screen size (the bars said `top-12`
-	   until the height shell went in, which was that number, spelled a third way).
-
-	   NOT the app's height budget: nothing subtracts this from the viewport to
-	   work out how much room a page has. `+layout.svelte` is a flex column, so
-	   the space left over is measured by the browser rather than computed here,
-	   and it stays right when a bar appears, when two do, or when a descendant
-	   adds one of its own. */
-	--navbar-height: 3rem;
-
 	--z-layer-drawer: 100;
 	--z-layer-notice: 110;
 	--z-layer-toast: 120;
 	--z-layer-modal: 130;
-	/* Derived from domain state (ADR-0004), so it is a live question about
+	/* Derived from state the app holds, so it is a live question about
 	   something in flight and has to cover whatever raised it. */
 	--z-layer-system: 135;
-	/* Above BOTH kinds of modal, because a modal CONTAINS popovers (an address
-	   menu, a select, a tooltip on a truncated hash). Below them it would be
-	   clipped by the very dialog that opened it, which is the one arrangement
-	   that is never wanted. */
+	/* Above BOTH kinds of modal, because a modal CONTAINS popovers (a menu, a
+	   select, a tooltip). Below them it would be clipped by the very dialog
+	   that opened it, which is the one arrangement that is never wanted. */
 	--z-layer-popover: 140;
 	--z-layer-progress: 150;
 }
@@ -349,4 +312,37 @@ html {
 
 [data-layer='progress'] {
 	z-index: var(--z-layer-progress);
+}
+
+/* jolly-roger's own, beside the stem's layers above.
+
+   Two DEBUG surfaces deliberately stay outside the layers: `debug/TxObserverDebugOverlay`
+   (`z-9999`, so it can sit above anything it is being used to inspect) and
+   `ui/debug/DebugOperations` (`z-50`, so it stays under modals). Both are
+   dev-only and query-param gated, and a debug tool that a dialog can hide is
+   not much of a debug tool.
+
+   Which modal is a SYSTEM one is decided by ADR-0004 (its visibility derived
+   from `$connection.step`, `$balanceCheck.step`, `$errorDetails`), and the order
+   of the components in `context/AcrossPages.svelte` ranks the modals within a
+   layer; test/lib/core/ui/modal/modal-remount.svelte.test.ts,
+   modal-stacking.svelte.test.ts and modal-layer-stacking.svelte.test.ts pin
+   what the comment above says about remounts, declaration order and layers,
+   and e2e/tests/overlays.e2e.ts asserts that every layer element has a real
+   z-index and that no two share one. */
+:root {
+	/* The navbar's height, read by the navbar itself AND by everything that has
+	   to sit clear of it: the in-flow bars, which stick just below it, and the
+	   floating sending notice, which lives in an overlay layer at the end of the
+	   document and so cannot ask the navbar how tall it is. A second hardcoded
+	   number would drift the moment the chrome changed, and the symptom would be
+	   a surface overlapping the navbar on one screen size (the bars said `top-12`
+	   until the height shell went in, which was that number, spelled a third way).
+
+	   NOT the app's height budget: nothing subtracts this from the viewport to
+	   work out how much room a page has. `+layout.svelte` is a flex column, so
+	   the space left over is measured by the browser rather than computed here,
+	   and it stays right when a bar appears, when two do, or when a descendant
+	   adds one of its own. */
+	--navbar-height: 3rem;
 }

@@ -48,13 +48,11 @@ import {
 	PUBLIC_USE_BURNER_WALLET,
 	PUBLIC_WALLET_HOST,
 	PUBLIC_IMPERSONATE_ADDRESSES,
-	PUBLIC_FAUCET_LINK,
-	PUBLIC_FAUCET_API,
 } from '$env/static/public';
-import {hasFaucet} from '$lib/core/ui/faucet/index.js';
+import {faucetConfigured} from '$lib/core/ui/faucet/index.js';
 import {createTopUpFlow} from '$lib/ui/credits/top-up-flow.js';
 import type {SignerGrant} from '$lib/ui/delegation/grant.js';
-import {burnerOverride} from '$lib';
+import {burnerOverride, faucet} from '$lib';
 import {resolveBurnerWallet} from './burner.js';
 import {
 	resolveConnectionConfig,
@@ -1569,9 +1567,11 @@ export function createCoreContext<App extends AppContext>(params: {
 			confirmation,
 		},
 		{
-			faucetApi: PUBLIC_FAUCET_API,
-			faucetLink: PUBLIC_FAUCET_LINK,
-			hasFaucet,
+			// The app's faucet, as `$lib/index.ts` composes it (and the layout
+			// provides it to the faucet's components).
+			faucetApi: faucet.api(),
+			faucetLink: faucet.link() ?? '',
+			hasFaucet: faucetConfigured(faucet),
 		},
 	);
 
