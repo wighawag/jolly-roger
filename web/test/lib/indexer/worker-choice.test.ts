@@ -15,8 +15,8 @@ const MIN_WORLD_ID = 9_007_199_254_740_000;
 const MAX_WORLD_ID = 9_007_199_254_740_991;
 const isWorld = (id: number) => id >= MIN_WORLD_ID && id <= MAX_WORLD_ID;
 
-const PREFIX = 'mygame';
-const GAME = '0x00000000000000000000000000000000000000Aa' as const;
+const PREFIX = 'myapp';
+const CONTRACT = '0x00000000000000000000000000000000000000Aa' as const;
 
 function openDatabase(name: string): Promise<void> {
 	return new Promise((resolve, reject) => {
@@ -33,39 +33,41 @@ async function names(): Promise<string[]> {
 	return (await indexedDB.databases()).map((d) => d.name!).sort();
 }
 
-describe("a game's indexer worker", () => {
+describe("an app's indexer worker", () => {
 	it('a chain the app calls a world gets the world worker, named by its chain id', () => {
 		for (const id of [MIN_WORLD_ID, MAX_WORLD_ID]) {
-			expect(indexerWorkerFor(PREFIX, {chain: {id}}, GAME, {isWorld})).toEqual({
+			expect(
+				indexerWorkerFor(PREFIX, {chain: {id}}, CONTRACT, {isWorld}),
+			).toEqual({
 				kind: 'world',
-				name: `mygame-world-${id}`,
+				name: `myapp-world-${id}`,
 			});
 		}
 	});
 
 	it('no chain is a world unless the app says which are', () => {
 		for (const id of [MIN_WORLD_ID, 31337]) {
-			expect(indexerWorkerFor(PREFIX, {chain: {id}}, GAME)).toEqual({
+			expect(indexerWorkerFor(PREFIX, {chain: {id}}, CONTRACT)).toEqual({
 				kind: 'live',
-				name: `mygame-${id}-${GAME.toLowerCase()}`,
+				name: `myapp-${id}-${CONTRACT.toLowerCase()}`,
 			});
 		}
 		expect(
-			indexerWorkerFor(PREFIX, {chain: {id: MIN_WORLD_ID}}, GAME, {
+			indexerWorkerFor(PREFIX, {chain: {id: MIN_WORLD_ID}}, CONTRACT, {
 				isWorld: () => false,
 			}).kind,
 		).toBe('live');
 	});
 
 	it('any other chain gets the live worker, its election named per deployment', () => {
-		const local = indexerWorkerFor(PREFIX, {chain: {id: 31337}}, GAME, {
+		const local = indexerWorkerFor(PREFIX, {chain: {id: 31337}}, CONTRACT, {
 			isWorld,
 		});
 		expect(local).toEqual({
 			kind: 'live',
-			name: `mygame-31337-${GAME.toLowerCase()}`,
+			name: `myapp-31337-${CONTRACT.toLowerCase()}`,
 		});
-		const base = indexerWorkerFor(PREFIX, {chain: {id: 8453}}, GAME);
+		const base = indexerWorkerFor(PREFIX, {chain: {id: 8453}}, CONTRACT);
 		expect(base.kind).toBe('live');
 		// two deployments never share an election
 		expect(base.name).not.toBe(local.name);
@@ -73,10 +75,10 @@ describe("a game's indexer worker", () => {
 			indexerWorkerFor(PREFIX, {chain: {id: 31337}}, `0x${'bb'.repeat(20)}`)
 				.name,
 		).not.toBe(local.name);
-		// nor do two games
-		expect(indexerWorkerFor('other', {chain: {id: 31337}}, GAME).name).not.toBe(
-			local.name,
-		);
+		// nor do two apps
+		expect(
+			indexerWorkerFor('other', {chain: {id: 31337}}, CONTRACT).name,
+		).not.toBe(local.name);
 	});
 
 	it('forgetting a world deletes its databases, and only its', async () => {
@@ -85,7 +87,7 @@ describe("a game's indexer worker", () => {
 		await openDatabase(`${worldIndexDatabasePrefix(PREFIX, world)}-stream-a`);
 		await openDatabase(`${worldIndexDatabasePrefix(PREFIX, world)}-stream-b`);
 		await openDatabase(`${worldIndexDatabasePrefix(PREFIX, other)}-stream-a`);
-		await openDatabase('mygame-31337-x');
+		await openDatabase('myapp-31337-x');
 		await deleteWorldIndex(PREFIX, world);
 		// deletions are queued, not awaited: let them run
 		await new Promise((resolve) => setTimeout(resolve, 20));
@@ -99,7 +101,7 @@ describe("a game's indexer worker", () => {
 		expect(left).toContain(
 			`${worldIndexDatabasePrefix(PREFIX, other)}-stream-a`,
 		);
-		expect(left).toContain('mygame-31337-x');
+		expect(left).toContain('myapp-31337-x');
 	});
 
 	it('does nothing where IndexedDB cannot list its databases', async () => {
@@ -111,7 +113,7 @@ describe("a game's indexer worker", () => {
 		expect(deleted).toEqual([]);
 	});
 
-	it("another game's world of the same id is not this game's", async () => {
+	it("another app's world of the same id is not this app's", async () => {
 		const world = MIN_WORLD_ID + 9;
 		await openDatabase(`${worldIndexDatabasePrefix('other', world)}-stream`);
 		await deleteWorldIndex(PREFIX, world);

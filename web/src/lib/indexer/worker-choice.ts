@@ -1,26 +1,26 @@
 /**
- * WHICH INDEXER WORKER A GAME'S STATE RUNS, and the name it is given.
+ * WHICH INDEXER WORKER AN APP'S STATE RUNS, and the name it is given.
  *
  * - A chain in this tab (an offline world: the app says which chains are one,
  *   `isWorld`; template-commit-reveal passes `isEmbeddedChainId`) is indexed by
- *   the game's WORLD worker (`hostWorldIndexer`): no tab election, since no
+ *   the app's WORLD worker (`hostWorldIndexer`): no tab election, since no
  *   other tab can reach this tab's chain, and no publication, since nobody
  *   publishes a snapshot of a world. Its IndexedDB database is named after the
  *   world (the name below, which carries the minted chain id), kept across
  *   reloads, and deleted with the world (`deleteWorldIndex`).
- * - Any other chain is indexed by the game's LIVE worker (`hostLiveIndexer`),
+ * - Any other chain is indexed by the app's LIVE worker (`hostLiveIndexer`),
  *   ONE TAB INDEXING and the others reading, under an election named PER
- *   DEPLOYMENT (chain and game address). etherfold names the election by what
- *   the worker is told, so a name shared across deployments would have an online
- *   tab and a world in another tab contend for one lease, and the loser read a
- *   database nobody wrote (found in stratagems, step O of its plan).
+ *   DEPLOYMENT (chain and contract address). etherfold names the election by
+ *   what the worker is told, so a name shared across deployments would have an
+ *   online tab and a world in another tab contend for one lease, and the loser
+ *   read a database nobody wrote (found in stratagems, step O of its plan).
  *
  * The name crosses as the worker's own (`new Worker(url, {name})`, read there as
  * `self.name`), because the worker's code is fixed at build time and the
  * deployment is not.
  *
- * `prefix` is the GAME's: a short lower-case word naming it (stratagems says
- * `stratagems`), so two games served from one origin never share a database.
+ * `prefix` is the APP's: a short lower-case word naming it (stratagems says
+ * `stratagems`), so two apps served from one origin never share a database.
  *
  * WHICH CHAINS ARE A WORLD IS INJECTED (`isWorld`), and by default none is:
  * this module is jolly-roger's, `with/indexer`, which stems from `main` and so

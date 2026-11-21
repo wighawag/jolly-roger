@@ -26,8 +26,8 @@
  * `host`), and stopped by its last.
  *
  * jolly-roger's (`with/indexer`); template-commit-reveal's `indexed-state.ts`
- * is the same plumbing with a game's cycle stamp and the game's state seam, and
- * may later be rebuilt on this one.
+ * is built on this one, adding a game's cycle stamp and the mapping onto its
+ * state seam.
  */
 import {
 	connectToIndexerHost,
