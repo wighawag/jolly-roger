@@ -221,7 +221,30 @@ describe('Contracts Page - Write Functions', () => {
 		// none do.
 		await connectWallet(page);
 
-		// Wait for transaction
+		// IT ACTUALLY HAPPENED, asserted before waiting for it to settle:
+		// `waitForTransaction` only checks that nothing is pending, which is also
+		// true of a page that sent nothing (template-commit-reveal's copy of this
+		// test once passed for a year without executing a write). An operation in
+		// account data is the app's own evidence that the write left the page, on
+		// a node whose main page shows nothing of it as on one that does. Not the
+		// navbar badge: against an instant-mining node it is open for a few hundred
+		// milliseconds.
+		await expect
+			.poll(
+				async () =>
+					page.evaluate(() => {
+						const ctx = (globalThis as any).context;
+						let ops: Record<string, unknown> = {};
+						ctx.accountData
+							.watchField('operations')
+							.subscribe((v: Record<string, unknown>) => (ops = v))();
+						return Object.keys(ops ?? {}).length;
+					}),
+				{message: 'the write should record an operation', timeout: 30000},
+			)
+			.toBeGreaterThan(0);
+
+		// ...and every in-flight operation settled.
 		await waitForTransaction(page);
 
 		// Where the main page shows what the write sent (the greetings demo
