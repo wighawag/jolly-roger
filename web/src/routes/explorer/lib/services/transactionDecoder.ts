@@ -517,6 +517,39 @@ export function formatDecodedTransaction(
 }
 
 /**
+ * What a transaction is listed under, in the explorer's list and on its page.
+ *
+ * Once decoded it is `formatDecodedTransaction`'s label and details, whatever
+ * the transaction is: a function with its arguments, a transfer, an unknown
+ * function of a known contract or a call to an unknown one, each with its
+ * selector. Before (`decoded` undefined, the list's row while its receipt
+ * loads) it is what the transaction says of itself: a creation with no
+ * recipient, a transfer with no data, else a contract call and its selector.
+ *
+ * `kind` is how the views paint it: `function` a decoded call, `creation` a
+ * contract creation (the list then shows the created address), `other` the
+ * rest.
+ */
+export function transactionHeadline(
+	tx: Pick<Transaction, 'to' | 'input'>,
+	decoded: DecodedTransactionData | undefined,
+): {kind: 'function' | 'creation' | 'other'; label: string; details?: string} {
+	if (!tx.to) return {kind: 'creation', label: 'Contract Creation'};
+	if (!decoded) {
+		const hasData = tx.input !== '0x' && tx.input !== '0x0';
+		return hasData
+			? {kind: 'other', label: 'Contract Call', details: selectorOf(tx.input)}
+			: {kind: 'other', label: 'Transfer'};
+	}
+	const {methodLabel, methodDetails} = formatDecodedTransaction(decoded);
+	return {
+		kind: decoded.isDecoded && decoded.functionName ? 'function' : 'other',
+		label: methodLabel,
+		details: methodDetails,
+	};
+}
+
+/**
  * Format decoded function arguments for display
  * @param args - The decoded arguments
  * @param inputs - The ABI item's inputs: with them each argument is named and

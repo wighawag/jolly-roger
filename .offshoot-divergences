@@ -50,25 +50,20 @@ web/playwright.config.ts                               the e2e runs a local chai
 web/src/web-config.json                                the brand: Jolly Roger's name, description, URLs and identity links
 web/src/app.html                                       dark mode by default, and the named-logs console script that reads ?debug, documented where it is inlined
 web/src/app.d.ts                                       PageData's optional surfaceChrome and the shallow-routing overlay state, typed for the layout that reads them
-web/src/app.css                                        the overlay layers' z-index scale, the viewport-clamped layout, the dispatch and funding modal styles
+web/src/app.css                                        the stable scrollbar gutter, sonner's toast style and the navbar's height, beside the stem's layers with jolly-roger's notes on them (its debug surfaces, ADR-0004, the modal tests)
 web/static/_redirects                                  the explorer's dynamic routes rewritten for unique-origin IPFS gateways, before the 404 fallback
 
 # The app shell and its composition
 web/src/lib/index.ts                                   where this app is composed: the wallet connection, the account stores, the logs, the dispatch indicator
 web/src/lib/kit/README.md                              the adapter's scope as it stands here, its claims narrowed to what is true
-web/src/routes/+layout.svelte                          the shell: the chrome as a list a descendant extends, the overlay layers, a surface's own chrome
+web/src/routes/+layout.svelte                          the shell: the chrome as a list a descendant extends, the app's context, a surface's own chrome, and sonner, the striped update banner and the sending notice in the stem's layers
 web/src/routes/+layout.ts                              the version logged at start and the named-logs init logger, beside the stem's service-worker toggle
 web/src/routes/+page.svelte                            jolly-roger's home page, its button to the app's main page (`MAIN_PAGE` of `$app-specific`), through the kit's paths and the shadcn button
 web/src/routes/+error.svelte                           the error page in the shadcn style and clamped to the viewport like the rest of the app
 web/test/framework-boundary.test.ts                    the boundary rule stated as inherited from template-svelte, with this repo's ADR-0004 and its own leak list
 
-# Components the overlay layers needed changed (ADR-0005 on the `work` branch)
-web/src/lib/components/NavigationProgress.svelte       no z-index of its own: it renders inside the "progress" overlay layer, which decides what it covers
-web/src/lib/core/notifications/NotificationOverlay.svelte  no z-index of its own: the notifications' overlay layer decides what it sits above
-web/src/lib/shadcn/ui/dialog/dialog-content.svelte     portals into its overlay layer in $lib/core/ui/layers instead of the body
-web/src/lib/shadcn/ui/drawer/drawer-content.svelte     portals into its overlay layer in $lib/core/ui/layers instead of the body
-web/src/lib/shadcn/ui/popover/popover-content.svelte   portals into its overlay layer in $lib/core/ui/layers instead of the body
-web/src/lib/shadcn/ui/select/select-content.svelte     portals into its overlay layer in $lib/core/ui/layers instead of the body
+# The root's format helpers, widened
+web/src/lib/core/utils/format/index.ts                 the web3 formatters (balance, gas, value, on viem) beside the root's hex, json and error ones
 
 # The e2e
 web/e2e/tests/service-worker-gateway.e2e.ts            the gateway navigation retried: it races the worker's clients.claim(), which Chromium can abort
