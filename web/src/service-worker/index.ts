@@ -6,6 +6,7 @@
 
 import {build, version, prerendered, files} from '$service-worker';
 import {createFetchAndUpdateCache} from './fetch-and-update-cache';
+import {notificationFromPush, notificationTarget} from './push';
 
 const ID = version; // + '-1';
 
@@ -253,100 +254,12 @@ async function getClientsStatus(): Promise<{
 	};
 }
 
-type NotificationAction = {
-	action: string;
-	title: string;
-	navigate: string;
-	icon?: string;
-};
-type DeclarativePushNotification = {
-	web_push: 8030;
-	notification: {
-		title: string;
-		navigate: string;
-		dir?: NotificationDirection;
-		lang?: string;
-		body?: string;
-		tag?: string;
-		image?: string;
-		icon?: string;
-		badge?: string;
-		vibrate?: number[];
-		timestamp?: number;
-		renotify?: boolean;
-		silent?: boolean;
-		requireInteraction?: boolean;
-		data?: Record<string, unknown>;
-		actions?: NotificationAction[];
-	};
-	app_badge?: number;
-	mutable?: boolean;
-};
-
 async function handlePush(data?: string) {
 	const appActive = await getClientsStatus();
 
-	const notificationTuple: {title: string; options: NotificationOptions} = {
-		title: 'Notification',
-		options: {
-			body: 'You have a new notification',
-			icon: NOTIFICATION_ICON,
-			badge: NOTIFICATION_ICON,
-		},
-	};
-
-	if (data) {
-		try {
-			const json: DeclarativePushNotification = JSON.parse(data);
-			if (json.web_push === 8030) {
-				const notif = json.notification;
-				notificationTuple.options = {
-					badge: notif.badge,
-					body: notif.body,
-					data: notif.data,
-					dir: notif.dir,
-					icon: notif.icon,
-					lang: notif.lang,
-					requireInteraction: notif.requireInteraction,
-					silent: notif.silent,
-					tag: notif.tag,
-				};
-				notificationTuple.title = notif.title;
-
-				if (!notificationTuple.options.icon) {
-					notificationTuple.options.icon = notif.image;
-				}
-
-				if (notif.navigate) {
-					if (!notificationTuple.options.data) {
-						notificationTuple.options.data = {navigate: notif.navigate};
-					} else {
-						if (
-							typeof notificationTuple.options.data === 'object' &&
-							!notificationTuple.options.data.navigate
-						) {
-							notificationTuple.options.data = {
-								...notificationTuple.options.data,
-								navigate: notif.navigate,
-							};
-						}
-					}
-				}
-				// TODO: handle additional notification attributes (e.g. actions, image, vibrate).
-				// notif.actions
-				// notif.vibrate
-				// notif.timestamp
-				// notif.renotify
-			} else {
-				// Fallback for legacy notification format with root-level title/options
-				notificationTuple.title =
-					json.notification?.title || (json as any).title || 'Notification';
-				notificationTuple.options = json.notification || (json as any).options;
-			}
-		} catch {
-			notificationTuple.options.body = data;
-		}
-	}
+	// what the push becomes, and its payload's type, are ./push's (tested
+	// there): the worker only shows it, or posts it to a focused page
+	const notificationTuple = notificationFromPush(data, NOTIFICATION_ICON);
 
 	log(`handlePush`, data, notificationTuple);
 
@@ -377,15 +290,7 @@ async function handleNotificationClick(notification: Notification) {
 		includeUncontrolled: true,
 	});
 
-	const swPath = location.pathname;
-	const swFolder = swPath.substring(0, swPath.lastIndexOf('/') + 1);
-
-	let url = notification.data?.navigate;
-	if (url) {
-		if (!url.startsWith('/') && url.indexOf(':/') == -1) {
-			url = swFolder + url;
-		}
-	}
+	const url = notificationTarget(notification.data, swFolder);
 
 	for (const client of windowClients) {
 		log(`${'focus' in client ? 'focus-available: ' : ''}: ${client.url}`);
