@@ -7,11 +7,14 @@
 		NotificationAction,
 		NotificationClasses,
 		NotificationData,
+		NotificationLayout,
 	} from './view';
 
 	interface Props {
 		actions: NotificationAction[];
 		notification: NotificationData;
+		/** a panel in a stack, or one row across the page */
+		layout?: NotificationLayout;
 		class?: string;
 		classes?: Partial<NotificationClasses>;
 	}
@@ -19,6 +22,7 @@
 	const {
 		notification,
 		actions,
+		layout = 'card',
 		class: className = '',
 		classes = {},
 	}: Props = $props();
@@ -36,15 +40,23 @@
 <div
 	class={cn(
 		// Positioning and layout only - no colors/styling
-		'pointer-events-auto w-full max-w-sm',
+		'pointer-events-auto w-full',
+		layout === 'banner' ? 'max-w-2xl' : 'max-w-sm',
 		className,
 		classes.root,
 	)}
 	transition:fly={{delay: 250, duration: 300, x: +100}}
 >
-	<Card.Root class="py-3">
+	<Card.Root class={layout === 'banner' ? 'py-2' : 'py-3'}>
 		<div class="flex items-start gap-3 px-4">
-			<div class="flex flex-1 flex-col gap-1">
+			<div
+				class={cn(
+					'flex flex-1 flex-col',
+					layout === 'banner'
+						? 'gap-3 sm:flex-row sm:items-center sm:justify-between'
+						: 'gap-1',
+				)}
+			>
 				<div class="flex items-start gap-3">
 					{#if notification.icon}
 						<img src={notification.icon} alt="icon" class="size-6 shrink-0" />
