@@ -1,0 +1,126 @@
+/**
+ * The app's stacking layers: which containers exist, in what order they paint,
+ * and what each one is a portal target for.
+ *
+ * WHY THIS EXISTS
+ *
+ * shadcn's overlay components (dialog, drawer, popover, select) each wrap
+ * themselves in their OWN portal, which defaults to `document.body`, and each
+ * carry `z-50`. Left alone, that means two things, both bad:
+ *
+ *  - Every overlay ties for z-index, so what paints on top is decided by DOM
+ *    order, which is really mount order: whichever opened last wins.
+ *  - A node appended to `body` lands AFTER these layer containers, so an
+ *    overlay that forgot its target silently jumps above everything.
+ *
+ * That combination is a real bug waiting to happen: a drawer portalled to
+ * `body` covers the modal it opened itself, and the click just looks broken.
+ *
+ * WHERE THE NUMBERS ARE, AND WHY NOT HERE
+ *
+ * The z-indexes live in `src/app.css`, as one scale of `--z-layer-*` custom
+ * properties applied to `[data-layer]` containers. This file says which layers
+ * EXIST and in which order; that file says what the order is worth. The split
+ * is not decoration: a layer is two things that must not drift, a container to
+ * render and a portal TARGET to name, and both of those are code rather than
+ * style. `test/lib/core/ui/layers.test.ts` fails if the two files stop agreeing
+ * about which layers exist or about their order, so neither can be edited alone.
+ *
+ * Within one layer, DOM order still decides, and that is deliberate: two modals
+ * open at once should stack in the order they were declared.
+ */
+
+export type Layer = {
+	/**
+	 * The `data-layer` value. This is what `app.css` matches on, so it is also
+	 * the name of the `--z-layer-<name>` custom property that ranks it.
+	 */
+	readonly name: string;
+	/** Element id of the container, so a portal can address it. */
+	readonly id: string;
+	/** Portal target, i.e. the id as a selector. This is what callers pass. */
+	readonly selector: string;
+	/** What belongs here, for whoever adds the next layer. */
+	readonly holds: string;
+};
+
+function layer(name: string, id: string, holds: string): Layer {
+	return {name, id, selector: `#${id}`, holds};
+}
+
+/**
+ * BOTTOM TO TOP. The order of this array is the paint order, and it must match
+ * the order of the `--z-layer-*` declarations in `app.css`.
+ *
+ * Only four of these are portal targets; the rest hold app-owned surfaces that
+ * `+layout.svelte` renders into them directly. They are all in one list anyway,
+ * because the question "what covers what" has to have exactly one answer.
+ */
+export const LAYERS = [
+	layer(
+		'drawer',
+		'--layer-drawer',
+		'Side panels. Below modals, because a panel is a place you act FROM: the ' +
+			'modals it opens have to cover it.',
+	),
+	layer(
+		'notice',
+		'--layer-notice',
+		'The update notice. An ambient report of something that happened, so a ' +
+			'modal (the task in hand) covers it.',
+	),
+	layer(
+		'toast',
+		'--layer-toast',
+		'Toasts and push notifications. Ambient too, but louder and shorter ' +
+			'lived, so they sit above the banner.',
+	),
+	layer(
+		'modal',
+		'--layer-modals',
+		'Modal dialogs. Above the ambient layers, because a modal is what the ' +
+			'user is doing right now.',
+	),
+	layer(
+		'system',
+		'--layer-system',
+		'Modals whose visibility is derived from state the app holds (a flow ' +
+			'in progress, an error report) rather than from a click. Above ordinary ' +
+			'modals because each is a live question about something already in ' +
+			'flight, so it must be able to cover whatever raised it. A layer rather ' +
+			'than a declaration order, because a PAGE remounts on every navigation ' +
+			'and takes a fresh slot at the end of its layer while a modal mounted ' +
+			'once at startup keeps the one it took then - so the two would stack ' +
+			'differently depending on how the user arrived.',
+	),
+	layer(
+		'popover',
+		'--layer-popovers',
+		'Popovers, tooltips and select menus: transient, dismissed by the next ' +
+			'click, and anchored to something in a lower layer (often inside a ' +
+			'modal), so always on top of it.',
+	),
+	layer(
+		'progress',
+		'--layer-progress',
+		'Non-interactive activity indicators, such as the navigation progress ' +
+			'bar. On top of everything because they are small and pointer-events: ' +
+			'none, so being above a modal costs nothing and being under one would ' +
+			'hide them.',
+	),
+] as const satisfies readonly Layer[];
+
+const byName = (name: string): string => {
+	const found = LAYERS.find((l) => l.name === name);
+	if (!found) throw new Error(`no such layer: ${name}`);
+	return found.selector;
+};
+
+/** Portal target for side panels. */
+export const DRAWER_LAYER = byName('drawer');
+/** Portal target for modal dialogs. */
+export const MODAL_LAYER = byName('modal');
+/** Portal target for modals driven by domain state. See the layer's `holds`. */
+export const SYSTEM_LAYER = byName('system');
+/** Portal target for popovers, tooltips and select menus. */
+export const POPOVER_LAYER = byName('popover');

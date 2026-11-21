@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Select as SelectPrimitive } from "bits-ui";
 	import SelectPortal from "./select-portal.svelte";
+	import { POPOVER_LAYER } from "$lib/core/ui/layers";
 	import SelectScrollUpButton from "./select-scroll-up-button.svelte";
 	import SelectScrollDownButton from "./select-scroll-down-button.svelte";
 	import { cn, type WithoutChild } from "$lib/shadcn/utils.js";
@@ -20,7 +21,11 @@
 	} = $props();
 </script>
 
-<SelectPortal {...portalProps}>
+<!-- KEEP THE `to` DEFAULT IF YOU REGENERATE THIS FILE from the shadcn CLI.
+	 A select menu opens from a trigger that may live inside a modal or the
+	 account panel, so it shares the popover layer: above both, dismissed by the
+	 next click either way. See lib/core/ui/layers.ts. -->
+<SelectPortal to={POPOVER_LAYER} {...portalProps}>
 	<SelectPrimitive.Content
 		bind:ref
 		{sideOffset}

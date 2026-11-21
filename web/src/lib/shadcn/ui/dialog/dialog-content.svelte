@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Dialog as DialogPrimitive } from "bits-ui";
 	import DialogPortal from "./dialog-portal.svelte";
+	import { MODAL_LAYER } from "$lib/core/ui/layers";
 	import XIcon from "@lucide/svelte/icons/x";
 	import type { Snippet } from "svelte";
 	import * as Dialog from "./index.js";
@@ -21,7 +22,13 @@
 	} = $props();
 </script>
 
-<DialogPortal {...portalProps}>
+<!-- KEEP THE `to` DEFAULT IF YOU REGENERATE THIS FILE from the shadcn CLI.
+	 Content owns the portal, so this is the only place a dialog's layer can be
+	 decided for every call site; a sibling `<Dialog.Portal to="..." />` has no
+	 children and silently does nothing. Passed BEFORE the spread so a caller can
+	 still override `to`, but cannot lose the default by setting other portal
+	 props. See lib/core/ui/layers.ts. -->
+<DialogPortal to={MODAL_LAYER} {...portalProps}>
 	<Dialog.Overlay />
 	<DialogPrimitive.Content
 		bind:ref

@@ -151,3 +151,125 @@
 	max-width: 100%;
 	height: auto;
 }
+
+/* ==========================================================================
+   OVERLAY LAYERS: the one place that decides what covers what.
+   ==========================================================================
+
+   Every floating surface the app ships (drawers, dialogs, popovers and select
+   menus, notifications, the update notice, the navigation progress bar) is
+   rendered inside one of these layers in `+layout.svelte`, and the ORDER OF THE
+   NUMBERS BELOW IS THE ANSWER. To change what covers what, change a number
+   here.
+
+   WHICH LAYERS EXIST is declared in `lib/core/ui/layers.ts`, not here, because
+   a layer is two things that must not drift: a container to render, and a
+   PORTAL TARGET for the components that send themselves into it. That list
+   supplies both, and `test/lib/core/ui/layers.test.ts` fails when this file and
+   that list disagree about a layer's existence or its position in the order.
+
+   HOW IT WORKS. A layer element is `position: relative` with a `z-index`, which
+   makes it a STACKING CONTEXT. Everything painted inside it, including
+   `position: fixed` descendants with z-indexes of their own, is confined to that
+   context, so a component's internal z-index becomes LOCAL: shadcn's `z-50` and
+   sonner's `z-index: 999999999` no longer compete with each other, and neither
+   can climb above a layer that sits higher here. That is why those vendored
+   values are left alone rather than forked to chase a number.
+
+   The layer elements carry no size and no background, so they add no layout and
+   intercept no clicks; only their (fixed-position) contents are visible.
+
+   WHY THE NUMBERS START AT 100. Page chrome uses the ordinary Tailwind scale
+   (`z-50` and below) in the ROOT stacking context, so any layer has to outrank
+   all of it. The gaps of ten leave room to slot a new layer in without
+   renumbering.
+
+   THE ORDER, AND WHY. A modal is the task the user is doing right now, so it
+   covers the ambient reports of things that merely happened (notifications, the
+   update notice) and the chrome that raised it (a drawer). SYSTEM modals sit
+   one rank above ordinary modals: their visibility is derived from state the
+   app holds rather than from a click, so each one is a live question about
+   something already in flight and has to be able to cover whatever raised it.
+   Popovers and select menus sit above both kinds of modal, because a modal
+   CONTAINS them. The progress bar sits on top of everything because it is 2px
+   tall and `pointer-events: none`, so being above a modal costs nothing and
+   being under one would hide it.
+
+   WHY SYSTEM IS A LAYER AND NOT JUST A DECLARATION ORDER. Within one layer the
+   order is fixed when a component mounts (see below), and that is stable only
+   for components that mount together and stay mounted. A PAGE's modals do not:
+   the router unmounts and remounts them on every navigation, so they take a
+   fresh slot at the END of the layer, while a modal mounted once by the layout
+   keeps the slot it took when the app started. The same two modals would
+   therefore stack one way on a cold load and the other way after a single
+   navigation. Declaration order cannot express a guarantee across that
+   boundary; a layer can.
+
+   ---------------------------------------------------------------------------
+   TO REORDER LAYERS: swap the numbers below. That is the whole change.
+
+   TO ADD A LAYER: add it to `lib/core/ui/layers.ts` (which is what renders the
+   container and names the portal target), then add a `--z-layer-<name>` here and
+   the matching `[data-layer='<name>']` rule below. The gaps of ten mean you can
+   usually do this without touching any other number. A unit test asserts that
+   the two files list the same layers in the same order, so a typo in a custom
+   property fails the suite instead of silently falling back to `auto`.
+
+   WITHIN ONE LAYER, order is DECLARATION ORDER, and OPEN ORDER IS IRRELEVANT.
+   bits-ui's portal mounts a consumer into the layer when the component owning
+   the dialog mounts, and keeps that slot for its lifetime, rendering the dialog
+   into it as it opens and closes. So a dialog's position is fixed before it has
+   ever been opened, and reopening it cannot move it to the top: a dialog
+   declared FIRST but opened LAST still paints underneath.
+
+   The consequence to remember: a dialog raised from another dialog is on top
+   only because it is DECLARED AFTER it, AND ONLY IF THE TWO SHARE A LAYER.
+   Declaration order ranks modals WITHIN a layer; it cannot reach across two.
+   CHECK THE LAYER FIRST, THEN THE ORDER.
+   --------------------------------------------------------------------------- */
+:root {
+	--z-layer-drawer: 100;
+	--z-layer-notice: 110;
+	--z-layer-toast: 120;
+	--z-layer-modal: 130;
+	/* Derived from state the app holds, so it is a live question about
+	   something in flight and has to cover whatever raised it. */
+	--z-layer-system: 135;
+	/* Above BOTH kinds of modal, because a modal CONTAINS popovers (a menu, a
+	   select, a tooltip). Below them it would be clipped by the very dialog
+	   that opened it, which is the one arrangement that is never wanted. */
+	--z-layer-popover: 140;
+	--z-layer-progress: 150;
+}
+
+[data-layer] {
+	position: relative;
+}
+
+[data-layer='drawer'] {
+	z-index: var(--z-layer-drawer);
+}
+
+[data-layer='notice'] {
+	z-index: var(--z-layer-notice);
+}
+
+[data-layer='toast'] {
+	z-index: var(--z-layer-toast);
+}
+
+[data-layer='modal'] {
+	z-index: var(--z-layer-modal);
+}
+
+[data-layer='system'] {
+	z-index: var(--z-layer-system);
+}
+
+[data-layer='popover'] {
+	z-index: var(--z-layer-popover);
+}
+
+[data-layer='progress'] {
+	z-index: var(--z-layer-progress);
+}
