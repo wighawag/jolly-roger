@@ -17,15 +17,26 @@ import {config, extensions, APP_SCRIPTS, APP_CONTRACT} from './app-world';
 // is the same opener a browser runs, with the same databases, minus the Worker
 // (whose own behaviour `offline-node.test.ts` pins).
 
+// THE DEPLOYER AND THE ADMIN, both funded, as `embedded/world.test.ts` deploys:
+// the two named accounts a deploy config of this tree declares. A descendant's
+// `APP_SCRIPTS` (`./app-world`) may need either (template-commit-reveal's game
+// is owned by its admin), and a world of the deployer alone leaves the admin
+// unresolved there.
 const DEPLOYER =
 	'0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80' as const;
+const ADMIN =
+	'0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d' as const;
 const DEPLOYER_ADDRESS = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266' as const;
+const ADMIN_ADDRESS = '0x70997970C51812dc3A010C7d01b50e0d17dc79C8' as const;
 
 const DEPLOYMENT: OfflineWorldDeployment = {
 	rocketh: {config, extensions},
 	scripts: APP_SCRIPTS,
-	accounts: {deployer: DEPLOYER},
-	initialBalances: {[DEPLOYER_ADDRESS]: 10n ** 24n},
+	accounts: {deployer: DEPLOYER, admin: ADMIN},
+	initialBalances: {
+		[DEPLOYER_ADDRESS]: 10n ** 24n,
+		[ADMIN_ADDRESS]: 10n ** 24n,
+	},
 };
 
 /** A browser's `localStorage`, as much of it as the opener uses. */
