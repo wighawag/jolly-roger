@@ -5,11 +5,15 @@
 	import {formatBalance} from '$lib/core/utils/format/balance';
 	import AlertTriangleIcon from '@lucide/svelte/icons/alert-triangle';
 	import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
-	import {FaucetButton, hasFaucet} from '$lib/core/ui/faucet/index.js';
+	import {FaucetButton, faucetConfigured} from '$lib/core/ui/faucet/index.js';
+	import {useFaucet} from '$lib/core/capabilities';
 	import {deployments} from '$lib/deployments-store';
 	import {getAppContext} from '$lib';
 	import {deriveInsufficientFundsView} from './insufficient-funds-view';
 	import {payerAddressOf} from '$lib/core/connection/remote';
+
+	// Offered only when the app provides a faucet with an API or a link.
+	const hasFaucet = faucetConfigured(useFaucet());
 
 	const {balanceCheck, accountExecutor, signerExecutor, payment, topUp} =
 		getAppContext();

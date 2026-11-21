@@ -1,5 +1,6 @@
 import type {Page} from '@playwright/test';
-import {test, expect, describe, type AuthoriseBrowser} from '../fixtures/test';
+import {test, expect, describe} from '../fixtures/test';
+import {sendWrite} from '../fixtures/contracts-page';
 
 /**
  * The transaction inspector, driven the way a user reaches it.
@@ -37,25 +38,14 @@ describe('Transaction inspector', () => {
 	 * can discard an operation that was only ever in memory. Going through the
 	 * menu is both what a user does and what keeps the app alive.
 	 *
-	 * And a third, particular to this branch: the FIRST send from a fresh browser
-	 * does not reach the chain at all. This app posts through a local signer, and
-	 * a signer the account has never authorised is answered with the authorisation
-	 * flow instead. The send is not lost, it waits and is offered back, so there is
-	 * no operation to inspect until that flow has been completed. Without this the
-	 * suite fails on the pending badge, which is a true report of there being
-	 * nothing pending.
+	 * The send is the main page's write on /contracts (`fixtures/contracts-page.ts`,
+	 * which reaches it by a client-side navigation for the same reason), from the
+	 * ACCOUNT, the route the suite asserts: on every node, whether or not the app
+	 * also posts through a local signer, so a node sets `MAIN_PAGE.write` and
+	 * inherits this file.
 	 */
-	async function submitAndOpenTransactions(
-		page: Page,
-		authoriseBrowser: AuthoriseBrowser,
-		message: string,
-	) {
-		const input = page.getByPlaceholder('Enter your greeting...');
-		await expect(input).toBeEnabled({timeout: 30000});
-		await input.fill(message);
-		await page.getByRole('button', {name: /send/i}).click();
-
-		await authoriseBrowser(page);
+	async function submitAndOpenTransactions(page: Page, message: string) {
+		await sendWrite(page, message);
 
 		await expect(
 			page.locator('[data-testid="pending-operations"]'),
@@ -143,14 +133,9 @@ describe('Transaction inspector', () => {
 
 	test('opens the inspector and puts the operation in the URL', async ({
 		connectedPage,
-		authoriseBrowser,
 	}) => {
 		const page = connectedPage;
-		await submitAndOpenTransactions(
-			page,
-			authoriseBrowser,
-			`Inspect test ${Date.now()}`,
-		);
+		await submitAndOpenTransactions(page, `Inspect test ${Date.now()}`);
 
 		const inspect = page.getByRole('button', {name: /inspect/i}).first();
 		await expect(inspect).toBeVisible({timeout: 30000});
@@ -170,14 +155,9 @@ describe('Transaction inspector', () => {
 
 	test('closes on the back gesture, leaving the transactions page', async ({
 		connectedPage,
-		authoriseBrowser,
 	}) => {
 		const page = connectedPage;
-		await submitAndOpenTransactions(
-			page,
-			authoriseBrowser,
-			`Back test ${Date.now()}`,
-		);
+		await submitAndOpenTransactions(page, `Back test ${Date.now()}`);
 
 		await page
 			.getByRole('button', {name: /inspect/i})
@@ -197,7 +177,6 @@ describe('Transaction inspector', () => {
 
 	test('records WHICH ROUTE signed it, so it can be replaced later', async ({
 		connectedPage,
-		authoriseBrowser,
 	}) => {
 		// THE ONE LINK NOTHING ELSE CHECKS END TO END. `source` is stamped by a
 		// thunk handed to the tracker at construction, carried through the
@@ -210,11 +189,7 @@ describe('Transaction inspector', () => {
 		// works, the operation is listed, and nothing looks wrong until somebody
 		// needs to unstick one.
 		const page = connectedPage;
-		await submitAndOpenTransactions(
-			page,
-			authoriseBrowser,
-			`Source test ${Date.now()}`,
-		);
+		await submitAndOpenTransactions(page, `Source test ${Date.now()}`);
 
 		await expect
 			.poll(() => storedTxSources(page), {timeout: 15000})
@@ -249,14 +224,9 @@ describe('Transaction inspector', () => {
 	 */
 	test('keeps its dispatch facts across a reload, while the observer updates it', async ({
 		connectedPage,
-		authoriseBrowser,
 	}) => {
 		const page = connectedPage;
-		await submitAndOpenTransactions(
-			page,
-			authoriseBrowser,
-			`Reload shape ${Date.now()}`,
-		);
+		await submitAndOpenTransactions(page, `Reload shape ${Date.now()}`);
 
 		// Wait for the record to actually be on disk: synqable debounces its
 		// saves, and reloading before the write tests nothing at all.
@@ -313,14 +283,9 @@ describe('Transaction inspector', () => {
 
 	test('survives a reload, because it is in the URL', async ({
 		connectedPage,
-		authoriseBrowser,
 	}) => {
 		const page = connectedPage;
-		await submitAndOpenTransactions(
-			page,
-			authoriseBrowser,
-			`Reload test ${Date.now()}`,
-		);
+		await submitAndOpenTransactions(page, `Reload test ${Date.now()}`);
 
 		await page
 			.getByRole('button', {name: /inspect/i})
