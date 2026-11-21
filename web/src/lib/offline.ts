@@ -10,6 +10,7 @@ import {
 	openOfflineWorld,
 	type OfflineBootStatus,
 } from '$lib/offline-world';
+import {authoriseTheBrowsersKey} from '$lib/ui/delegation/authorise-here';
 import {createContext} from '$lib/context/index';
 import type {Context} from '$lib/context/types';
 
@@ -181,6 +182,28 @@ async function buildOfflineWorld(booting: (what: string) => void) {
 		await connectTheWorld(context.context.connection);
 	} catch (err) {
 		console.error('the offline world could not connect its own wallet', err);
+	}
+
+	// AND IT AUTHORISES THE KEY THIS BROWSER SENDS WITH, which on this branch is
+	// the last thing standing between the player and a send: the local signer
+	// is derived from the signature the line above asked for, and acts only once
+	// the account has registered it as a delegate. The world's account is the
+	// world's own wallet, so there is nobody to ask (see `authorise-here.ts`).
+	// NOT FATAL: refused, the app's own authorisation flow comes back at the
+	// first send, the remedy a player would have had anyway.
+	booting("authorising this browser's key");
+	try {
+		const outcome = await authoriseTheBrowsersKey(context.context);
+		if (outcome.step === 'Refused') {
+			console.error(
+				`the offline world could not authorise this browser's key: ${outcome.reason}`,
+			);
+		}
+	} catch (err) {
+		console.error(
+			"the offline world could not authorise this browser's key",
+			err,
+		);
 	}
 
 	return {world, context};
