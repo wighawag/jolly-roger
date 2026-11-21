@@ -3,23 +3,18 @@
 	import {Button} from '$lib/core/ui/button';
 	import {fly} from 'svelte/transition';
 	import {cn} from '$lib/core/utils/tailwind/index.js';
-	import type {NotificationClasses} from './types';
-
-	export type NotificationData = {
-		title: string;
-		body?: string;
-		icon?: string;
-	};
-
-	export interface NotificationAction {
-		label: string;
-		onClick: () => void;
-		primary?: boolean;
-	}
+	import type {
+		NotificationAction,
+		NotificationClasses,
+		NotificationData,
+		NotificationLayout,
+	} from './view';
 
 	interface Props {
 		actions: NotificationAction[];
 		notification: NotificationData;
+		/** a panel in a stack, or one row across the page */
+		layout?: NotificationLayout;
 		class?: string;
 		classes?: Partial<NotificationClasses>;
 	}
@@ -27,28 +22,41 @@
 	const {
 		notification,
 		actions,
+		layout = 'card',
 		class: className = '',
 		classes = {},
 	}: Props = $props();
 </script>
 
 <!--
-Notification panel, dynamically insert this into the live region when it needs to be displayed
+	THE PAINT OF A NOTIFICATION, here on shadcn's Card and Button: the one
+	notification file this kit rewrites. The behaviour (which notifications, their
+	actions, the live region they are announced in) is the root's, in
+	`./Notifications.svelte`, `../service-worker/VersionAndInstallNotfications.svelte`
+	and `./view.ts`.
 
-Enters with fly transition from right
+	Enters with fly transition from right
 -->
 <div
 	class={cn(
 		// Positioning and layout only - no colors/styling
-		'pointer-events-auto w-full max-w-sm',
+		'pointer-events-auto w-full',
+		layout === 'banner' ? 'max-w-2xl' : 'max-w-sm',
 		className,
 		classes.root,
 	)}
 	transition:fly={{delay: 250, duration: 300, x: +100}}
 >
-	<Card.Root class="py-3">
+	<Card.Root class={layout === 'banner' ? 'py-2' : 'py-3'}>
 		<div class="flex items-start gap-3 px-4">
-			<div class="flex flex-1 flex-col gap-1">
+			<div
+				class={cn(
+					'flex flex-1 flex-col',
+					layout === 'banner'
+						? 'gap-3 sm:flex-row sm:items-center sm:justify-between'
+						: 'gap-1',
+				)}
+			>
 				<div class="flex items-start gap-3">
 					{#if notification.icon}
 						<img src={notification.icon} alt="icon" class="size-6 shrink-0" />

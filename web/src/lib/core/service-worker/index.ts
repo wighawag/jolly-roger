@@ -517,7 +517,11 @@ export function createServiceWorker(
 				// Listen to messages
 				messageHandler = (event: MessageEvent) => {
 					if (event.data && event.data.type === 'notification') {
-						notifications.add(fromPushNotification(event.data, navigateTo));
+						// the worker posts `{type, notification: {title, options}}`: the
+						// notification is the message's field, not the message
+						notifications.add(
+							fromPushNotification(event.data.notification, navigateTo),
+						);
 					}
 				};
 				navigator.serviceWorker.addEventListener('message', messageHandler);
