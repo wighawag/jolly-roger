@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Link what a game BUILDS in its main checkout into the e2e worktree.
+ * Link what an app BUILDS in its main checkout into the e2e worktree.
  *
  *   node scripts/e2e-link-built.mjs <main checkout> <e2e worktree>
  *
@@ -9,13 +9,13 @@
  * `package.json` and, for each path, links `<main>/<path>` to
  * `<worktree>/<path>`.
  *
- * ## Why a game needs it
+ * ## Why an app needs it
  *
  * The run happens in a fresh git worktree (the script's header says why), so it
  * has the tracked files and nothing else. What `pnpm install` generates and git
  * ignores is absent there: the template's own case is handled by the script
  * (the PWA icons, the dependencies, the contracts package built from the
- * worktree's compile), but a game can add workspace packages of its own whose
+ * worktree's compile), but an app can add workspace packages of its own whose
  * BUILD the app imports. stratagems is the case that made this a hook: its web
  * imports `common/` and its indexer, both built into gitignored `dist`
  * directories by its `prepare`, independent of any deployment. Its copy of the
@@ -28,7 +28,7 @@
  * `dist` has to come from the artifacts the run just compiled) would be
  * silently replaced by the main checkout's stale build: a contract change
  * that was only compiled there would pass a suite it should fail. So nothing is
- * linked unless the game names it, the same way the LAN build reads only what
+ * linked unless the app names it, the same way the LAN build reads only what
  * the `"lan"` field says.
  *
  * ## What it refuses
