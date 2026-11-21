@@ -13,7 +13,7 @@ describe("a worker's app root", () => {
 
 	it('is where Vite serves a worker from in development', () => {
 		expect(
-			appRoot('http://localhost:5173/src/lib/mygame/indexer.worker.ts?worker'),
+			appRoot('http://localhost:5173/src/lib/myapp/indexer.worker.ts?worker'),
 		).toBe('http://localhost:5173/');
 	});
 

@@ -1,17 +1,17 @@
 /**
- * WHERE A GAME'S INDEXER RUNS: the bodies of its two worker entries.
+ * WHERE AN APP'S INDEXER RUNS: the bodies of its two worker entries.
  *
- * A game keeps two files of its own, each about ten lines, because the bundler
+ * An app keeps two files of its own, each about ten lines, because the bundler
  * has to see `new Worker(new URL(...))` and the processor's import in the
- * game's code (see `./README.md`):
+ * app's code (see `./README.md`):
  *
  * ```ts
- * // the game's indexer.worker.ts
+ * // the app's indexer.worker.ts
  * import {hostLiveIndexer} from '$lib/indexer/host';
  * import {myProcessor} from './processor';
- * hostLiveIndexer({processor: myProcessor, databasePrefix: 'mygame', finality: 12});
+ * hostLiveIndexer({processor: myProcessor, databasePrefix: 'myapp', finality: 12});
  *
- * // the game's indexer.world.worker.ts
+ * // the app's indexer.world.worker.ts
  * import {hostWorldIndexer} from '$lib/indexer/host';
  * import {myProcessor} from './processor';
  * hostWorldIndexer({processor: myProcessor});
@@ -22,7 +22,7 @@
  * (`./worker-choice.ts`, per deployment), and it starts from a published
  * snapshot when the tab hands it a publication. Its processor is either
  * IMPORTED (`processor`) or the PUBLISHED BUNDLE (`processorBundle`): a
- * published snapshot is keyed by the SHA-256 of the bundle's bytes, so a game
+ * published snapshot is keyed by the SHA-256 of the bundle's bytes, so an app
  * that publishes one runs the very bytes its snapshot job folded with, fetched
  * from the app's root (`appRoot`), and no other.
  *
@@ -76,7 +76,7 @@ export function appRoot(href: string = self.location.href): string {
 
 export type LiveIndexerOptions = (
 	| {
-			/** The processor, imported as a module (a game that publishes no snapshot). */
+			/** The processor, imported as a module (an app that publishes no snapshot). */
 			processor: AnyProcessor;
 			processorBundle?: undefined;
 	  }
@@ -86,7 +86,7 @@ export type LiveIndexerOptions = (
 			processorBundle: {url: URL};
 	  }
 ) & {
-	/** The game's word (`./worker-choice.ts`): the database is `<prefix>-<stream>`. */
+	/** The app's word (`./worker-choice.ts`): the database is `<prefix>-<stream>`. */
 	databasePrefix: string;
 	/** The finality the stream runs under: a published snapshot inside the reorg window is refused. */
 	finality: number;
@@ -107,7 +107,7 @@ function processorOf(
 	return bundle.processor as AnyProcessor;
 }
 
-/** The body of a game's live worker entry. */
+/** The body of an app's live worker entry. */
 export function hostLiveIndexer(options: LiveIndexerOptions): void {
 	hostIndexerInThisWorker({
 		...(options.processorBundle
@@ -143,7 +143,7 @@ export function hostLiveIndexer(options: LiveIndexerOptions): void {
 	});
 }
 
-/** The body of a game's offline-world worker entry. */
+/** The body of an app's offline-world worker entry. */
 export function hostWorldIndexer(options: {processor: AnyProcessor}): void {
 	/** Given by the tab (`new Worker(url, {name})`): `<prefix>-world-<chainId>`. */
 	const worldName = self.name;

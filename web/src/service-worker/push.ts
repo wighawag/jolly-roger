@@ -1,25 +1,50 @@
 /**
  * WHAT A PUSH CARRIES, AND WHAT THE SERVICE WORKER MAKES OF IT.
  *
- * The payload's type is push-notification-server's, the one its `/push`
- * validates (`DeclarativePushNotification`, the declarative Web Push shape,
- * `web_push: 8030`), so it is declared once, there: the service worker reads
- * it, and the trigger service's config (`web/notifier/`) writes it.
+ * The payload is the Declarative Web Push shape (`web_push: 8030`, the WebKit
+ * proposal a push server sends), declared ONCE, here: the worker reads it, and
+ * a descendant whose push server has its own type checks that type against
+ * this one rather than declaring the shape again.
  *
  * The two functions are the worker's push and click handlers without the
- * browser around them, so they are tested in Node (test/lib/push): the worker
- * (`src/service-worker/index.ts`) calls them and owns the `showNotification`,
- * the post to a focused page, and the navigation.
+ * browser around them, so they are tested in Node
+ * (test/service-worker/push.test.ts): the worker (`./index.ts`) calls them and
+ * owns the `showNotification`, the post to a focused page, and the navigation.
  *
- * NO IMPORT BUT A TYPE: the service worker bundles this file, and nothing of
- * the app may reach it.
+ * NO IMPORT: the service worker bundles this file, and nothing of the app may
+ * reach it.
  */
-import type {DeclarativePushNotification} from '@push-notification/server';
 
-export type {DeclarativePushNotification};
-export type NotificationAction = NonNullable<
-	DeclarativePushNotification['notification']['actions']
->[number];
+export type NotificationAction = {
+	action: string;
+	title: string;
+	navigate: string;
+	icon?: string;
+};
+
+export type DeclarativePushNotification = {
+	web_push: 8030;
+	notification: {
+		title: string;
+		navigate: string;
+		dir?: NotificationDirection;
+		lang?: string;
+		body?: string;
+		tag?: string;
+		image?: string;
+		icon?: string;
+		badge?: string;
+		vibrate?: number[];
+		timestamp?: number;
+		renotify?: boolean;
+		silent?: boolean;
+		requireInteraction?: boolean;
+		data?: Record<string, unknown>;
+		actions?: NotificationAction[];
+	};
+	app_badge?: number;
+	mutable?: boolean;
+};
 
 export type PushedNotification = {title: string; options: NotificationOptions};
 

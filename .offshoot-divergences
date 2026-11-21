@@ -37,7 +37,6 @@ package.json                                           the LAN package's pnpmDep
 pnpm-lock.yaml                                         the lockfile of this workspace's own dependencies (contracts, viem, @etherplay/connect, ...)
 pnpm-workspace.yaml                                    the contracts package in the workspace, and the cookie override for SvelteKit's vulnerable range
 .gitignore                                             the contracts', the LAN build's and the e2e's generated files
-.offshoot-omissions                                    jolly-roger's own omissions from template-svelte-shadcn (Head.svelte moved, the svg icon, the dev layouts)
 
 # The web package's configuration
 web/package.json                                       the web app's dependencies (viem, @etherplay/connect, the account-data stack) and its scripts
@@ -51,25 +50,20 @@ web/playwright.config.ts                               the e2e runs a local chai
 web/src/web-config.json                                the brand: Jolly Roger's name, description, URLs and identity links
 web/src/app.html                                       dark mode by default, and the named-logs console script that reads ?debug, documented where it is inlined
 web/src/app.d.ts                                       PageData's optional surfaceChrome and the shallow-routing overlay state, typed for the layout that reads them
-web/src/app.css                                        the overlay layers' z-index scale, the viewport-clamped layout, the dispatch and funding modal styles
+web/src/app.css                                        the stable scrollbar gutter, sonner's toast style and the navbar's height, beside the stem's layers with jolly-roger's notes on them (its debug surfaces, ADR-0004, the modal tests)
 web/static/_redirects                                  the explorer's dynamic routes rewritten for unique-origin IPFS gateways, before the 404 fallback
 
 # The app shell and its composition
 web/src/lib/index.ts                                   where this app is composed: the wallet connection, the account stores, the logs, the dispatch indicator
 web/src/lib/kit/README.md                              the adapter's scope as it stands here, its claims narrowed to what is true
-web/src/routes/+layout.svelte                          the shell: the chrome as a list a descendant extends, the overlay layers, a surface's own chrome
+web/src/routes/+layout.svelte                          the shell: the chrome as a list a descendant extends, the app's context, a surface's own chrome, and sonner, the striped update banner and the sending notice in the stem's layers
 web/src/routes/+layout.ts                              the version logged at start and the named-logs init logger, beside the stem's service-worker toggle
 web/src/routes/+page.svelte                            jolly-roger's home page, its button to the app's main page (`MAIN_PAGE` of `$app-specific`), through the kit's paths and the shadcn button
 web/src/routes/+error.svelte                           the error page in the shadcn style and clamped to the viewport like the rest of the app
 web/test/framework-boundary.test.ts                    the boundary rule stated as inherited from template-svelte, with this repo's ADR-0004 and its own leak list
 
-# Components the overlay layers needed changed (ADR-0005 on the `work` branch)
-web/src/lib/components/NavigationProgress.svelte       no z-index of its own: it renders inside the "progress" overlay layer, which decides what it covers
-web/src/lib/core/notifications/NotificationOverlay.svelte  no z-index of its own: the notifications' overlay layer decides what it sits above
-web/src/lib/shadcn/ui/dialog/dialog-content.svelte     portals into its overlay layer in $lib/core/ui/layers instead of the body
-web/src/lib/shadcn/ui/drawer/drawer-content.svelte     portals into its overlay layer in $lib/core/ui/layers instead of the body
-web/src/lib/shadcn/ui/popover/popover-content.svelte   portals into its overlay layer in $lib/core/ui/layers instead of the body
-web/src/lib/shadcn/ui/select/select-content.svelte     portals into its overlay layer in $lib/core/ui/layers instead of the body
+# The root's format helpers, widened
+web/src/lib/core/utils/format/index.ts                 the web3 formatters (balance, gas, value, on viem) beside the root's hex, json and error ones
 
 # The e2e
 web/e2e/tests/service-worker-gateway.e2e.ts            the gateway navigation retried: it races the worker's clients.claim(), which Chromium can abort
@@ -96,7 +90,6 @@ web/e2e/impersonate-addresses.json                     accounts 3 to 5, so the g
 
 # The repo and its workspace
 README.md                                              the LAN rehearsal script this branch adds (scripts/rehearse-lan.sh)
-.offshoot-omissions                                    this branch's own omission below main's: contracts/deployments/sepolia, which is main's contracts
 pnpm-lock.yaml                                         @etherplay/delegation in the contracts package
 scripts/run-e2e-tests.sh                               a faucet in the e2e stack, since the local signer's gas is funded and not Hardhat's
 
@@ -136,12 +129,9 @@ web/src/routes/demo/+page.svelte                       the demo offers the signe
 web/src/routes/demo/lib/setGreeting.ts                 a greeting sent by the local signer through setMessageFor
 
 # The e2e
-web/e2e/fixtures/stalling-wallet.ts                    the stalled write goes through /contracts here, since the demo's Send never reaches the wallet
 web/e2e/fixtures/test.ts                               the delegation, the faucet and the burner's funding in the fixtures
 web/e2e/impersonate-addresses.json                     the faucet's address
 web/e2e/tests/demo.e2e.ts                              a greeting belongs to the account, posted by its delegate
-web/e2e/tests/escape-hatch.e2e.ts                      the reconnect names the address it needs; the wallet list reached collapsed or not
-web/e2e/tests/pending-operation.e2e.ts                 the inspector's cases given the delegation fixture they need
 
 # Unit tests of the above
 web/test/e2e-account-claims.test.ts                    the stalling-wallet guard matches an import, not a mention (967b10b2; generic, its home is main: a K item)
@@ -172,15 +162,12 @@ web/src/routes/demo/+page.svelte                       both stems' changes (the 
 
 # This node's own changes
 package.json                                           the LAN package's pnpmDepsHash for this branch's lockfile
-.offshoot-omissions                                    the root's unwired push-notifications module dropped: @push-notification/client replaces it
 web/package.json                                       @etherplay/connect ^0.18.0 (a wallet's publication signature asked once and kept; its home is main, a cascade of its own), the push client and delegated-identity; the push server, the trigger service, etherfold and esbuild for the dev stack and the tests; the notifier's scripts, and `check` type-checking it
 dev/zellij.kdl                                         three panes for the notifier: the push server, `etherfold run` of the greetings, the trigger service
 web/.env.localhost                                     the dev stack's push server and trigger service, same-host
 web/.env                                               the push server, its VAPID public key and the trigger service, empty: notifications not configured
 web/.prettierignore                                    the notifier's build output (web/notifier/.generated) is not formatted
-web/README.md                                          the push-notifications module it linked is omitted here, so the line names $lib/push instead
-web/src/lib/core/service-worker/index.ts               a push posted to a focused page shows: the page read the message as the notification, so its title was undefined (a root fix: K3)
-web/src/service-worker/index.ts                        the push and click handlers call $lib/push/payload (tested there), whose type is the push server's, so the payload is declared once
+web/README.md                                          the solved problems list $lib/push, the account's Web Push through @push-notification/client and the trigger service
 scripts/run-e2e-tests.sh                               the notifier started for the run (recording push server, indexer, trigger service), the app built against it
 web/e2e/impersonate-addresses.json                     a seventh account (6), the push-notifications suite's subscriber
 

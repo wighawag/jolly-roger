@@ -1,11 +1,11 @@
 /**
  * FOLLOW AN INDEXED STATE, re-reading only what moved (etherfold ADR-0083).
  *
- * A game's indexed state is a set of PARTS, each one GraphQL question over the
+ * An app's indexed state is a set of PARTS, each one GraphQL question over the
  * entities its processor declares (cells, owners, a commitment, ...). The
- * game says which parts there are, which part each entity's move invalidates,
+ * app says which parts there are, which part each entity's move invalidates,
  * and how to read some parts as of one block (`read`); this module does the
- * rest, which every indexed game would otherwise write again:
+ * rest, which every indexed app would otherwise write again:
  *
  * - one full read, then per state-moved signal (`moved`):
  * - a coherence token it does not hold (a reorg, a promotion, the first
@@ -32,7 +32,7 @@
  * one. Any other failure is reported (`onError`) and the next read is a full
  * one.
  *
- * ONE PART MAY DEPEND ON WHO PLAYS (`accountPart`): a game that reads only the
+ * ONE PART MAY DEPEND ON WHO PLAYS (`accountPart`): an app that reads only the
  * connected player's commitment re-reads that part when the player changes.
  *
  * Written first in stratagems (its `indexer/src/queries.ts`, step X1 of its
@@ -103,7 +103,7 @@ export type Moved =
 	| {readonly kind: 'retracted' | 'repointed'; readonly coherence: string};
 
 /**
- * The game's half: its parts and how to read them.
+ * The app's half: its parts and how to read them.
  *
  * `read` asks the given parts as of `at` (a number, a `BlockRef`, or the tip
  * when left out), writes them into a copy of `into` (a fresh state when left

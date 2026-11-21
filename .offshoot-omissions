@@ -133,22 +133,3 @@ contracts/deployments/sepolia
 # somebody needs mid-merge, and until now it lived only in a commit message five
 # weeks back. `scripts/check-omissions.mjs` reported these four paths on the
 # cascade that delivered it to this branch, 2026-09-25.
-
-# ---------------------------------------------------------------------------
-# with/push-notifications: the root's unwired Web Push client, replaced
-# ---------------------------------------------------------------------------
-#
-# template-svelte ships `core/service-worker/push-notifications/` wired to
-# nothing (its README says so, deliberately) and speaking push-notification-
-# server's OLD routes: an unauthenticated `/register` keyed by the delegate
-# address, and a `/push` any page could call. This node subscribes and
-# registers through @push-notification/client instead, the browser half that
-# server publishes for its current `/register` (the wallet's ownership proof
-# and the delegate key's signed request, delegated-identity), so the copy is
-# dropped rather than left beside it with a second declaration of the payload's
-# types. The payload's type is the server's (`$lib/push/payload`).
-#
-# Expect a modify/delete conflict whenever the root changes that module;
-# resolve it by keeping the deletion. If the root ever moves to the client
-# package itself, this entry goes and the root's version is taken.
-web/src/lib/core/service-worker/push-notifications

@@ -15,7 +15,7 @@
  * carries nothing of the trigger service.
  */
 import type {TriggerDefinitions} from '@etherfold/platform-nodejs-triggers';
-import type {DeclarativePushNotification} from '$lib/push/payload';
+import type {DeclarativePushNotification} from '@push-notification/server';
 
 /** The subscription kind "notify me of new greetings": a log of MessageChanged from anyone but me. */
 export const NEW_GREETING = 'new-greeting';

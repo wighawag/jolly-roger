@@ -7,7 +7,7 @@ import {
 	notificationFromPush,
 	notificationTarget,
 	type DeclarativePushNotification,
-} from '$lib/push/payload.js';
+} from '../../src/service-worker/push';
 
 const ICON = '/app/pwa/favicon-512.png';
 

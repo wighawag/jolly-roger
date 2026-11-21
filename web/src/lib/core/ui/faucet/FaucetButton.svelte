@@ -6,7 +6,7 @@
 	import CircleXIcon from '@lucide/svelte/icons/circle-x';
 	import {getAppContext} from '$lib';
 	import {claimFaucet} from './faucet-actions';
-	import {PUBLIC_FAUCET_LINK, PUBLIC_FAUCET_API} from '$env/static/public';
+	import {useFaucet} from '$lib/core/capabilities';
 
 	interface Props {
 		/**
@@ -26,6 +26,9 @@
 
 	const context = getAppContext();
 	const {deployments} = context;
+	// The app's faucet, provided at its root (see ./faucet.ts). A caller offers
+	// this button only when `faucetConfigured(useFaucet())`.
+	const faucet = useFaucet();
 
 	let status = $state<'idle' | 'pending' | 'success' | 'error'>('idle');
 
@@ -35,8 +38,8 @@
 			await claimFaucet(
 				context,
 				{
-					faucetApi: PUBLIC_FAUCET_API,
-					faucetLink: PUBLIC_FAUCET_LINK,
+					faucetApi: faucet?.api(),
+					faucetLink: faucet?.link() ?? '',
 				},
 				target,
 			);

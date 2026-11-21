@@ -6,7 +6,7 @@
 
 import {build, version, prerendered, files} from '$service-worker';
 import {createFetchAndUpdateCache} from './fetch-and-update-cache';
-import {notificationFromPush, notificationTarget} from '$lib/push/payload';
+import {notificationFromPush, notificationTarget} from './push';
 
 const ID = version; // + '-1';
 
@@ -257,8 +257,8 @@ async function getClientsStatus(): Promise<{
 async function handlePush(data?: string) {
 	const appActive = await getClientsStatus();
 
-	// what the push becomes, and its payload's type, are $lib/push/payload's
-	// (tested there): the worker only shows it, or posts it to a focused page
+	// what the push becomes, and its payload's type, are ./push's (tested
+	// there): the worker only shows it, or posts it to a focused page
 	const notificationTuple = notificationFromPush(data, NOTIFICATION_ICON);
 
 	log(`handlePush`, data, notificationTuple);
