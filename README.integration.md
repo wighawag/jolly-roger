@@ -27,11 +27,11 @@ It needs a hosted wallet service to be exercised at all, and everything that bri
 
 The fifth is a comment on the same `{prompts: ...}` argument, and neither side survived the other unedited. `with/local-signer` says this client prompts "which is the default and therefore unwritten"; on this node it is not a default, it is `walletPrompts`, and the world supplies it. So both facts are now stated as a pair: **the local signer's silence is a property of the KEY, and this client's is a property of the WORLD.** Collapsing them into one flag is the mistake the pair exists to prevent, and a future merge that simplifies it has reintroduced it.
 
-## What this node does NOT reconcile, and it is the first thing a descendant will meet
+## Where the world meets the local signer, and it is the first thing a descendant will meet
 
 A world takes the app's `targetStep` rather than choosing one (`request.targetStep` in `lib/embedded/world.ts`), which is deliberate: a world chooses the CHAIN, never how the app authenticates. On this node that means the embedded world runs with `TARGET_STEP = 'SignedIn'`, which is a combination neither parent could have: on `with/embedded-chain` alone the target is `WalletConnected`, so no sign-in happens and no local signer is derived.
 
-Nothing here asserts that combination works in a browser. `/offline-demo` is `with/embedded-chain`'s route and its measurements were taken there, at `WalletConnected`. The suites pass on this node, and `check` plus `test:unit` prove the text compiles and the units hold, which is not the same as a round played in a tab.
+So the world answers both steps itself, at boot, because the offline demo mounts no connection flow and nothing else would: it signs in over its own wallet (`connectTheWorld` in `lib/offline-world.ts`, `with/embedded-chain`'s), and it registers the derived key as its account's delegate (`authoriseTheBrowsersKey` in `lib/ui/delegation/authorise-here.ts`, this node's own, called from `lib/offline.ts`, which is therefore this node's second modified file). Until it did, `/offline-demo` hung at `WalletConnected` on its first send. `web/e2e/tests/offline-demo.e2e.ts` (`with/embedded-chain`'s) sends a greeting there and on this node, where it runs under the e2e script's `PUBLIC_NODE_URL`, so it also pins that the world's signer broadcasts to the world and not to the app's node.
 
 ## The divergence ritual
 
