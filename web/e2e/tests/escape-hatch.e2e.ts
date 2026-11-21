@@ -9,6 +9,7 @@ import {
 	sentHashes,
 	STALLING_WALLET_NAME,
 } from '../fixtures/stalling-wallet';
+import {executeButton, writeArgs, writeInput} from '../fixtures/contracts-page';
 
 /**
  * The escape hatch, driven through the window it exists for (ADR-0004, `work`).
@@ -102,8 +103,8 @@ describe('Stopping waiting for the wallet', () => {
 	 * Send, leave the wallet holding it, and check the app says so.
 	 *
 	 * The walk itself is `sendAndStall` in the fixture, shared with the sending
-	 * indicator's suite and overridden as one piece by a descendant whose sends do
-	 * not go to a wallet. What stays here is the ASSERTION, which is this suite's
+	 * indicator's suite: the main page's write on /contracts, which reaches the
+	 * wallet on every node (see the fixture). What stays here is the ASSERTION, which is this suite's
 	 * subject rather than its setup: the modal is the thing that offers the escape
 	 * hatch, so every test below starts from it being on screen.
 	 */
@@ -178,26 +179,28 @@ describe('Stopping waiting for the wallet', () => {
 		await expect(dialog(page, 'may have been sent')).toHaveCount(0);
 	});
 
-	test('releases the Send button, which the wallet may never answer', async ({
+	test('releases the submit button, which the wallet may never answer', async ({
 		page,
 	}) => {
 		// Reported from real use: the modal went, and the button stayed disabled and
 		// spinning. The page was awaiting a promise that a wallet is under no
 		// obligation to settle, so no amount of waiting would have fixed it.
-		const message = 'send button released';
+		const message = 'submit button released';
 		await sendAndStall(page, message);
 
-		const send = page.getByRole('button', {name: /send/i});
-		await expect(send).toBeDisabled();
+		// The label, not the `disabled` attribute: this control stays clickable on
+		// purpose (see ContractFunction.svelte) and reports being busy in words. What
+		// the bug looked like was those words never going away, because the page was
+		// awaiting a promise the wallet is under no obligation to settle.
+		const execute = executeButton(page);
+		await expect(execute).toHaveText(/executing/i);
 
 		await stopWaiting(page);
 
-		await expect(send).toBeEnabled({timeout: 15_000});
+		await expect(execute).toHaveText(/^execute$/i, {timeout: 15_000});
 		// And what they typed is still there. They have not been told anything
 		// happened, so taking their text away would be the app deciding it did.
-		await expect(page.getByPlaceholder('Enter your greeting...')).toHaveValue(
-			message,
-		);
+		await expect(writeInput(page)).toHaveValue(writeArgs(message)[0]);
 		// Released without withdrawing anything: the wallet still has the request.
 		expect(await isHoldingTransaction(page)).toBe(true);
 	});
@@ -579,7 +582,7 @@ describe('Stopping waiting for the wallet', () => {
 			)
 			.toBe(0);
 
-		// And the greeting is on the page.
-		await expect(page.getByText(message)).toBeVisible({timeout: 60_000});
+		// And nothing is claimed about a transaction the app watched land.
+		await expect(dialog(page, 'may have been sent')).toHaveCount(0);
 	});
 });
