@@ -24,8 +24,8 @@ describe("the push server's payload", () => {
 			notification: {title: 'A greeting', navigate: 'https://app.example/'},
 		};
 		const shown: Shown = served;
-		expect(notificationFromPush(JSON.stringify(shown), '/icon.png')).toMatchObject(
-			{title: 'A greeting'},
-		);
+		expect(
+			notificationFromPush(JSON.stringify(shown), '/icon.png'),
+		).toMatchObject({title: 'A greeting'});
 	});
 });
