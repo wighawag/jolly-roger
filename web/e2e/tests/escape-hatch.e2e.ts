@@ -104,9 +104,10 @@ describe('Stopping waiting for the wallet', () => {
 	 *
 	 * The walk itself is `sendAndStall` in the fixture, shared with the sending
 	 * indicator's suite: the main page's write on /contracts, which reaches the
-	 * wallet on every node (see the fixture). What stays here is the ASSERTION, which is this suite's
-	 * subject rather than its setup: the modal is the thing that offers the escape
-	 * hatch, so every test below starts from it being on screen.
+	 * wallet on every node (see the fixture). What stays here is the ASSERTION,
+	 * which is this suite's subject rather than its setup: the modal is the thing
+	 * that offers the escape hatch, so every test below starts from it being on
+	 * screen.
 	 */
 	async function sendAndStall(page: Page, message: string) {
 		await installStallingWallet(page, {nodeUrl});
