@@ -1,17 +1,15 @@
-import {writable, type Readable} from 'svelte/store';
+import type {Readable} from 'svelte/store';
 import {config, extensions} from 'jolly-roger-contracts/rocketh/config.js';
 import deployGreetingsRegistry from 'jolly-roger-contracts/deploy/001_deploy_greetings_registry.js';
-import {
-	createEmbeddedWorld,
-	restoreIsCoherent,
-	type EmbeddedWorld,
-} from '$lib/embedded';
-import {mintChainId, rememberChainId} from '$lib/embedded/chain-id';
-import {startEmbeddedNode} from '$lib/embedded/node';
+import type {EmbeddedWorld} from '$lib/embedded';
 import {announceEmbeddedWallet} from '$lib/embedded/wallet';
 import {createWorldClaim, letGoOfWorld} from '$lib/embedded/claim';
-import {offlineWorldNode} from '$lib/offline-node';
-import {createIndexedDBDeploymentStore} from '@rocketh/web';
+import {
+	connectTheWorld,
+	createOfflineBoot,
+	openOfflineWorld,
+	type OfflineBootStatus,
+} from '$lib/offline-world';
 import {createContext} from '$lib/context/index';
 import type {Context} from '$lib/context/types';
 
@@ -24,7 +22,9 @@ import type {Context} from '$lib/context/types';
  * does. So the framework knows how to boot a chain and run deploy scripts on
  * it, and this file knows WHICH scripts, WHICH accounts, and what a player of
  * THIS app is given before they start. A game built from this template
- * replaces this file and keeps everything under `lib/embedded`.
+ * replaces this file and keeps everything under `lib/embedded`, and the boot
+ * every app's world shares (the opener, the memo, the world's connect) in
+ * `lib/offline-world`.
  *
  * It lives beside `lib/index.ts` rather than in a route for the reason the
  * branch README gives: a descendant deletes the demo routes it inherits, and
@@ -54,38 +54,19 @@ const ADMIN_ADDRESS = '0x70997970C51812dc3A010C7d01b50e0d17dc79C8' as const;
 const CHAIN_ID_STORAGE_KEY = 'offline-world:chain-id';
 const PLAY_MONEY = 10n ** 24n;
 
-export type OfflineWorldStatus =
-	| {step: 'Idle'}
-	| {step: 'Booting'; what: string}
-	| {
-			step: 'Ready';
-			world: EmbeddedWorld;
-			context: {context: Context; start: () => () => void};
-	  }
-	| {step: 'Failed'; error: string};
-
-const status = writable<OfflineWorldStatus>({step: 'Idle'});
-
-/** What the page renders. */
-export const offlineWorld: Readable<OfflineWorldStatus> = {
-	subscribe: status.subscribe,
-};
+export type OfflineWorldStatus = OfflineBootStatus<{
+	world: EmbeddedWorld;
+	context: {context: Context; start: () => () => void};
+}>;
 
 /**
- * APP-SCOPED AND LAZY, and the lifetime is the decision rather than the
- * laziness.
- *
- * Lazy because nothing may happen at import time: this module reaches for
- * IndexedDB-shaped things and announces a wallet on `window`, and the app
- * prerenders (ADR-0002). Nothing here runs until a page asks.
- *
- * App-scoped because a world is STATE, not a view. Route-scoped would boot a
- * fresh chain on every navigation, so visiting another page and coming back
- * would be a new game - the player's own chain, thrown away by the router.
- * Boot plus a real deploy is 89-101ms measured in node, so this is not a
- * performance decision in either direction.
+ * APP-SCOPED AND LAZY: one boot for the app, started by the page that shows
+ * the world and kept across navigation. See `createOfflineBoot`.
  */
-let pending: Promise<OfflineWorldStatus> | undefined;
+const boot = createOfflineBoot(buildOfflineWorld);
+
+/** What the page renders. */
+export const offlineWorld: Readable<OfflineWorldStatus> = boot.status;
 
 /**
  * ONE TAB AT A TIME, named by this app's world rather than by its chain id.
@@ -97,7 +78,7 @@ let pending: Promise<OfflineWorldStatus> | undefined;
  */
 export const offlineWorldClaim = createWorldClaim({
 	name: 'offline-world',
-	letGo: () => letGoOfWorld(pending),
+	letGo: () => letGoOfWorld(boot.current()),
 });
 
 /**
@@ -116,34 +97,55 @@ export async function takeTheOfflineWorldOver(): Promise<void> {
 }
 
 export function startOfflineWorld(): Promise<OfflineWorldStatus> {
-	if (!pending) {
-		pending = buildOfflineWorld().catch((err) => {
-			// The promise is dropped so a retry is possible: a failed boot is
-			// usually a missing dependency or a deploy script throwing, and both
-			// are things a developer fixes and reloads into.
-			pending = undefined;
-			const failure: OfflineWorldStatus = {
-				step: 'Failed',
-				error: err instanceof Error ? err.message : String(err),
-			};
-			status.set(failure);
-			return failure;
-		});
-	}
-	return pending;
+	return boot.start();
 }
 
-async function buildOfflineWorld(): Promise<OfflineWorldStatus> {
-	// The id is minted once and remembered, because it is what keys everything
-	// the player keeps. See `lib/embedded/chain-id.ts`.
-	const chainId = rememberChainId({
-		storage: localStorage,
-		key: CHAIN_ID_STORAGE_KEY,
+async function buildOfflineWorld(booting: (what: string) => void) {
+	// Persisted, restored, and refused when incoherent: see `$lib/offline-world`.
+	const world = await openOfflineWorld({
+		chainIdKey: CHAIN_ID_STORAGE_KEY,
+		deployment: {
+			rocketh: {config, extensions},
+			scripts: [
+				{id: '001_deploy_greetings_registry', module: deployGreetingsRegistry},
+			],
+			accounts: {deployer: DEPLOYER, admin: ADMIN},
+			initialBalances: {
+				[DEPLOYER_ADDRESS]: PLAY_MONEY,
+				[ADMIN_ADDRESS]: PLAY_MONEY,
+			},
+		},
+		onStep: booting,
+		async provision({node, chainId}) {
+			booting('handing the player a wallet');
+
+			// THE PROVISIONING SEAM, and this app's answer to it is the smallest
+			// possible one: gas. A commit-reveal game's answer is longer - an
+			// ERC20 stake bonded at commit time, or an identity token the player
+			// must own - and it is written HERE, in the app, rather than in the
+			// framework or per branch.
+			const wallet = await announceEmbeddedWallet({
+				provider: node.provider,
+				chainId,
+			});
+			announced = wallet.cleanup;
+
+			for (const account of wallet.accounts) {
+				await node.provider.request({
+					method: 'evm_setBalance',
+					params: [account, `0x${PLAY_MONEY.toString(16)}`],
+				});
+			}
+
+			// HANDED BACK rather than announced-and-hoped-for. The connection
+			// this world builds will use exactly this wallet, so the player is
+			// never asked to choose one - and cannot choose a wallet that has
+			// no account on this chain, which is every other wallet they own.
+			return {wallets: [wallet.handle]};
+		},
 	});
 
-	const world = await openWorld(chainId);
-
-	status.set({step: 'Booting', what: 'connecting'});
+	booting('connecting');
 
 	// SYNCHRONOUS, AND AFTER THE WORLD, which is the shape the whole design
 	// turns on. The context cannot be built first and filled in: it reads a
@@ -171,150 +173,17 @@ async function buildOfflineWorld(): Promise<OfflineWorldStatus> {
 		}
 	}
 
-	const ready: OfflineWorldStatus = {step: 'Ready', world, context};
-	status.set(ready);
-	return ready;
-}
-
-/**
- * Boot (or restore) the world for one chain id.
- *
- * PERSISTED BY DEFAULT, which is the answer to "should an offline game come
- * back when you reload". Yes, and it costs nothing to say so: webevm dumps its
- * state to IndexedDB and `@rocketh/web` keeps the deployment records the same
- * way, so a reload restores the chain AND skips the deploy rather than
- * building a second game beside the first. Both are namespaced by the chain
- * id, so two worlds never share a database.
- *
- * It is also what makes the operations ledger honest. That ledger already
- * persists (it always did, keyed by chain id), and without a persisted chain
- * it would come back describing transactions on a chain that no longer exists.
- * Persisting the chain and persisting the pending transactions are not two
- * decisions.
- */
-async function openWorld(chainId: number): Promise<EmbeddedWorld> {
-	status.set({step: 'Booting', what: 'starting a chain in this tab'});
-
-	const deploymentStore = await createIndexedDBDeploymentStore({
-		db: `offline-world-deployments:${chainId}`,
-	});
-
-	// THE RESTORE IS CHECKED BEFORE ANYTHING IS DEPLOYED. Three stores persist
-	// independently and nothing makes them atomic; records that outlive their
-	// chain make rocketh skip a deploy it believes it has done, and the script
-	// then reads a contract that is not there. Asking afterwards is too late -
-	// the boot throws first, which is how this was found.
-	//
-	// A NEW ID rather than a repair. Everything the player kept is keyed by the
-	// chain id - the operations ledger, and in a game its submissions - so
-	// reusing it would mix records describing a chain that no longer exists
-	// into one that does. Minting orphans them instead, which is what they are.
-	//
-	// THE PROBE RUNS WHERE THE WORLD'S NODE WILL (a Worker, in a browser), so
-	// loading the dump does not stall the page either, and it is GONE before
-	// the real node opens the same database: disposed, every request it was
-	// sent settled, and its Worker terminated (`released`). It only reads, so
-	// nothing of it could be saved over the real node's chain anyway; waiting
-	// is what makes that a fact rather than an argument. See `$lib/offline-node`.
-	const db = `offline-world-chain:${chainId}`;
-	const probeNode = offlineWorldNode({db});
-	const probe = await startEmbeddedNode({
-		chainId,
-		createNode: probeNode.createNode,
-		persistence: probeNode.persistence,
-	});
-	const coherent = await restoreIsCoherent({
-		provider: probe.provider,
-		vfs: deploymentStore.vfs,
-	}).finally(() => probe.dispose());
-	await probeNode.released();
-	if (!coherent) {
-		status.set({step: 'Booting', what: 'starting a new world'});
-		const fresh = mintChainId();
-		localStorage.setItem(CHAIN_ID_STORAGE_KEY, String(fresh));
-		return openWorld(fresh);
+	// AND IT CONNECTS ITSELF, AT BOOT, so the page shows the world's account at
+	// once rather than at the player's first send (see `connectTheWorld`).
+	// NOT FATAL: the world, the chain and the deploy are fine without a
+	// connection, and the demo's own send connects again when asked.
+	try {
+		await connectTheWorld(context.context.connection);
+	} catch (err) {
+		console.error('the offline world could not connect its own wallet', err);
 	}
 
-	const worldNode = offlineWorldNode({db});
-	return createEmbeddedWorld({
-		chainId,
-		chain: {
-			name: 'Offline',
-			nativeCurrency: {name: 'Ether', symbol: 'ETH', decimals: 18},
-			properties: {
-				// A block exists only where a transaction happened, so a "block
-				// time" here measures how long the player thought about their
-				// move. One second is the honest floor to give anything that
-				// polls, and nothing on this branch reads it for a deadline.
-				averageBlockTimeMs: 1000,
-				// ZERO, AND FOR A NARROWER REASON THAN THE FIRST VERSION OF THIS
-				// COMMENT CLAIMED. It said a nonzero finality was what left every
-				// transaction spinning; that was a theory, and the experiment
-				// falsified it - with the real cause fixed (see the tab-leader
-				// namespace in `context/core.ts`), three sends confirm in about a
-				// second each under `finality: 1` too, because the spinner is
-				// about INCLUSION and not about finality.
-				//
-				// What is measurably true: the observer's test is
-				// `latestBlockNumber - blockNumber >= finality`, and under automine
-				// a block exists only where a transaction happened - so the NEWEST
-				// transaction is always in the latest block and a confirmation
-				// above it never arrives. Measured: with `finality: 1` the
-				// operation sits in the account ledger forever as
-				// `{inclusion: 'Included', outcome: 'Success', final: false}`;
-				// with zero it completes and is retired. So the cost is a ledger
-				// that never finishes anything, not a UI that never moves.
-				//
-				// Zero is also the honest number rather than a workaround.
-				// Confirmations buy protection from a REORG, and a chain in one tab
-				// has no competing producer to reorg it. The only way its state
-				// goes backwards is `loadState`, an explicit rewind by the world's
-				// own owner, which no number of confirmations defends against.
-				finality: 0,
-			},
-		},
-		rocketh: {config, extensions},
-		scripts: [
-			{id: '001_deploy_greetings_registry', module: deployGreetingsRegistry},
-		],
-		accounts: {deployer: DEPLOYER, admin: ADMIN},
-		initialBalances: {
-			[DEPLOYER_ADDRESS]: PLAY_MONEY,
-			[ADMIN_ADDRESS]: PLAY_MONEY,
-		},
-		// IN A WORKER whenever there is one, with its IndexedDB persistence built
-		// inside it; on this thread otherwise. See `$lib/offline-node`.
-		createNode: worldNode.createNode,
-		persistence: worldNode.persistence,
-		deploymentStore,
-		async provision({node}) {
-			status.set({step: 'Booting', what: 'handing the player a wallet'});
-
-			// THE PROVISIONING SEAM, and this app's answer to it is the smallest
-			// possible one: gas. A commit-reveal game's answer is longer - an
-			// ERC20 stake bonded at commit time, or an identity token the player
-			// must own - and it is written HERE, in the app, rather than in the
-			// framework or per branch.
-			const wallet = await announceEmbeddedWallet({
-				provider: node.provider,
-				chainId,
-			});
-			announced = wallet.cleanup;
-
-			for (const account of wallet.accounts) {
-				await node.provider.request({
-					method: 'evm_setBalance',
-					params: [account, `0x${PLAY_MONEY.toString(16)}`],
-				});
-			}
-
-			// HANDED BACK rather than announced-and-hoped-for. The connection
-			// this world builds will use exactly this wallet, so the player is
-			// never asked to choose one - and cannot choose a wallet that has
-			// no account on this chain, which is every other wallet they own.
-			return {wallets: [wallet.handle]};
-		},
-	});
+	return {world, context};
 }
 
 let announced: (() => void) | undefined;
