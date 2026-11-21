@@ -10,6 +10,8 @@ import {
 	openOfflineWorld,
 	type OfflineWorldDeployment,
 } from '$lib/offline-world';
+import {privateKeyToAccount} from 'viem/accounts';
+import * as appWorld from './app-world';
 import {config, extensions, APP_SCRIPTS, APP_CONTRACT} from './app-world';
 
 // No `.svelte.` infix: the `server` project, in node, which has no `Worker`, so
@@ -22,21 +24,32 @@ import {config, extensions, APP_SCRIPTS, APP_CONTRACT} from './app-world';
 // `APP_SCRIPTS` (`./app-world`) may need either (template-commit-reveal's game
 // is owned by its admin), and a world of the deployer alone leaves the admin
 // unresolved there.
+//
+// A DESCENDANT WHOSE DEPLOY NAMES OTHER ACCOUNTS exports `APP_ACCOUNTS` from
+// `./app-world` (named account to private key), and the world deploys as
+// those, each funded: the world's accounts REPLACE the config's
+// (`$lib/embedded/deploy`), so an account its scripts name and this list does
+// not is unresolved (stratagems' `tokensBeneficiary`, found by K2c). Optional,
+// so a node whose deploy needs only these two exports nothing more.
 const DEPLOYER =
 	'0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80' as const;
 const ADMIN =
 	'0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d' as const;
-const DEPLOYER_ADDRESS = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266' as const;
-const ADMIN_ADDRESS = '0x70997970C51812dc3A010C7d01b50e0d17dc79C8' as const;
+
+const ACCOUNTS: Record<string, `0x${string}`> = (
+	appWorld as {APP_ACCOUNTS?: Record<string, `0x${string}`>}
+).APP_ACCOUNTS ?? {deployer: DEPLOYER, admin: ADMIN};
 
 const DEPLOYMENT: OfflineWorldDeployment = {
 	rocketh: {config, extensions},
 	scripts: APP_SCRIPTS,
-	accounts: {deployer: DEPLOYER, admin: ADMIN},
-	initialBalances: {
-		[DEPLOYER_ADDRESS]: 10n ** 24n,
-		[ADMIN_ADDRESS]: 10n ** 24n,
-	},
+	accounts: ACCOUNTS,
+	initialBalances: Object.fromEntries(
+		Object.values(ACCOUNTS).map((key) => [
+			privateKeyToAccount(key).address,
+			10n ** 24n,
+		]),
+	),
 };
 
 /** A browser's `localStorage`, as much of it as the opener uses. */
@@ -80,6 +93,15 @@ async function blockNumber(world: EmbeddedWorld) {
 	return BigInt(
 		(await world.provider.request({method: 'eth_blockNumber'})) as string,
 	);
+}
+
+/** The hash of the block at `number`: the same only on the same chain. */
+async function blockHash(world: EmbeddedWorld, number: bigint) {
+	const block = (await world.provider.request({
+		method: 'eth_getBlockByNumber',
+		params: [`0x${number.toString(16)}`, false],
+	} as never)) as {hash: string} | null;
+	return block?.hash;
 }
 
 /** Dispose of a world before opening it again, as a reload does. */
@@ -128,6 +150,7 @@ describe('openOfflineWorld', () => {
 		const address = first.deployments.get().contracts[APP_CONTRACT].address;
 		const head = await blockNumber(first);
 		expect(head).toBeGreaterThan(0n);
+		const headHash = await blockHash(first, head);
 		await close(first);
 
 		const steps: string[] = [];
@@ -140,8 +163,13 @@ describe('openOfflineWorld', () => {
 		expect(again.deployments.get().contracts[APP_CONTRACT].address).toBe(
 			address,
 		);
-		// The same chain, not a second deploy on a fresh one.
-		expect(await blockNumber(again)).toBe(head);
+		// The same chain, not a second deploy on a fresh one: the block the first
+		// open ended on is still there, and nothing went back. Not the height
+		// itself, since a deploy script may send on every run by design
+		// (stratagems' generator update, found by K2c), which grows the restored
+		// chain by a block.
+		expect(await blockNumber(again)).toBeGreaterThanOrEqual(head);
+		expect(await blockHash(again, head)).toBe(headHash);
 		expect(steps).not.toContain('starting a new world');
 	});
 
