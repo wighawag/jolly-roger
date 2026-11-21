@@ -1,0 +1,34 @@
+# The stem's files this node carries MODIFIED, each with the reason it differs.
+#
+# WHAT THIS IS FOR. `.offshoot-omissions` lists what this repo does not carry
+# from its stem; this lists what it carries and changes. Everything else is the
+# stem's byte for byte or this repo's own, so a diff against the stem reads as:
+# the additions, the omissions (listed there) and these. A modified file is a
+# conflict on every cascade that touches it, so each one here is a cost paid on
+# purpose, and the reason says what it buys. A cascade reviewer meeting one of
+# these files knows the node's side is a decision; meeting any other modified
+# file, it is drift.
+#
+# AND IT IS CHECKED, by `scripts/check-divergences.mjs` (the tree's one copy,
+# from template-svelte), run by `web/test/offshoot-divergences.test.ts` and by
+# `scripts/apply-omissions.sh` during a merge: it fails on a modified file with
+# no entry, on an entry whose file no longer differs, and on an entry with no
+# reason. A file at the stem's OLD version is drift, not a divergence:
+# `scripts/check-stem-drift.mjs` catches that.
+#
+# FORMAT. One file per line: its path, then its reason. `#` starts a comment.
+# A line `[<branch>]` starts a section; this repo has one node, `main`, so it
+# has none: every entry is what template-svelte-tailwind `main` modifies from
+# template-svelte `main`. A child REPO never keeps these entries: its list is
+# its own, written against this repo, and until it writes one it carries this
+# file unchanged and the check says it has none.
+
+# The workspace
+pnpm-lock.yaml                                         the lockfile with Tailwind and its plugins added
+web/package.json                                       Tailwind, its forms and typography plugins and prettier's Tailwind plugin
+web/.prettierrc                                        prettier's Tailwind plugin, which sorts the classes against app.css
+
+# The kit
+web/vite.plugins.ts                                    the one plugin this variant adds, Tailwind's, in the slot every repo puts its plugins
+web/src/app.css                                        Tailwind and its two plugins imported, and typography's missing .prose img rule restored
+web/src/lib/core/notifications/NotificationCard.svelte the notification card painted in Tailwind UI classes
