@@ -9,11 +9,13 @@
 		route,
 		sendingIndicator,
 		blockExplorer,
+		faucet,
 	} from '$lib';
 	import {
 		provideRoute,
 		provideENS,
 		provideBlockExplorer,
+		provideFaucet,
 		provideDocumentLocation,
 	} from '$lib/core/capabilities';
 	import Notifications from '$lib/core/notifications/Notifications.svelte';
@@ -77,6 +79,7 @@
 	// and all ENS-aware components stay inert).
 	if (PUBLIC_ENS_NODE_URL) provideENS(createENSService());
 	provideBlockExplorer(blockExplorer);
+	provideFaucet(faucet);
 </script>
 
 <!-- dark on <html>, and color-scheme with it: see the template's layout -->
