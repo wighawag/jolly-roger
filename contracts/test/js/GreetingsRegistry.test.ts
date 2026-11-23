@@ -3,7 +3,7 @@ import {describe, it} from 'node:test';
 import {network} from 'hardhat';
 import {setupFixtures} from './utils/index.js';
 
-const {provider, networkHelpers} = await network.connect();
+const {provider, networkHelpers} = await network.create();
 const {deployAll} = setupFixtures(provider);
 
 describe('GreetingsRegistry', function () {

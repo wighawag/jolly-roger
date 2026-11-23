@@ -118,7 +118,11 @@
 				bind:value={selectedContractName}
 				onValueChange={handleContractChange}
 			>
-				<Select.Trigger class="w-full">
+				<!-- The trigger renders as a plain button whose accessible name is the
+				     SELECTED CONTRACT, so there is nothing stable to address it by:
+				     no combobox role, and its name changes with the selection.
+				     `data-testid` is that stable hook (web/e2e/fixtures/contracts-page.ts). -->
+				<Select.Trigger class="w-full" data-testid="contract-selector">
 					{selectedContractName || 'Select a contract'}
 				</Select.Trigger>
 				<Select.Content>
