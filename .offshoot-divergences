@@ -162,7 +162,7 @@ web/src/routes/demo/+page.svelte                       both stems' changes (the 
 
 # This node's own changes
 package.json                                           the LAN package's pnpmDepsHash for this branch's lockfile
-web/package.json                                       @etherplay/connect ^0.18.0 (a wallet's publication signature asked once and kept; its home is main, a cascade of its own), the push client and delegated-identity; the push server, the trigger service, etherfold and esbuild for the dev stack and the tests; the notifier's scripts, and `check` type-checking it
+web/package.json                                       the push client and delegated-identity; the push server, the trigger service, etherfold and esbuild for the dev stack and the tests; the notifier's scripts, and `check` type-checking it
 dev/zellij.kdl                                         three panes for the notifier: the push server, `etherfold run` of the greetings, the trigger service
 web/.env.localhost                                     the dev stack's push server and trigger service, same-host
 web/.env                                               the push server, its VAPID public key and the trigger service, empty: notifications not configured

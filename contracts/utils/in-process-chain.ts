@@ -42,7 +42,7 @@ function contractsRoot(): string {
 export async function deployInProcess() {
 	const root = contractsRoot();
 	const hre = await createHardhatRuntimeEnvironment(config, {}, root);
-	const connection = await hre.network.connect({
+	const connection = await hre.network.create({
 		network: 'default',
 		override: {mining: {auto: true, interval: 0}, gasPrice: 'auto'},
 	});
