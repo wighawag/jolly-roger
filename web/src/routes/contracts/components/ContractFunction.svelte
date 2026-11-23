@@ -136,7 +136,16 @@
 	}
 </script>
 
-<Card.Root class="border-2">
+<!-- `data-function-name` is the stable hook e2e uses to find a given function's
+     card (web/e2e/fixtures/contracts-page.ts). The card TITLE also contains the
+     stateMutability badge, so its text is "owners view", and matching on the
+     visible text alone made `getByText('owners')` ambiguous with every other
+     card. -->
+<Card.Root
+	class="border-2"
+	data-testid="contract-function"
+	data-function-name={functionName}
+>
 	<Card.Header>
 		<div class="flex items-start justify-between gap-2">
 			<div class="flex-1 space-y-1">
