@@ -16,7 +16,8 @@ export type MainPageWrite = {
 	 * The form's values, one per input in the order the page lists them, made
 	 * from a LABEL the suite picks so that each test sends something it can find
 	 * again (a suite asserts its input survived). Valid for the input's type: a
-	 * write taking an address or a number turns the label into one.
+	 * write taking an address or a number turns the label into one, and a `bool`
+	 * is `'true'` or `'false'` (the fixture selects it).
 	 */
 	readonly args: (label: string) => readonly string[];
 	/** Whether the main page shows the label once the write is mined. */

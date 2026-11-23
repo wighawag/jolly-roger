@@ -31,7 +31,7 @@
 import {network} from 'hardhat';
 import {loadAndExecuteDeploymentsFromFiles} from '../rocketh/environment.js';
 
-const connection = await network.connect({
+const connection = await network.create({
 	network: 'default',
 	override: {mining: {auto: true, interval: 0}, gasPrice: 'auto'},
 });
