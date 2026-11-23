@@ -204,14 +204,24 @@ export async function openWrite(page: Page): Promise<void> {
 	await expect(writeForm(page)).toBeVisible({timeout: 30_000});
 }
 
-/** Fill the write's form from `label` (see `MainPageWrite.args`). */
+/**
+ * Fill the write's form from `label` (see `MainPageWrite.args`).
+ *
+ * A `bool` input is a `<select>` (`Select...`, `true`, `false`, in
+ * `FunctionInputs.svelte`) under the same `input-<index>` id, and `.fill()`
+ * refuses a `<select>`: so each input is filled the way its element takes a
+ * value, the option chosen by its value (`'true'` or `'false'`) for a select.
+ */
 export async function fillWrite(
 	page: Page,
 	label: string = DEFAULT_LABEL,
 ): Promise<void> {
 	const values = writeArgs(label);
 	for (const [index, value] of values.entries()) {
-		await writeInput(page, index).fill(value);
+		const input = writeInput(page, index);
+		const tag = await input.evaluate((el) => el.tagName.toLowerCase());
+		if (tag === 'select') await input.selectOption(value);
+		else await input.fill(value);
 	}
 }
 
