@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "lan": {
-    "pnpmDepsHash": "sha256-nn5yu47jiLWJ3WdwkT8ZDIFWwELH/bjcsHy55jKp4ZU="
+    "pnpmDepsHash": "sha256-Kz9C49/8FLRdWbtV/Kmzjxch3vm30ZihH9xVu+NIt6k="
   },
   "packageManager": "pnpm@10.28.1",
   "devDependencies": {
