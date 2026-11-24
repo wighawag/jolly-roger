@@ -78,12 +78,31 @@ export function createPollingStore<T, S = unknown>(
 		_status.set($status);
 	}
 
+	// Which fetches may still write. A fetch records the generation it started
+	// in and drops its result if that has moved on: a reset (the last subscriber
+	// leaving, or the source going falsy) or a new source. Without it, a fetch
+	// started under a subscription that has since gone wrote `Loaded` back AFTER
+	// stop() had reset the store, and a fetch for the previous source could land
+	// after the one for the current source. Both left the store saying something
+	// its own lifecycle had already withdrawn, and a reader that peeks with
+	// svelte's `get()` (subscribe, read, unsubscribe) sees those leftovers.
+	let generation = 0;
+
 	function reset() {
+		generation++;
 		setValue({step: 'Unloaded'});
 		setStatus({loading: false});
 	}
 
-	async function fetchState(source: S): Promise<boolean> {
+	/**
+	 * One fetch. Resolves with whether it succeeded and, on success, the value it
+	 * loaded, which `update()` hands back even when the store no longer accepts
+	 * it (see `generation`): the caller asked for a fresh read and got one.
+	 */
+	async function fetchState(
+		source: S,
+	): Promise<{ok: true; value: PollingValue<T>} | {ok: false}> {
+		const startedIn = generation;
 		// Keep any existing error while (re)loading: a retry stays visibly in the
 		// error/retrying state until it actually succeeds, so consumers don't flicker
 		// (error vanishes then reappears). The `loading` flag lets them show a
@@ -95,10 +114,14 @@ export function createPollingStore<T, S = unknown>(
 		});
 		try {
 			const payload = await fetch(source);
-			setValue({step: 'Loaded', ...payload});
-			setStatus({loading: false, lastSuccessfulFetch: Date.now()});
-			return true;
+			const value: PollingValue<T> = {step: 'Loaded', ...payload};
+			if (startedIn === generation) {
+				setValue(value);
+				setStatus({loading: false, lastSuccessfulFetch: Date.now()});
+			}
+			return {ok: true, value};
 		} catch (err) {
+			if (startedIn !== generation) return {ok: false};
 			setStatus({
 				loading: false,
 				error: {
@@ -115,7 +138,7 @@ export function createPollingStore<T, S = unknown>(
 				},
 				lastSuccessfulFetch: $status.lastSuccessfulFetch,
 			});
-			return false;
+			return {ok: false};
 		}
 	}
 
@@ -133,19 +156,19 @@ export function createPollingStore<T, S = unknown>(
 		}
 	}
 
-	async function fetchContinuously() {
+	async function fetchContinuously(): Promise<PollingValue<T> | undefined> {
 		// A source that is present but falsy means "nothing to fetch".
 		if (source && !$source) {
 			reset();
 			clearTimer();
-			return;
+			return undefined;
 		}
 		clearTimer();
 
 		let interval = fetchInterval;
 		try {
-			const success = await fetchState($source);
-			if (success) {
+			const result = await fetchState($source);
+			if (result.ok) {
 				consecutiveErrors = 0;
 			} else {
 				consecutiveErrors++;
@@ -154,6 +177,7 @@ export function createPollingStore<T, S = unknown>(
 					maxBackoff,
 				);
 			}
+			return result.ok ? result.value : undefined;
 		} finally {
 			// Only re-arm if still running (not stopped mid-fetch).
 			if (running && !timeout) {
@@ -178,6 +202,8 @@ export function createPollingStore<T, S = unknown>(
 				const changed = keyOf($source) !== keyOf(next);
 				if (!changed) return;
 				$source = next;
+				// Whatever is in flight was for the previous source.
+				generation++;
 				if (next) {
 					fetchContinuously();
 				} else {
@@ -211,8 +237,11 @@ export function createPollingStore<T, S = unknown>(
 		if (source) {
 			$source = get(source.store);
 		}
-		await fetchContinuously();
-		return $value;
+		// The value THIS fetch loaded, not whatever the store holds once it
+		// settles: a reset while it was in flight (a peeking `get()` that
+		// unsubscribed, say) empties the store, and the caller, who asked for a
+		// fresh read and got one, would otherwise be told there is nothing.
+		return (await fetchContinuously()) ?? $value;
 	}
 
 	return {
