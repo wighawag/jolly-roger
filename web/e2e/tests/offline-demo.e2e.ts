@@ -54,23 +54,58 @@ describe('Offline demo - a chain in this tab', () => {
 			timeout: 60_000,
 		});
 
-		const message = `Offline ${Date.now()}`;
+		// TWICE, and not for thoroughness: every send after the first used to
+		// fail with "Could not load balance" (QA F4, 2026-11-24). The funds check
+		// read a balance store nothing in the world subscribes to, and peeking at
+		// such a store with `get()` reset it under the check's feet. One send
+		// never saw it.
 		const input = page.getByPlaceholder('Enter your greeting...');
-		await expect(input).toBeEnabled({timeout: 30_000});
-		await input.fill(message);
 		const send = page.getByRole('button', {name: /send/i});
-		await expect(send).toBeEnabled({timeout: 30_000});
-		await send.click();
+		for (const n of [1, 2]) {
+			const message = `Offline ${n} ${Date.now()}`;
+			await expect(input).toBeEnabled({timeout: 30_000});
+			await input.fill(message);
+			await expect(send).toBeEnabled({timeout: 30_000});
+			await send.click();
 
-		const row = page.locator(MESSAGE_ROW).filter({hasText: message});
-		await expect(row, 'the greeting should appear in the list').toBeVisible({
-			timeout: 60_000,
-		});
-		await expect(
-			row.locator(MESSAGE_PENDING),
-			'the greeting should settle on the world',
-		).toHaveCount(0, {timeout: 60_000});
+			const row = page.locator(MESSAGE_ROW).filter({hasText: message});
+			await expect(row, `greeting ${n} should appear in the list`).toBeVisible({
+				timeout: 60_000,
+			});
+			await expect(
+				row.locator(MESSAGE_PENDING),
+				`greeting ${n} should settle on the world`,
+			).toHaveCount(0, {timeout: 60_000});
+		}
 		// No dialog was needed to get here.
 		await expect(page.getByRole('dialog')).toHaveCount(0);
+	});
+
+	test("shows the world's own overlays, not only the app's", async ({page}) => {
+		// A failed send's toast offers "Details", which opens the error details
+		// of the context the page runs in: here the WORLD's. The overlays in the
+		// layout are bound to the app's context, so before the world mounted its
+		// own (`$lib/context/InWorld.svelte`) the button did nothing (QA F5).
+		await page.goto('/offline-demo');
+		await expect
+			.poll(() => page.evaluate(worldIsAtItsTarget), {timeout: 90_000})
+			.toBe(true);
+
+		await page.evaluate(() => {
+			const world = (
+				globalThis as unknown as {
+					offlineWorld: {
+						context: {
+							errorDetails: {show(details: string, title?: string): void};
+						};
+					};
+				}
+			).offlineWorld;
+			world.context.errorDetails.show('the world says hello', 'World error');
+		});
+		const dialog = page.getByRole('dialog');
+		await expect(dialog).toBeVisible({timeout: 10_000});
+		await expect(dialog).toContainText('World error');
+		await expect(dialog).toContainText('the world says hello');
 	});
 });

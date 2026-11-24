@@ -2,6 +2,7 @@
 	import {onMount} from 'svelte';
 	import DefaultHead from '../../lib/metadata/DefaultHead.svelte';
 	import Context from '$lib/context/Context.svelte';
+	import InWorld from '$lib/context/InWorld.svelte';
 	import {Spinner} from '$lib/shadcn/ui/spinner';
 	import AlertCircleIcon from '@lucide/svelte/icons/alert-circle';
 	import {route} from '$lib';
@@ -102,6 +103,9 @@
 		     `walletPrompts(info)` is false, since there is nothing for the user
 		     to accept. -->
 		<Demo />
+		<!-- The app-wide overlays, bound to THIS world's context: the ones in the
+		     layout speak for the app's. See `$lib/context/InWorld.svelte`. -->
+		<InWorld />
 	</Context>
 {:else if $offlineWorld.step === 'Failed'}
 	<div class="container mx-auto max-w-2xl px-4 py-16">
