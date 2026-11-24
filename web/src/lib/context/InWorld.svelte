@@ -37,6 +37,8 @@
 	 */
 	import {PendingOperationModal} from '$lib/ui/pending-operation';
 	import InsufficientFundsModal from '$lib/core/transaction/InsufficientFundsModal.svelte';
+	import {TopUpModal} from '$lib/ui/credits/index.js';
+	import ConfirmationModal from '$lib/core/ui/confirm/ConfirmationModal.svelte';
 	import AccountCannotSendModal from '$lib/core/transaction/AccountCannotSendModal.svelte';
 	import ErrorDetailsModal from '$lib/core/transaction/ErrorDetailsModal.svelte';
 	import InFlightRequestsModal from '$lib/core/transaction/InFlightRequestsModal.svelte';
@@ -44,6 +46,8 @@
 
 <PendingOperationModal />
 <InsufficientFundsModal />
+<TopUpModal />
+<ConfirmationModal />
 <AccountCannotSendModal />
 <ErrorDetailsModal />
 <InFlightRequestsModal />
