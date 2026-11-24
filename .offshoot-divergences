@@ -162,3 +162,5 @@ pnpm-lock.yaml                                         both stems' dependencies,
 web/src/lib/context/core.ts                            both stems' compositions in one: the local signer and the payment rail beside the world in the tab and its tab leader, both broadcasting through the node url the connection reports (a world's provider, not the app's node)
 web/src/lib/offline.ts                                 where the local signer meets the world: the world, signed in at boot, authorises this browser's key itself (ui/delegation/authorise-here), so the offline demo can send
 web/src/lib/context/InWorld.svelte                     both stems' overlays for the world in the tab: embedded-chain's list plus local-signer's top-up and confirmation modals, in AcrossPages' order
+web/package.json                                       both stems' dependencies: local-signer's @etherplay/connect ^0.18.1 beside embedded-chain's packages
+package.json                                           the LAN package's pnpmDepsHash, for this branch's lockfile (both stems' dependencies)
