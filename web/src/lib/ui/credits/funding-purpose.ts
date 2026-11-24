@@ -1,4 +1,8 @@
-import {keyExplanation, type SignerGrant} from '$lib/ui/delegation/grant';
+import {
+	grantHeadline,
+	keyExplanation,
+	type SignerGrant,
+} from '$lib/ui/delegation/grant';
 
 /**
  * WHY THE USER IS BEING ASKED TO PAY, supplied by whoever asked.
@@ -66,7 +70,7 @@ export type FundingPurpose = {
  */
 export function authorisationPurpose(grant: SignerGrant): FundingPurpose {
 	return {
-		headline: 'Let this browser play for you',
+		headline: grantHeadline(grant),
 		explanation: keyExplanation(grant),
 		icon: 'key',
 	};
