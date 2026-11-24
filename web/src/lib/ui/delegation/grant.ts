@@ -40,7 +40,23 @@ export type SignerGrant = {
 	 * thing to do. Most apps leave this out.
 	 */
 	alsoAllows?: readonly string[];
+	/**
+	 * The authorisation dialog's headline, when the default does not fit.
+	 *
+	 * Defaults to "Let this browser act for you", which is true of any app. A
+	 * game can say "Let this browser play for you"; that used to be the
+	 * template's own headline, and every non-game app inherited it.
+	 */
+	headline?: string;
 };
+
+/** The authorisation dialog's headline for an app that does not choose one. */
+export const DEFAULT_GRANT_HEADLINE = 'Let this browser act for you';
+
+/** The headline the authorisation dialog shows for this app. */
+export function grantHeadline(grant: SignerGrant): string {
+	return grant.headline ?? DEFAULT_GRANT_HEADLINE;
+}
 
 /**
  * Why this browser holds a key at all.
