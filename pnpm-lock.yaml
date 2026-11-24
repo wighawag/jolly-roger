@@ -33,8 +33,8 @@ importers:
   contracts:
     dependencies:
       '@etherplay/delegation':
-        specifier: ^0.1.1
-        version: 0.1.2
+        specifier: ^0.2.0
+        version: 0.2.0
     devDependencies:
       '@etherfold/browser':
         specifier: ^0.13.0
@@ -190,8 +190,8 @@ importers:
         specifier: 0.2.1
         version: 0.2.1(viem@2.55.19(typescript@6.0.3)(zod@4.4.3))
       '@etherplay/connect':
-        specifier: ^0.18.0
-        version: 0.18.0
+        specifier: ^0.18.1
+        version: 0.18.1
       '@internationalized/date':
         specifier: ^3.12.3
         version: 3.12.3
@@ -643,14 +643,14 @@ packages:
     peerDependencies:
       viem: ^2.46.3
 
-  '@etherplay/connect-core@0.7.5':
-    resolution: {integrity: sha512-BERRuoLmNKo9huuy/BX4Q6fnri6YR2X8EMwA7qKX/PPp/H5nGca4fcEitIiET8ZnCd1k2fvX0ApvL78jP5pSxg==}
+  '@etherplay/connect-core@0.7.6':
+    resolution: {integrity: sha512-3CgYewydzFIJ085FjtX3G0QpnRwXig40GnON5sRfZ5+xFTgV/tpZz98PlmE6UQvLuDKG7BxR5+weud/Jctd0sw==}
 
-  '@etherplay/connect@0.18.0':
-    resolution: {integrity: sha512-pYPpKKl+1Rs7nwvjP8k/Eo9KiT5j6YfFpHPLlNWy9OeiNpOQnkpDByCXDECstvn4W3XNSBzDWLQmW7IhcTQj1g==}
+  '@etherplay/connect@0.18.1':
+    resolution: {integrity: sha512-ctqZwrm93hoUfrlu4YhInPxtbfbIKhPeaoy6l8Zqzi2SxopS2+VdazueUmujLbOWNu95V4Wr/nmAvOiblsOGvA==}
 
-  '@etherplay/delegation@0.1.2':
-    resolution: {integrity: sha512-tq/4ke1H1zkdxyUOXD6e2gWgLUTTuPRE7HVPwKMJOBFl3tJ24wO75a3TH+eHgWhGdsLTzXZLASHziA7rxjdOeA==}
+  '@etherplay/delegation@0.2.0':
+    resolution: {integrity: sha512-q7HXzj9IytIrlDqyDEDj2JhcsIOL9nZHQdyx344oAtShjbQLuaq3J7aJ3/eyd0ov6fYEgRwWJ46F32ufi4jRtA==}
 
   '@etherplay/wallet-connector-ethereum@0.4.0':
     resolution: {integrity: sha512-ixoxyGwYz0YrE3Ef55YQfTOMtigFS5ta1OEfhnJQfLGlrBIfKhktHtQrR3PfVySOizk23Q/c9cMHbQlyjNyxBg==}
@@ -3896,9 +3896,9 @@ snapshots:
       radiate: 0.3.2
       viem: 2.55.19(typescript@6.0.3)(zod@4.4.3)
 
-  '@etherplay/connect-core@0.7.5':
+  '@etherplay/connect-core@0.7.6':
     dependencies:
-      '@etherplay/delegation': 0.1.2
+      '@etherplay/delegation': 0.2.0
       '@etherplay/wallet-connector': 0.2.1
       '@noble/curves': 1.9.7
       '@noble/hashes': 1.8.0
@@ -3907,15 +3907,15 @@ snapshots:
       '@scure/bip39': 1.6.0
       delegated-identity: 0.1.1
 
-  '@etherplay/connect@0.18.0':
+  '@etherplay/connect@0.18.1':
     dependencies:
-      '@etherplay/connect-core': 0.7.5
+      '@etherplay/connect-core': 0.7.6
       '@etherplay/wallet-connector': 0.2.1
       '@etherplay/wallet-connector-ethereum': 0.4.0
       delegated-identity: 0.1.1
       sveltore: 1.0.0
 
-  '@etherplay/delegation@0.1.2':
+  '@etherplay/delegation@0.2.0':
     dependencies:
       '@noble/hashes': 1.8.0
 

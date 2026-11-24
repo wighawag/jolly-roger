@@ -5,7 +5,7 @@
 	import KeyRoundIcon from '@lucide/svelte/icons/key-round';
 	import {toast} from 'svelte-sonner';
 	import type {DelegationRowView} from './delegation-view';
-	import {revokeDelegation} from './revoke';
+	import {revokeDelegation, withdrawnMessage} from './revoke';
 
 	let {view}: {view: DelegationRowView} = $props();
 
@@ -17,13 +17,21 @@
 
 	let revoking = $state(false);
 
+	// The app's words for the key and its currency, for the toast and for the
+	// question asked before a withdrawal that would leave the account short.
+	const words = () => {
+		const {symbol, decimals} = context.deployments.get().chain.nativeCurrency;
+		return {grant: context.signerGrant, symbol, decimals};
+	};
+
 	async function revoke() {
 		if (revoking) return;
 		revoking = true;
 		try {
-			const result = await revokeDelegation(context);
+			const result = await revokeDelegation(context, words());
 			if (result.status === 'revoked') {
-				toast.success('This browser can no longer post in your name');
+				const message = withdrawnMessage(result, words());
+				toast.success(message.title, {description: message.description});
 			} else if (result.status === 'cannot-send') {
 				toast.error(
 					'This account cannot send the transaction to withdraw access',
@@ -41,6 +49,12 @@
 		} finally {
 			revoking = false;
 		}
+	}
+
+	// The way back after a withdrawal: the same authorisation dialog an action
+	// opens when this browser is not authorised, opened on purpose.
+	function grant() {
+		void context.topUp.start(context.topUp.purposes.authorise);
 	}
 </script>
 
@@ -74,6 +88,21 @@
 			</Button>
 			{#if view.revokeBlockedReason}
 				<p class="text-xs text-muted-foreground">{view.revokeBlockedReason}</p>
+			{/if}
+		{:else}
+			{#if view.canGrant}
+				<Button
+					size="sm"
+					variant="outline"
+					class="w-full"
+					onclick={grant}
+					data-testid="grant-delegation"
+				>
+					{view.grantLabel}
+				</Button>
+			{/if}
+			{#if view.grantNote}
+				<p class="text-xs text-muted-foreground">{view.grantNote}</p>
 			{/if}
 		{/if}
 	</div>

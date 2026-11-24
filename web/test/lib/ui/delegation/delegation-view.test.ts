@@ -90,6 +90,62 @@ describe('deriveDelegationRow: what the account panel offers', () => {
 		expect(view.canRevoke).toBe(false);
 	});
 
+	// THE WAY BACK (QA F6, 2026-11-24). After a withdrawal the row said "Not
+	// granted" with nothing to press, and the only way back was to try an
+	// action and meet the authorisation dialog by surprise.
+	it('offers to grant access when nothing was granted', () => {
+		const view = deriveDelegationRow({
+			owner: OWNER,
+			signer: SIGNER,
+			delegation: none,
+			ownerCanSend: true,
+			grant: GRANT,
+		});
+		expect(view.canGrant).toBe(true);
+		expect(view.grantLabel).toBe('Grant access');
+		expect(view.grantNote).toBeUndefined();
+	});
+
+	it('offers to grant it AGAIN after a withdrawal, saying it takes a transaction', () => {
+		const view = deriveDelegationRow({
+			owner: OWNER,
+			signer: SIGNER,
+			delegation: {step: 'Loaded', allowed: false, withdrawn: true},
+			ownerCanSend: true,
+			grant: GRANT,
+		});
+		expect(view.canGrant).toBe(true);
+		expect(view.grantLabel).toBe('Grant access again');
+		expect(view.grantNote).toMatch(/one transaction from your account/);
+	});
+
+	it('explains rather than offers when a withdrawn key cannot be granted again from here', () => {
+		// Only an owner-sent transaction clears a withdrawal, and this account
+		// has no wallet: a button would open a dialog that can only refuse.
+		const view = deriveDelegationRow({
+			owner: OWNER,
+			signer: SIGNER,
+			delegation: {step: 'Loaded', allowed: false, withdrawn: true},
+			ownerCanSend: false,
+			grant: GRANT,
+		});
+		expect(view.canGrant).toBe(false);
+		expect(view.grantNote).toMatch(/no wallet/);
+	});
+
+	it('offers nothing to grant while the chain has not answered, or once granted', () => {
+		for (const delegation of [unknown, registered]) {
+			const view = deriveDelegationRow({
+				owner: OWNER,
+				signer: SIGNER,
+				delegation,
+				ownerCanSend: true,
+				grant: GRANT,
+			});
+			expect(view.canGrant).toBe(false);
+		}
+	});
+
 	it('says it is still looking rather than claiming a state it does not know', () => {
 		const view = deriveDelegationRow({
 			owner: OWNER,

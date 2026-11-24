@@ -1,6 +1,9 @@
 import {describe, it, expect} from 'vitest';
+import {authorisationPurpose} from '$lib/ui/credits/funding-purpose';
 import {
 	consentBullets,
+	DEFAULT_GRANT_HEADLINE,
+	grantHeadline,
 	grantStatus,
 	keyExplanation,
 	type SignerGrant,
@@ -93,5 +96,30 @@ describe('the app supplies what the key is for', () => {
 		expect(grantStatus(GRANT, 'checking')).not.toMatch(/cannot/i);
 		expect(grantStatus(GRANT, 'not-authorised')).toMatch(/cannot/i);
 		expect(grantStatus(GRANT, 'authorised')).toMatch(/can /i);
+	});
+});
+
+// THE BUG THIS PINS (QA F7, 2026-11-24): the authorisation dialog's headline
+// was "Let this browser play for you", written in the template, so a greeting
+// app asked its users to let the browser PLAY.
+describe('the authorisation headline', () => {
+	it('says something true of any app by default', () => {
+		expect(grantHeadline({action: 'post greetings'})).toBe(
+			DEFAULT_GRANT_HEADLINE,
+		);
+		expect(DEFAULT_GRANT_HEADLINE).not.toMatch(/play/);
+		expect(authorisationPurpose({action: 'post greetings'}).headline).toBe(
+			DEFAULT_GRANT_HEADLINE,
+		);
+	});
+
+	it("is the app's own when it gives one", () => {
+		const grant = {
+			action: 'play your moves',
+			headline: 'Let this browser play for you',
+		};
+		expect(authorisationPurpose(grant).headline).toBe(
+			'Let this browser play for you',
+		);
 	});
 });
