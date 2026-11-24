@@ -278,6 +278,86 @@ describe('createPollingStore', () => {
 		expect(fetch).toHaveBeenCalledTimes(1);
 	});
 
+	// A deferred fetch: resolves only when the test says so, to hold a fetch in
+	// flight across a lifecycle event.
+	function deferredFetch() {
+		const pending: Array<{
+			source: unknown;
+			resolve: (v: {value: bigint}) => void;
+		}> = [];
+		const fetch = vi.fn(
+			(source: unknown) =>
+				new Promise<{value: bigint}>((resolve) =>
+					pending.push({source, resolve}),
+				),
+		);
+		return {fetch, pending};
+	}
+
+	it('a fetch in flight when the last subscriber leaves does not write after the reset', async () => {
+		// The bug: svelte's `get()` subscribes and leaves at once. On a store
+		// nobody else watches that starts a fetch and resets the store, and the
+		// fetch then landed AFTER the reset, leaving a `Loaded` its own lifecycle
+		// had withdrawn. The next peek read that leftover.
+		const {fetch, pending} = deferredFetch();
+		const store = createPollingStore(fetch, {fetchInterval: INTERVAL});
+
+		expect(get(store)).toEqual({step: 'Unloaded'}); // subscribe + leave
+		expect(pending).toHaveLength(1);
+		pending[0].resolve({value: 7n});
+		await vi.advanceTimersByTimeAsync(0);
+
+		expect(get(store.status).loading).toBe(false);
+		// A fresh subscription starts from Unloaded, not from the leftover.
+		expect(get(store)).toEqual({step: 'Unloaded'});
+	});
+
+	it('a fetch for a previous source does not overwrite the current one', async () => {
+		const account = writable<string | undefined>('0xa');
+		const {fetch, pending} = deferredFetch();
+		const store = createPollingStore(fetch, {
+			fetchInterval: INTERVAL,
+			source: {store: account},
+		});
+		const values: unknown[] = [];
+		const off = store.subscribe((v) => values.push(v));
+
+		account.set('0xb');
+		expect(pending.map((p) => p.source)).toEqual(['0xa', '0xb']);
+		pending[1].resolve({value: 2n}); // 0xb first
+		pending[0].resolve({value: 1n}); // then the stale 0xa
+		await vi.advanceTimersByTimeAsync(0);
+
+		expect(get(store)).toEqual({step: 'Loaded', value: 2n});
+		off();
+	});
+
+	it('update() resolves with the value it loaded, even if the store was reset meanwhile', async () => {
+		const {fetch, pending} = deferredFetch();
+		const store = createPollingStore(fetch, {fetchInterval: INTERVAL});
+
+		const result = store.update();
+		expect(pending).toHaveLength(1);
+		// A peek in the meantime: subscribe (another fetch) and leave (reset).
+		get(store);
+		for (const p of pending) p.resolve({value: 5n});
+
+		expect(await result).toEqual({step: 'Loaded', value: 5n});
+	});
+
+	it('is readable by peeking, over and over, on a store nobody subscribes to', async () => {
+		// What a funds check does before every send, on an embedded world's
+		// signer balance (nothing shows it). Reproduces "every send after the
+		// first fails with Could not load balance".
+		const fetch = vi.fn(async () => ({value: 3n}));
+		const store = createPollingStore(fetch, {fetchInterval: INTERVAL});
+		for (let i = 0; i < 3; i++) {
+			expect(await store.update()).toEqual({step: 'Loaded', value: 3n});
+			get(store);
+			await vi.advanceTimersByTimeAsync(0);
+		}
+	});
+
 	it('exposes a sane default max backoff', () => {
 		expect(DEFAULT_MAX_BACKOFF_MS).toBe(60_000);
 	});

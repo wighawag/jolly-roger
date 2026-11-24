@@ -233,12 +233,15 @@ export function createBalanceCheckStore({
 		sender: `0x${string}` | undefined,
 		estimatedCost: bigint,
 	): Promise<void> {
-		const balanceValue = get(balance);
-		if (balanceValue.step !== 'Loaded') {
-			await balance.update();
-		}
-
-		const currentBalance = get(balance);
+		// A FRESH READ, every time, and the value it returns rather than the store
+		// read back afterwards. This used to peek with `get()`, update only when
+		// that said Unloaded, then peek again. On a store nothing else subscribes
+		// to (an embedded world's signer: no navbar shows it) each `get()` is a
+		// whole subscribe-and-leave, which starts a fetch and then resets the store,
+		// so the first peek saw a leftover Loaded, skipped the update, and the
+		// second saw the reset: every send after the first failed with "Could not
+		// load balance". A send is also exactly when a stale balance is wrong.
+		const currentBalance = await balance.update();
 		if (currentBalance.step !== 'Loaded') {
 			throw new Error('Could not load balance');
 		}
