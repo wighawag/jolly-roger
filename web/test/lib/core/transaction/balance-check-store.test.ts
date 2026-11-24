@@ -1,7 +1,10 @@
 import {describe, it, expect, vi} from 'vitest';
 import {readable, writable, get} from 'svelte/store';
 import {createBalanceCheckStore} from '$lib/core/transaction/balance-check-store';
-import type {BalanceStore} from '$lib/core/connection/balance';
+import {
+	createBalanceStore,
+	type BalanceStore,
+} from '$lib/core/connection/balance';
 import type {GasFeeStore, GasPriceEstimates} from '$lib/core/connection/gasFee';
 import {BaseError, InsufficientFundsError, type PublicClient} from 'viem';
 
@@ -160,6 +163,48 @@ describe('balanceCheck.ensureCanAfford', () => {
 		expect(request.maxPriorityFeePerGas).toBe(
 			estimate.fast.maxPriorityFeePerGas,
 		);
+	});
+
+	it('passes on every send against a balance store nothing else subscribes to', async () => {
+		// The bug (QA F4, an embedded world's signer, which no navbar shows): the
+		// check peeked with `get()`, updated only on Unloaded, then peeked again.
+		// Each peek on an unwatched polling store is a subscribe-and-leave that
+		// starts a fetch and resets the store, so the second send found a leftover
+		// Loaded, skipped the update, and then read the reset: "Could not load
+		// balance". A REAL polling store, cold, as the world has it.
+		vi.stubGlobal('window', {});
+		try {
+			const publicClient = {
+				estimateContractGas: vi.fn(async () => 21_000n),
+			} as unknown as PublicClient;
+			const balance = createBalanceStore({
+				publicClient: {
+					getBalance: vi.fn(async () => 10n ** 18n),
+				} as unknown as PublicClient,
+				account: readable(ADDR),
+			});
+			const store = createBalanceCheckStore({
+				publicClient,
+				gasFee: fakeGasFee(estimate),
+			});
+			for (let send = 1; send <= 3; send++) {
+				const request = await store.ensureCanAfford(
+					{
+						contract: {
+							address: ADDR,
+							abi: [],
+							functionName: 'setMessage',
+							args: [`hi ${send}`],
+							account: ADDR,
+						},
+					},
+					{balance, sender: ADDR},
+				);
+				expect(request.gas).toBe(21_000n);
+			}
+		} finally {
+			vi.unstubAllGlobals();
+		}
 	});
 
 	it('says what is wrong when the gas price genuinely cannot be read', async () => {
