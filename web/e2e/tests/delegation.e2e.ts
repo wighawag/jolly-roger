@@ -182,6 +182,81 @@ describe('Delegation - authorising this browser', () => {
 		await topUp.getByRole('button', {name: 'Cancel'}).click();
 		await expect(topUp).toBeHidden({timeout: 15_000});
 	});
+
+	// QA F6 (2026-11-24): withdrawing used to leave the key's funds on a key that
+	// could no longer act, and the panel offered no way back. The account,
+	// its funds having gone to the key, then could not pay to authorise the
+	// browser again: a dead end.
+	test("withdrawing hands the key's funds back, and the panel grants access again", async ({
+		connectedPage,
+		authoriseBrowser,
+		isDelegateRegistered,
+	}) => {
+		const page = connectedPage;
+
+		await page.getByPlaceholder('Enter your greeting...').fill('Hi');
+		await page.getByRole('button', {name: /send/i}).click();
+		await authoriseBrowser(page, {via: 'account', resume: false});
+		await page.locator('[data-testid="confirmation-cancel"]').click();
+		await expect
+			.poll(async () => isDelegateRegistered(page), {timeout: 60_000})
+			.toBe(true);
+
+		const balanceOf = async (who: 'account' | 'signer') =>
+			BigInt(
+				await page.evaluate(async (w) => {
+					const ctx = (globalThis as any).context;
+					const read = (store: any) => {
+						let value: any;
+						store.subscribe((v: any) => (value = v))();
+						return value;
+					};
+					const address =
+						w === 'account'
+							? read(ctx.account)
+							: read(ctx.signerExecutor).address;
+					return String(await ctx.publicClient.getBalance({address}));
+				}, who),
+			);
+		const keyBefore = await balanceOf('signer');
+		const accountBefore = await balanceOf('account');
+		expect(keyBefore, 'the authorisation funds the key').toBeGreaterThan(0n);
+
+		await page.getByRole('button', {name: 'Open menu'}).click();
+		const row = page.locator('[data-testid="delegation-row"]');
+		await expect(row).toHaveAttribute('data-authorised', 'true', {
+			timeout: 15_000,
+		});
+		await page.locator('[data-testid="revoke-delegation"]').click();
+
+		// No question asked: the account will hold plenty once the funds are back.
+		await expect(row).toHaveAttribute('data-authorised', 'false', {
+			timeout: 60_000,
+		});
+		expect(await isDelegateRegistered(page)).toBe(false);
+
+		// The KEY sent the withdrawal and carried its balance with it: what is
+		// left on it is change from its own gas, and the account, which sent
+		// nothing, holds more than before.
+		expect(await balanceOf('signer')).toBeLessThan(keyBefore / 100n);
+		expect(await balanceOf('account')).toBeGreaterThan(accountBefore);
+
+		// And the way back is on the panel, with what it will take.
+		const grant = page.locator('[data-testid="grant-delegation"]');
+		await expect(grant).toHaveText('Grant access again');
+		await expect(row).toContainText('one transaction from your account');
+		await grant.click();
+		const outcome = await authoriseBrowser(page, {
+			via: 'account',
+			resume: false,
+		});
+		expect(outcome.offered).toBe(true);
+		// A withdrawn key comes back only by the account's own transaction.
+		expect(outcome.route).toBe('direct');
+		await expect
+			.poll(async () => isDelegateRegistered(page), {timeout: 60_000})
+			.toBe(true);
+	});
 });
 
 // WHAT THE PICKER HERE ACTUALLY IS, since it reads like a wallet choice and is

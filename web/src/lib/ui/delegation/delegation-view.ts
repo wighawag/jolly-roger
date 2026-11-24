@@ -26,6 +26,20 @@ export type DelegationRowView = {
 	 * disabled control with no reason is worse than no control.
 	 */
 	revokeBlockedReason: string | undefined;
+	/**
+	 * Whether this browser can be (re)authorised from here, which is the way
+	 * back after a withdrawal. Without it the row said "Not granted" with
+	 * nothing to press, and the only way back was to try an action and meet the
+	 * authorisation dialog by surprise.
+	 */
+	canGrant: boolean;
+	/** The grant button's label: "again" once access was withdrawn. */
+	grantLabel: string;
+	/**
+	 * What granting will take, when it is more than a signature: after a
+	 * withdrawal only a transaction from the account can authorise this key.
+	 */
+	grantNote: string | undefined;
 };
 
 const HIDDEN: DelegationRowView = {
@@ -34,6 +48,9 @@ const HIDDEN: DelegationRowView = {
 	authorised: false,
 	canRevoke: false,
 	revokeBlockedReason: undefined,
+	canGrant: false,
+	grantLabel: 'Grant access',
+	grantNote: undefined,
 };
 
 export function deriveDelegationRow(input: {
@@ -62,6 +79,7 @@ export function deriveDelegationRow(input: {
 	if (!owner || !signer) return HIDDEN;
 
 	const authorised = isRegistered(delegation);
+	const withdrawn = delegation.step === 'Loaded' && delegation.withdrawn;
 
 	return {
 		visible: true,
@@ -82,6 +100,18 @@ export function deriveDelegationRow(input: {
 			!authorised || ownerCanSend
 				? undefined
 				: 'This account has no wallet, so it cannot send the transaction that withdraws access.',
+		// Only once the chain has answered: offering a grant while the read is
+		// in flight would offer it to a browser that may already have one.
+		canGrant:
+			!authorised &&
+			delegation.step === 'Loaded' &&
+			(!withdrawn || ownerCanSend),
+		grantLabel: withdrawn ? 'Grant access again' : 'Grant access',
+		grantNote: withdrawn
+			? ownerCanSend
+				? 'You withdrew it before, so granting it again takes one transaction from your account.'
+				: 'You withdrew it before, and only a transaction from your account can grant it again. This account has no wallet to send one.'
+			: undefined,
 	};
 }
 
