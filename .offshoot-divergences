@@ -77,7 +77,9 @@ web/e2e/tests/service-worker-gateway.e2e.ts            the gateway navigation re
 # The repo and its workspace
 README.md                                              the LAN rehearsal script this branch adds (scripts/rehearse-lan.sh)
 .offshoot-omissions                                    this branch's own omission below main's: contracts/deployments/sepolia, which is main's contracts
-pnpm-lock.yaml                                         @etherplay/delegation in the contracts package
+package.json                                           the LAN package's pnpmDepsHash, for this branch's lockfile
+pnpm-lock.yaml                                         @etherplay/delegation in the contracts package, and @etherplay/connect at the version that exports resignDelegate
+web/package.json                                       @etherplay/connect ^0.18.1, whose DELEGATION_ABI carries resignDelegate
 scripts/run-e2e-tests.sh                               a faucet in the e2e stack, since the local signer's gas is funded and not Hardhat's
 
 # The contracts: greetings belong to the account, posted by its delegate
