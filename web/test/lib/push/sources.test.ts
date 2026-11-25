@@ -2,10 +2,12 @@
 // account, the configuration from the environment, the worker's registration.
 import {describe, expect, it} from 'vitest';
 import {get, writable} from 'svelte/store';
+import type {ServiceWorkerState} from '$lib/core/service-worker';
 import {
 	notificationsConfig,
 	notifiedAccount,
 	serviceWorkerReady,
+	pushServiceWorker,
 	publicationSigner,
 	type ConnectionLike,
 } from '$lib/push/sources.js';
@@ -116,6 +118,66 @@ describe('serviceWorkerReady', () => {
 		const ready = serviceWorkerReady({ready: Promise.resolve(registration)});
 		const values: unknown[] = [];
 		const stop = ready.subscribe((value) => values.push(value));
+		await Promise.resolve();
+		await Promise.resolve();
+		stop();
+		expect(values).toEqual([undefined, registration]);
+	});
+});
+
+// QA F13: the push half is told why there is no worker, so a signed-in account
+// is not asked to sign in on a page that registers none
+describe('pushServiceWorker', () => {
+	const never = {ready: new Promise<ServiceWorkerRegistration>(() => {})};
+
+	it("is 'off-in-dev' where the page registers no worker", () => {
+		const worker = pushServiceWorker({
+			registers: false,
+			state: writable<ServiceWorkerState>(undefined),
+			container: never,
+		});
+		expect(get(worker)).toBe('off-in-dev');
+	});
+
+	it("is 'unavailable' when the registration failed or stood aside", () => {
+		const state = writable<ServiceWorkerState>({
+			notSupported: false,
+			registering: true,
+		});
+		const worker = pushServiceWorker({
+			registers: true,
+			state,
+			container: never,
+		});
+		expect(get(worker)).toBeUndefined();
+		state.set({
+			notSupported: false,
+			registering: false,
+			error: {message: 'failed to register service-worker', cause: 'blocked'},
+			registration: undefined,
+			updateAvailable: false,
+		});
+		expect(get(worker)).toBe('unavailable');
+		state.set({
+			notSupported: false,
+			registering: false,
+			skipped: 'foreign-scope-owner',
+			controllerScriptURL: 'https://gateway.example/sw.js',
+			registration: undefined,
+			updateAvailable: false,
+		});
+		expect(get(worker)).toBe('unavailable');
+	});
+
+	it('is the registration once the worker is ready', async () => {
+		const registration = {scope: '/'} as ServiceWorkerRegistration;
+		const worker = pushServiceWorker({
+			registers: true,
+			state: writable<ServiceWorkerState>(undefined),
+			container: {ready: Promise.resolve(registration)},
+		});
+		const values: unknown[] = [];
+		const stop = worker.subscribe((value) => values.push(value));
 		await Promise.resolve();
 		await Promise.resolve();
 		stop();

@@ -198,3 +198,65 @@ describe('Demo Page - push notifications of new greetings', () => {
 		expect(new Set(bodies).size).toBe(bodies.length);
 	});
 });
+
+/**
+ * QA F13: the notifications line when notifications cannot be turned on yet.
+ * It used to read "Sign in to be notified of new greetings." with nothing to
+ * click, in two different situations: no account (so: sign in, from here), and
+ * an account signed in on a page with no service worker (`pnpm start`: vite dev
+ * registers none), where signing in was never the answer. Neither test turns
+ * notifications on, so neither registers anything for account 6.
+ */
+describe('Demo Page - notifications before they can be turned on', () => {
+	test.skip(!PUSH_SERVER, 'the run did not start the notifier');
+
+	test('with no account, the line signs in, then offers to notify', async ({
+		page,
+		connectWallet,
+	}) => {
+		await page.goto('/demo');
+		const toggle = page.getByTestId('notify-me');
+		await expect(toggle).toHaveAttribute('data-status', 'no-account', {
+			timeout: 30_000,
+		});
+		await page.getByTestId('notify-me-sign-in').click();
+		await connectWallet(page, {fund: false});
+		await expect(toggle).toHaveAttribute(
+			'data-status',
+			/^(off|unregistered)$/,
+			{timeout: 30_000},
+		);
+		await expect(page.getByTestId('notify-me-on')).toBeVisible();
+	});
+});
+
+// A page whose service worker cannot register, as under `vite dev`.
+const noWorker = base.extend({
+	page: async ({browser}, use) => {
+		const context = await browser.newContext({
+			storageState: {cookies: [], origins: []},
+			serviceWorkers: 'block',
+		});
+		const page = await context.newPage();
+		await use(page);
+		await context.close();
+	},
+});
+noWorker.use({walletAccountIndex: 6});
+
+describe('Demo Page - notifications with no service worker', () => {
+	noWorker.skip(!PUSH_SERVER, 'the run did not start the notifier');
+
+	noWorker(
+		'a signed-in account is told the worker is missing, not to sign in',
+		async ({connectedPage}) => {
+			const page = connectedPage;
+			const toggle = page.getByTestId('notify-me');
+			await expect(toggle).toHaveAttribute('data-status', 'no-worker', {
+				timeout: 30_000,
+			});
+			await expect(toggle).not.toContainText('Sign in');
+			await expect(page.getByTestId('notify-me-sign-in')).toHaveCount(0);
+		},
+	);
+});

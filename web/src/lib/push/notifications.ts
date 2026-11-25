@@ -31,6 +31,14 @@
  * store is `{status: 'not-configured'}` and its actions do nothing; off the
  * browser it is `loading`, for the page the browser then renders.
  *
+ * WHAT STANDS IN THE WAY, said apart (QA F13). The push client reports
+ * `no-account` both for no account and for no service-worker registration
+ * yet, and the page used to read both as "sign in". So: no account is
+ * `no-account`, with `signIn()` to get one from the line itself; an account
+ * on a page that will register no worker (vite dev, or a registration that
+ * failed) is `no-worker`, with the reason in `worker`; an account whose worker
+ * may still come is `loading`.
+ *
  * Svelte-store-compatible, and works only while subscribed, as the push client
  * it wraps.
  */
@@ -74,11 +82,28 @@ export type NotifiedAccount =
  */
 export type TriggerStatus = 'unknown' | 'checking' | 'on' | 'off';
 
+/**
+ * The app's service worker, as the push half needs it: its registration once
+ * ready, `undefined` while it may still come, or why none will come:
+ * `'off-in-dev'` when the page registers none (vite dev, unless
+ * `PUBLIC_ENABLE_SW_IN_DEV=true`), `'unavailable'` when it tried and failed or
+ * stood aside.
+ */
+export type PushServiceWorker =
+	ServiceWorkerRegistration | WorkerAbsence | undefined;
+export type WorkerAbsence = 'off-in-dev' | 'unavailable';
+
 export type NotificationsState =
 	| {status: 'not-configured'}
 	| {
-			/** the device's, as @push-notification/client reports it */
-			status: PushStatus;
+			/**
+			 * the device's, as @push-notification/client reports it, except that
+			 * `no-account` means no account here, and `no-worker` an account on a
+			 * page with no service worker to subscribe
+			 */
+			status: PushStatus | 'no-worker';
+			/** with `no-worker`: why there is none */
+			worker?: WorkerAbsence;
 			trigger: TriggerStatus;
 			/** an action (enable, disable) is running */
 			busy: boolean;
@@ -89,6 +114,12 @@ export type NotificationsState =
 export type Notifications = Readable<NotificationsState> & {
 	/** Registers this device and the trigger (may prompt for permission, and once for the wallet's signature). */
 	enable(): Promise<void>;
+	/**
+	 * Gets an account, the way a send does (connect's `ensureConnected`): what
+	 * the line offers at `no-account`. Never rejects: a cancel is no error, and
+	 * the connection flow shows its own failures.
+	 */
+	signIn(): Promise<void>;
 	/** Cancels the trigger and unregisters this device for the account. */
 	disable(): Promise<void>;
 	acknowledgeError(): void;
@@ -103,7 +134,9 @@ export type NotificationsOptions = {
 	/** the trigger service's subscription kind this toggle registers */
 	kind: string;
 	account: Readable<NotifiedAccount>;
-	serviceWorker: Readable<ServiceWorkerRegistration | undefined>;
+	serviceWorker: Readable<PushServiceWorker>;
+	/** connect's `ensureConnected()`, to the app's target step: see `signIn` */
+	signIn?: () => Promise<unknown>;
 	/**
 	 * The wallet's signature over the publication message, when the account
 	 * carries none: `@etherplay/connect`'s `getSignatureForPublicKeyPublication`,
@@ -129,6 +162,7 @@ export function createNotifications(
 		return {
 			subscribe: state.subscribe,
 			enable: async () => {},
+			signIn: async () => {},
 			disable: async () => {},
 			acknowledgeError() {},
 		};
@@ -162,7 +196,10 @@ export function createNotifications(
 		vapidPublicKey: config.vapidPublicKey,
 		domain: config.domain,
 		account: options.account,
-		serviceWorker: options.serviceWorker,
+		// the client knows a registration or none: an absence is none to it
+		serviceWorker: derived(options.serviceWorker, ($worker) =>
+			typeof $worker === 'string' ? undefined : $worker,
+		),
 		signOwnership: options.signOwnership,
 		fetch: doFetch,
 		permission: options.permission,
@@ -237,8 +274,8 @@ export function createNotifications(
 	}
 
 	const store = derived(
-		[options.account, push, trigger] as const,
-		([$account, $push, $trigger], set) => {
+		[options.account, push, trigger, options.serviceWorker] as const,
+		([$account, $push, $trigger, $worker], set) => {
 			account = $account;
 			if (
 				$account &&
@@ -262,6 +299,26 @@ export function createNotifications(
 							trigger: renewing === $account ? 'checking' : 'unknown',
 							busy: false,
 						};
+			if (!$account && $push.status === 'loading') {
+				// the client checks only once its account or worker CHANGES, so with
+				// neither from the start (dev, no wallet) it would load forever
+				set({status: 'no-account', trigger: 'unknown', busy: false});
+				return;
+			}
+			if ($account && $push.status === 'no-account') {
+				// the client's `no-account` with an account: no registration (yet)
+				set(
+					typeof $worker === 'string'
+						? {
+								status: 'no-worker',
+								worker: $worker,
+								trigger: 'unknown',
+								busy: false,
+							}
+						: {status: 'loading', trigger: 'unknown', busy: false},
+				);
+				return;
+			}
 			set({
 				status: $push.status,
 				trigger: mine.trigger,
@@ -295,6 +352,14 @@ export function createNotifications(
 				}
 			} finally {
 				acting = false;
+			}
+		},
+
+		async signIn() {
+			try {
+				await options.signIn?.();
+			} catch {
+				// a cancel is not an error, and the connection flow shows a failure
 			}
 		},
 

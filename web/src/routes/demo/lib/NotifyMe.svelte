@@ -18,6 +18,9 @@
 	data-trigger={$notifications.status === 'not-configured'
 		? undefined
 		: $notifications.trigger}
+	data-worker={$notifications.status === 'no-worker'
+		? $notifications.worker
+		: undefined}
 >
 	{#if $notifications.status === 'not-configured'}
 		<p data-testid="notifications-not-configured">
@@ -26,7 +29,28 @@
 	{:else if $notifications.status === 'unsupported'}
 		<p>This browser cannot receive push notifications.</p>
 	{:else if $notifications.status === 'no-account'}
-		<p>Sign in to be notified of new greetings.</p>
+		<!-- not a bare "Sign in": the connection flow's own button is named that -->
+		<p class="flex items-center gap-2">
+			<BellOffIcon class="h-4 w-4" /> Not notified of new greetings.
+		</p>
+		<Button
+			variant="outline"
+			size="sm"
+			data-testid="notify-me-sign-in"
+			onclick={() => notifications.signIn()}>Sign in to be notified</Button
+		>
+	{:else if $notifications.status === 'no-worker'}
+		{#if $notifications.worker === 'off-in-dev'}
+			<p>
+				Notifications need the service worker, which is off in development: set
+				PUBLIC_ENABLE_SW_IN_DEV=true, or use a build.
+			</p>
+		{:else}
+			<p>
+				Notifications need the app's service worker, which did not start in this
+				browser.
+			</p>
+		{/if}
 	{:else if $notifications.status === 'denied'}
 		<p>Notifications are blocked for this site in the browser's settings.</p>
 	{:else if $notifications.status === 'loading' || $notifications.busy}
