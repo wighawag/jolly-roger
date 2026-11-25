@@ -7,7 +7,7 @@ This is not portability theatre. The rule pays for itself immediately, in two wa
 ## What lives here
 
 - `paths.ts`: where the app is deployed. `resolve()` from `$app/paths` bound as a `PathResolver`, plus the pre-bound `url()` and `createRouteHandler()` the app uses. Everything else takes the resolver as a parameter.
-- `notification-navigation.ts`: following a URL from a push notification, via shallow routing so a running app is not reloaded.
+- `notification-navigation.ts`: following a URL from a push notification with `goto`, so a running app moves to that page without being reloaded (QA F19).
 
 ## How the seam works
 
