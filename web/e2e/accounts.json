@@ -1,0 +1,4 @@
+{
+	"$comment": "Test-only. How many of the burner wallet's own generated accounts the e2e suites may claim with test.use({walletAccountIndex: N}), one per file that sends transactions. Read by e2e/fixtures/accounts.ts and test/e2e-account-claims.test.ts. Never the app's env: the e2e build runs with PUBLIC_IMPERSONATE_ADDRESSES empty.",
+	"poolSize": 3
+}
