@@ -29,9 +29,9 @@ export const STALLING_WALLET_NAME = 'Stalling Test Wallet';
 /**
  * The accounts it can sign as, ONE PER SUITE.
  *
- * Hardhat's #9 and #8, chosen to sit well clear of both lists that matter:
- * `e2e/impersonate-addresses.json` (what the burner offers, one per suite that
- * sends) and anything in the env files. Two suites sending from one account race
+ * Hardhat's #9 and #8, chosen to sit well clear of anything in the env files
+ * (the burner's own accounts come from a fresh mnemonic per browser context, and
+ * the e2e run impersonates nobody). Two suites sending from one account race
  * for its nonce, and that surfaces as an unrelated test failing on a transaction
  * that never appeared.
  *

@@ -1,13 +1,16 @@
 import {describe, it, expect} from 'vitest';
 import {readFileSync, readdirSync} from 'node:fs';
 import {join} from 'node:path';
+import {ACCOUNT_COUNT} from '@etherkit/burner-wallet';
 
 /**
- * Every e2e file that sends transactions needs an account of its own.
+ * Every e2e file that sends transactions claims a burner account of its own.
  *
  * Files run in parallel workers, so two of them sending from one account race
  * for the same nonce, and that surfaces as an unrelated test failing on a
- * transaction that never appeared. The claims live in each file, as
+ * transaction that never appeared. The burner now draws a fresh mnemonic per
+ * browser context, so two files cannot meet on one address today; the claims
+ * keep that so if a suite ever shares a burner. The claims live in each file, as
  * `test.use({walletAccountIndex: N})`, and used to be tracked by a comment in
  * scripts/run-e2e-tests.sh, which cannot be wrong out loud.
  *
@@ -16,12 +19,16 @@ import {join} from 'node:path';
  * here instead of somewhere unrelated twenty minutes into a run.
  */
 const E2E_DIR = new URL('../e2e/tests/', import.meta.url).pathname;
-const ACCOUNTS = JSON.parse(
-	readFileSync(
-		new URL('../e2e/impersonate-addresses.json', import.meta.url),
-		'utf8',
-	),
-) as string[];
+/**
+ * The pool is the burner wallet's OWN generated accounts, and its size is
+ * test-only configuration (`e2e/accounts.json`), not the app's env: the e2e run
+ * impersonates nobody. See e2e/fixtures/accounts.ts.
+ */
+const POOL_SIZE = (
+	JSON.parse(
+		readFileSync(new URL('../e2e/accounts.json', import.meta.url), 'utf8'),
+	) as {poolSize: number}
+).poolSize;
 
 /** `test.use({walletAccountIndex: 2})`, or the default of 0 when absent. */
 function claimedIndex(source: string): number {
@@ -60,18 +67,28 @@ describe('e2e wallet account claims', () => {
 			shared,
 			`these suites share a burner account and will race for its nonce: ${shared
 				.map(([index, names]) => `index ${index}: ${names.join(', ')}`)
-				.join('; ')}. Give one of them its own index and add an address to ` +
-				`web/e2e/impersonate-addresses.json.`,
+				.join('; ')}. Give one of them its own index, raising poolSize in ` +
+				`web/e2e/accounts.json if none is left.`,
 		).toEqual([]);
 	});
 
-	it('keeps every claim within the configured accounts', () => {
+	it('sizes the pool within what the burner derives', () => {
+		expect(Number.isInteger(POOL_SIZE)).toBe(true);
+		expect(POOL_SIZE).toBeGreaterThan(0);
+		expect(
+			POOL_SIZE,
+			`e2e/accounts.json poolSize ${POOL_SIZE} exceeds the ${ACCOUNT_COUNT} ` +
+				`accounts the burner wallet derives`,
+		).toBeLessThanOrEqual(ACCOUNT_COUNT);
+	});
+
+	it('keeps every claim within the configured pool', () => {
 		for (const {name, source} of files) {
 			const index = claimedIndex(source);
 			expect(
 				index,
-				`${name} claims account ${index}, but only ${ACCOUNTS.length} are configured`,
-			).toBeLessThan(ACCOUNTS.length);
+				`${name} claims account ${index}, but e2e/accounts.json has poolSize ${POOL_SIZE}`,
+			).toBeLessThan(POOL_SIZE);
 		}
 	});
 });
@@ -127,18 +144,6 @@ describe('e2e stalling-wallet accounts', () => {
 			'STALLING_WALLET_ACCOUNTS should be literal addresses',
 		).toBeGreaterThan(0);
 		expect(users.length).toBeGreaterThan(0);
-	});
-
-	it('stays clear of the accounts the burner offers', () => {
-		const clash = accounts.filter((account) =>
-			ACCOUNTS.some((a) => a.toLowerCase() === account.toLowerCase()),
-		);
-		expect(
-			clash,
-			`the stalling wallet signs as ${clash.join(', ')}, which is also in ` +
-				`e2e/impersonate-addresses.json. It would then race a burner suite for ` +
-				`that account's nonce. Give it addresses nothing else uses.`,
-		).toEqual([]);
 	});
 
 	it('never signs as the same address twice', () => {
