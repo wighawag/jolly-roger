@@ -80,7 +80,7 @@ contracts/tsconfig.json                                compiles utils/ (indexInP
 web/package.json                                       etherfold's browser packages; fake-indexeddb and the contracts package for the indexer's tests
 web/src/lib/context/app.ts                             the composition: the greetings' indexed counts, beside the poll, laid over the view
 web/src/routes/demo/+page.svelte                       a greeting-count badge beside each message, shown only when the indexer has answered
-web/e2e/impersonate-addresses.json                     accounts 3 to 5, so the greeting-count suite has its own (5; 3 and 4 are with/local-signer's)
+web/e2e/accounts.json                                  a pool of 6, so the greeting-count suite has its own (5; 3 and 4 are with/local-signer's)
 
 [with/local-signer]
 # AND BELOW THIS LINE, WHAT `with/local-signer` MODIFIES FROM `main`: the app
@@ -171,4 +171,4 @@ web/.env                                               the push server, its VAPI
 web/.prettierignore                                    the notifier's build output (web/notifier/.generated) is not formatted
 web/README.md                                          the solved problems list $lib/push, the account's Web Push through @push-notification/client and the trigger service
 scripts/run-e2e-tests.sh                               the notifier started for the run (recording push server, indexer, trigger service), the app built against it
-web/e2e/impersonate-addresses.json                     a seventh account (6), the push-notifications suite's subscriber
+web/e2e/accounts.json                                  a pool of 7: a seventh account (6), the push-notifications suite's subscriber
