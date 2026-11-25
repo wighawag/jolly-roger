@@ -206,6 +206,32 @@ describe('Messaging - a chat room and direct messages, two browsers', () => {
 				received.getByTestId('direct-message').filter({hasText: direct}),
 			).toBeVisible();
 
+			// QA F15: a room message's author opens a direct conversation with
+			// them, offered on others' messages only
+			await recipientPanel.getByTestId('messaging-tab-room').click();
+			await recipientPanel
+				.getByTestId('room-message')
+				.filter({hasText: roomMessage})
+				.getByTestId('room-message-author')
+				.click();
+			const fromRoom = recipientPanel.getByTestId('messaging-conversation');
+			await expect(fromRoom).toHaveAttribute('data-with', senderAddress, {
+				timeout: 30_000,
+			});
+			await expect(
+				fromRoom.getByTestId('direct-message').filter({hasText: direct}),
+			).toBeVisible({timeout: 30_000});
+			await senderPanel.getByTestId('messaging-tab-room').click();
+			await expect(
+				senderPanel.getByTestId('room-message').filter({hasText: roomMessage}),
+			).toBeVisible();
+			await expect(
+				senderPanel
+					.getByTestId('room-message')
+					.filter({hasText: roomMessage})
+					.getByTestId('room-message-author'),
+			).toHaveCount(0);
+
 			// missiv pushed it to the recipient's device, once, with no content
 			await expect
 				.poll(

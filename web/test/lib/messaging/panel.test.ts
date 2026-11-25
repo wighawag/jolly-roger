@@ -3,6 +3,7 @@ import {get, writable} from 'svelte/store';
 import type {ConversationList, CurrentConversation} from '@missiv/client';
 import {
 	createComposer,
+	roomAuthorToMessage,
 	createMessagingPanel,
 	inboxOf,
 } from '$lib/messaging/panel.js';
@@ -170,6 +171,21 @@ describe('createMessagingPanel', () => {
 		expect(panel.inbox).toBeUndefined();
 		panel.openConversation(BOB);
 		expect(get(panel.conversationView)).toBeUndefined();
+	});
+});
+
+// QA F15: a room message's author opens a direct conversation
+describe('roomAuthorToMessage', () => {
+	const me = '0xAbCdEf0000000000000000000000000000000001';
+	const other = '0x00000000000000000000000000000000000000AA';
+	it('is the author, lower case, for another account', () => {
+		expect(roomAuthorToMessage(other, me)).toBe(other.toLowerCase());
+	});
+	it('is nothing for my own message, whatever the case', () => {
+		expect(roomAuthorToMessage(me.toLowerCase(), me)).toBeUndefined();
+	});
+	it('is the author when I am not registered', () => {
+		expect(roomAuthorToMessage(me, undefined)).toBe(me.toLowerCase());
 	});
 });
 

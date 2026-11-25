@@ -93,6 +93,20 @@ export function inboxOf(list: ConversationList): Inbox {
 	};
 }
 
+/**
+ * The author a room message offers a direct conversation with (QA F15), or
+ * undefined for one's own message: writing to yourself is no conversation.
+ * Only a registered account writes in the room, so `me` is the registered
+ * address, when there is one.
+ */
+export function roomAuthorToMessage(
+	from: string,
+	me: string | undefined,
+): `0x${string}` | undefined {
+	const author = lower(from);
+	return me && lower(me) === author ? undefined : author;
+}
+
 export function createMessagingPanel(
 	services: MessagingServices | undefined,
 ): MessagingPanel {
