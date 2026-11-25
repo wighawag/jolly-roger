@@ -44,34 +44,17 @@ export PUBLIC_CHAIN_INFO_NODE_URL="$RPC_URL"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# The accounts the burner wallet may impersonate, for BOTH the build and the
-# fixtures (e2e/fixtures/test.ts reads this same variable, so the accounts the
-# suite funds are the accounts the app offers).
+# NO IMPERSONATED ACCOUNTS in the e2e run, for the build and the fixtures alike.
 #
-# ONE PER TEST FILE THAT SENDS TRANSACTIONS. Files run in parallel workers, and
-# two of them sending from the same account race for the same nonce, which
-# surfaces as an unrelated test failing on a transaction that never appeared.
-# Files pick theirs with `test.use({walletAccountIndex: N})`:
-#   0 -> demo.e2e.ts, 1 -> contracts.e2e.ts, 2 -> pending-operation.e2e.ts
-#
-# The list lives in web/e2e/impersonate-addresses.json, which
-# playwright.config.ts also reads, so a run started any other way
-# (test:e2e:headed, :ui, :debug) uses the same accounts as this one. It is a
-# SEPARATE list from the two addresses .env.localhost gives ordinary local
-# development, and it wins for this run only because exported shell env outranks
-# every .env file in ldenv (the same precedence the RPC overrides above rely on).
-#
-# Resolved against REPO_DIR, not the working directory: `pnpm test:e2e` runs
-# this from web/, and a relative path silently produced an EMPTY list, which the
-# build then honoured (a burner wallet with nobody to be) while playwright's own
-# fallback still funded accounts the app did not offer. That mismatch surfaces
-# far away, as "insufficient funds" in unrelated tests, so it fails here instead.
-PUBLIC_IMPERSONATE_ADDRESSES="$(node -e 'const a=require(process.argv[1]);process.stdout.write(a.join(","))' "$REPO_DIR/web/e2e/impersonate-addresses.json")"
-if [ -z "$PUBLIC_IMPERSONATE_ADDRESSES" ]; then
-    echo -e "${RED}✗ Could not read web/e2e/impersonate-addresses.json${NC}"
-    exit 1
-fi
-export PUBLIC_IMPERSONATE_ADDRESSES
+# PUBLIC_IMPERSONATE_ADDRESSES is the app's env: a dev convenience
+# (web/.env.localhost) naming addresses the burner may act as on a hardhat node,
+# with no key. The suites send from the burner's OWN generated accounts instead,
+# funded once connected (web/e2e/fixtures/test.ts), and how many of them the
+# suites may claim is test-only configuration in web/e2e/accounts.json. Pinned
+# EMPTY here because exported shell env outranks every .env file in ldenv (the
+# same precedence the RPC overrides above rely on), so .env.localhost's list
+# cannot reach the build; the fixtures refuse to run if it is set.
+export PUBLIC_IMPERSONATE_ADDRESSES=
 
 # A run happens in a THROWAWAY GIT WORKTREE, never in the developer's checkout.
 #
