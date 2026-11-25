@@ -706,9 +706,7 @@ async function pickSignableAccount(dialog: Locator, index: number) {
 		await new Promise((resolve) => setTimeout(resolve, 250));
 	}
 
-	throw new Error(
-		`no burner account at index ${index}: ${lastReason}`,
-	);
+	throw new Error(`no burner account at index ${index}: ${lastReason}`);
 }
 
 /**
