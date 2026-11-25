@@ -3,6 +3,8 @@ import type {Logger} from 'named-logs';
 import {logs} from 'named-logs';
 import {handleAutomaticUpdate, listenForWaitingServiceWorker} from './utils';
 import {wouldDisturbForeignWorker} from './scope';
+import {createNotificationClicks} from './notification-click';
+export type {NotificationClick, NotificationClicks} from './notification-click';
 
 import type {NotificationsService, NotificationToAdd} from '../notifications';
 import type {PathResolver} from '../utils/web/path';
@@ -18,10 +20,13 @@ export type ServiceWorkerEnvironment = {
 	/** Rewrites `/service-worker.js` for this deployment (base path, IPFS). */
 	resolvePath: PathResolver;
 	/**
-	 * Follow the URL a push notification carried, without a full page load.
+	 * Follow the URL a push notification carried (absolute), without a full
+	 * page load: client-side routing to that page.
 	 *
-	 * Only ever called from a notification the user acted on, which is why it is
-	 * allowed to move the page at all.
+	 * Only ever called from a notification the user acted on (a click on the
+	 * system notification, or on the card a focused tab shows instead), which is
+	 * why it is allowed to move the page at all. Never called for the page
+	 * already shown (QA F19: a click used to reload it).
 	 */
 	navigateTo: (url: string) => void;
 };
@@ -152,9 +157,11 @@ function isSkipped(state: ServiceWorkerState): state is SkippedState {
 
 function fromPushNotification(
 	pushNotification: JSONNotification,
-	navigateTo: (url: string) => void,
+	takeClick: (click: {url: string; data?: unknown}) => void,
+	resolveTarget: (navigate: string) => string,
 ): NotificationToAdd {
-	const navigate = pushNotification.options?.data?.navigate;
+	const data = pushNotification.options?.data;
+	const navigate = data?.navigate;
 	return {
 		title: pushNotification.title,
 		body: pushNotification.options?.body,
@@ -163,7 +170,9 @@ function fromPushNotification(
 			? {
 					label: 'ok',
 					command: () => {
-						navigateTo(navigate);
+						// the same as a click on the system notification: the app
+						// follows it in place and sees its data
+						takeClick({url: resolveTarget(navigate), data});
 					},
 				}
 			: undefined,
@@ -176,6 +185,15 @@ export function createServiceWorker(
 ) {
 	const {resolvePath, navigateTo} = environment;
 	const store = writable<ServiceWorkerState>(undefined);
+	const notificationClicks = createNotificationClicks({
+		navigateTo,
+		currentHref: () => location.href,
+	});
+	// a push's `navigate`, resolved like the worker does (`notificationTarget`):
+	// a relative path against the worker's folder, so a base path is kept
+	const resolveTarget = (navigate: string) =>
+		new URL(navigate, new URL(resolvePath(`/service-worker.js`), location.href))
+			.href;
 
 	// Track registered listeners for cleanup
 	let controllerChangeHandler: (() => void) | null = null;
@@ -513,19 +531,25 @@ export function createServiceWorker(
 			);
 			// ------------------------------------------------------------------------------------------------
 
-			if (notifications) {
-				// Listen to messages
-				messageHandler = (event: MessageEvent) => {
-					if (event.data && event.data.type === 'notification') {
-						// the worker posts `{type, notification: {title, options}}`: the
-						// notification is the message's field, not the message
-						notifications.add(
-							fromPushNotification(event.data.notification, navigateTo),
-						);
-					}
-				};
-				navigator.serviceWorker.addEventListener('message', messageHandler);
-			}
+			// Listen to messages
+			messageHandler = (event: MessageEvent) => {
+				// a click on a notification: followed in place, answered on its port
+				if (notificationClicks.handleMessage(event)) {
+					return;
+				}
+				if (notifications && event.data && event.data.type === 'notification') {
+					// the worker posts `{type, notification: {title, options}}`: the
+					// notification is the message's field, not the message
+					notifications.add(
+						fromPushNotification(
+							event.data.notification,
+							notificationClicks.take,
+							resolveTarget,
+						),
+					);
+				}
+			};
+			navigator.serviceWorker.addEventListener('message', messageHandler);
 
 			//{scope: `${base}/`}
 			navigator.serviceWorker
@@ -601,6 +625,12 @@ export function createServiceWorker(
 				return false;
 			}
 		},
+		/**
+		 * The latest click on one of this app's notifications (QA F19), the page
+		 * already moved to its URL: for an app that acts on the notification's
+		 * `data`. See `./notification-click.ts`.
+		 */
+		notificationClicks: notificationClicks.clicks,
 		register,
 		unregisterStale,
 		pingServideWorker,
