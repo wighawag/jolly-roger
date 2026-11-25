@@ -5,7 +5,7 @@ status: proposed
 created: 2026-11-25
 from: manual baseline QA of the template tree, findings F10 and F11 (`~/dev/qa/baseline-2026-11-24/findings.md`, kept outside the repo)
 touches: with/indexer (and through it template-commit-reveal's upstream/with/indexer and below)
-amends: service-layers.md (R6, for this layer only; see "R6, revisited")
+amends: service-layers.md (R6, for this layer only; decided 2026-11-25, see "R6, relaxed for this layer")
 ---
 
 # PRD: The indexer as a backend too, and the demo read from the indexer
@@ -32,14 +32,16 @@ Two things surfaced while testing `with/indexer` by hand.
 1. **The demo reads its list FROM THE INDEXER**, not only its counts, so list and counts describe ONE block and update atomically.
 2. **Pending-transaction awareness, demonstrated.** A greeting the user sent shows at once as pending (optimistic), and is replaced by the indexed one exactly when the indexer's state includes that tx hash (`checkTxInclusion`), never shown twice and never counted twice, with a reorg putting it back to pending. This is the template's worked example of the mechanism, generic enough that a game copies it.
 3. **The indexer can run as a backend**, self-hostable and off `main` (service-layers R3), in two roles an app can take separately:
-   - **Snapshot source**: a tab installs a recent snapshot from the backend (a `serve`d publication, or a static one a job writes) and folds only the rest locally.
-   - **Query source**: the tab's follower reads GraphQL from the backend when it is reachable and fresh, the in-tab worker otherwise.
+   - **Snapshot source, FIRST** (decided 2026-11-25): a tab installs a recent snapshot from the backend (a `serve`d publication, or a static one a job writes) and folds only the rest locally, so its reads stay its own fold.
+   - **Query source, second**: the tab's follower reads GraphQL from the backend when it is reachable and fresh, the in-tab worker otherwise.
 4. **Everything degrades to its absence** (service-layers R2), in this order: backend query, in-tab indexer (from a snapshot when there is one, from the start block otherwise), the direct contract poll. The UI says which one it is on, rather than reporting a fault.
-5. **The poll stays**, as the last fallback. While the page is on the poll, the counts (which only an indexer can give) are shown as not final: dimmed, or marked as catching up, and absent where nothing is known.
+5. **The poll stays**, as the last fallback. While the page is on the poll, the counts (which only an indexer can give) are NOT SHOWN (decided 2026-11-25): a count is shown only when it comes from the same indexed read as the list.
+6. **The page says what it trusts.** When reads come from a backend rather than this tab's own fold, the page says so (a small source indicator beside the list, and in the indexer page below).
+7. **An indexer page**, like `/contracts`: the template's showcase of the indexer system, see "The indexer page".
 
-## R6, revisited
+## R6, relaxed for this layer
 
-service-layers R6 says a layer augments and never replaces: `with/indexer` keeps the direct read and adds an optional field. Goal 1 makes the indexer the PRIMARY source of the list on this node. That is compatible with what R6 protects as long as (a) the poll's code path is untouched and remains the fallback, so the view renders exactly as on `main` when the indexer is absent, and (b) the change stays confined to `with/indexer`'s composition (`web/src/lib/context/app.ts`) and the demo page, not to call sites inherited from `main`. The spec proposes amending R6 for this layer to "augments, or supersedes behind a fallback to the direct read", and asks whether that is the intent (open decision 1).
+service-layers R6 says a layer augments and never replaces: `with/indexer` keeps the direct read and adds an optional field. Its point was to minimise conflicts with `main`. DECIDED with the human (2026-11-25): relax it for `with/indexer`, because this branch is where the full capability of the indexer system is shown. The indexer becomes the PRIMARY source of the demo's list; the poll's code path stays, untouched, as the fallback, so the view still renders as on `main` when no indexer answers (R2 is kept). Keep the edits to inherited files as small as the feature allows (composition in `web/src/lib/context/app.ts`, the demo page), and list each in `.offshoot-divergences` with its reason, since every one is a conflict surface on each cascade from `main`. service-layers.md's R6 should gain a line saying this layer is the exception and why.
 
 ## Shape (to refine when tasked)
 
@@ -48,7 +50,17 @@ service-layers R6 says a layer augments and never replaces: `with/indexer` keeps
 - **Backend query source.** The follower's executor takes an endpoint: the worker port as today, or `PUBLIC_INDEXER_URL` (GraphQL over HTTP). The follower's hash pinning and reorg refusal stay the same, since the server answers with the block hash (ADR-0099 amendment). Freshness: prefer the backend only while its tip is within N blocks of the chain's.
 - **Backend snapshot source.** `PUBLIC_INDEXER_PUBLICATION_URL` (or derived from `PUBLIC_INDEXER_URL` once serving nodes publish) handed to `hostLiveIndexer` as the publication; absent or unreachable means fold from the start block, as today.
 - **Dev stack.** A zellij pane running `etherfold run` against the local chain with this repo's processor (the same one the worker folds), and the env wired by default in `.env.localhost`; `pnpm start` works with the pane stopped.
-- **Tests.** Unit: the selector, the optimistic merge with each inclusion verdict (`included`, `absent`, `unknown`, `below-window`), a reorg putting a greeting back to pending. e2e: send with backend up (list and badge change together, never doubled), backend down (tab indexer takes over), indexer off (poll with non-final counts).
+- **Tests.** The indexer page: e2e runs a query against the tab and against the backend and gets the same rows at the same block. Unit: the selector, the optimistic merge with each inclusion verdict (`included`, `absent`, `unknown`, `below-window`), a reorg putting a greeting back to pending. e2e: send with backend up (list and badge change together, never doubled), backend down (tab indexer takes over), indexer off (poll with non-final counts).
+
+## The indexer page
+
+A route like `/contracts` (call it `/indexer`), the place an adopter learns what the indexer does and a developer debugs it:
+
+- **Status**: which source is live (backend, tab, direct) and why; the in-tab indexer's progress (block folded, tip, syncing or synced, whether it started from a snapshot and which one); the backend's reachability and tip when one is configured; whether this tab is the elected indexer or a reader.
+- **Entities**: the declared entities (from the processor's `declareEntities`) and a browse of their rows.
+- **A GraphQL query page**: an editor with the schema (built from the declarations), example queries, and a result pane, that runs the SAME document against either target, chosen by a toggle: the in-browser indexer (the worker port) or the backend (`PUBLIC_INDEXER_URL`). Each answer shows its block number and hash, so the two targets can be compared side by side. This is ADR-0099's claim ("one query runs against a worker and a server") made visible.
+- **Pending inclusion**: for the user's pending operations, the `checkTxInclusion` verdict per tx hash, the mechanism behind goal 2 shown at work.
+- **Logic stays out of the `.svelte` files** (this repo's AGENTS.md): the page renders stores from `$lib/indexer/` (framework half, generic, so a game below gets the page for its own processor by composition) and `$lib/onchain/indexer/` (the app half).
 
 ## Cascade
 
@@ -60,10 +72,17 @@ Home is `with/indexer`. Below jolly-roger it travels through template-commit-rev
 - Publishing snapshots from a serving node, which is etherfold's proposed spec; this node uses a static publication until it lands.
 - Moving the indexer to `main` (service-layers defers that question explicitly).
 
+## Decisions (2026-11-25, with the human)
+
+1. R6 is relaxed for this layer (see above): the branch shows the full capability.
+2. The snapshot role is shown first; the query role follows.
+3. On the poll fallback, counts are not shown.
+4. The page says when it reads from a backend rather than its own fold.
+5. The tx-hash mechanism is etherfold's `checkTxInclusion`, as drafted; check its current API (`@etherfold/browser` `IndexerPort.checkTxInclusion`, the `minedAtBlock` option, the verdict basis) before tasking.
+6. An indexer page with a GraphQL query page that targets both the in-browser indexer and the backend.
+
 ## Open decisions
 
-1. R6 for this layer: amend to "supersedes behind a fallback to the direct read", or keep the list on the poll and solve F10 by aligning blocks only (dim a badge while the indexer is behind the poll's block)?
-2. Which backend roles the template shows: both (snapshot and query), or one first. Query is the bigger change and the one that makes real chains usable at once; snapshot keeps reads trustless (the tab still folds and checks hashes).
-3. What a non-final count looks like on the poll fallback: dimmed, a "catching up" mark, or hidden.
-4. Trust: a backend query is a trusted read. Should the page say when it is reading a backend rather than its own fold, and should a tab cross-check a sample against the chain?
-5. The human mentioned more detail on the tx-hash mechanism they have in mind; this draft assumes etherfold's `checkTxInclusion`. Confirm or correct before tasking.
+1. Whether a tab should cross-check a sample of a backend's answer against the chain (relevant once the query role lands; the snapshot role keeps reads the tab's own).
+2. The route name (`/indexer`?) and where it sits in the navbar beside `/contracts` and `/explorer`.
+3. The GraphQL editor: a light text area with schema-aware hints, or a dependency such as GraphiQL (size, and its own React tree inside a Svelte app).
