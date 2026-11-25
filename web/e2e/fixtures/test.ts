@@ -4,7 +4,7 @@ import {
 	type Page,
 	type BrowserContext,
 } from '@playwright/test';
-import {parseImpersonateAddresses} from '../../src/lib/dev-accounts';
+import {E2E_ACCOUNT_POOL_SIZE, assertImpersonationOff} from './accounts';
 
 /**
  * Extended test fixtures for E2E testing with wallet interactions.
@@ -16,29 +16,13 @@ import {parseImpersonateAddresses} from '../../src/lib/dev-accounts';
  */
 
 /**
- * The addresses the burner wallet can impersonate.
- *
- * Read from the SAME environment variable the app was built against, parsed by
- * the same function (`src/lib/dev-accounts.ts`), so the accounts this suite
- * funds and picks are exactly the accounts the app offers. Hardcoding a list
- * here, or in the app, is how those two drift.
- *
- * `scripts/run-e2e-tests.sh` exports it for the whole run, which is why it is
- * required rather than defaulted: a silent fallback would mean funding accounts
- * the app does not offer, and failing several steps later on a picker that has
- * no such entry.
+ * The suites send from the burner's OWN generated accounts, never impersonated
+ * ones: the e2e build runs with `PUBLIC_IMPERSONATE_ADDRESSES` empty, and this
+ * fails at load if it is not. See `./accounts.ts`.
  */
-const IMPERSONATE_ADDRESSES = parseImpersonateAddresses(
+assertImpersonationOff(
 	(globalThis as any).process.env.PUBLIC_IMPERSONATE_ADDRESSES,
 );
-if (IMPERSONATE_ADDRESSES.length === 0) {
-	throw new Error(
-		'PUBLIC_IMPERSONATE_ADDRESSES is not set, so this suite does not know ' +
-			'which accounts the app offers. Run the suite with `pnpm test:e2e` ' +
-			'(scripts/run-e2e-tests.sh sets it), or export it yourself to match ' +
-			'the build under test.',
-	);
-}
 
 // Hardhat node URL. Use the IPv4 literal: the node binds to 127.0.0.1, and
 // Node's fetch can resolve `localhost` to ::1 first, failing intermittently.
@@ -111,6 +95,55 @@ function causeChain(error: unknown): string {
  */
 class NodeRefusedCall extends Error {
 	name = 'NodeRefusedCall';
+}
+
+/**
+ * Read the addresses the app will actually send from, off its debug context.
+ *
+ * They cannot be known in advance: the burner generates its accounts per
+ * browser context. Asking the app is the only way to learn them, and it is
+ * also the honest question, since these are exactly the accounts it will try
+ * to spend from.
+ */
+async function appSenderAddresses(
+	page: Page,
+): Promise<{account?: string; signer?: string}> {
+	return page.evaluate(() => {
+		const read = (store: any) => {
+			let value: any;
+			store.subscribe((v: any) => (value = v))();
+			return value;
+		};
+		const context = (globalThis as any).context;
+		if (!context) return {};
+		return {
+			account: read(context.accountExecutor)?.address,
+			signer: context.signerExecutor
+				? read(context.signerExecutor)?.address
+				: undefined,
+		};
+	});
+}
+
+/**
+ * Give the app's sender account a balance, right after connecting.
+ *
+ * AFTER, because the burner generates its accounts per browser context: the
+ * address does not exist before the connect flow picked it. The send path
+ * reads the balance fresh before every write (`balance.update()` in
+ * balance-check-store.ts), so the app needs no poll to have caught up.
+ */
+async function fundAppSenders(page: Page): Promise<void> {
+	const {account, signer} = await appSenderAddresses(page);
+	if (!account) {
+		throw new Error(
+			'connected, but the app reports no account address to fund ' +
+				'(context.accountExecutor)',
+		);
+	}
+	for (const address of [account, signer]) {
+		if (address) await fundAddressViaHardhat(address, '100');
+	}
 }
 
 /**
@@ -202,16 +235,27 @@ export async function fundAddressViaHardhat(
 	}
 }
 
+export interface ConnectOptions {
+	/**
+	 * Fund what the app spends from once connected (default true). False leaves
+	 * a fresh burner EMPTY, for a test of how a user gets ETH.
+	 */
+	fund?: boolean;
+}
+
 export interface WalletOptions {
 	/**
-	 * Which burner account (index into PUBLIC_IMPERSONATE_ADDRESSES) the connect
-	 * flow picks in the account-picker dialog.
+	 * Which of the burner's own generated accounts the connect flow picks in the
+	 * account-picker dialog, from 0 to `poolSize - 1` (`e2e/accounts.json`).
 	 *
 	 * All e2e tests share ONE chain and the GreetingsRegistry keeps ONE message
-	 * per account, so two test files writing from the same account clobber each
-	 * other's message mid-test (files run in parallel workers). Give a file that
-	 * writes messages its own account with `test.use({walletAccountIndex: 1})`
-	 * so its writes cannot race the demo suite's (which uses the default 0).
+	 * per account, so two test files writing from the same account would clobber
+	 * each other's message mid-test (files run in parallel workers), and race for
+	 * its nonce. The burner draws a fresh mnemonic per browser context, so today
+	 * two contexts never hold the same address; the claim (one index per file
+	 * that sends, `test.use({walletAccountIndex: 1})`, checked by
+	 * test/e2e-account-claims.test.ts) keeps that true should a suite ever share
+	 * a burner across contexts.
 	 */
 	walletAccountIndex: number;
 }
@@ -233,7 +277,7 @@ export interface WalletFixtures {
 	 * Connects the wallet using Dev Mode on the current page.
 	 * Can be used when you need more control over when connection happens.
 	 */
-	connectWallet: (page: Page) => Promise<void>;
+	connectWallet: (page: Page, options?: ConnectOptions) => Promise<void>;
 
 	/**
 	 * Waits for a transaction to be confirmed.
@@ -248,8 +292,9 @@ export interface WalletFixtures {
 	submitGreeting: (page: Page, message: string) => Promise<void>;
 
 	/**
-	 * Ensures the test wallet addresses have ETH on the Hardhat node.
-	 * Call this before tests that need funded wallets.
+	 * @deprecated Nothing to fund before connecting any more: the burner's
+	 * accounts only exist once connected, and `connectedPage` / `connectWallet`
+	 * fund them then. Kept so suites that still call it keep working.
 	 */
 	fundWallets: () => Promise<void>;
 }
@@ -496,6 +541,21 @@ async function handleInsufficientFundsModal(page: Page): Promise<void> {
 	);
 }
 
+/**
+ * Out of range fails here, naming the cause, instead of several steps later on
+ * an account picker that has no such entry.
+ */
+function assertAccountIndexInPool(walletAccountIndex: number): void {
+	if (walletAccountIndex >= E2E_ACCOUNT_POOL_SIZE) {
+		throw new Error(
+			`walletAccountIndex ${walletAccountIndex} is out of range: ` +
+				`web/e2e/accounts.json has poolSize ${E2E_ACCOUNT_POOL_SIZE}. Raise it ` +
+				`if this file needs an index of its own (every file that sends ` +
+				`claims one, see test/e2e-account-claims.test.ts).`,
+		);
+	}
+}
+
 const MESSAGE_ROW = '[data-testid="message-row"]';
 const MESSAGE_PENDING = '[data-testid="message-pending"]';
 // The app's own count of operations that have not reached a final state. Not
@@ -596,15 +656,10 @@ export const test = base.extend<WalletFixtures & WalletOptions>({
 	},
 
 	/**
-	 * Fund wallet addresses via Hardhat RPC before tests.
+	 * A no-op: see the note on `WalletFixtures.fundWallets`.
 	 */
 	fundWallets: async ({}, use) => {
-		const fundAll = async () => {
-			for (const address of IMPERSONATE_ADDRESSES) {
-				await fundAddressViaHardhat(address, '100');
-			}
-		};
-		await use(fundAll);
+		await use(async () => {});
 	},
 
 	/**
@@ -615,19 +670,8 @@ export const test = base.extend<WalletFixtures & WalletOptions>({
 	connectedPage: async ({page, fundWallets, walletAccountIndex}, use) => {
 		// Out of range fails here, naming the cause, instead of several steps later
 		// on an account picker that has no such entry. The mapping of index to test
-		// file is in scripts/run-e2e-tests.sh, next to the list itself.
-		if (walletAccountIndex >= IMPERSONATE_ADDRESSES.length) {
-			throw new Error(
-				`walletAccountIndex ${walletAccountIndex} is out of range: ` +
-					`PUBLIC_IMPERSONATE_ADDRESSES has ${IMPERSONATE_ADDRESSES.length} ` +
-					`account(s). Add one to web/e2e/impersonate-addresses.json if this ` +
-					`file needs an account of its own (files that send transactions do, ` +
-					`or they race each other for a nonce).`,
-			);
-		}
-
-		// Fund the wallet addresses BEFORE navigating to the page
-		// This ensures the wallet has ETH when the app auto-connects
+		// file is checked by test/e2e-account-claims.test.ts.
+		assertAccountIndexInPool(walletAccountIndex);
 		await fundWallets();
 
 		// Navigate to demo page
@@ -668,6 +712,11 @@ export const test = base.extend<WalletFixtures & WalletOptions>({
 		// Never hand a test a page that is not actually connected.
 		await expectWalletConnected(page);
 
+		// Fund whatever the app will spend from. This has to happen AFTER
+		// connecting: the burner generates its accounts, so the address does not
+		// exist before this point.
+		await fundAppSenders(page);
+
 		// The input must be interactive before the test starts driving it.
 		await expect(input).toBeEnabled({timeout: 30_000});
 
@@ -677,10 +726,14 @@ export const test = base.extend<WalletFixtures & WalletOptions>({
 	/**
 	 * Provides a function to connect wallet on demand.
 	 */
-	connectWallet: async ({fundWallets, walletAccountIndex}, use) => {
-		// Ensure wallets are funded before connecting
-		await fundWallets();
-		await use((page: Page) => connectWalletDevMode(page, walletAccountIndex));
+	connectWallet: async ({walletAccountIndex}, use) => {
+		assertAccountIndexInPool(walletAccountIndex);
+		await use(async (page: Page, options?: ConnectOptions) => {
+			await connectWalletDevMode(page, walletAccountIndex);
+			// The account the app spends from only exists once connected; see
+			// fundAppSenders.
+			if (options?.fund ?? true) await fundAppSenders(page);
+		});
 	},
 
 	/**

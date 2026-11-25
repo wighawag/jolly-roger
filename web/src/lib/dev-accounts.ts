@@ -6,9 +6,9 @@
  * This module only parses it, so the app wiring (`context/index.ts`) and the e2e
  * fixtures read one value the same way and cannot drift.
  *
- * The e2e suite sets its own list (see scripts/run-e2e-tests.sh): files that
- * send transactions run in parallel workers, and two of them sending from the
- * same account race for the same nonce, so each needs an account of its own.
+ * The e2e suite sets it EMPTY (scripts/run-e2e-tests.sh, playwright.config.ts)
+ * and sends from the burner's own generated accounts: an impersonated address
+ * holds no key, and the suite should depend on nothing the app's env lists.
  */
 
 /**
