@@ -255,6 +255,8 @@ describe('Demo Page - notifications with no service worker', () => {
 			await expect(toggle).toHaveAttribute('data-status', 'no-worker', {
 				timeout: 30_000,
 			});
+			// a build: the registration failed, rather than off in development
+			await expect(toggle).toHaveAttribute('data-worker', 'unavailable');
 			await expect(toggle).not.toContainText('Sign in');
 			await expect(page.getByTestId('notify-me-sign-in')).toHaveCount(0);
 		},

@@ -70,7 +70,29 @@ await bundle({
 	outfile: path.join(out, 'processor.bundle.js'),
 });
 
+// the services' log sink, its own module so serve.js loads it BEFORE the
+// services' packages: their loggers are made as they load (log-sink.ts)
 await bundle({
+	entryPoints: [path.join(here, 'log-sink.ts')],
+	bundle: true,
+	format: 'esm',
+	platform: 'node',
+	target: 'node22',
+	outfile: path.join(out, 'log-sink.js'),
+});
+
+await bundle({
+	plugins: [
+		{
+			name: 'log-sink-apart',
+			setup(build) {
+				build.onResolve({filter: /^\.\/log-sink\.js$/}, () => ({
+					path: './log-sink.js',
+					external: true,
+				}));
+			},
+		},
+	],
 	entryPoints: [path.join(here, 'serve.ts')],
 	bundle: true,
 	format: 'esm',

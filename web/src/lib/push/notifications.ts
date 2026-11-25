@@ -86,12 +86,13 @@ export type TriggerStatus = 'unknown' | 'checking' | 'on' | 'off';
  * The app's service worker, as the push half needs it: its registration once
  * ready, `undefined` while it may still come, or why none will come:
  * `'off-in-dev'` when the page registers none (vite dev, unless
- * `PUBLIC_ENABLE_SW_IN_DEV=true`), `'unavailable'` when it tried and failed or
- * stood aside.
+ * `PUBLIC_ENABLE_SW_IN_DEV=true`), `'failed-in-dev'` when it tried in dev and
+ * failed (dev registers a MODULE worker, which only Chromium runs: Firefox
+ * refuses it), `'unavailable'` when it tried and failed or stood aside.
  */
 export type PushServiceWorker =
 	ServiceWorkerRegistration | WorkerAbsence | undefined;
-export type WorkerAbsence = 'off-in-dev' | 'unavailable';
+export type WorkerAbsence = 'off-in-dev' | 'failed-in-dev' | 'unavailable';
 
 export type NotificationsState =
 	| {status: 'not-configured'}
