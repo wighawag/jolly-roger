@@ -726,18 +726,10 @@ export function createCoreContext<App extends AppContext>(params: {
 				},
 			},
 		);
-		if (import.meta.env.DEV && impersonateAddresses.length === 0) {
-			// Not fatal: the burner still announces itself and can hold its own
-			// generated account. But asking for a burner wallet and giving it nobody
-			// to impersonate is almost always a missing env var rather than intent,
-			// and the symptom (an account picker with nothing familiar in it) does
-			// not point at the cause.
-			console.warn(
-				'[burner] PUBLIC_USE_BURNER_WALLET is set but ' +
-					'PUBLIC_IMPERSONATE_ADDRESSES is empty, so there is nobody to ' +
-					'impersonate. See web/.env.localhost.',
-			);
-		}
+		// An EMPTY list is a configuration, not a mistake: the e2e run pins it
+		// empty (its suites send from the burner's own generated accounts), and a
+		// node whose app signs in has nobody to impersonate, since an impersonated
+		// address holds no key. So it is not warned about.
 		const {cleanup} = initBurnerWallet({
 			nodeURL: burner.nodeURL,
 			impersonateAddresses: [...impersonateAddresses],

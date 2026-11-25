@@ -420,7 +420,7 @@ Every one is inlined at build time, so a change needs a rebuild, and every one i
 | `PUBLIC_CHAIN_INFO_NODE_URL`          | The RPC handed to the WALLET, so it can add/switch to an unknown chain. Deliberately separate from the above, which may be private.        |
 | `PUBLIC_WALLET_HOST`                  | Hosted sign-in service. Empty means wallet-only sign-in, which is a supported configuration and not an error.                              |
 | `PUBLIC_USE_BURNER_WALLET`            | Node URL to run a dev burner wallet against (`$PUBLIC_NODE_URL` locally). Empty disables it.                                               |
-| `PUBLIC_IMPERSONATE_ADDRESSES`        | Comma-separated addresses the burner offers to impersonate. Dev only.                                                                      |
+| `PUBLIC_IMPERSONATE_ADDRESSES`        | Comma-separated addresses the burner offers to impersonate. Dev only; e2e runs set it empty.                                               |
 | `PUBLIC_USE_INTERNAL_EXPLORER`        | `true` to link addresses and transactions to the built-in `/explorer` instead of an external block explorer.                               |
 | `PUBLIC_EXPLORER_BLOCK_INDEX_ENABLED` | `true` to enable the explorer's block-index listing.                                                                                       |
 | `PUBLIC_ENS_NODE_URL`                 | Mainnet RPC used for ENS name and avatar lookups. Empty disables ENS resolution, which is a pure enhancement.                              |
