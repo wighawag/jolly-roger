@@ -6,7 +6,14 @@
 
 import {build, version, prerendered, files} from '$service-worker';
 import {createFetchAndUpdateCache} from './fetch-and-update-cache';
-import {notificationFromPush, notificationTarget} from './push';
+import {
+	askClient,
+	clientForNotification,
+	notificationFromPush,
+	notificationTarget,
+	samePage,
+	type NotificationClickMessage,
+} from './push';
 
 const ID = version; // + '-1';
 
@@ -284,30 +291,55 @@ sw.addEventListener('push', function (event: PushEvent) {
 	event.waitUntil(handlePush(data));
 });
 
+// A click never reloads an open tab (QA F19): the contract is in ./push.ts.
 async function handleNotificationClick(notification: Notification) {
+	const path = notificationTarget(notification.data, swFolder);
+	const url = path ? new URL(path, sw.location.href).href : undefined;
+	const message: NotificationClickMessage = {
+		type: 'notification-click',
+		url,
+		data: notification.data,
+	};
+
 	const windowClients = await sw.clients.matchAll({
 		type: 'window',
 		includeUncontrolled: true,
 	});
+	const client = clientForNotification(windowClients, url);
 
-	const url = notificationTarget(notification.data, swFolder);
-
-	for (const client of windowClients) {
-		log(`${'focus' in client ? 'focus-available: ' : ''}: ${client.url}`);
-		// TODO: prefer a client already on the target URL (or on '/') instead of
-		// focusing the first focusable client.
-		if ('focus' in client) {
-			if (url && 'navigate' in client) {
-				return client.focus().then(() => client.navigate(url));
-			}
-			return client.focus();
+	if (!client) {
+		log(`no tab open, opening ${url || swFolder}`);
+		const opened = await sw.clients.openWindow?.(url || swFolder);
+		// the new tab has loaded: it takes the click like any other, so the app
+		// still sees the notification's data
+		if (opened) {
+			await askClient(opened, message);
 		}
+		return;
 	}
-	if (sw.clients.openWindow) return sw.clients.openWindow(url || '/');
+
+	log(`click goes to the tab on ${client.url}`);
+	// focus first, while the click still allows it
+	await client.focus().catch((e) => log(`could not focus`, e));
+	if (await askClient(client, message)) {
+		return;
+	}
+	// a page that does not listen (an older build): navigate it the old way
+	if (url && !samePage(client.url, url)) {
+		log(`tab did not take the click, navigating it to ${url}`);
+		await client.navigate(url).catch((e) => log(`could not navigate`, e));
+	}
 }
 
 sw.addEventListener('notificationclick', function (event: NotificationEvent) {
 	event.notification.close();
 
-	event.waitUntil(handleNotificationClick(event.notification));
+	const handled = handleNotificationClick(event.notification);
+	// started before waitUntil, which throws on a dispatched (untrusted) event:
+	// that is how the e2e drives a click, a real one is always trusted
+	try {
+		event.waitUntil(handled);
+	} catch (e) {
+		log(`waitUntil refused`, e);
+	}
 });
