@@ -1,4 +1,3 @@
-import {readFileSync} from 'node:fs';
 import {defineConfig, devices} from '@playwright/test';
 import {PLAIN_PORT, SW_GATEWAY_PORT} from './e2e/ports';
 
@@ -14,25 +13,14 @@ const env = (globalThis as any).process.env;
 const PORT = Number(env.E2E_PORT || 4173);
 
 /**
- * The burner accounts this suite uses, for the modes that do NOT go through
- * scripts/run-e2e-tests.sh (`test:e2e:headed`, `:ui`, `:debug`, or a bare
- * `playwright test`). The fixtures require the variable, because funding
- * accounts the app does not offer fails several steps later and for no visible
- * reason, so set it here when it is absent.
- *
- * ONE FILE, read by the script too, so the build under test and the suite
- * driving it cannot disagree about who exists.
+ * NO IMPERSONATED ACCOUNTS, for the modes that do NOT go through
+ * scripts/run-e2e-tests.sh too (`test:e2e:headed`, `:ui`, `:debug`, or a bare
+ * `playwright test`). The suites send from the burner's own generated accounts
+ * (e2e/fixtures/accounts.ts), and the fixtures refuse a run configured to
+ * impersonate, since impersonated rows come first in the burner's picker and
+ * would shift every claimed index. The script pins the build to the same.
  */
-env.PUBLIC_IMPERSONATE_ADDRESSES =
-	env.PUBLIC_IMPERSONATE_ADDRESSES ||
-	(
-		JSON.parse(
-			readFileSync(
-				new URL('./e2e/impersonate-addresses.json', import.meta.url),
-				'utf8',
-			),
-		) as string[]
-	).join(',');
+env.PUBLIC_IMPERSONATE_ADDRESSES = '';
 
 /**
  * Playwright configuration for E2E tests.

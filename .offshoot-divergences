@@ -117,9 +117,11 @@ web/src/lib/ui/navbar/navbar.svelte                    the account drawer with t
 web/src/routes/demo/+page.svelte                       the demo offers the signer's top-up when a send fails for want of gas
 web/src/routes/demo/lib/setGreeting.ts                 a greeting sent by the local signer through setMessageFor
 
+web/.env.localhost                                     nobody to impersonate: an impersonated address cannot sign in
+
 # The e2e
 web/e2e/fixtures/test.ts                               the delegation, the faucet and the burner's funding in the fixtures
-web/e2e/impersonate-addresses.json                     the faucet's address
+web/e2e/accounts.json                                  a pool of 5: delegation and the faucet claim an account each
 web/e2e/tests/demo.e2e.ts                              a greeting belongs to the account, posted by its delegate
 
 # Unit tests of the above
