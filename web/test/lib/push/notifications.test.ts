@@ -20,6 +20,7 @@ import {
 	type NotificationsConfig,
 	type NotificationsState,
 	type NotifiedAccount,
+	type PushServiceWorker,
 } from '$lib/push/notifications.js';
 import {
 	greetingTriggers,
@@ -404,5 +405,86 @@ describe('createNotifications, against the push server and the trigger service i
 			),
 		).toMatchObject({status: 'off', trigger: 'unknown'});
 		expect(of.signOwnership).not.toHaveBeenCalled();
+	});
+});
+
+// QA F13: on `pnpm start` (vite dev, no service worker) a signed-in account
+// read "Sign in to be notified", because the push client says `no-account`
+// for no registration too; and with no account there was nothing to click.
+describe('createNotifications, before notifications can be turned on', () => {
+	const noNetwork = (() => {
+		throw new Error('nothing is asked of the services here');
+	}) as unknown as typeof fetch;
+	const someAccount = (): NonNullable<NotifiedAccount> => ({
+		address: privateKeyToAccount(generatePrivateKey()).address,
+		delegatePrivateKey: generatePrivateKey(),
+	});
+	function line(
+		account: NotifiedAccount,
+		worker: Readable<PushServiceWorker>,
+		signIn?: () => Promise<unknown>,
+	) {
+		return createNotifications({
+			config,
+			kind: NEW_GREETING,
+			account: writable(account),
+			serviceWorker: worker,
+			signOwnership: async () => {
+				throw new Error('no signature is asked here');
+			},
+			signIn,
+			fetch: noNetwork,
+			permission: () => 'default',
+			supported: () => true,
+		});
+	}
+
+	it('says the worker is off in dev to a signed-in account, not to sign in', async () => {
+		const notifications = line(someAccount(), writable('off-in-dev'));
+		expect(
+			await until(notifications, (s) => s.status === 'no-worker'),
+		).toMatchObject({status: 'no-worker', worker: 'off-in-dev'});
+	});
+
+	it('says the worker did not start, when its registration failed', async () => {
+		const notifications = line(someAccount(), writable('unavailable'));
+		expect(
+			await until(notifications, (s) => s.status === 'no-worker'),
+		).toMatchObject({status: 'no-worker', worker: 'unavailable'});
+	});
+
+	it('is loading, not no-account, while a signed-in account waits for the worker', async () => {
+		const worker = writable<PushServiceWorker>(undefined);
+		const notifications = line(someAccount(), worker);
+		const seen: string[] = [];
+		const stop = notifications.subscribe((s) => seen.push(s.status));
+		await new Promise((resolve) => setTimeout(resolve, 10));
+		expect(seen).not.toContain('no-account');
+		expect(get(notifications).status).toBe('loading');
+		worker.set(fakeBrowser().registration);
+		expect(await until(notifications, (s) => s.status === 'off')).toMatchObject(
+			{status: 'off'},
+		);
+		stop();
+	});
+
+	it('is no-account with no account, whatever the worker, and signs in from there', async () => {
+		const signIn = vi.fn(async () => {});
+		const notifications = line(undefined, writable('off-in-dev'), signIn);
+		expect(
+			await until(notifications, (s) => s.status === 'no-account'),
+		).toMatchObject({status: 'no-account'});
+		await notifications.signIn();
+		expect(signIn).toHaveBeenCalledTimes(1);
+	});
+
+	it('takes a cancelled sign-in quietly', async () => {
+		const notifications = line(undefined, writable(undefined), async () => {
+			throw new Error('cancelled');
+		});
+		await expect(notifications.signIn()).resolves.toBeUndefined();
+		expect(
+			await until(notifications, (s) => s.status === 'no-account'),
+		).not.toHaveProperty('error');
 	});
 });

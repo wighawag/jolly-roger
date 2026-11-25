@@ -12,12 +12,18 @@
  * - the WALLET's signature over the publication message, when the account
  *   carries none: connect's `getSignatureForPublicKeyPublication`, which asks a
  *   wallet at most once per account and origin key and keeps the answer;
- * - the WORKER's registration, once it is ready (none in dev unless the worker
- *   is enabled there, `PUBLIC_ENABLE_SW_IN_DEV`).
+ * - the WORKER's registration, once it is ready, or why there will be none
+ *   (none in dev unless the worker is enabled there, `PUBLIC_ENABLE_SW_IN_DEV`),
+ *   so the page can say so rather than ask to sign in (QA F13).
  */
 import {derived, get, readable, type Readable} from 'svelte/store';
 import {originPublicKeyPublicationMessage} from 'delegated-identity';
-import type {NotificationsConfig, NotifiedAccount} from './notifications';
+import type {ServiceWorkerState} from '$lib/core/service-worker';
+import type {
+	NotificationsConfig,
+	NotifiedAccount,
+	PushServiceWorker,
+} from './notifications';
 
 /** The part of connect's connection state this reads. */
 export type ConnectionLike =
@@ -120,6 +126,35 @@ export function serviceWorkerReady(
 			live = false;
 		};
 	});
+}
+
+/**
+ * The app's worker for the push half: its registration once ready, or why none
+ * will come. `registers` is whether this page registers the worker at all (the
+ * rule is `src/routes/+layout.ts`'s: always, but in dev only with
+ * `PUBLIC_ENABLE_SW_IN_DEV=true`), so `false` is `'off-in-dev'`; `state` is the
+ * app's `serviceWorker` store (`$lib`), whose failed or skipped registration is
+ * `'unavailable'`. Anything else waits for `ready`, which never settles where no
+ * worker registers: that wait is what read as "sign in" in dev.
+ */
+export function pushServiceWorker(params: {
+	registers: boolean;
+	state: Readable<ServiceWorkerState>;
+	container: Pick<ServiceWorkerContainer, 'ready'> | undefined;
+}): Readable<PushServiceWorker> {
+	if (!params.registers) {
+		return readable<PushServiceWorker>('off-in-dev');
+	}
+	return derived(
+		[params.state, serviceWorkerReady(params.container)] as const,
+		([$state, $ready]): PushServiceWorker => {
+			if ($ready) return $ready;
+			if ($state && ('error' in $state || 'skipped' in $state)) {
+				return 'unavailable';
+			}
+			return undefined;
+		},
+	);
 }
 
 /** What `publicationSigner` needs of connect's connection store. */

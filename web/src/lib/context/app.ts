@@ -21,7 +21,7 @@ import {
 import {
 	notificationsConfig,
 	notifiedAccount,
-	serviceWorkerReady,
+	pushServiceWorker,
 	publicationSigner,
 	type ConnectionLike,
 	type PublicationSigning,
@@ -29,6 +29,7 @@ import {
 import {NEW_GREETING} from '$lib/onchain/notifier/greetings.js';
 import {createMessaging, type Messaging} from '$lib/messaging/messaging.js';
 import {messagingAccount, messagingConfig} from '$lib/messaging/sources.js';
+import {dev, serviceWorker as appServiceWorker} from '$lib';
 import type {TypedDeployments} from '$lib/deployments-store.js';
 import type {CoreServices} from './core.js';
 import type {SignerGrant} from '$lib/ui/delegation/grant.js';
@@ -143,10 +144,17 @@ export function createAppContext(core: CoreServices): AppMembers {
 		),
 		kind: NEW_GREETING,
 		account: notifiedAccount(connection as Readable<ConnectionLike>),
-		serviceWorker: serviceWorkerReady(
-			typeof navigator !== 'undefined' ? navigator.serviceWorker : undefined,
-		),
+		// the registration, or why there is none (off in dev, `+layout.ts`), so
+		// a signed-in account is not told to sign in (QA F13)
+		serviceWorker: pushServiceWorker({
+			registers: !dev || env.PUBLIC_ENABLE_SW_IN_DEV === 'true',
+			state: appServiceWorker,
+			container:
+				typeof navigator !== 'undefined' ? navigator.serviceWorker : undefined,
+		}),
 		signOwnership: publicationSigner(connection as PublicationSigning),
+		// what the line offers with no account: the same as a send does
+		signIn: () => connection.ensureConnected(),
 	});
 
 	// MESSAGING (`with/messaging`): the domain's chat room and direct messages
