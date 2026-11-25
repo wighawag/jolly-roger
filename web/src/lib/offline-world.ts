@@ -164,7 +164,7 @@ async function openAt(
 	}).finally(() => probe.dispose());
 	await probeNode.released();
 	if (!coherent) {
-		onStep?.('starting a new world');
+		onStep?.('starting a fresh chain');
 		const fresh = mintChainId();
 		storage.setItem(params.chainIdKey, String(fresh));
 		return openAt(fresh, params, storage);

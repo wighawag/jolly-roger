@@ -170,7 +170,7 @@ describe('openOfflineWorld', () => {
 		// chain by a block.
 		expect(await blockNumber(again)).toBeGreaterThanOrEqual(head);
 		expect(await blockHash(again, head)).toBe(headHash);
-		expect(steps).not.toContain('starting a new world');
+		expect(steps).not.toContain('starting a fresh chain');
 	});
 
 	it('refuses an incoherent restore: a new id, remembered, and a fresh deploy', async () => {
@@ -204,7 +204,7 @@ describe('openOfflineWorld', () => {
 		expect(storage.items.get('offline-world-test:incoherent')).toBe(
 			String(again.chainId),
 		);
-		expect(steps).toContain('starting a new world');
+		expect(steps).toContain('starting a fresh chain');
 		expect(provisioned).toEqual([again.chainId]);
 		const address = again.deployments.get().contracts[APP_CONTRACT].address;
 		expect(

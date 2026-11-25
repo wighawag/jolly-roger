@@ -22,6 +22,8 @@ export type {
 export {startEmbeddedNode} from './node.js';
 export {createWorldClaim, letGoOfWorld, LET_GO} from './claim.js';
 export type {WorldClaim, WorldClaimState, WorldClaimParams} from './claim.js';
+export {createWorldReset} from './reset.js';
+export type {WorldReset, WorldResetState, WorldResetParams} from './reset.js';
 export {announceEmbeddedWallet} from './wallet.js';
 export type {EmbeddedWallet} from './wallet.js';
 export type {EmbeddedNode, StartEmbeddedNodeParams} from './node.js';
@@ -34,6 +36,7 @@ export type {EmbeddedChainMetadata} from './deployments.js';
 export {
 	mintChainId,
 	rememberChainId,
+	forgetChainId,
 	isEmbeddedChainId,
 	MIN_EMBEDDED_CHAIN_ID,
 	MAX_EMBEDDED_CHAIN_ID,

@@ -4,6 +4,8 @@ import deployGreetingsRegistry from 'jolly-roger-contracts/deploy/001_deploy_gre
 import type {EmbeddedWorld} from '$lib/embedded';
 import {announceEmbeddedWallet} from '$lib/embedded/wallet';
 import {createWorldClaim, letGoOfWorld} from '$lib/embedded/claim';
+import {createWorldReset} from '$lib/embedded/reset';
+import {forgetChainId} from '$lib/embedded/chain-id';
 import {
 	connectTheWorld,
 	createOfflineBoot,
@@ -95,6 +97,30 @@ export async function enterOfflineWorld(): Promise<void> {
 export async function takeTheOfflineWorldOver(): Promise<void> {
 	await offlineWorldClaim.takeOver();
 	await startOfflineWorld();
+}
+
+/**
+ * START A FRESH CHAIN: stop this tab's world, forget its chain id, and reload
+ * into a new one (see `$lib/embedded/reset`). The page renders something else
+ * while it is `Resetting`, which is what unmounts the world before it stops.
+ *
+ * It throws the world away, and the page asks before calling it. The app's own
+ * wallet and settings are untouched: only what is keyed by the world's id goes.
+ */
+export const offlineWorldReset = createWorldReset({
+	letGo: async () => {
+		await letGoOfWorld(boot.current());
+		stopAnnouncingOfflineWallet();
+	},
+	forget: () => {
+		if (typeof localStorage !== 'undefined') {
+			forgetChainId({storage: localStorage, key: CHAIN_ID_STORAGE_KEY});
+		}
+	},
+});
+
+export function startAFreshOfflineWorld(): Promise<void> {
+	return offlineWorldReset.reset();
 }
 
 export function startOfflineWorld(): Promise<OfflineWorldStatus> {
