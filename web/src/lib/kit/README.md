@@ -51,7 +51,8 @@ framework and only ever covered `$app/*`.
 - `paths.ts`: where the app is deployed. `resolve()` from `$app/paths` bound as
   a `PathResolver`, plus the pre-bound `url()` and `createRouteHandler()` the
   app uses. Everything else takes the resolver as a parameter.
-- `notification-navigation.ts`: following a URL from a push notification.
+- `notification-navigation.ts`: following a URL from a push notification with
+  `goto`, so a running app moves to that page without being reloaded (QA F19).
 
 ## How the rest of the app gets these
 
