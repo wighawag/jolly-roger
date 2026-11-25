@@ -776,8 +776,8 @@ async function connectWalletDevMode(
 			// account row first, then sign. With no rows (single-account confirm),
 			// just sign.
 			//
-			// `pickSignableAccount` is this branch's own row picker (it skips the
-			// impersonated accounts, which cannot sign) and bounds its own click
+			// `pickSignableAccount` is this branch's own row picker (it waits for
+			// the rows and their labels) and bounds its own click
 			// already. The Sign In click needs the same bound for the same reason: this
 			// dialog closes underneath it the moment the signature is answered, and an
 			// unbounded Playwright click waits for the button to come back rather than
