@@ -288,6 +288,34 @@ describe('createMessaging, against missiv in process', () => {
 		stop();
 	});
 
+	// QA F13: "Sign in to write." with nothing to click
+	it('signs in from no-account, and takes a cancel quietly', async () => {
+		const signIn = vi.fn(async () => {});
+		const messaging = createMessaging({
+			config,
+			account: writable(undefined),
+			signOwnership: vi.fn(),
+			signIn,
+			fetch: network,
+		});
+		await messaging.signIn();
+		expect(signIn).toHaveBeenCalledTimes(1);
+
+		const cancelled = createMessaging({
+			config,
+			account: writable(undefined),
+			signOwnership: vi.fn(),
+			signIn: async () => {
+				throw new Error('cancelled');
+			},
+			fetch: network,
+		});
+		await expect(cancelled.signIn()).resolves.toBeUndefined();
+		const stop = hold(cancelled);
+		expect(get(cancelled)).toEqual<MessagingState>({status: 'no-account'});
+		stop();
+	});
+
 	it('surfaces a refused registration', async () => {
 		const alice = newAccount();
 		const bob = newAccount();

@@ -232,3 +232,40 @@ describe('Messaging - a chat room and direct messages, two browsers', () => {
 		}
 	});
 });
+
+// QA F13: with no account the panel said "Sign in to write." with nothing to
+// click; it now signs in from there, then offers to join.
+describe('Messaging - before an account', () => {
+	test.skip(!MISSIV, 'the run did not start missiv');
+
+	test('the panel signs in, then offers to join', async ({
+		page,
+		connectWallet,
+	}) => {
+		await page.goto('/demo');
+		await expect(page.getByPlaceholder('Enter your greeting...')).toBeVisible({
+			timeout: 30_000,
+		});
+		await page.getByTestId('messaging-launcher').click();
+		const panel = page.getByTestId('messaging-panel');
+		await expect(panel).toBeVisible();
+		await panel.getByTestId('messaging-tab-room').click();
+		await panel.getByTestId('messaging-sign-in').click();
+		// the connection flow opens OVER the panel, and takes the click
+		// (a trial click: actionable, nothing pressed)
+		await page
+			.getByRole('dialog', {name: /confirm sign in/i})
+			.getByRole('button', {name: /^cancel$/i})
+			.click({trial: true, timeout: 30_000});
+		// the fixture drives the first `[role="dialog"]`, which the panel also is
+		await page.evaluate(() =>
+			(globalThis as any).context.messaging.panel.close(),
+		);
+		await connectWallet(page, {fund: false});
+		await page.getByTestId('messaging-launcher').click();
+		await panel.getByTestId('messaging-tab-room').click();
+		await expect(panel.getByTestId('messaging-register')).toBeVisible({
+			timeout: 30_000,
+		});
+	});
+});

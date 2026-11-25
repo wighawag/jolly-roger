@@ -101,6 +101,12 @@ export type Messaging = Readable<MessagingState> & {
 	 * once). Never rejects: a refusal, the wallet's included, is the state's `error`.
 	 */
 	register(): Promise<void>;
+	/**
+	 * Gets an account, the way a send does (connect's `ensureConnected`): what
+	 * the panel offers at `no-account` (QA F13). Never rejects: a cancel is no
+	 * error, and the connection flow shows its own failures.
+	 */
+	signIn(): Promise<void>;
 	/** missiv's stores; undefined when messaging is not configured, or off the browser */
 	services: MessagingServices | undefined;
 	/** the panel's state (which view, the inbox, the conversation shown), for the shell and the pages */
@@ -114,6 +120,8 @@ export type MessagingOptions = {
 	account: Readable<Account>;
 	/** the wallet's signature over the publication message: connect's, asked at most once */
 	signOwnership: (address: string, message: string) => Promise<`0x${string}`>;
+	/** connect's `ensureConnected()`, to the app's target step: see `signIn` */
+	signIn?: () => Promise<unknown>;
 	fetch?: typeof fetch;
 	createWebSocket?: (url: string) => RoomSocket;
 	/** seconds between two fetches of the conversation list (default 10) */
@@ -158,6 +166,7 @@ export function createMessaging(options: MessagingOptions): Messaging {
 		return {
 			subscribe: state.subscribe,
 			register: async () => {},
+			signIn: async () => {},
 			services: undefined,
 			panel: createMessagingPanel(undefined),
 		};
@@ -286,6 +295,13 @@ export function createMessaging(options: MessagingOptions): Messaging {
 		subscribe: state.subscribe,
 		services,
 		panel: createMessagingPanel(services),
+		async signIn() {
+			try {
+				await options.signIn?.();
+			} catch {
+				// a cancel is not an error, and the connection flow shows a failure
+			}
+		},
 		async register() {
 			const of = now();
 			if (of.step !== 'Unregistered' || of.registering) {

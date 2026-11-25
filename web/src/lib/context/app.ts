@@ -169,6 +169,8 @@ export function createAppContext(core: CoreServices): AppMembers {
 		),
 		account: messagingAccount(connection as Readable<ConnectionLike>),
 		signOwnership: publicationSigner(connection as PublicationSigning),
+		// what the panel offers with no account, as the notifications line does
+		signIn: () => connection.ensureConnected(),
 	});
 
 	// `config` is not returned: it is this half's own construction detail, and

@@ -13,7 +13,14 @@
 	data-testid="messaging-join"
 >
 	{#if $messaging.status === 'no-account'}
-		<p>Sign in to write.</p>
+		<!-- not a bare "Sign in": the connection flow's own button is named that -->
+		<Button
+			size="sm"
+			data-testid="messaging-sign-in"
+			onclick={() => messaging.signIn()}
+		>
+			Sign in to write
+		</Button>
 	{:else if $messaging.status === 'loading'}
 		<span class="flex items-center gap-2"><Spinner class="h-4 w-4" /> ...</span>
 	{:else if $messaging.status === 'unregistered'}
