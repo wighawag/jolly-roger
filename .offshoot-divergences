@@ -80,7 +80,7 @@ contracts/tsconfig.json                                compiles utils/ (indexInP
 web/package.json                                       etherfold's browser packages; fake-indexeddb and the contracts package for the indexer's tests
 web/src/lib/context/app.ts                             the composition: the greetings' indexed counts, beside the poll, laid over the view
 web/src/routes/demo/+page.svelte                       a greeting-count badge beside each message, shown only when the indexer has answered
-web/e2e/impersonate-addresses.json                     accounts 3 to 5, so the greeting-count suite has its own (5; 3 and 4 are with/local-signer's)
+web/e2e/accounts.json                                  a pool of 6, so the greeting-count suite has its own (5; 3 and 4 are with/local-signer's)
 
 [with/local-signer]
 # AND BELOW THIS LINE, WHAT `with/local-signer` MODIFIES FROM `main`: the app
@@ -130,9 +130,11 @@ web/src/lib/ui/navbar/navbar.svelte                    the account drawer with t
 web/src/routes/demo/+page.svelte                       the demo offers the signer's top-up when a send fails for want of gas
 web/src/routes/demo/lib/setGreeting.ts                 a greeting sent by the local signer through setMessageFor
 
+web/.env.localhost                                     nobody to impersonate: an impersonated address cannot sign in
+
 # The e2e
 web/e2e/fixtures/test.ts                               the delegation, the faucet and the burner's funding in the fixtures
-web/e2e/impersonate-addresses.json                     the faucet's address
+web/e2e/accounts.json                                  a pool of 5: delegation and the faucet claim an account each
 web/e2e/tests/demo.e2e.ts                              a greeting belongs to the account, posted by its delegate
 
 # Unit tests of the above
@@ -166,12 +168,12 @@ web/src/routes/demo/+page.svelte                       both stems' changes (the 
 package.json                                           the LAN package's pnpmDepsHash for this branch's lockfile
 web/package.json                                       the push client and delegated-identity; the push server, the trigger service, etherfold and esbuild for the dev stack and the tests; the notifier's scripts, and `check` type-checking it
 dev/zellij.kdl                                         three panes for the notifier: the push server, `etherfold run` of the greetings, the trigger service
-web/.env.localhost                                     the dev stack's push server and trigger service, same-host
+web/.env.localhost                                     the dev stack's push server and trigger service, same-host; nobody to impersonate (with/local-signer's)
 web/.env                                               the push server, its VAPID public key and the trigger service, empty: notifications not configured
 web/.prettierignore                                    the notifier's build output (web/notifier/.generated) is not formatted
 web/README.md                                          the solved problems list $lib/push, the account's Web Push through @push-notification/client and the trigger service
 scripts/run-e2e-tests.sh                               the notifier started for the run (recording push server, indexer, trigger service), the app built against it
-web/e2e/impersonate-addresses.json                     a seventh account (6), the push-notifications suite's subscriber
+web/e2e/accounts.json                                  a pool of 7: a seventh account (6), the push-notifications suite's subscriber
 
 [with/messaging]
 # AND BELOW THIS LINE, WHAT `with/messaging` MODIFIES FROM ITS STEM,
@@ -193,4 +195,4 @@ dev/zellij.kdl                                         a fourth notifier pane: m
 web/.env                                               PUBLIC_MISSIV, empty: messaging not configured
 web/.env.localhost                                     the dev stack's missiv, same-host
 scripts/run-e2e-tests.sh                               missiv started with the notifier for the run (its own port, its pushes to the recording push server), the app built against it
-web/e2e/impersonate-addresses.json                     an eighth account (7), the messaging suite's (its two browsers each get their own burner account at that index)
+web/e2e/accounts.json                                  a pool of 8: an eighth account (7), the messaging suite's (its two browsers each get their own burner account at that index)
