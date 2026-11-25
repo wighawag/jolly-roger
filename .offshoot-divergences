@@ -81,4 +81,4 @@ contracts/tsconfig.json                                compiles utils/ (indexInP
 web/package.json                                       etherfold's browser packages; fake-indexeddb and the contracts package for the indexer's tests
 web/src/lib/context/app.ts                             the composition: the greetings' indexed counts, beside the poll, laid over the view
 web/src/routes/demo/+page.svelte                       a greeting-count badge beside each message, shown only when the indexer has answered
-web/e2e/impersonate-addresses.json                     accounts 3 to 5, so the greeting-count suite has its own (5; 3 and 4 are with/local-signer's)
+web/e2e/accounts.json                                  a pool of 6, so the greeting-count suite has its own (5; 3 and 4 are with/local-signer's)

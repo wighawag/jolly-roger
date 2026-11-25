@@ -17,9 +17,9 @@ import {MAIN_PAGE} from '../routes';
  * READ, NOT IMPORTED. `import ... from './x.json'` type-checks (TypeScript has
  * `resolveJsonModule`) and then throws at run time under Playwright's ESM
  * loader, which wants an `import ... with {type: 'json'}` attribute. Reading the
- * file is what `playwright.config.ts` already does for
- * `e2e/impersonate-addresses.json`, so this is the established way to reach a
- * JSON fact from the suite rather than a second one.
+ * file is what `e2e/fixtures/accounts.ts` already does for `e2e/accounts.json`,
+ * so this is the established way to reach a JSON fact from the suite rather
+ * than a second one.
  */
 const APP_NAME: string = JSON.parse(
 	readFileSync(new URL('../../src/web-config.json', import.meta.url), 'utf8'),
