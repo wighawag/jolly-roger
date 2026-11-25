@@ -45,6 +45,12 @@
 				Notifications need the service worker, which is off in development: set
 				PUBLIC_ENABLE_SW_IN_DEV=true, or use a build.
 			</p>
+		{:else if $notifications.worker === 'failed-in-dev'}
+			<p>
+				Notifications need the service worker, which did not start: in
+				development it is a module worker, which only Chromium-based browsers
+				run. Use a build in this browser.
+			</p>
 		{:else}
 			<p>
 				Notifications need the app's service worker, which did not start in this

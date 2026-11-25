@@ -27,7 +27,7 @@ import {
 	type PublicationSigning,
 } from '$lib/push/sources.js';
 import {NEW_GREETING} from '$lib/onchain/notifier/greetings.js';
-import {dev, serviceWorker as appServiceWorker} from '$lib';
+import {serviceWorker as appServiceWorker} from '$lib';
 import type {TypedDeployments} from '$lib/deployments-store.js';
 import type {CoreServices} from './core.js';
 import type {SignerGrant} from '$lib/ui/delegation/grant.js';
@@ -131,6 +131,9 @@ export function createAppContext(core: CoreServices): AppMembers {
 	// trigger at the trigger service, both proven by the delegate key connect
 	// derives for this app (`$lib/push`, README.push-notifications.md). With
 	// either service unset it says notifications are not configured.
+	// the BUILD's mode, as +layout.ts reads it (`$app/environment`), not `$lib`'s
+	// `dev`, which a `?dev` query sets too
+	const dev = import.meta.env.DEV;
 	const notifications = createNotifications({
 		config: notificationsConfig(
 			{
@@ -146,6 +149,7 @@ export function createAppContext(core: CoreServices): AppMembers {
 		// a signed-in account is not told to sign in (QA F13)
 		serviceWorker: pushServiceWorker({
 			registers: !dev || env.PUBLIC_ENABLE_SW_IN_DEV === 'true',
+			dev,
 			state: appServiceWorker,
 			container:
 				typeof navigator !== 'undefined' ? navigator.serviceWorker : undefined,

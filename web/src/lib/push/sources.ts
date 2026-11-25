@@ -134,11 +134,14 @@ export function serviceWorkerReady(
  * rule is `src/routes/+layout.ts`'s: always, but in dev only with
  * `PUBLIC_ENABLE_SW_IN_DEV=true`), so `false` is `'off-in-dev'`; `state` is the
  * app's `serviceWorker` store (`$lib`), whose failed or skipped registration is
- * `'unavailable'`. Anything else waits for `ready`, which never settles where no
- * worker registers: that wait is what read as "sign in" in dev.
+ * `'unavailable'`, or `'failed-in-dev'` for a failed one in `dev` (a module
+ * worker there, which Firefox refuses). Anything else waits for `ready`, which
+ * never settles where no worker registers: that wait is what read as "sign in"
+ * in dev.
  */
 export function pushServiceWorker(params: {
 	registers: boolean;
+	dev: boolean;
 	state: Readable<ServiceWorkerState>;
 	container: Pick<ServiceWorkerContainer, 'ready'> | undefined;
 }): Readable<PushServiceWorker> {
@@ -149,9 +152,10 @@ export function pushServiceWorker(params: {
 		[params.state, serviceWorkerReady(params.container)] as const,
 		([$state, $ready]): PushServiceWorker => {
 			if ($ready) return $ready;
-			if ($state && ('error' in $state || 'skipped' in $state)) {
-				return 'unavailable';
+			if ($state && 'error' in $state) {
+				return params.dev ? 'failed-in-dev' : 'unavailable';
 			}
+			if ($state && 'skipped' in $state) return 'unavailable';
 			return undefined;
 		},
 	);

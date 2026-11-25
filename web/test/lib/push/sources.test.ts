@@ -133,6 +133,7 @@ describe('pushServiceWorker', () => {
 	it("is 'off-in-dev' where the page registers no worker", () => {
 		const worker = pushServiceWorker({
 			registers: false,
+			dev: true,
 			state: writable<ServiceWorkerState>(undefined),
 			container: never,
 		});
@@ -146,6 +147,7 @@ describe('pushServiceWorker', () => {
 		});
 		const worker = pushServiceWorker({
 			registers: true,
+			dev: false,
 			state,
 			container: never,
 		});
@@ -169,10 +171,27 @@ describe('pushServiceWorker', () => {
 		expect(get(worker)).toBe('unavailable');
 	});
 
+	it("is 'failed-in-dev' when the dev registration failed (Firefox and a module worker)", () => {
+		const worker = pushServiceWorker({
+			registers: true,
+			dev: true,
+			state: writable<ServiceWorkerState>({
+				notSupported: false,
+				registering: false,
+				error: {message: 'failed to register service-worker', cause: 'module'},
+				registration: undefined,
+				updateAvailable: false,
+			}),
+			container: never,
+		});
+		expect(get(worker)).toBe('failed-in-dev');
+	});
+
 	it('is the registration once the worker is ready', async () => {
 		const registration = {scope: '/'} as ServiceWorkerRegistration;
 		const worker = pushServiceWorker({
 			registers: true,
+			dev: false,
 			state: writable<ServiceWorkerState>(undefined),
 			container: {ready: Promise.resolve(registration)},
 		});
