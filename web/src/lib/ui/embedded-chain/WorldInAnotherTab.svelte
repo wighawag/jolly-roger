@@ -11,6 +11,10 @@
 	a route places it above the world and lets it decide. The route still has to
 	put the world's own branch AFTER it: `LettingGo` is this tab handing the world
 	over, and the world's subtree must unmount for its writers to stop.
+
+	IN THE ROUTE'S WORDS: `name` is what the visitor calls the thing ("test
+	chain" by default, since "world" is the code's term and not one a visitor of
+	a demo should meet, QA F8). A game whose players know it as a world says so.
 -->
 <script lang="ts">
 	import type {WorldClaim} from '$lib/embedded/claim';
@@ -21,6 +25,7 @@
 		claim,
 		onTakeOver,
 		home,
+		name = 'test chain',
 	}: {
 		/** The claim this route's world is guarded by. */
 		claim: WorldClaim;
@@ -28,6 +33,8 @@
 		onTakeOver: () => void;
 		/** Where "Go back" goes: the app's home. */
 		home: string;
+		/** What the visitor calls what is open: "test chain", "world", "game". */
+		name?: string;
 	} = $props();
 </script>
 
@@ -36,11 +43,11 @@
 		data-testid="world-in-another-tab"
 		class="container mx-auto max-w-2xl px-4 py-24 text-center"
 	>
-		<h1 class="text-lg font-semibold">This world is open in another tab.</h1>
+		<h1 class="text-lg font-semibold">This {name} is open in another tab.</h1>
 		<p class="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-			A world lives in this browser, and only one tab may play it at a time: two
-			would each keep their own copy of its chain, and the copies would stop
-			being one world. Take it over here, and the other tab lets it go.
+			It is saved in this browser, and only one tab may run it at a time: two
+			would each keep their own copy of its chain, and the copies would drift
+			apart. Take it over here, and the other tab lets it go.
 		</p>
 		<div class="mt-6 flex flex-wrap justify-center gap-2">
 			<Button data-testid="take-the-world-over" onclick={onTakeOver}
@@ -56,7 +63,7 @@
 	>
 		<Spinner class="size-6" />
 		<p class="text-sm text-muted-foreground">
-			Waiting for the other tab to let the world go&hellip;
+			Waiting for the other tab to let the {name} go&hellip;
 		</p>
 		<Button variant="outline" href={home} onclick={() => claim.abandon()}
 			>Go back</Button
@@ -69,7 +76,7 @@
 	>
 		<Spinner class="size-6" />
 		<p class="text-sm text-muted-foreground">
-			Another tab asked for this world. Saving it and handing it over&hellip;
+			Another tab asked for this {name}. Saving it and handing it over&hellip;
 		</p>
 	</div>
 {/if}

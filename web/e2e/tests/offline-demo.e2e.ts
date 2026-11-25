@@ -13,6 +13,7 @@ import {test, expect, describe} from '../fixtures/test';
 
 const MESSAGE_ROW = '[data-testid="message-row"]';
 const MESSAGE_PENDING = '[data-testid="message-pending"]';
+const CHAIN_ID = '[data-testid="offline-chain-id"]';
 
 /**
  * The world's connection, read off the console handle `$lib/offline` installs
@@ -42,7 +43,7 @@ describe('Offline demo - a chain in this tab', () => {
 
 		// The world is up: the banner names its chain.
 		await expect(
-			page.getByText('Everything below runs against a chain inside this tab'),
+			page.getByText('This demo runs on a test chain inside this tab'),
 		).toBeVisible({timeout: 90_000});
 
 		// Connected at boot: the world's connection reaches the app's target step
@@ -107,5 +108,60 @@ describe('Offline demo - a chain in this tab', () => {
 		await expect(dialog).toBeVisible({timeout: 10_000});
 		await expect(dialog).toContainText('World error');
 		await expect(dialog).toContainText('the world says hello');
+	});
+
+	test('starts a fresh chain in the tab, on a new id and with nothing on it', async ({
+		page,
+	}) => {
+		// QA F8: there was no way to throw the tab's chain away short of clearing
+		// the site's data, which also wipes the app's own wallet and settings.
+		await page.goto('/offline-demo');
+		await expect
+			.poll(() => page.evaluate(worldIsAtItsTarget), {timeout: 90_000})
+			.toBe(true);
+		const before = (await page.locator(CHAIN_ID).textContent())?.trim();
+		expect(before).toMatch(/^\d+$/);
+
+		// Something on the chain to lose.
+		const message = `Before the reset ${Date.now()}`;
+		const input = page.getByPlaceholder('Enter your greeting...');
+		await expect(input).toBeEnabled({timeout: 30_000});
+		await input.fill(message);
+		await page.getByRole('button', {name: /send/i}).click();
+		const row = page.locator(MESSAGE_ROW).filter({hasText: message});
+		await expect(row).toBeVisible({timeout: 60_000});
+		await expect(row.locator(MESSAGE_PENDING)).toHaveCount(0, {
+			timeout: 60_000,
+		});
+
+		// It asks first, and cancelling keeps the chain.
+		await page.getByTestId('start-fresh-chain').click();
+		await expect(page.getByTestId('confirm-fresh-chain')).toBeVisible();
+		await page.getByRole('button', {name: 'Cancel'}).click();
+		await expect(page.locator(CHAIN_ID)).toHaveText(before!);
+		await expect(row).toBeVisible();
+
+		// Confirmed: the page reloads into a new chain.
+		await page.getByTestId('start-fresh-chain').click();
+		await page.getByTestId('confirm-start-fresh-chain').click();
+		await expect(page.locator(CHAIN_ID)).not.toHaveText(before!, {
+			timeout: 90_000,
+		});
+		const after = (await page.locator(CHAIN_ID).textContent())?.trim();
+		expect(after).toMatch(/^\d+$/);
+		expect(after).not.toBe(before);
+		await expect
+			.poll(() => page.evaluate(worldIsAtItsTarget), {timeout: 60_000})
+			.toBe(true);
+		await expect(page.getByText('No messages yet. Be the first!')).toBeVisible({
+			timeout: 60_000,
+		});
+		await expect(
+			page.locator(MESSAGE_ROW).filter({hasText: message}),
+		).toHaveCount(0);
+
+		// And it stays fresh across a reload: the new id is the one remembered.
+		await page.reload();
+		await expect(page.locator(CHAIN_ID)).toHaveText(after!, {timeout: 90_000});
 	});
 });

@@ -10,9 +10,12 @@
 		enterOfflineWorld,
 		offlineWorld,
 		offlineWorldClaim,
+		offlineWorldReset,
+		startAFreshOfflineWorld,
 		takeTheOfflineWorldOver,
 	} from '$lib/offline';
 	import WorldInAnotherTab from '$lib/ui/embedded-chain/WorldInAnotherTab.svelte';
+	import StartAFreshChain from '$lib/ui/embedded-chain/StartAFreshChain.svelte';
 	import Demo from '../demo/+page.svelte';
 
 	// THE ROUTE IS THE CHOOSING AND NOTHING ELSE. Booting a chain, running a
@@ -39,6 +42,17 @@
 		onTakeOver={() => void takeTheOfflineWorldOver()}
 		home={route('/')}
 	/>
+{:else if $offlineWorldReset.step === 'Resetting'}
+	<!-- AND THE RESET BEFORE THE WORLD, for the same reason: rendering this in
+	     its place is what unmounts the world before it is stopped and forgotten.
+	     The page then reloads into a fresh chain (see `$lib/embedded/reset`). -->
+	<div
+		data-testid="starting-fresh-chain"
+		class="container mx-auto flex max-w-2xl flex-col items-center gap-3 px-4 py-24 text-center"
+	>
+		<Spinner class="size-6" />
+		<p class="text-sm text-muted-foreground">Starting a fresh chain&hellip;</p>
+	</div>
 {:else if $offlineWorld.step === 'Ready'}
 	<!-- A NESTED PROVIDER, which is the whole mechanism in one element.
 	     `setAppContext` is svelte's `setContext`, so this shadows the app's
@@ -66,12 +80,20 @@
 	     `template-commit-reveal`'s `/offline` is the worked example, and is where
 	     the first consumer of this mechanism lives. -->
 	<Context context={$offlineWorld.context}>
+		<!-- IN THE USER'S WORDS: "world" is the code's term (ADR-0009,
+		     `$lib/embedded`), not one a visitor should meet (QA F8). -->
 		<div
+			data-testid="offline-demo-banner"
 			class="border-b border-dashed border-muted-foreground/40 bg-muted/40 px-4 py-2 text-center text-sm"
 		>
-			Everything below runs against a chain inside this tab, on chain id
-			<code>{$offlineWorld.world.chainId}</code>. The navbar above describes the
-			app, not this world.
+			This demo runs on a test chain inside this tab (chain id
+			<code data-testid="offline-chain-id">{$offlineWorld.world.chainId}</code
+			>), saved in this browser. The account and balance in the navbar are your
+			real ones, not this chain's.
+			<StartAFreshChain
+				thing="everything on it: its greetings, its account and its balance"
+				onConfirm={() => void startAFreshOfflineWorld()}
+			/>
 		</div>
 		<!-- NO CONNECTION FLOW HERE, AND THAT IS THE POINT RATHER THAN AN
 		     OMISSION. A flow exists to relay a wallet's questions to the player:
@@ -114,10 +136,14 @@
 		>
 			<AlertCircleIcon class="mt-0.5 size-5 shrink-0 text-destructive" />
 			<div>
-				<p class="font-semibold">The offline world did not start.</p>
+				<p class="font-semibold">The test chain did not start.</p>
 				<p class="mt-1 text-sm text-muted-foreground">
 					{$offlineWorld.error}
 				</p>
+				<!-- A chain that will not boot is the one most worth throwing away. -->
+				<div class="mt-3">
+					<StartAFreshChain onConfirm={() => void startAFreshOfflineWorld()} />
+				</div>
 			</div>
 		</div>
 	</div>

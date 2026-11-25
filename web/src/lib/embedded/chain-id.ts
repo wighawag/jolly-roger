@@ -105,3 +105,52 @@ export function rememberChainId(params: {
 	storage.setItem(key, String(minted));
 	return minted;
 }
+
+/**
+ * FORGET the world stored under `key`, so the next {@link rememberChainId}
+ * mints a new id and the next boot builds a new world beside the old one.
+ *
+ * FORGETTING THE ID IS WHAT MAKES IT A NEW WORLD, and nothing else has to be
+ * deleted for that to be true: everything a world keeps is keyed by its id (the
+ * chain's dump and the deployment records in IndexedDB, the operations ledger,
+ * the generated wallet and the connection's own slot in `localStorage`), so a
+ * new id starts with none of it. The old chain and its records are ORPHANED, as
+ * an incoherent restore already orphans them (`restoreIsCoherent`), which is
+ * the honest outcome: they describe a world nothing points at any more.
+ *
+ * THE `localStorage` ENTRIES NAMED BY THE OLD ID ARE SWEPT when the storage can
+ * be listed, because each reset would otherwise leave a mnemonic and a few
+ * ledgers behind for good. A minted id is sixteen digits from a range nothing
+ * else uses (see the module note), so a key that holds it as a whole number is
+ * that world's. IndexedDB is left alone: a database still open in this tab
+ * cannot be deleted before the tab goes away, and an orphan there is harmless.
+ *
+ * Returns the id it forgot, if there was one a world could have minted.
+ */
+export function forgetChainId(params: {
+	storage: {
+		getItem(key: string): string | null;
+		removeItem(key: string): void;
+		readonly length?: number;
+		key?(index: number): string | null;
+	};
+	key: string;
+}): number | undefined {
+	const {storage, key} = params;
+	const stored = storage.getItem(key);
+	storage.removeItem(key);
+	const id = stored === null ? NaN : Number(stored);
+	if (!isEmbeddedChainId(id)) return undefined;
+
+	if (typeof storage.length === 'number' && storage.key) {
+		const named = new RegExp(`(^|[^0-9])${id}([^0-9]|$)`);
+		const keys: string[] = [];
+		for (let i = 0; i < storage.length; i++) {
+			const k = storage.key(i);
+			if (k !== null && named.test(k)) keys.push(k);
+		}
+		// Collected first: removing while indexing shifts the indices.
+		for (const k of keys) storage.removeItem(k);
+	}
+	return id;
+}
