@@ -6,10 +6,19 @@
  * a descendant whose push server has its own type checks that type against
  * this one rather than declaring the shape again.
  *
- * The two functions are the worker's push and click handlers without the
- * browser around them, so they are tested in Node
- * (test/service-worker/push.test.ts): the worker (`./index.ts`) calls them and
- * owns the `showNotification`, the post to a focused page, and the navigation.
+ * The functions are the worker's push and click handlers without the browser
+ * around them, so they are tested in Node (test/service-worker/push.test.ts):
+ * the worker (`./index.ts`) calls them and owns the `showNotification`, the
+ * post to a focused page, the focus and the fallback navigation.
+ *
+ * THE CLICK CONTRACT (QA F19): a click on a notification does not reload a page
+ * that is already open. The worker picks an open tab of the app (one already on
+ * the notification's URL first), focuses it and posts it a
+ * `NotificationClickMessage` with a `MessagePort`; the page routes in place (no
+ * document load) and answers `NotificationClickAck` on that port. Only when no
+ * tab is open does the worker open one, and only when the tab does not answer
+ * in time (a page from an older build, which does not listen) does it navigate
+ * that tab the old way. The page side is `$lib/core/service-worker`.
  *
  * NO IMPORT: the service worker bundles this file, and nothing of the app may
  * reach it.
@@ -116,6 +125,115 @@ export function notificationFromPush(
 	// TODO: handle additional notification attributes (actions, image, vibrate,
 	// timestamp, renotify).
 	return {title: notification.title, options};
+}
+
+/**
+ * What the worker posts to an open tab when its notification is clicked: where
+ * to go (absent when the notification names nowhere: the tab is only focused)
+ * and the notification's `data`, so the app can act on more than a URL (open a
+ * conversation from its ids, say).
+ */
+export type NotificationClickMessage = {
+	type: 'notification-click';
+	url?: string;
+	data?: unknown;
+};
+
+/** What the page answers on the message's port once it has taken the click. */
+export type NotificationClickAck = {type: 'notification-click-ack'};
+
+/**
+ * How long the worker waits for a tab to take a click before navigating it
+ * itself. A page of this build answers within a task or two; one of an older
+ * build never does.
+ */
+export const NOTIFICATION_CLICK_ACK_TIMEOUT_MS = 1500;
+
+/** The fields of a `WindowClient` the choice reads. */
+export type ClickableClient = {
+	url: string;
+	focused?: boolean;
+	visibilityState?: string;
+};
+
+/**
+ * Whether two URLs show the same page: origin, path and query, with or without
+ * a trailing slash (the app redirects one to the other), the hash ignored.
+ */
+export function samePage(a: string, b: string): boolean {
+	let x: URL;
+	let y: URL;
+	try {
+		x = new URL(a);
+		y = new URL(b);
+	} catch {
+		return false;
+	}
+	const path = (url: URL) => url.pathname.replace(/\/+$/, '');
+	return x.origin === y.origin && path(x) === path(y) && x.search === y.search;
+}
+
+/**
+ * The open tab a click goes to: one already on `target` (an absolute URL) when
+ * there is one, else the focused one, else a visible one, else the first;
+ * undefined when no tab is open. Among several on the target, the same order.
+ */
+export function clientForNotification<T extends ClickableClient>(
+	clients: readonly T[],
+	target: string | undefined,
+): T | undefined {
+	const rank = (client: T) =>
+		client.focused ? 0 : client.visibilityState === 'visible' ? 1 : 2;
+	const best = (list: readonly T[]) =>
+		list.reduce<T | undefined>(
+			(chosen, client) =>
+				!chosen || rank(client) < rank(chosen) ? client : chosen,
+			undefined,
+		);
+	const onTarget = target
+		? clients.filter((client) => samePage(client.url, target))
+		: [];
+	return best(onTarget) ?? best(clients);
+}
+
+/** The part of a `Client` `askClient` needs. */
+export type MessageTarget = {
+	postMessage(message: unknown, transfer: Transferable[]): void;
+};
+
+/**
+ * Post `message` to a tab with a port and resolve whether it answered
+ * `NotificationClickAck` within `timeoutMs`. Never rejects: a tab that cannot
+ * be posted to has not taken the click.
+ */
+export function askClient(
+	client: MessageTarget,
+	message: NotificationClickMessage,
+	timeoutMs: number = NOTIFICATION_CLICK_ACK_TIMEOUT_MS,
+): Promise<boolean> {
+	return new Promise((resolve) => {
+		const channel = new MessageChannel();
+		const done = (taken: boolean) => {
+			clearTimeout(timer);
+			channel.port1.onmessage = null;
+			channel.port1.close();
+			resolve(taken);
+		};
+		const timer = setTimeout(() => done(false), timeoutMs);
+		channel.port1.onmessage = (event: MessageEvent) => {
+			if (
+				(event.data as NotificationClickAck | undefined)?.type ===
+				'notification-click-ack'
+			) {
+				done(true);
+			}
+		};
+		try {
+			client.postMessage(message, [channel.port2]);
+		} catch {
+			done(false);
+		}
+	});
 }
 
 /**
