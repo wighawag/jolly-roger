@@ -18,8 +18,13 @@
  * answers CORS for the app's origin itself since @etherfold/triggers 0.2.)
  *
  * Configuration is the environment (defaults are the dev stack's), plus
- * `notifier/.env.local`, the dev keys `keys.mjs` writes.
+ * `notifier/.env.local`, the dev keys `keys.mjs` writes. The services' own
+ * logs (a push the browser's push service refused, with its status and body)
+ * print at warn and above: `NOTIFIER_LOG_LEVEL` and `NOTIFIER_LOG`, see
+ * `log-sink.ts`.
  */
+// FIRST: the services' loggers are made as their modules load (log-sink.ts)
+import './log-sink.js';
 import {spawn, type ChildProcess} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {existsSync, mkdirSync, readFileSync} from 'node:fs';
