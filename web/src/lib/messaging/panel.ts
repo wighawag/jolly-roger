@@ -107,6 +107,73 @@ export function roomAuthorToMessage(
 	return me && lower(me) === author ? undefined : author;
 }
 
+/**
+ * What missiv's push of a direct message carries in its `data` (missiv's
+ * `pushMessage`, `packages/server/src/push.ts`): ids, never the content. Its
+ * `navigate` is the app's root; the app routes from these (QA F19, decided with
+ * the human: missiv names no app URL).
+ */
+export type MissivPushData = {
+	type: 'message';
+	domain: string;
+	namespace: string;
+	conversationID: string;
+	messageID: string;
+	sender: string;
+};
+
+/**
+ * The direct conversation a clicked notification leads to: the sender of a
+ * missiv message pushed for THIS app's domain and namespace (a direct
+ * conversation is the pair, so the sender names it; `conversationID` is that
+ * pair's id); undefined for any other notification (a greeting, another app's).
+ */
+export function conversationFromNotification(
+	data: unknown,
+	app: {domain: string; namespace: string},
+): `0x${string}` | undefined {
+	const missiv = (data as {missiv?: Partial<MissivPushData>} | undefined)
+		?.missiv;
+	if (
+		!missiv ||
+		missiv.type !== 'message' ||
+		missiv.domain !== app.domain ||
+		missiv.namespace !== app.namespace ||
+		typeof missiv.sender !== 'string' ||
+		!/^0x[0-9a-fA-F]{40}$/.test(missiv.sender)
+	) {
+		return undefined;
+	}
+	return lower(missiv.sender);
+}
+
+/** A click on one of this app's notifications, as `$lib/core/service-worker` publishes it. */
+export type NotificationClickLike = {id: number; data?: unknown};
+
+/**
+ * Open the panel on the conversation each clicked notification leads to (QA
+ * F19: a DM's push opens that conversation). Every click is taken once, the one
+ * already there when this subscribes included (a tab opened by the click).
+ * Returns the unsubscribe.
+ */
+export function openConversationsFromClicks(
+	clicks: Readable<NotificationClickLike | undefined>,
+	panel: Pick<MessagingPanel, 'openConversation'>,
+	app: {domain: string; namespace: string},
+): () => void {
+	let taken = 0;
+	return clicks.subscribe((click) => {
+		if (!click || click.id <= taken) {
+			return;
+		}
+		taken = click.id;
+		const address = conversationFromNotification(click.data, app);
+		if (address) {
+			panel.openConversation(address);
+		}
+	});
+}
+
 export function createMessagingPanel(
 	services: MessagingServices | undefined,
 ): MessagingPanel {

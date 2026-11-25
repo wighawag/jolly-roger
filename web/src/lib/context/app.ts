@@ -175,6 +175,8 @@ export function createAppContext(core: CoreServices): AppMembers {
 		signOwnership: publicationSigner(connection as PublicationSigning),
 		// what the panel offers with no account, as the notifications line does
 		signIn: () => connection.ensureConnected(),
+		// a direct message's push, clicked, opens its conversation (QA F19)
+		notificationClicks: appServiceWorker.notificationClicks,
 	});
 
 	// `config` is not returned: it is this half's own construction detail, and

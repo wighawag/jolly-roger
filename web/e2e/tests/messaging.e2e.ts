@@ -253,6 +253,44 @@ describe('Messaging - a chat room and direct messages, two browsers', () => {
 				senderAddress.slice(0, 6),
 			);
 			expect(JSON.stringify(push.payload)).not.toContain(direct);
+
+			// QA F19: clicking it opens that conversation in the open tab, without
+			// reloading it. A headless Chromium cannot show nor click a system
+			// notification, so the worker's real `notificationclick` handler is
+			// dispatched there, on the notification this push becomes (its data
+			// and navigate, as `notificationFromPush` keeps them).
+			await recipient.evaluate(() => {
+				(globalThis as any).context.messaging.panel.close();
+				(globalThis as any).__notReloaded = true;
+			});
+			await expect(recipientPanel).toBeHidden();
+			const worker =
+				context.serviceWorkers()[0] ??
+				(await context.waitForEvent('serviceworker'));
+			await worker.evaluate((notification: any) => {
+				const event = new Event('notificationclick');
+				Object.defineProperty(event, 'notification', {
+					value: {
+						data: {...notification.data, navigate: notification.navigate},
+						close() {},
+					},
+				});
+				self.dispatchEvent(event);
+			}, push.payload.notification);
+			await expect(
+				recipientPanel.getByTestId('messaging-conversation'),
+			).toBeVisible({timeout: 15_000});
+			expect(
+				await recipient.evaluate(() => {
+					const g = globalThis as any;
+					let view: any;
+					g.context.messaging.panel.subscribe((s: any) => (view = s.view))();
+					return {view, notReloaded: g.__notReloaded === true};
+				}),
+			).toEqual({
+				view: {kind: 'conversation', address: senderAddress},
+				notReloaded: true,
+			});
 		} finally {
 			await context.close();
 		}

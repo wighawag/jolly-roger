@@ -44,7 +44,12 @@ import {
 	type RoomSocket,
 } from '@missiv/client';
 import {getConversationID} from '@missiv/common';
-import {createMessagingPanel, type MessagingPanel} from './panel';
+import {
+	createMessagingPanel,
+	openConversationsFromClicks,
+	type MessagingPanel,
+	type NotificationClickLike,
+} from './panel';
 
 /** An error as missiv's stores show it. */
 export type StoreError = {message: string; code?: string; cause?: unknown};
@@ -128,6 +133,11 @@ export type MessagingOptions = {
 	listPollingInterval?: number;
 	/** seconds between two fetches of an open conversation (default 2) */
 	conversationPollingInterval?: number;
+	/**
+	 * Clicks on this app's notifications (`serviceWorker.notificationClicks`):
+	 * a direct message's push opens its conversation in the panel (QA F19).
+	 */
+	notificationClicks?: Readable<NotificationClickLike | undefined>;
 };
 
 /** The room of a domain, at missiv's origin: `ws(s)://<missiv>/api/public/room/@<domain>/ws`. */
@@ -291,10 +301,19 @@ export function createMessaging(options: MessagingOptions): Messaging {
 		},
 	};
 
+	const panel = createMessagingPanel(services);
+	// for the app's lifetime, like the services: built once, in the app's composition
+	if (options.notificationClicks) {
+		openConversationsFromClicks(options.notificationClicks, panel, {
+			domain,
+			namespace,
+		});
+	}
+
 	return {
 		subscribe: state.subscribe,
 		services,
-		panel: createMessagingPanel(services),
+		panel,
 		async signIn() {
 			try {
 				await options.signIn?.();

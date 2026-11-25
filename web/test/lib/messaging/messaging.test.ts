@@ -288,6 +288,41 @@ describe('createMessaging, against missiv in process', () => {
 		stop();
 	});
 
+	// QA F19: a direct message's push, clicked, opens its conversation
+	it('opens the panel on the conversation a clicked DM notification leads to', () => {
+		const clicks = writable<{id: number; data?: unknown} | undefined>(
+			undefined,
+		);
+		const messaging = createMessaging({
+			config,
+			account: writable(undefined),
+			signOwnership: vi.fn(),
+			fetch: network,
+			notificationClicks: clicks,
+		});
+		expect(get(messaging.panel).open).toBe(false);
+		clicks.set({
+			id: 1,
+			data: {
+				missiv: {
+					type: 'message',
+					domain: config.domain,
+					namespace: config.namespace,
+					conversationID: 'c',
+					messageID: 'm',
+					sender: '0x00000000000000000000000000000000000000BB',
+				},
+			},
+		});
+		expect(get(messaging.panel)).toMatchObject({
+			open: true,
+			view: {
+				kind: 'conversation',
+				address: '0x00000000000000000000000000000000000000bb',
+			},
+		});
+	});
+
 	// QA F13: "Sign in to write." with nothing to click
 	it('signs in from no-account, and takes a cancel quietly', async () => {
 		const signIn = vi.fn(async () => {});

@@ -2,7 +2,9 @@ import {describe, expect, it, vi} from 'vitest';
 import {get, writable} from 'svelte/store';
 import type {ConversationList, CurrentConversation} from '@missiv/client';
 import {
+	conversationFromNotification,
 	createComposer,
+	openConversationsFromClicks,
 	roomAuthorToMessage,
 	createMessagingPanel,
 	inboxOf,
@@ -208,5 +210,79 @@ describe('createComposer', () => {
 		send.mockRejectedValueOnce(new Error('no key yet'));
 		expect(await composer.submit('x')).toBe(false);
 		expect(get(composer)).toEqual({sending: false, error: 'no key yet'});
+	});
+});
+
+// QA F19: missiv's DM push leads to the app's root with the ids in
+// `data.missiv`; the app opens the conversation from them.
+describe('conversationFromNotification', () => {
+	const app = {domain: 'app.example', namespace: 'demo'};
+	const push = (missiv: object) => ({
+		navigate: 'https://app.example/',
+		missiv: {
+			type: 'message',
+			domain: 'app.example',
+			namespace: 'demo',
+			conversationID: 'id',
+			messageID: 'm1',
+			sender: BOB.toUpperCase().replace('0X', '0x'),
+			...missiv,
+		},
+	});
+
+	it('is the sender of a missiv message pushed for this app, in lower case', () => {
+		expect(conversationFromNotification(push({}), app)).toBe(BOB);
+	});
+
+	it('is undefined for another notification, app, namespace or kind, or a malformed sender', () => {
+		expect(conversationFromNotification(undefined, app)).toBeUndefined();
+		expect(
+			conversationFromNotification({navigate: 'demo'}, app),
+		).toBeUndefined();
+		expect(
+			conversationFromNotification(push({domain: 'other.example'}), app),
+		).toBeUndefined();
+		expect(
+			conversationFromNotification(push({namespace: 'other'}), app),
+		).toBeUndefined();
+		expect(
+			conversationFromNotification(push({type: 'reaction'}), app),
+		).toBeUndefined();
+		expect(
+			conversationFromNotification(push({sender: 'bob'}), app),
+		).toBeUndefined();
+	});
+});
+
+describe('openConversationsFromClicks', () => {
+	const app = {domain: 'app.example', namespace: 'demo'};
+	const dm = (sender: string) => ({
+		missiv: {
+			type: 'message',
+			domain: 'app.example',
+			namespace: 'demo',
+			conversationID: 'id',
+			messageID: 'm',
+			sender,
+		},
+	});
+
+	it('opens each clicked DM once, the click already there included, and ignores the others', () => {
+		const clicks = writable<{id: number; data?: unknown} | undefined>({
+			id: 1,
+			data: dm(BOB),
+		});
+		const panel = {openConversation: vi.fn()};
+		const stop = openConversationsFromClicks(clicks, panel, app);
+		expect(panel.openConversation).toHaveBeenCalledWith(BOB);
+
+		clicks.set({id: 2, data: {navigate: 'demo'}});
+		clicks.set({id: 2, data: dm(CAROL)});
+		expect(panel.openConversation).toHaveBeenCalledTimes(1);
+
+		clicks.set({id: 3, data: dm(CAROL)});
+		expect(panel.openConversation).toHaveBeenLastCalledWith(CAROL);
+		expect(panel.openConversation).toHaveBeenCalledTimes(2);
+		stop();
 	});
 });
