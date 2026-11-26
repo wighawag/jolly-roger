@@ -395,6 +395,47 @@ describe('Demo Page - a device notified for another account', () => {
 				return value;
 			});
 			expect(await devicesOf(subscriber!, appOrigin)).toBe(1);
+
+			// QA F22: a push still on its way for the other account says so
+			const cdp = await page.context().newCDPSession(page);
+			const registrations: {
+				registrationId: string;
+				scopeURL: string;
+				isDeleted: boolean;
+			}[] = [];
+			cdp.on('ServiceWorker.workerRegistrationUpdated', (event) =>
+				registrations.push(...event.registrations),
+			);
+			await cdp.send('ServiceWorker.enable');
+			await expect
+				.poll(() =>
+					registrations.some(
+						(r) => !r.isDeleted && r.scopeURL.startsWith(appOrigin),
+					),
+				)
+				.toBe(true);
+			const registration = registrations.find(
+				(r) => !r.isDeleted && r.scopeURL.startsWith(appOrigin),
+			)!;
+			const greeting = `For Bob ${Date.now()}`;
+			await cdp.send('ServiceWorker.deliverPushMessage', {
+				origin: appOrigin,
+				registrationId: registration.registrationId,
+				data: JSON.stringify({
+					web_push: 8030,
+					notification: {
+						title: 'New greeting',
+						body: greeting,
+						navigate: 'demo',
+						data: {account: otherAccount.address.toLowerCase()},
+					},
+				}),
+			});
+			const shown = page.locator('[aria-live="assertive"]');
+			const short = `${otherAccount.address.toLowerCase().slice(0, 6)}...${otherAccount.address.toLowerCase().slice(-4)}`;
+			await expect(
+				shown.getByText(`For another account (${short}): ${greeting}`),
+			).toBeVisible({timeout: 15_000});
 		},
 	);
 });

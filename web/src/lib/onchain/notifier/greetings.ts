@@ -38,10 +38,13 @@ const QUOTED = 120;
 
 export function greetingNotification(
 	message: string,
+	/** the account the push is for: the app says so when another is signed in (QA F22) */
+	recipient?: string,
 ): DeclarativePushNotification {
 	return {
 		web_push: 8030,
 		notification: {
+			...(recipient ? {data: {account: recipient.toLowerCase()}} : {}),
 			title: 'New greeting',
 			body:
 				message.length > QUOTED ? `${message.slice(0, QUOTED - 1)}…` : message,
@@ -64,8 +67,8 @@ export function greetingTriggers(registry: `0x${string}`) {
 				notFrom: 'user',
 				action: 'push',
 				ttlMs: NEW_GREETING_TTL_MS,
-				render: (log) => ({
-					message: greetingNotification(String(log.args.message)),
+				render: (log, recipient) => ({
+					message: greetingNotification(String(log.args.message), recipient),
 					topic: NEW_GREETING,
 				}),
 			},
