@@ -370,46 +370,53 @@
 						bind:open={accountsOpen}
 						disabled={!hasMultipleAccounts}
 					>
-						<Collapsible.Trigger class="w-full" disabled={!hasMultipleAccounts}>
-							<div
-								class="flex w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 {hasMultipleAccounts
-									? 'cursor-pointer hover:bg-accent hover:text-accent-foreground'
-									: 'cursor-default'}"
-							>
-								<div class="flex items-center gap-2">
-									<div
-										class="h-6 w-6 shrink-0 overflow-hidden rounded-full *:h-full *:w-full"
-									>
-										<EthereumAvatar address={$connection.account.address} />
-									</div>
-									<Address value={$connection.account.address} />
+						<!-- NOTHING INTERACTIVE INSIDE A BUTTON, here or in the list below.
+						     `<Address>` holds its own copy `<button>`. This row used to be the
+						     collapsible's trigger, itself a `<button>`, and disabled when the
+						     wallet exposes one account (Rabby always does): a browser delivers
+						     no click to the content of a disabled button, so the copy icon did
+						     nothing (QA F2). A button inside a button is invalid HTML anyway.
+						     So the row is a plain element and the trigger is only the chevron,
+						     offered when there is a list to open. -->
+						<div
+							data-testid="navbar-account"
+							class="flex w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2"
+						>
+							<div class="flex min-w-0 items-center gap-2">
+								<div
+									class="h-6 w-6 shrink-0 overflow-hidden rounded-full *:h-full *:w-full"
+								>
+									<EthereumAvatar address={$connection.account.address} />
 								</div>
-								{#if hasMultipleAccounts}
+								<Address value={$connection.account.address} />
+							</div>
+							{#if hasMultipleAccounts}
+								<Collapsible.Trigger
+									class="inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground"
+									aria-label="Switch account"
+								>
 									<ChevronDownIcon
 										class="h-4 w-4 transition-transform {accountsOpen
 											? 'rotate-180'
 											: ''}"
 									/>
-								{/if}
-							</div>
-						</Collapsible.Trigger>
+								</Collapsible.Trigger>
+							{/if}
+						</div>
 						{#if hasMultipleAccounts && $connection.wallet}
 							<Collapsible.Content>
 								<div
 									class="mt-1 flex flex-col gap-1 rounded-md border border-input bg-muted/50 p-1"
 								>
+									<!-- A row, not a button: the address keeps its copy button (see
+									     above), and switching is a control of its own beside it. -->
 									{#each $connection.wallet.accounts as account}
-										<button
-											class="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left transition-colors {account ===
+										<div
+											data-testid="navbar-account-option"
+											class="flex w-full items-center gap-2 rounded px-2 py-1.5 {account ===
 											$connection.account.address
 												? 'bg-primary/20 text-primary'
-												: 'hover:bg-accent hover:text-accent-foreground'}"
-											onclick={() => {
-												if (account !== $connection.account.address) {
-													connection.connectToAddress(account);
-													accountsOpen = false;
-												}
-											}}
+												: ''}"
 										>
 											<div
 												class="h-5 w-5 shrink-0 overflow-hidden rounded-full *:h-full *:w-full"
@@ -421,8 +428,20 @@
 												<span class="ml-auto text-xs text-muted-foreground"
 													>(current)</span
 												>
+											{:else}
+												<Button
+													size="sm"
+													variant="outline"
+													class="ml-auto h-6 px-2 text-xs"
+													onclick={() => {
+														connection.connectToAddress(account);
+														accountsOpen = false;
+													}}
+												>
+													Switch
+												</Button>
 											{/if}
-										</button>
+										</div>
 									{/each}
 								</div>
 							</Collapsible.Content>
