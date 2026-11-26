@@ -31,7 +31,10 @@
 							address={item.address}
 							class="h-6 w-6 shrink-0 rounded-full"
 						/>
-						<Address value={item.address} size="sm" />
+						<!-- No copy button: this row IS a button, and a button inside a
+						     button is invalid HTML whose inner click a browser may drop
+						     (QA F2). The conversation it opens shows the address. -->
+						<Address value={item.address} size="sm" showCopy={false} />
 						<span class="flex-1"></span>
 						{#if !item.accepted}
 							<Badge variant="outline">request</Badge>
