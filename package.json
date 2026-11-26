@@ -57,7 +57,8 @@
     "zellij-remote-chain": "expand-vars zellij-launcher a $npm_package_name-remote-chain-$MODE || expand-vars zellij -n dev/zellij-remote-chain.kdl -s $npm_package_name-remote-chain-$MODE",
     "remote-chain": "ldenv -d localhost pnpm run zellij-remote-chain @@",
     "---------------------- RUN FULL LOCAL SETUP ----------------------": "",
-    "zellij": "expand-vars zellij-launcher a $npm_package_name || expand-vars zellij -n dev/zellij.kdl -s $npm_package_name",
+    "zellij": "expand-vars zellij-launcher a $npm_package_name || pnpm zellij:new",
+    "zellij:new": "pnpm --filter ./web notifier:reset && expand-vars zellij -n dev/zellij.kdl -s $npm_package_name",
     "stop": "expand-vars zellij kill-session $npm_package_name",
     "start": "pnpm zellij"
   }

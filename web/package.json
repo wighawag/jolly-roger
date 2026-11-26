@@ -77,6 +77,7 @@
 		"check:watch": "svelte-check --tsconfig ./tsconfig.json --watch",
 		"---- the notifier (with/push-notifications): push server, indexer, trigger service; README.push-notifications.md ----": "",
 		"notifier:keys": "node notifier/keys.mjs",
+		"notifier:reset": "node notifier/reset-data.mjs",
 		"notifier:build": "node notifier/build.mjs",
 		"notifier:push": "node notifier/keys.mjs && node notifier/build.mjs && node notifier/.generated/serve.js push",
 		"notifier:index": "node notifier/build.mjs && node notifier/.generated/serve.js index",
