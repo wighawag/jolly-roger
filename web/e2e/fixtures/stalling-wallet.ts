@@ -29,7 +29,7 @@ export const STALLING_WALLET_NAME = 'Stalling Test Wallet';
 /**
  * The accounts it can sign as, ONE PER SUITE.
  *
- * Hardhat's #9 and #8, chosen to sit well clear of anything in the env files
+ * Hardhat's #9, #8 and #7, chosen to sit well clear of anything in the env files
  * (the burner's own accounts come from a fresh mnemonic per browser context, and
  * the e2e run impersonates nobody). Two suites sending from one account race
  * for its nonce, and that surfaces as an unrelated test failing on a transaction
@@ -44,6 +44,7 @@ export const STALLING_WALLET_NAME = 'Stalling Test Wallet';
 export const STALLING_WALLET_ACCOUNTS = [
 	'0xa0Ee7A142d267C1f36714E4a8F75612F20a79720',
 	'0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f',
+	'0x14dC79964da2C08b23698B3D3cc7Ca32193d9955',
 ] as const;
 
 /** The default account, for a suite that does not ask for a particular one. */
@@ -67,6 +68,16 @@ export async function installStallingWallet(
 		 * there rather than as a stranger's transaction going missing.
 		 */
 		stallingAccountIndex?: number;
+		/**
+		 * More addresses the wallet LISTS after its own, for a suite about a wallet
+		 * that exposes several accounts (the account switcher). They are shown and
+		 * may be switched to, NEVER sent from: the claim above is about who signs,
+		 * and these sign nothing that reaches the node.
+		 *
+		 * Empty by default, which is what makes this the one-account wallet Rabby
+		 * always is.
+		 */
+		alsoLists?: readonly `0x${string}`[];
 	},
 ): Promise<void> {
 	const account = STALLING_WALLET_ACCOUNTS[options.stallingAccountIndex ?? 0];
@@ -77,7 +88,8 @@ export async function installStallingWallet(
 		);
 	}
 	await page.addInitScript(
-		({nodeUrl, account, name}) => {
+		({nodeUrl, account, alsoLists, name}) => {
+			const accounts = [account, ...alsoLists];
 			const held: {resolve?: () => Promise<void>} = {};
 			// A REAL WALLET ANSWERS `eth_accounts` WITH NOTHING WHEN IT IS LOCKED, and
 			// tells listeners so. This used to be a constant and `on` was a no-op, which
@@ -132,7 +144,7 @@ export async function installStallingWallet(
 				/** The user unlocked it again. */
 				unlock: () => {
 					locked = false;
-					emit('accountsChanged', [account]);
+					emit('accountsChanged', accounts);
 				},
 				/** Hashes this wallet has actually broadcast. */
 				sent: [] as string[],
@@ -176,7 +188,7 @@ export async function installStallingWallet(
 				},
 				async request({method, params}: {method: string; params?: unknown[]}) {
 					if (method === 'eth_accounts') {
-						return locked ? [] : [account];
+						return locked ? [] : accounts;
 					}
 					if (method === 'eth_requestAccounts') {
 						// Asking to connect is what unlocks a real wallet: the extension
@@ -186,7 +198,7 @@ export async function installStallingWallet(
 						// shortcut: a locked wallet that refused forever could never be
 						// driven past this point by any test.
 						locked = false;
-						return [account];
+						return accounts;
 					}
 					if (method === 'wallet_switchEthereumChain') return null;
 					if (
@@ -236,6 +248,7 @@ export async function installStallingWallet(
 		{
 			nodeUrl: options.nodeUrl,
 			account,
+			alsoLists: [...(options.alsoLists ?? [])],
 			name: STALLING_WALLET_NAME,
 		},
 	);
