@@ -162,6 +162,7 @@ web/test/lib/view/pending-operations.test.ts           the optimistic entry keye
 contracts/package.json                                 both stems' changes: @etherplay/delegation (local-signer) and etherfold's packages with the utils export (indexer)
 pnpm-lock.yaml                                         both stems' dependencies, re-resolved together, and this node's: the push client, the push server and the trigger service
 web/src/lib/context/app.ts                             both stems' compositions in one (the indexed counts, the payment dialog's purpose), and this node's notifications store
+web/src/lib/index.ts                                   the in-app notifications the worker feeds say when a push is for another account (QA F22, $lib/push/recipient-label.ts)
 web/src/routes/demo/+page.svelte                       both stems' changes (the count badge, the signer's top-up), and this node's "notify me" toggle under the form
 
 # This node's own changes

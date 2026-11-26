@@ -20,6 +20,7 @@ import {createServiceWorker} from '$lib/core/service-worker';
 import {resolvePath} from './kit/paths';
 import {openFromNotification} from './kit/notification-navigation';
 import {createNotificationsService} from './core/notifications';
+import {createRecipientLabels} from './push/recipient-label';
 import {createContext} from 'svelte';
 import type {Context} from './context/types';
 import type {SendingIndicatorPlacement} from './ui/in-flight/sending';
@@ -106,9 +107,15 @@ export const burnerOverride = _parseBurnerParam(params.burner);
  * the second kind costs when it gets this wrong.
  */
 export const notifications = createNotificationsService();
+// with/push-notifications: a posted push for another account says so (QA F22,
+// `$lib/push/recipient-label.ts`); the app context tells it who is signed in
+export const pushRecipients = createRecipientLabels(
+	notifications,
+	typeof navigator !== 'undefined' ? navigator.serviceWorker : undefined,
+);
 export const serviceWorker = createServiceWorker(
 	{resolvePath, navigateTo: openFromNotification},
-	notifications,
+	pushRecipients.notifications,
 );
 
 /**

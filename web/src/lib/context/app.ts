@@ -9,7 +9,7 @@ import {
 	type CountedViewStateStore,
 } from '$lib/onchain/indexer/counts.js';
 import type {EIP1193Provider} from 'viem';
-import type {Readable} from 'svelte/store';
+import {derived, type Readable} from 'svelte/store';
 // dynamic, not static: three optional services a deployment configures (and
 // a test of the context mocks only the static variables it knows)
 import {env} from '$env/dynamic/public';
@@ -27,7 +27,7 @@ import {
 	type PublicationSigning,
 } from '$lib/push/sources.js';
 import {NEW_GREETING} from '$lib/onchain/notifier/greetings.js';
-import {serviceWorker as appServiceWorker} from '$lib';
+import {serviceWorker as appServiceWorker, pushRecipients} from '$lib';
 import type {TypedDeployments} from '$lib/deployments-store.js';
 import type {CoreServices} from './core.js';
 import type {SignerGrant} from '$lib/ui/delegation/grant.js';
@@ -134,6 +134,13 @@ export function createAppContext(core: CoreServices): AppMembers {
 	// the BUILD's mode, as +layout.ts reads it (`$app/environment`), not `$lib`'s
 	// `dev`, which a `?dev` query sets too
 	const dev = import.meta.env.DEV;
+	const signedInAccount = notifiedAccount(
+		connection as Readable<ConnectionLike>,
+	);
+	// a posted push for another account says so (QA F22): who is signed in
+	if (typeof window !== 'undefined') {
+		pushRecipients.follow(derived(signedInAccount, ($a) => $a?.address));
+	}
 	const notifications = createNotifications({
 		config: notificationsConfig(
 			{
@@ -144,7 +151,7 @@ export function createAppContext(core: CoreServices): AppMembers {
 			typeof location !== 'undefined' ? location.origin : undefined,
 		),
 		kind: NEW_GREETING,
-		account: notifiedAccount(connection as Readable<ConnectionLike>),
+		account: signedInAccount,
 		// the registration, or why there is none (off in dev, `+layout.ts`), so
 		// a signed-in account is not told to sign in (QA F13)
 		serviceWorker: pushServiceWorker({
