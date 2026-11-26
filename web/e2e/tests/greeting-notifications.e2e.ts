@@ -6,6 +6,12 @@ import {
 } from '../fixtures/test';
 import {createWalletClient, http, parseAbi} from 'viem';
 import {generatePrivateKey, privateKeyToAccount} from 'viem/accounts';
+import {
+	delegatePublicKey,
+	originPublicKeyPublicationMessage,
+	REQUEST_SIGNATURE_HEADER,
+	signRequest,
+} from 'delegated-identity';
 import deployments from '../../src/lib/deployments';
 
 /**
@@ -259,6 +265,136 @@ describe('Demo Page - notifications with no service worker', () => {
 			await expect(toggle).toHaveAttribute('data-worker', 'unavailable');
 			await expect(toggle).not.toContainText('Sign in');
 			await expect(page.getByTestId('notify-me-sign-in')).toHaveCount(0);
+		},
+	);
+});
+
+/**
+ * QA F21: one browser, two accounts of the app. This device (a subscription
+ * that already exists when the page loads, as in a browser that subscribed
+ * before) is registered at the push server for ANOTHER account, by a request
+ * the test signs itself, before the page checks; the line then says the device
+ * is notified for that account and switches it to the signed-in one, which
+ * leaves the other account with no device (the app registers with
+ * `replaceOtherAccounts`).
+ */
+const OTHER_ENDPOINT = `https://push.invalid/e2e-other-${Date.now()}`;
+const otherAccount = privateKeyToAccount(generatePrivateKey());
+
+async function registerForOtherAccount(appOrigin: string) {
+	const delegatePrivateKey = generatePrivateKey();
+	const ownershipSignature = await otherAccount.signMessage({
+		message: originPublicKeyPublicationMessage(
+			appOrigin,
+			delegatePublicKey(delegatePrivateKey),
+		),
+	});
+	const url = new URL(`${PUSH_SERVER}/api/register`);
+	const body = JSON.stringify({
+		address: otherAccount.address,
+		domain: appOrigin,
+		subscription: {
+			endpoint: OTHER_ENDPOINT,
+			expirationTime: null,
+			keys: {p256dh: 'e2e-p256dh', auth: 'e2e-auth'},
+		},
+		ownershipSignature,
+	});
+	const signature = await signRequest(
+		{serverOrigin: url.origin, method: 'POST', path: url.pathname, body},
+		delegatePrivateKey,
+	);
+	const response = await fetch(url, {
+		method: 'POST',
+		headers: {
+			'content-type': 'application/json',
+			[REQUEST_SIGNATURE_HEADER]: signature,
+		},
+		body,
+	});
+	expect(response.status, await response.clone().text()).toBe(200);
+}
+
+async function devicesOf(address: string, appOrigin: string) {
+	const response = await fetch(
+		`${PUSH_SERVER}/api/registered/${address}/${encodeURIComponent(appOrigin)}`,
+		{headers: {authorization: `Bearer ${PUSH_TOKEN}`}},
+	);
+	return ((await response.json()) as {count: number}).count;
+}
+
+const testOtherAccount = base.extend({
+	page: async ({page, baseURL}, use) => {
+		const appOrigin = new URL(baseURL!).origin;
+		if (PUSH_SERVER) await registerForOtherAccount(appOrigin);
+		await page.context().grantPermissions(['notifications']);
+		await page.addInitScript((endpoint) => {
+			const N = (globalThis as any).Notification;
+			if (N) {
+				Object.defineProperty(N, 'permission', {get: () => 'granted'});
+				N.requestPermission = async () => 'granted';
+			}
+			const json = {
+				endpoint,
+				expirationTime: null,
+				keys: {p256dh: 'e2e-p256dh', auth: 'e2e-auth'},
+			};
+			// subscribed already: this browser enabled notifications before
+			const subscription = {...json, toJSON: () => json};
+			const proto = (globalThis as any).PushManager?.prototype;
+			if (!proto) return;
+			proto.getSubscription = async () => subscription;
+			proto.subscribe = async () => subscription;
+		}, OTHER_ENDPOINT);
+		await use(page);
+	},
+});
+
+describe('Demo Page - a device notified for another account', () => {
+	testOtherAccount.skip(!PUSH_SERVER, 'the run did not start the notifier');
+	testOtherAccount.use({walletAccountIndex: 6});
+
+	testOtherAccount(
+		'says so, and switches the device to the signed-in account',
+		async ({connectedPage, baseURL}) => {
+			const page = connectedPage;
+			const appOrigin = new URL(baseURL!).origin;
+			const toggle = page.getByTestId('notify-me');
+			await expect(toggle).toHaveAttribute('data-status', 'unregistered', {
+				timeout: 30_000,
+			});
+			await expect(toggle).toHaveAttribute(
+				'data-other-accounts',
+				otherAccount.address.toLowerCase(),
+			);
+			await expect(page.getByTestId('notify-me-other-account')).toContainText(
+				'This device is notified for another account',
+			);
+			// one account per device: no "notify this one too", and a warning
+			await expect(page.getByTestId('notify-me-on')).toHaveCount(0);
+			await expect(page.getByTestId('notify-me-switch-warning')).toContainText(
+				"Switching stops that account's notifications on this device",
+			);
+
+			await page.getByTestId('notify-me-switch').click();
+			await expect(toggle).toHaveAttribute('data-status', 'on', {
+				timeout: 30_000,
+			});
+			await expect(toggle).toHaveAttribute('data-trigger', 'on', {
+				timeout: 30_000,
+			});
+			await expect(toggle).not.toHaveAttribute('data-other-accounts');
+			await expect(page.getByTestId('notify-me-switch-warning')).toHaveCount(0);
+			expect(await devicesOf(otherAccount.address, appOrigin)).toBe(0);
+
+			const subscriber = await page.evaluate(() => {
+				let value: string | undefined;
+				(globalThis as any).context.account.subscribe(
+					(v: string | undefined) => (value = v),
+				)();
+				return value;
+			});
+			expect(await devicesOf(subscriber!, appOrigin)).toBe(1);
 		},
 	);
 });

@@ -381,6 +381,98 @@ describe('createNotifications, against the push server and the trigger service i
 		expect(await subscriptionsOf(of.wallet.address)).toEqual([]);
 	});
 
+	// QA F21: one browser, two accounts of the app. Every device registration
+	// used to add up, so the device received both accounts' pushes.
+	describe('one account per device', () => {
+		function switchable(
+			first: ReturnType<typeof newAccount>,
+			browser: ReturnType<typeof fakeBrowser>,
+			replaceOtherAccounts?: boolean,
+		) {
+			const current = writable<NotifiedAccount>(first.account);
+			let signer = first;
+			const notifications = createNotifications({
+				config,
+				kind: NEW_GREETING,
+				account: current,
+				serviceWorker: writable(browser.registration),
+				signOwnership: (address, message) =>
+					signer.signOwnership(address, message),
+				fetch: network,
+				permission: browser.permission,
+				supported: () => true,
+				replaceOtherAccounts,
+			});
+			return {
+				notifications,
+				switchTo(next: ReturnType<typeof newAccount>) {
+					signer = next;
+					current.set(next.account);
+				},
+			};
+		}
+		const left = (state: NotificationsState) =>
+			settled(state) && state.status !== 'on';
+
+		it('says the device is notified for another account, and enabling switches it', async () => {
+			const alice = newAccount();
+			const bob = newAccount();
+			const {notifications, switchTo} = switchable(alice, fakeBrowser(), true);
+			expect(notifications.oneAccountPerDevice).toBe(true);
+			await until(notifications, settled);
+			await notifications.enable();
+			expect(await until(notifications, settled)).toMatchObject({
+				status: 'on',
+				otherAccounts: [],
+			});
+
+			switchTo(bob);
+			expect(await until(notifications, left)).toMatchObject({
+				status: 'unregistered',
+				otherAccounts: [alice.wallet.address.toLowerCase()],
+			});
+			await notifications.switchHere();
+			expect(await until(notifications, settled)).toMatchObject({
+				status: 'on',
+				trigger: 'on',
+				otherAccounts: [],
+			});
+			expect(await registeredDevices(alice.wallet.address)).toBe(0);
+			expect(await registeredDevices(bob.wallet.address)).toBe(1);
+
+			switchTo(alice);
+			expect(await until(notifications, left)).toMatchObject({
+				status: 'unregistered',
+				otherAccounts: [bob.wallet.address.toLowerCase()],
+			});
+		});
+
+		it('without the option, keeps both, says so, and switchHere still moves the device', async () => {
+			const alice = newAccount();
+			const bob = newAccount();
+			const {notifications, switchTo} = switchable(alice, fakeBrowser());
+			expect(notifications.oneAccountPerDevice).toBe(false);
+			await until(notifications, settled);
+			await notifications.enable();
+			await until(notifications, settled);
+			switchTo(bob);
+			await until(notifications, left);
+			await notifications.enable();
+			expect(await until(notifications, settled)).toMatchObject({
+				status: 'on',
+				otherAccounts: [alice.wallet.address.toLowerCase()],
+			});
+			expect(await registeredDevices(alice.wallet.address)).toBe(1);
+
+			await notifications.switchHere();
+			expect(await until(notifications, settled)).toMatchObject({
+				status: 'on',
+				otherAccounts: [],
+			});
+			expect(await registeredDevices(alice.wallet.address)).toBe(0);
+		});
+	});
+
 	it('follows the account: none means no-account, and its trigger is never touched', async () => {
 		const of = newAccount();
 		const account = writable<NotifiedAccount>(undefined);

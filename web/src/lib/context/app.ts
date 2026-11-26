@@ -159,6 +159,12 @@ export function createAppContext(core: CoreServices): AppMembers {
 		signOwnership: publicationSigner(connection as PublicationSigning),
 		// what the line offers with no account: the same as a send does
 		signIn: () => connection.ensureConnected(),
+		// ONE ACCOUNT PER DEVICE (QA F21): enabling here makes this device the
+		// current account's alone, so a browser switched to another account stops
+		// receiving the previous one's pushes (its direct messages included, which
+		// it could not read here). An app that wants one device notified for
+		// several accounts sets false; the line then offers both.
+		replaceOtherAccounts: true,
 	});
 
 	// MESSAGING (`with/messaging`): the domain's chat room and direct messages

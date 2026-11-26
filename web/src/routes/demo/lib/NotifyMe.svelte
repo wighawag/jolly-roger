@@ -6,6 +6,7 @@
 	import {Spinner} from '$lib/shadcn/ui/spinner';
 	import BellIcon from '@lucide/svelte/icons/bell';
 	import BellOffIcon from '@lucide/svelte/icons/bell-off';
+	import Address from '$lib/core/ui/ethereum/Address.svelte';
 	import type {Notifications} from '$lib/push/notifications';
 
 	let {
@@ -19,6 +20,13 @@
 		 */
 		directMessages?: boolean;
 	} = $props();
+
+	// the other accounts this device is notified for, in this app (QA F21)
+	const others = $derived(
+		$notifications.status === 'not-configured'
+			? []
+			: (($notifications.otherAccounts ?? []) as `0x${string}`[]),
+	);
 </script>
 
 <div
@@ -31,6 +39,7 @@
 	data-worker={$notifications.status === 'no-worker'
 		? $notifications.worker
 		: undefined}
+	data-other-accounts={others.length > 0 ? others.join(' ') : undefined}
 >
 	{#if $notifications.status === 'not-configured'}
 		<p data-testid="notifications-not-configured">
@@ -83,6 +92,42 @@
 			data-testid="notify-me-off"
 			onclick={() => notifications.disable()}>Stop</Button
 		>
+	{:else if others.length > 0}
+		<p
+			class="flex flex-wrap items-center gap-1"
+			data-testid="notify-me-other-account"
+		>
+			<BellOffIcon class="h-4 w-4" /> This device is notified for
+			{others.length > 1 ? 'other accounts' : 'another account'} (
+			{#each others as other, i (other)}
+				{#if i > 0},{/if}
+				<Address
+					value={other}
+					size="sm"
+					mono
+					showCopy={false}
+					resolveENS={false}
+				/>
+			{/each}
+			), not this one.
+		</p>
+		<span class="flex gap-2">
+			{#if !notifications.oneAccountPerDevice}
+				<Button
+					variant="outline"
+					size="sm"
+					data-testid="notify-me-on"
+					onclick={() => notifications.enable()}>Notify this one too</Button
+				>
+			{/if}
+			<Button
+				variant="outline"
+				size="sm"
+				data-testid="notify-me-switch"
+				onclick={() => notifications.switchHere()}
+				>Switch it to this account</Button
+			>
+		</span>
 	{:else}
 		<p class="flex items-center gap-2">
 			<BellOffIcon class="h-4 w-4" /> Not notified of new greetings.
@@ -101,6 +146,41 @@
 		data-testid="notify-me-direct-messages"
 	>
 		<BellIcon class="h-4 w-4" /> Direct messages to you are notified too.
+	</p>
+{/if}
+{#if $notifications.status === 'unregistered' && !$notifications.busy && others.length > 0}
+	<p
+		class="text-sm text-muted-foreground"
+		data-testid="notify-me-switch-warning"
+	>
+		Switching stops {others.length > 1 ? "those accounts'" : "that account's"}
+		notifications on this device; {others.length > 1 ? 'they keep' : 'it keeps'}
+		{others.length > 1 ? 'their' : 'its'} other devices.
+	</p>
+{/if}
+{#if $notifications.status === 'on' && others.length > 0}
+	<p
+		class="flex flex-wrap items-center gap-1 text-sm text-muted-foreground"
+		data-testid="notify-me-also-other-account"
+	>
+		This device is also notified for
+		{#each others as other, i (other)}
+			{#if i > 0},{/if}
+			<Address
+				value={other}
+				size="sm"
+				mono
+				showCopy={false}
+				resolveENS={false}
+			/>
+		{/each}.
+		<button
+			class="underline"
+			data-testid="notify-me-only-this"
+			onclick={() => notifications.switchHere()}
+			>Notify only this account</button
+		>
+		(the {others.length > 1 ? 'others are' : 'other is'} then no longer notified here).
 	</p>
 {/if}
 {#if $notifications.status !== 'not-configured' && $notifications.error}

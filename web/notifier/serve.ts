@@ -41,6 +41,7 @@ import {
 } from '@etherfold/platform-nodejs-triggers';
 import {greetingTriggers} from '$lib/onchain/notifier/greetings';
 import {createNodeServer as createMissivServer} from 'missiv';
+import {waitForServer} from './wait-for-server';
 
 const here = path.dirname(fileURLToPath(import.meta.url)); // notifier/.generated
 const notifier = path.join(here, '..');
@@ -249,6 +250,15 @@ function serveIndexer(): ChildProcess {
 }
 
 async function serveTriggers(signal: AbortSignal) {
+	// the indexer is another pane, started at the same time: read its feed once
+	// it listens, not before (QA F12)
+	if (
+		!(await waitForServer(`http://${HOST}:${INDEXER_PORT}/`, 'the indexer', {
+			signal,
+		}))
+	) {
+		return;
+	}
 	const source = JSON.parse(
 		readFileSync(path.join(here, 'source.json'), 'utf8'),
 	);
