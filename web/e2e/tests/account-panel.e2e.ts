@@ -2,9 +2,9 @@ import type {Page} from '@playwright/test';
 import {test, expect, describe} from '../fixtures/test';
 import {waitForAppReady} from '../fixtures/test';
 import {
-	chooseStallingWallet,
 	installStallingWallet,
 	STALLING_WALLET_ACCOUNTS,
+	STALLING_WALLET_NAME,
 } from '../fixtures/stalling-wallet';
 
 /**
@@ -52,9 +52,12 @@ describe('Navbar account panel', () => {
 		page.evaluate(() => navigator.clipboard.readText());
 
 	/**
-	 * Answer whatever the connect flow puts up until `done`: the account picker
-	 * (pick the first, the wallet's own account) and, in an app that signs in,
-	 * the sign-in confirmation. Every click is bounded,
+	 * Answer whatever the connect flow puts up until `done`: the wallet list
+	 * (this wallet, behind a "Connect a wallet" button when the app also offers
+	 * email or social), the account picker (the first, the wallet's own
+	 * account) and, in an app that signs in, the sign-in confirmation. Each only
+	 * IF it shows: an app whose only wallet is this one (mandalas, which has no
+	 * burner) connects straight away, with no list at all. Every click is bounded,
 	 * because these dialogs close underneath them (see waitUntilHolding in the
 	 * stalling-wallet fixture for what an unbounded one costs).
 	 */
@@ -62,6 +65,16 @@ describe('Navbar account panel', () => {
 		const deadline = Date.now() + 45_000;
 		while (Date.now() < deadline) {
 			if (await done().catch(() => false)) return;
+			for (const choice of [
+				page.getByRole('button', {name: /^connect a wallet$/i}),
+				page.getByRole('button', {
+					name: new RegExp(STALLING_WALLET_NAME, 'i'),
+				}),
+			]) {
+				if (await choice.isVisible().catch(() => false)) {
+					await choice.click({timeout: 5_000}).catch(() => {});
+				}
+			}
 			const dialog = page.locator('[role="dialog"]').filter({
 				hasText: /accounts? available, choose one|confirm sign in/i,
 			});
@@ -107,17 +120,28 @@ describe('Navbar account panel', () => {
 		});
 		await page.goto('/');
 		await waitForAppReady(page);
-		// Retried for the same hydration reason as the drawer below.
+		// Retried for the same hydration reason as the drawer below, until the
+		// flow has started: a dialog is up, or the enabled Connect button is gone
+		// (an app with one wallet connects without asking).
+		const connectButton = page
+			.locator('[data-testid="wallet-status"]')
+			.getByRole('button', {name: /^connect$/i});
+		const connectOffered = async () =>
+			(await connectButton.count()) > 0 &&
+			(await connectButton
+				.first()
+				.isEnabled({timeout: 1000})
+				.catch(() => false));
 		await expect(async () => {
-			await page
-				.locator('[data-testid="wallet-status"]')
-				.getByRole('button', {name: /^connect$/i})
-				.click({timeout: 2000});
-			await expect(page.locator('[role="dialog"]').first()).toBeVisible({
-				timeout: 2000,
-			});
+			if (await connectOffered()) {
+				await connectButton.click({timeout: 2000});
+				await page.waitForTimeout(500);
+			}
+			expect(
+				(await page.locator('[role="dialog"]').count()) > 0 ||
+					!(await connectOffered()),
+			).toBe(true);
 		}).toPass({timeout: 30000});
-		await chooseStallingWallet(page);
 		await settleConnectFlow(page, isConnectedAs(page, OWN));
 	}
 
