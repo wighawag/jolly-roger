@@ -205,14 +205,14 @@ importers:
         specifier: ^1.62.1
         version: 1.62.1
       '@push-notification/cli':
-        specifier: ^0.1.2
-        version: 0.1.2(hono@4.13.3)
+        specifier: ^0.2.0
+        version: 0.2.0(hono@4.13.3)
       '@push-notification/client':
-        specifier: ^0.1.0
-        version: 0.1.0
+        specifier: ^0.2.0
+        version: 0.2.0
       '@push-notification/server':
-        specifier: ^0.1.2
-        version: 0.1.2
+        specifier: ^0.2.0
+        version: 0.2.0
       '@sveltejs/adapter-static':
         specifier: ^3.0.11
         version: 3.0.11(@sveltejs/kit@2.70.3(@sveltejs/vite-plugin-svelte@7.3.0(svelte@5.56.9)(vite@8.2.4(@types/node@26.2.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)))(svelte@5.56.9)(typescript@6.0.3)(vite@8.2.4(@types/node@26.2.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)))
@@ -1288,15 +1288,15 @@ packages:
     peerDependencies:
       graphql: ^16.10.0 || ^17.0.0
 
-  '@push-notification/cli@0.1.2':
-    resolution: {integrity: sha512-j+Hh8MXAbrjPT0gm4CK1e05EBMlYQoBqYh2BBtghAwNkSpRhW59de2pcHKWBaPuvVWq0GvgPXl0/dGTidMfkOg==}
+  '@push-notification/cli@0.2.0':
+    resolution: {integrity: sha512-k84RGxkDxdYVO/8q4R5D/oDUkD+hXTIXao1mncd9Jvt5qre/NojBvO+TXptLBAtux55LR5R+0gx1rG8dZIQ7Tg==}
     hasBin: true
 
-  '@push-notification/client@0.1.0':
-    resolution: {integrity: sha512-ojcUPQbPl1wZo75FmLIrDei4AETjcnoHdjoLabA6GKdsbO1ahuDHUMISwzqZ45U1mEP1i4KEcqBFT/eEQ5sOYg==}
+  '@push-notification/client@0.2.0':
+    resolution: {integrity: sha512-dMl952B1VeC2b4CT7u/VcW6k+Ne0W8GbndBfwxZL1Vnn4CahkDECD+5oe+gWJ5uU3pR9RMqqrNPrrWu0LA3Vxw==}
 
-  '@push-notification/server@0.1.2':
-    resolution: {integrity: sha512-YAn/8MWDR2T2BlDnpNN1gP4bWkRMSdP3kC55WUZBLGzIPHULf/9bectT744Ye2W9cM3aNyfUAskKoWO/FchUAQ==}
+  '@push-notification/server@0.2.0':
+    resolution: {integrity: sha512-unToM9Mg8WM74HSmj/1jKPX/GC69qrjUpHig7oSmx/ycqSl2ucjfpTo9uumsAhOSux9uBYrl1KpN+BJbhwt5Kw==}
 
   '@repeaterjs/repeater@3.1.0':
     resolution: {integrity: sha512-TaoVksZRSx2KWYYpyLQtMQXXeS98VsgZImzW65xmiVgbYhXLk+aEsmzPLirqVuE4/XuUapH2iMtxUzaBNDzdSQ==}
@@ -4476,11 +4476,11 @@ snapshots:
     dependencies:
       graphql: 16.15.0
 
-  '@push-notification/cli@0.1.2(hono@4.13.3)':
+  '@push-notification/cli@0.2.0(hono@4.13.3)':
     dependencies:
       '@hono/node-server': 1.19.19(hono@4.13.3)
       '@libsql/client': 0.15.15
-      '@push-notification/server': 0.1.2
+      '@push-notification/server': 0.2.0
       ldenv: 0.3.16
       remote-sql-libsql: 0.0.6
     transitivePeerDependencies:
@@ -4497,12 +4497,12 @@ snapshots:
       - zod-openapi
       - zod-to-json-schema
 
-  '@push-notification/client@0.1.0':
+  '@push-notification/client@0.2.0':
     dependencies:
       delegated-identity: 0.1.1
       sveltore: 1.0.0
 
-  '@push-notification/server@0.1.2':
+  '@push-notification/server@0.2.0':
     dependencies:
       '@block65/webcrypto-web-push': 1.0.2
       '@hono/standard-validator': 0.4.1(@standard-schema/spec@1.1.0)(hono@4.13.3)

@@ -39,6 +39,17 @@
  * failed) is `no-worker`, with the reason in `worker`; an account whose worker
  * may still come is `loading`.
  *
+ * ONE ACCOUNT PER DEVICE (QA F21), when the app asks for it
+ * (`replaceOtherAccounts`, this app's composition does): push-notification-server
+ * keys a device by (account, app, endpoint), so one browser can be registered
+ * for several accounts of the app and then receives every one's pushes,
+ * direct messages it cannot read included. With the option, enabling makes
+ * the device the current account's alone: the server removes its registrations
+ * for the app's other accounts in the same transaction. Either way the state
+ * names, in `otherAccounts`, the other accounts this device is registered for,
+ * so the line can say "this device is notified for 0x..." and `switchHere()`
+ * moves it to the current account.
+ *
  * Svelte-store-compatible, and works only while subscribed, as the push client
  * it wraps.
  */
@@ -110,11 +121,24 @@ export type NotificationsState =
 			busy: boolean;
 			/** the last failure, until acknowledged */
 			error?: unknown;
+			/**
+			 * the OTHER accounts (lowercased) this device is registered for in the
+			 * app; undefined while unknown (from @push-notification/client 0.2)
+			 */
+			otherAccounts?: string[];
 	  };
 
 export type Notifications = Readable<NotificationsState> & {
 	/** Registers this device and the trigger (may prompt for permission, and once for the wallet's signature). */
 	enable(): Promise<void>;
+	/**
+	 * As `enable()`, and this device leaves the app's other accounts whatever
+	 * `replaceOtherAccounts` says: what the line offers when the device is
+	 * notified for another account.
+	 */
+	switchHere(): Promise<void>;
+	/** whether `enable()` makes this device the account's alone (`replaceOtherAccounts`) */
+	readonly oneAccountPerDevice: boolean;
 	/**
 	 * Gets an account, the way a send does (connect's `ensureConnected`): what
 	 * the line offers at `no-account`. Never rejects: a cancel is no error, and
@@ -145,6 +169,12 @@ export type NotificationsOptions = {
 	 * keeps the answer on the account.
 	 */
 	signOwnership: (address: string, message: string) => Promise<`0x${string}`>;
+	/**
+	 * One account per device: enabling removes this device's registrations for
+	 * the app's other accounts (push-notification-server 0.2's option). Default
+	 * false, several accounts per device; this app's composition sets it.
+	 */
+	replaceOtherAccounts?: boolean;
 	fetch?: typeof fetch;
 	permission?: () => NotificationPermission | undefined;
 	supported?: () => boolean;
@@ -163,6 +193,8 @@ export function createNotifications(
 		return {
 			subscribe: state.subscribe,
 			enable: async () => {},
+			switchHere: async () => {},
+			oneAccountPerDevice: !!options.replaceOtherAccounts,
 			signIn: async () => {},
 			disable: async () => {},
 			acknowledgeError() {},
@@ -205,6 +237,7 @@ export function createNotifications(
 		fetch: doFetch,
 		permission: options.permission,
 		supported: options.supported,
+		replaceOtherAccounts: options.replaceOtherAccounts,
 	});
 
 	// about ONE account: shown as `unknown` once the account is another
@@ -325,36 +358,43 @@ export function createNotifications(
 				trigger: mine.trigger,
 				busy: $push.busy || mine.busy,
 				error: mine.error ?? $push.error,
+				otherAccounts: $push.otherAccounts,
 			});
 		},
 		{status: 'loading', trigger: 'unknown', busy: false} as NotificationsState,
 	);
 
+	async function enable(replaceOtherAccounts?: boolean) {
+		const of = account;
+		if (!of) return;
+		acting = true;
+		renewedFor = of;
+		try {
+			await push.enable(
+				replaceOtherAccounts === undefined ? undefined : {replaceOtherAccounts},
+			);
+			const device = get(push);
+			if (device.status !== 'on' || device.error) {
+				return; // the push client reports why
+			}
+			trigger.set({of, trigger: 'unknown', busy: true});
+			try {
+				await postTrigger('subscriptions', of, await ownershipOf(of));
+				trigger.set({of, trigger: 'on', busy: false});
+			} catch (error) {
+				trigger.set({of, trigger: 'off', busy: false, error});
+			}
+		} finally {
+			acting = false;
+		}
+	}
+
 	return {
 		subscribe: store.subscribe,
+		oneAccountPerDevice: !!options.replaceOtherAccounts,
 
-		async enable() {
-			const of = account;
-			if (!of) return;
-			acting = true;
-			renewedFor = of;
-			try {
-				await push.enable();
-				const device = get(push);
-				if (device.status !== 'on' || device.error) {
-					return; // the push client reports why
-				}
-				trigger.set({of, trigger: 'unknown', busy: true});
-				try {
-					await postTrigger('subscriptions', of, await ownershipOf(of));
-					trigger.set({of, trigger: 'on', busy: false});
-				} catch (error) {
-					trigger.set({of, trigger: 'off', busy: false, error});
-				}
-			} finally {
-				acting = false;
-			}
-		},
+		enable: () => enable(),
+		switchHere: () => enable(true),
 
 		async signIn() {
 			try {
