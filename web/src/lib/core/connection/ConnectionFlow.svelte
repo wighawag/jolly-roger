@@ -623,7 +623,11 @@
 							>
 								<EthereumAvatar address={account} />
 							</div>
-							<Address value={account} />
+							<!-- No copy button: this row IS a button, and a button inside a
+							     button is invalid HTML whose inner click a browser may drop
+							     (QA F2). Picking is what this row is for; copying is offered
+							     in the navbar panel once connected. -->
+							<Address value={account} showCopy={false} />
 						</button>
 					{/each}
 				</div>
@@ -665,7 +669,11 @@
 							>
 								<EthereumAvatar address={account} />
 							</div>
-							<Address value={account} />
+							<!-- No copy button: this row IS a button, and a button inside a
+							     button is invalid HTML whose inner click a browser may drop
+							     (QA F2). Picking is what this row is for; copying is offered
+							     in the navbar panel once connected. -->
+							<Address value={account} showCopy={false} />
 						</button>
 					{/each}
 				</div>
