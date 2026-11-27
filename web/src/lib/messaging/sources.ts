@@ -78,3 +78,14 @@ export function messagingAccount(
 		return last;
 	});
 }
+
+/**
+ * Who a push says it is for, when it is missiv's: `data.missiv.recipient`
+ * (missiv 0.5), for the app's own notification of a posted push
+ * (`pushRecipients.readRecipientWith`, QA F23). Undefined for another push.
+ */
+export function missivPushRecipient(data: unknown): string | undefined {
+	const recipient = (data as {missiv?: {recipient?: unknown}} | undefined)
+		?.missiv?.recipient;
+	return typeof recipient === 'string' ? recipient : undefined;
+}

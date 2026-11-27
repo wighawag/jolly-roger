@@ -28,8 +28,16 @@ import {
 } from '$lib/push/sources.js';
 import {NEW_GREETING} from '$lib/onchain/notifier/greetings.js';
 import {createMessaging, type Messaging} from '$lib/messaging/messaging.js';
-import {messagingAccount, messagingConfig} from '$lib/messaging/sources.js';
-import {serviceWorker as appServiceWorker, pushRecipients} from '$lib';
+import {
+	messagingAccount,
+	messagingConfig,
+	missivPushRecipient,
+} from '$lib/messaging/sources.js';
+import {
+	serviceWorker as appServiceWorker,
+	pushRecipients,
+	notifications as inAppNotifications,
+} from '$lib';
 import type {TypedDeployments} from '$lib/deployments-store.js';
 import type {CoreServices} from './core.js';
 import type {SignerGrant} from '$lib/ui/delegation/grant.js';
@@ -142,6 +150,9 @@ export function createAppContext(core: CoreServices): AppMembers {
 	// a posted push for another account says so (QA F22): who is signed in
 	if (typeof window !== 'undefined') {
 		pushRecipients.follow(derived(signedInAccount, ($a) => $a?.address));
+		// with/messaging: a direct message's push names its recipient in
+		// data.missiv (missiv 0.5), labelled too (QA F23)
+		pushRecipients.readRecipientWith(missivPushRecipient);
 	}
 	const notifications = createNotifications({
 		config: notificationsConfig(
@@ -188,8 +199,14 @@ export function createAppContext(core: CoreServices): AppMembers {
 		signOwnership: publicationSigner(connection as PublicationSigning),
 		// what the panel offers with no account, as the notifications line does
 		signIn: () => connection.ensureConnected(),
-		// a direct message's push, clicked, opens its conversation (QA F19)
+		// a direct message's push, clicked, opens its conversation (QA F19), the
+		// worker's click or the hand-off of its URL where no worker runs (QA F23)
 		notificationClicks: appServiceWorker.notificationClicks,
+		// one for another account says so and offers the switch (QA F23)
+		otherAccount: {
+			notify: (notification) => inAppNotifications.add(notification),
+			connectTo: (address) => connection.connectToAddress(address),
+		},
 	});
 
 	// `config` is not returned: it is this half's own construction detail, and

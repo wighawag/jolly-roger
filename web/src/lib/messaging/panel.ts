@@ -10,6 +10,7 @@
 import {derived, get, writable, type Readable} from 'svelte/store';
 import type {ConversationList, CurrentConversation} from '@missiv/client';
 import type {MessagingServices} from './messaging';
+import {readMissivPushHandoff, type MissivPushData} from '@missiv/common';
 
 export type PanelView =
 	| {kind: 'room'}
@@ -107,71 +108,159 @@ export function roomAuthorToMessage(
 	return me && lower(me) === author ? undefined : author;
 }
 
-/**
- * What missiv's push of a direct message carries in its `data` (missiv's
- * `pushMessage`, `packages/server/src/push.ts`): ids, never the content. Its
- * `navigate` is the app's root; the app routes from these (QA F19, decided with
- * the human: missiv names no app URL).
- */
-export type MissivPushData = {
-	type: 'message';
-	domain: string;
-	namespace: string;
-	conversationID: string;
-	messageID: string;
-	sender: string;
-};
+const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
+const isAddress = (value: unknown): value is string =>
+	typeof value === 'string' && ADDRESS.test(value);
 
 /**
- * The direct conversation a clicked notification leads to: the sender of a
- * missiv message pushed for THIS app's domain and namespace (a direct
- * conversation is the pair, so the sender names it; `conversationID` is that
- * pair's id); undefined for any other notification (a greeting, another app's).
+ * The direct conversation a clicked notification leads to: `with`, the other
+ * member, and `recipient`, the account the push is for (missiv 0.5; absent in
+ * an older server's push), for THIS app's domain and namespace. Undefined for
+ * any other notification (a greeting, another app's).
+ *
+ * Two shapes reach here, both under `missiv` (QA F23, missiv's README "Push
+ * notifications"):
+ * - the worker's click, `data.missiv` (`MissivPushData`): the sender is the
+ *   other member (missiv pushes to every member but the sender);
+ * - a hand-off the page read from its URL where the worker never runs
+ *   (Safari's Declarative Web Push), `MissivPushHandoff`: no `domain` (the URL
+ *   is this app's own) and no sender, so the other member is the half of the
+ *   two-member `conversationID` (`getConversationID`, the two addresses
+ *   concatenated) that is not the recipient. A group's id names nobody: none.
  */
 export function conversationFromNotification(
 	data: unknown,
 	app: {domain: string; namespace: string},
-): `0x${string}` | undefined {
-	const missiv = (data as {missiv?: Partial<MissivPushData>} | undefined)
-		?.missiv;
+): {with: `0x${string}`; recipient?: `0x${string}`} | undefined {
+	const missiv = (data as {missiv?: unknown} | undefined)?.missiv;
+	const handoff = readMissivPushHandoff(missiv);
+	// a hand-off has no domain; a worker's data.missiv always has one
+	if (handoff && (missiv as {domain?: unknown}).domain === undefined) {
+		if (handoff.namespace !== app.namespace || !isAddress(handoff.recipient)) {
+			return undefined;
+		}
+		const recipient = lower(handoff.recipient);
+		const id = handoff.conversationID.toLowerCase();
+		if (id.length !== 84) return undefined;
+		const [a, b] = [id.slice(0, 42), id.slice(42)];
+		if (!isAddress(a) || !isAddress(b)) return undefined;
+		const other = a === recipient ? b : b === recipient ? a : undefined;
+		return other ? {with: lower(other), recipient} : undefined;
+	}
+	const push = missiv as
+		Partial<Record<keyof MissivPushData, unknown>> | undefined;
 	if (
-		!missiv ||
-		missiv.type !== 'message' ||
-		missiv.domain !== app.domain ||
-		missiv.namespace !== app.namespace ||
-		typeof missiv.sender !== 'string' ||
-		!/^0x[0-9a-fA-F]{40}$/.test(missiv.sender)
+		!push ||
+		push.type !== 'message' ||
+		push.domain !== app.domain ||
+		push.namespace !== app.namespace ||
+		!isAddress(push.sender)
 	) {
 		return undefined;
 	}
-	return lower(missiv.sender);
+	return {
+		with: lower(push.sender),
+		recipient: isAddress(push.recipient) ? lower(push.recipient) : undefined,
+	};
 }
 
 /** A click on one of this app's notifications, as `$lib/core/service-worker` publishes it. */
 export type NotificationClickLike = {id: number; data?: unknown};
 
+/** A clicked DM for an account other than the one connected (QA F23, as F22 for greetings). */
+export type OtherAccountDM = {
+	/** the account the push is for */
+	recipient: `0x${string}`;
+	/** the other member of its conversation */
+	with: `0x${string}`;
+	/** the account connected now, if any */
+	connected: `0x${string}` | undefined;
+};
+
+/**
+ * How long a click for an account waits for the connection to come back with
+ * one, on a page just loaded (a tab the click opened, or a hand-off read from
+ * its URL), before it is decided with none.
+ */
+export const ACCOUNT_WAIT_MS = 5_000;
+
 /**
  * Open the panel on the conversation each clicked notification leads to (QA
  * F19: a DM's push opens that conversation). Every click is taken once, the one
  * already there when this subscribes included (a tab opened by the click).
- * Returns the unsubscribe.
+ * A push for another account than the one connected (QA F23) does not open a
+ * conversation that account is not in: it goes to `onOtherAccount` (the app
+ * says so and offers the switch). With no account connected yet, it waits up
+ * to `waitMs` for one, since a page just loaded restores its connection after
+ * the click is published. Returns the unsubscribe.
  */
 export function openConversationsFromClicks(
 	clicks: Readable<NotificationClickLike | undefined>,
 	panel: Pick<MessagingPanel, 'openConversation'>,
 	app: {domain: string; namespace: string},
+	accounts?: {
+		/** the account connected (any case), undefined while none */
+		account: Readable<string | undefined>;
+		onOtherAccount: (dm: OtherAccountDM) => void;
+		waitMs?: number;
+	},
 ): () => void {
 	let taken = 0;
-	return clicks.subscribe((click) => {
+	let pending: (() => void) | undefined;
+	const stopClicks = clicks.subscribe((click) => {
 		if (!click || click.id <= taken) {
 			return;
 		}
 		taken = click.id;
-		const address = conversationFromNotification(click.data, app);
-		if (address) {
-			panel.openConversation(address);
+		const conversation = conversationFromNotification(click.data, app);
+		if (!conversation) {
+			return;
 		}
+		const recipient = conversation.recipient;
+		if (!accounts || !recipient) {
+			panel.openConversation(conversation.with);
+			return;
+		}
+		pending?.();
+		const decide = (raw: string | undefined) => {
+			const connected = raw ? lower(raw) : undefined;
+			if (connected === recipient) {
+				panel.openConversation(conversation.with);
+			} else {
+				accounts.onOtherAccount({
+					recipient,
+					with: conversation.with,
+					connected,
+				});
+			}
+		};
+		const now = get(accounts.account);
+		if (now) {
+			decide(now);
+			return;
+		}
+		let stop: (() => void) | undefined;
+		let timer: ReturnType<typeof setTimeout> | undefined;
+		const cancel = () => {
+			stop?.();
+			clearTimeout(timer);
+			if (pending === cancel) pending = undefined;
+		};
+		pending = cancel;
+		timer = setTimeout(() => {
+			cancel();
+			decide(undefined);
+		}, accounts.waitMs ?? ACCOUNT_WAIT_MS);
+		stop = accounts.account.subscribe((raw) => {
+			if (!raw || pending !== cancel) return;
+			cancel();
+			decide(raw);
+		});
 	});
+	return () => {
+		pending?.();
+		stopClicks();
+	};
 }
 
 export function createMessagingPanel(

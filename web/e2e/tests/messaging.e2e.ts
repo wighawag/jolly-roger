@@ -291,6 +291,41 @@ describe('Messaging - a chat room and direct messages, two browsers', () => {
 				view: {kind: 'conversation', address: senderAddress},
 				notReloaded: true,
 			});
+
+			// QA F23: where the worker never runs (Safari's Declarative Web Push),
+			// the click only loads the push's navigate, the app's root with the
+			// conversation's hand-off in its fragment. A page loaded on it opens
+			// that conversation and removes the hand-off from its URL.
+			const navigate: string = push.payload.notification.navigate;
+			const fragment = navigate.slice(navigate.indexOf('#'));
+			expect(fragment).toMatch(/^#push-handoff=/);
+			const landed = await context.newPage();
+			await landed.goto(`/${fragment}`);
+			const landedPanel = landed.getByTestId('messaging-conversation');
+			await expect(landedPanel).toHaveAttribute('data-with', senderAddress, {
+				timeout: 30_000,
+			});
+			expect(new URL(landed.url()).hash).toBe('');
+			await landed.close();
+
+			// and the same push opened by another account (the sender's browser,
+			// connected as the sender) is not a conversation of theirs: it says
+			// whom it is for and offers the switch
+			const short = (address: string) =>
+				`${address.slice(0, 6)}...${address.slice(-4)}`;
+			await sender.evaluate(() =>
+				(globalThis as any).context.messaging.panel.close(),
+			);
+			await sender.goto(`/${fragment}`);
+			await expect(
+				sender.getByText(
+					`For another account (${short(recipientAddress)}): from ${short(senderAddress)}`,
+				),
+			).toBeVisible({timeout: 30_000});
+			await expect(
+				sender.getByRole('button', {name: 'Switch account'}),
+			).toBeVisible();
+			await expect(sender.getByTestId('messaging-conversation')).toBeHidden();
 		} finally {
 			await context.close();
 		}

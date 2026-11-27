@@ -50,6 +50,8 @@ import {
 	type MessagingPanel,
 	type NotificationClickLike,
 } from './panel';
+import {createOtherAccountNotices} from './other-account';
+import type {NotificationToAdd} from '$lib/core/notifications';
 
 /** An error as missiv's stores show it. */
 export type StoreError = {message: string; code?: string; cause?: unknown};
@@ -138,6 +140,15 @@ export type MessagingOptions = {
 	 * a direct message's push opens its conversation in the panel (QA F19).
 	 */
 	notificationClicks?: Readable<NotificationClickLike | undefined>;
+	/**
+	 * A clicked DM for another account than the one connected (QA F23): the
+	 * app's notification to show it in, and connect's `connectToAddress` to
+	 * switch to its recipient. Without it such a click opens nothing.
+	 */
+	otherAccount?: {
+		notify: (notification: NotificationToAdd) => void;
+		connectTo: (address: `0x${string}`) => void;
+	};
 };
 
 /** The room of a domain, at missiv's origin: `ws(s)://<missiv>/api/public/room/@<domain>/ws`. */
@@ -304,10 +315,23 @@ export function createMessaging(options: MessagingOptions): Messaging {
 	const panel = createMessagingPanel(services);
 	// for the app's lifetime, like the services: built once, in the app's composition
 	if (options.notificationClicks) {
-		openConversationsFromClicks(options.notificationClicks, panel, {
-			domain,
-			namespace,
-		});
+		const otherAccount = options.otherAccount;
+		openConversationsFromClicks(
+			options.notificationClicks,
+			panel,
+			{domain, namespace},
+			{
+				account: derived(options.account, ($account) => $account?.address),
+				onOtherAccount: otherAccount
+					? createOtherAccountNotices({
+							notify: otherAccount.notify,
+							connectTo: otherAccount.connectTo,
+							account: options.account,
+							open: (address) => panel.openConversation(address),
+						})
+					: () => {},
+			},
+		);
 	}
 
 	return {

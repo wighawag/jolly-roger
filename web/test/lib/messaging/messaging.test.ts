@@ -7,6 +7,8 @@ import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {get, writable, type Readable} from 'svelte/store';
 import {generatePrivateKey, privateKeyToAccount} from 'viem/accounts';
 import {createNodeServer} from 'missiv';
+import {splitPushHandoff} from '$lib/core/service-worker/push-handoff';
+import {conversationFromNotification} from '$lib/messaging/panel';
 import {createNodeServer as createPushServer} from '@push-notification/cli';
 import {
 	originPublicKeyPublicationMessage,
@@ -442,8 +444,23 @@ describe('createMessaging, against missiv in process', () => {
 			domain: 'greetings.example',
 			message: {
 				web_push: 8030,
-				notification: {title: 'New message', navigate: `${APP}/`},
+				notification: {title: 'New message'},
 			},
+		});
+		// its navigate is the app's root with the hand-off of the conversation
+		// (missiv 0.5, QA F23), which this app reads back to Alice's conversation
+		const navigate = pushes[0].body.message.notification.navigate as string;
+		expect(navigate.startsWith(`${APP}/#push-handoff=`)).toBe(true);
+		const {handoff} = splitPushHandoff(navigate.slice(navigate.indexOf('#')));
+		expect(
+			conversationFromNotification(handoff, {
+				domain: 'greetings.example',
+				namespace: 'demo',
+			}),
+		).toEqual({with: aliceAddress, recipient: bobAddress});
+		expect(pushes[0].body.message.notification.data.missiv).toMatchObject({
+			sender: aliceAddress,
+			recipient: bobAddress,
 		});
 		expect(JSON.stringify(pushes[0].body)).not.toContain('hello bob');
 		// and the push server delivered it to Bob's device

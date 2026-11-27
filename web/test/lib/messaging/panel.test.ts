@@ -10,6 +10,7 @@ import {
 	inboxOf,
 } from '$lib/messaging/panel.js';
 import type {MessagingServices} from '$lib/messaging/messaging.js';
+import {getConversationID} from '@missiv/common';
 
 const ME = '0x00000000000000000000000000000000000000aa';
 const BOB = '0x00000000000000000000000000000000000000bb';
@@ -231,7 +232,10 @@ describe('conversationFromNotification', () => {
 	});
 
 	it('is the sender of a missiv message pushed for this app, in lower case', () => {
-		expect(conversationFromNotification(push({}), app)).toBe(BOB);
+		expect(conversationFromNotification(push({}), app)).toEqual({
+			with: BOB,
+			recipient: undefined,
+		});
 	});
 
 	it('is undefined for another notification, app, namespace or kind, or a malformed sender', () => {
@@ -250,6 +254,69 @@ describe('conversationFromNotification', () => {
 		).toBeUndefined();
 		expect(
 			conversationFromNotification(push({sender: 'bob'}), app),
+		).toBeUndefined();
+	});
+});
+
+// QA F23: missiv 0.5 names the recipient, and where the worker never runs
+// the page reads a hand-off (`{missiv: {type, namespace, conversationID,
+// recipient}}`, no domain, no sender) from the push's URL.
+describe('conversationFromNotification, missiv 0.5', () => {
+	const app = {domain: 'app.example', namespace: 'demo'};
+	const ALICE = '0x00000000000000000000000000000000000000aa';
+	const handoff = (missiv: object = {}) => ({
+		missiv: {
+			type: 'message',
+			namespace: 'demo',
+			conversationID: getConversationID(ALICE, BOB),
+			recipient: ALICE,
+			...missiv,
+		},
+	});
+
+	it('names the recipient of a worker click', () => {
+		const data = {
+			missiv: {
+				type: 'message',
+				domain: 'app.example',
+				namespace: 'demo',
+				conversationID: getConversationID(ALICE, BOB),
+				messageID: 'm',
+				sender: BOB,
+				recipient: ALICE.replace('0x', '0X').replace('0X', '0x'),
+			},
+		};
+		expect(conversationFromNotification(data, app)).toEqual({
+			with: BOB,
+			recipient: ALICE,
+		});
+	});
+
+	it('reads a hand-off: the other member is the half of the conversation id that is not the recipient', () => {
+		expect(conversationFromNotification(handoff(), app)).toEqual({
+			with: BOB,
+			recipient: ALICE,
+		});
+		expect(
+			conversationFromNotification(handoff({recipient: BOB}), app),
+		).toEqual({with: ALICE, recipient: BOB});
+	});
+
+	it('is undefined for a hand-off of another namespace, a recipient not in it, or a group', () => {
+		expect(
+			conversationFromNotification(handoff({namespace: 'other'}), app),
+		).toBeUndefined();
+		expect(
+			conversationFromNotification(handoff({recipient: CAROL}), app),
+		).toBeUndefined();
+		expect(
+			conversationFromNotification(
+				handoff({conversationID: '0x' + 'ab'.repeat(32)}),
+				app,
+			),
+		).toBeUndefined();
+		expect(
+			conversationFromNotification(handoff({type: 'reaction'}), app),
 		).toBeUndefined();
 	});
 });
@@ -284,5 +351,75 @@ describe('openConversationsFromClicks', () => {
 		expect(panel.openConversation).toHaveBeenLastCalledWith(CAROL);
 		expect(panel.openConversation).toHaveBeenCalledTimes(2);
 		stop();
+	});
+});
+
+describe('openConversationsFromClicks, for another account (QA F23)', () => {
+	const app = {domain: 'app.example', namespace: 'demo'};
+	const ALICE = '0x00000000000000000000000000000000000000aa';
+	const handoff = (recipient: string) => ({
+		missiv: {
+			type: 'message',
+			namespace: 'demo',
+			conversationID: getConversationID(ALICE, BOB),
+			recipient,
+		},
+	});
+
+	function setup(account: string | undefined) {
+		const clicks = writable<{id: number; data?: unknown} | undefined>(
+			undefined,
+		);
+		const connected = writable<string | undefined>(account);
+		const panel = {openConversation: vi.fn()};
+		const onOtherAccount = vi.fn();
+		const stop = openConversationsFromClicks(clicks, panel, app, {
+			account: connected,
+			onOtherAccount,
+			waitMs: 1000,
+		});
+		return {clicks, connected, panel, onOtherAccount, stop};
+	}
+
+	it('opens a DM for the connected account, and hands one for another to onOtherAccount', () => {
+		const s = setup(ALICE.toUpperCase().replace('0X', '0x'));
+		s.clicks.set({id: 1, data: handoff(ALICE)});
+		expect(s.panel.openConversation).toHaveBeenCalledWith(BOB);
+
+		s.clicks.set({id: 2, data: handoff(BOB)});
+		expect(s.onOtherAccount).toHaveBeenCalledWith({
+			recipient: BOB,
+			with: ALICE,
+			connected: ALICE,
+		});
+		expect(s.panel.openConversation).toHaveBeenCalledTimes(1);
+		s.stop();
+	});
+
+	it('with no account yet, waits for the connection to come back before deciding', () => {
+		vi.useFakeTimers();
+		try {
+			const s = setup(undefined);
+			s.clicks.set({id: 1, data: handoff(ALICE)});
+			expect(s.panel.openConversation).not.toHaveBeenCalled();
+			s.connected.set(ALICE);
+			expect(s.panel.openConversation).toHaveBeenCalledWith(BOB);
+
+			// none comes: decided with none, said for the recipient
+			s.connected.set(undefined);
+			s.clicks.set({id: 2, data: handoff(ALICE)});
+			vi.advanceTimersByTime(1000);
+			expect(s.onOtherAccount).toHaveBeenCalledWith({
+				recipient: ALICE,
+				with: BOB,
+				connected: undefined,
+			});
+			// and an account arriving later changes nothing
+			s.connected.set(ALICE);
+			expect(s.panel.openConversation).toHaveBeenCalledTimes(1);
+			s.stop();
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 });

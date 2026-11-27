@@ -110,7 +110,7 @@ importers:
         version: 0.1.0
       faucet-server:
         specifier: ^0.2.0
-        version: 0.2.0(@libsql/core@0.17.4)(hono@4.13.3)(typescript@6.0.3)(zod@3.25.76)
+        version: 0.2.0(@libsql/core@0.17.4)(hono@4.13.23)(typescript@6.0.3)(zod@3.25.76)
       forge-std:
         specifier: github:foundry-rs/forge-std#v1.9.4
         version: https://codeload.github.com/foundry-rs/forge-std/tar.gz/1eea5bae12ae557d589f9f0f0edae2faa47cb262
@@ -134,7 +134,7 @@ importers:
         version: 2.4.1(prettier@3.9.6)
       purgatory:
         specifier: ^0.0.8
-        version: 0.0.8(@libsql/core@0.17.4)(hono@4.13.3)(typescript@6.0.3)(zod@3.25.76)
+        version: 0.0.8(@libsql/core@0.17.4)(hono@4.13.23)(typescript@6.0.3)(zod@3.25.76)
       remote-sql-libsql:
         specifier: ^0.0.7
         version: 0.0.7(@libsql/core@0.17.4)
@@ -173,7 +173,7 @@ importers:
         version: 0.2.2(@etherfold/browser@0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3))(vitest@4.1.11)
       '@etherfold/platform-nodejs-triggers':
         specifier: ^0.1.1
-        version: 0.1.1(hono@4.13.3)(typescript@6.0.3)(zod@4.4.3)
+        version: 0.1.1(hono@4.13.23)(typescript@6.0.3)(zod@4.4.3)
       '@etherfold/processor-entities':
         specifier: ^0.4.2
         version: 0.4.2(typescript@6.0.3)(zod@4.4.3)
@@ -199,11 +199,11 @@ importers:
         specifier: ^1.33.0
         version: 1.33.0(svelte@5.56.9)
       '@missiv/client':
-        specifier: ^0.4.0
-        version: 0.4.0(svelte@5.56.9)
+        specifier: ^0.4.1
+        version: 0.4.1(svelte@5.56.9)
       '@missiv/common':
-        specifier: ^0.4.0
-        version: 0.4.0
+        specifier: ^0.5.0
+        version: 0.5.0
       '@observator/svelte':
         specifier: ^0.3.1
         version: 0.3.1(svelte@5.56.9)
@@ -212,7 +212,7 @@ importers:
         version: 1.62.1
       '@push-notification/cli':
         specifier: ^0.2.0
-        version: 0.2.0(hono@4.13.3)
+        version: 0.2.0(hono@4.13.23)
       '@push-notification/client':
         specifier: ^0.2.0
         version: 0.2.0
@@ -260,7 +260,7 @@ importers:
         version: 0.28.2
       etherfold:
         specifier: 0.12.0
-        version: 0.12.0(@etherfold/browser@0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3))(hono@4.13.3)(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3)
+        version: 0.12.0(@etherfold/browser@0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3))(hono@4.13.23)(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3)
       fake-indexeddb:
         specifier: ^6.2.8
         version: 6.2.8
@@ -280,8 +280,8 @@ importers:
         specifier: ^0.6.0
         version: 0.6.0
       missiv:
-        specifier: ^0.4.0
-        version: 0.4.0(typescript@6.0.3)
+        specifier: ^0.4.1
+        version: 0.4.1(typescript@6.0.3)
       mode-watcher:
         specifier: ^1.1.0
         version: 1.1.0(svelte@5.56.9)
@@ -743,11 +743,11 @@ packages:
     peerDependencies:
       hono: ^4
 
-  '@hono/node-ws@1.3.1':
-    resolution: {integrity: sha512-vo/MwCnpJAVHBkGzWjCJ28wF45fYHAfbPZcH2rodZODHtch2GHA94KtMfusmVycTUtsLAsaNsHhtY6P8X3RQsA==}
+  '@hono/node-ws@1.3.2':
+    resolution: {integrity: sha512-+AmbA68lcspwOTzqTTZlehv0uT5Uc0CPKzTjEOa57LFDz2uyj77Tof1DKu1Eiri2WO1ig4WA1vayExdYDtu5Lg==}
     engines: {node: '>=18.14.1'}
     peerDependencies:
-      '@hono/node-server': ^1.19.11
+      '@hono/node-server': ^2.1.6
       hono: ^4.6.0
 
   '@hono/standard-validator@0.4.1':
@@ -1019,16 +1019,16 @@ packages:
     peerDependencies:
       svelte: ^5
 
-  '@missiv/client@0.4.0':
-    resolution: {integrity: sha512-ISEGVLCxAFSvLND97ittOvv8EOT4yrn8ukLwnZ3gVSqABPgr5V9uRo5dHqJlza+pi8SElwpfad2B6Z0ZxmZ7Zw==}
+  '@missiv/client@0.4.1':
+    resolution: {integrity: sha512-lagE/t6tJjNR1PeNtZqRpTjgDKUaEjI10b8Cf1lxCmQ4sowF9qX0QqzMHyiMW7Hj6vO2NRTkcC7vPgKLIZkXgQ==}
     peerDependencies:
       svelte: ^5.0.0
 
-  '@missiv/common@0.4.0':
-    resolution: {integrity: sha512-GHqMbjQEVTZFrVlW9AtMoWRj3vSNupVWaFWipZU2XmCPTHlzz6buNT8nWCMUuPx3RtY/wah/Y7UOufAhsLH+zg==}
+  '@missiv/common@0.5.0':
+    resolution: {integrity: sha512-oLQ2YYHAbMz48Q2Gb14Xrq2pmXwgLLDxfdOnpmTyLzka+BYbYMufYaofn7eXeebl6SxpoQh5QxCPfAAteQxcUQ==}
 
-  '@missiv/server@0.4.0':
-    resolution: {integrity: sha512-Lf4GF8eyDtAY4nBTFieF6p2pJqvJ/Netyz1QiFgQFhbpWsJnRbb10f45PrL65cnWpU+PFA3BkQOUL1GXtSAMmA==}
+  '@missiv/server@0.5.0':
+    resolution: {integrity: sha512-svNAPRXpCBWRDomTSA4CKFaYsMAPRMW93nV1e02/doiB9yQqla+7EL4ArytY8fy/vGpcvOIl9xVzdGhYmlRdDw==}
 
   '@neon-rs/load@0.0.4':
     resolution: {integrity: sha512-kTPhdZyTQxB+2wpiRcFWrDcejc4JI6tkPuS7UZCG4l6Zvc5kU/gGQ/ozvHTh1XR5tS+UlfAfGuPajjzQjCiHCw==}
@@ -2364,6 +2364,10 @@ packages:
     peerDependencies:
       hono: ^4.11.2
 
+  hono@4.13.23:
+    resolution: {integrity: sha512-OS90dj7dcsftEEWCOef8jRbnHE5lbrOq0hNRqjSyPsOnaGZvvfof1KS05hQNb4kUOCfDq1mG3PmHoX37DMnHQg==}
+    engines: {node: '>=16.9.0'}
+
   hono@4.13.3:
     resolution: {integrity: sha512-r8AO2mYHoLxSHkgafNeC/BXyb2vWRxD3jem4Ts+ptav8oTG5FIRifAjuJEmZI4bSvvc2ns0GxmIYiZnHqN3mMw==}
     engines: {node: '>=16.9.0'}
@@ -2670,8 +2674,8 @@ packages:
   minimist@1.2.8:
     resolution: {integrity: sha512-2yyAR8qBkN3YuheJanUpWC5U3bb5osDywNB8RzDVlDwDHbocAJveqqj1u8+SVD7jkWT4yvsHCpWqqWqAxb0zCA==}
 
-  missiv@0.4.0:
-    resolution: {integrity: sha512-FzMrVJK3mFeCaaVFbIBUAAMmY4l8JeFQH5Z4piN9vq/xabj89stheeWOg+sVNrUsCfE/P6i9hw5kecbFqhWWfQ==}
+  missiv@0.4.1:
+    resolution: {integrity: sha512-+y22ns2pkXDp1qbnecJfOIMOf4FGa9+b2tg2OP187avbKp6TrQt7rJNKh/ZWG1izhjQ5/Gf1NkqNkLi6gA0rFw==}
     hasBin: true
 
   mode-watcher@1.1.0:
@@ -2922,8 +2926,8 @@ packages:
   react-is@18.3.1:
     resolution: {integrity: sha512-/LLMVyas0ljjAtoYiPqYiL8VWXzUUdThrmU5+n20DZv+a+ClRoevUzw5JxU+Ieh5/c87ytoTBV9G1FiKfNJdmg==}
 
-  react-is@19.2.8:
-    resolution: {integrity: sha512-s5un28nYxKJw5gvUHyW5PCC28CvBqLu9r3cWgzHT4Vo/5fqqkFcdRYsGcKf50WMPpjjFZS5d76fn3YCo2njKwQ==}
+  react-is@19.3.1:
+    resolution: {integrity: sha512-RRieF6IyxQBkcK6pP8xOHprLTPW6QjRkbGdImtqNme+/hYVwCZkLQLdlZGOhUqXwkS9IEynaGvPJtv6XB/cz0Q==}
 
   readdirp@4.1.2:
     resolution: {integrity: sha512-GDhwkLfywWL2s6vEjyhri+eXmfH6j1L7JE27WhqLeYzoh/A3DBaYGEj2H/HFZCn/kMfim73FXxEJTw06WtxQwg==}
@@ -3471,6 +3475,18 @@ packages:
       utf-8-validate:
         optional: true
 
+  ws@8.23.0:
+    resolution: {integrity: sha512-wCkmX8QMOrKjgO8HW2WyDbTSGeqkocxgDzS9iR79rEAexty6/2qzilx3Ag8Tqf9ykop3irLKle0MtVn5qjVnoQ==}
+    engines: {node: '>=10.0.0'}
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: '>=5.0.2'
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
+
   zellij-launcher@0.0.1:
     resolution: {integrity: sha512-IJLqHkAFp6NvSUlYZLeVua8tCZ0OT4do+pBQjv/QLLP/TrHgHp2g4i93fd5N4F4DsklTyj24xBwvmVaBaMSuKQ==}
     hasBin: true
@@ -3758,10 +3774,10 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@etherfold/platform-nodejs-triggers@0.1.1(hono@4.13.3)(typescript@6.0.3)(zod@4.4.3)':
+  '@etherfold/platform-nodejs-triggers@0.1.1(hono@4.13.23)(typescript@6.0.3)(zod@4.4.3)':
     dependencies:
       '@etherfold/triggers': 0.2.0(typescript@6.0.3)(zod@4.4.3)
-      '@hono/node-server': 2.1.1(hono@4.13.3)
+      '@hono/node-server': 2.1.1(hono@4.13.23)
       '@libsql/client': 0.17.4
       remote-sql: 0.0.7
       remote-sql-libsql: 0.0.7(@libsql/core@0.17.4)
@@ -3773,10 +3789,10 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@etherfold/platform-nodejs@0.3.3(@etherfold/browser@0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3))(hono@4.13.3)(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3)':
+  '@etherfold/platform-nodejs@0.3.3(@etherfold/browser@0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3))(hono@4.13.23)(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3)':
     dependencies:
       '@etherfold/server': 0.5.2(@etherfold/browser@0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3))(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3)
-      '@hono/node-server': 2.1.1(hono@4.13.3)
+      '@hono/node-server': 2.1.1(hono@4.13.23)
       '@libsql/client': 0.17.4
       named-logs: 0.4.1
       remote-sql: 0.0.7
@@ -4012,19 +4028,23 @@ snapshots:
     dependencies:
       '@hapi/hoek': 11.0.7
 
-  '@hono/node-server@1.19.19(hono@4.13.3)':
+  '@hono/node-server@1.19.19(hono@4.13.23)':
     dependencies:
-      hono: 4.13.3
+      hono: 4.13.23
+
+  '@hono/node-server@2.1.1(hono@4.13.23)':
+    dependencies:
+      hono: 4.13.23
 
   '@hono/node-server@2.1.1(hono@4.13.3)':
     dependencies:
       hono: 4.13.3
 
-  '@hono/node-ws@1.3.1(@hono/node-server@1.19.19(hono@4.13.3))(hono@4.13.3)':
+  '@hono/node-ws@1.3.2(@hono/node-server@1.19.19(hono@4.13.23))(hono@4.13.23)':
     dependencies:
-      '@hono/node-server': 1.19.19(hono@4.13.3)
-      hono: 4.13.3
-      ws: 8.21.3
+      '@hono/node-server': 1.19.19(hono@4.13.23)
+      hono: 4.13.23
+      ws: 8.23.0
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -4038,9 +4058,9 @@ snapshots:
     dependencies:
       hono: 4.13.3
 
-  '@hono/zod-validator@0.4.3(hono@4.13.3)(zod@3.25.76)':
+  '@hono/zod-validator@0.4.3(hono@4.13.23)(zod@3.25.76)':
     dependencies:
-      hono: 4.13.3
+      hono: 4.13.23
       zod: 3.25.76
 
   '@img/colour@1.1.0': {}
@@ -4269,9 +4289,9 @@ snapshots:
     dependencies:
       svelte: 5.56.9
 
-  '@missiv/client@0.4.0(svelte@5.56.9)':
+  '@missiv/client@0.4.1(svelte@5.56.9)':
     dependencies:
-      '@missiv/common': 0.4.0
+      '@missiv/common': 0.5.0
       '@noble/ciphers': 1.3.0
       '@noble/hashes': 1.8.0
       '@noble/secp256k1': 2.3.0
@@ -4279,22 +4299,22 @@ snapshots:
       delegated-identity: 0.1.1
       svelte: 5.56.9
 
-  '@missiv/common@0.4.0':
+  '@missiv/common@0.5.0':
     dependencies:
       '@noble/hashes': 1.8.0
       '@noble/secp256k1': 2.3.0
       delegated-identity: 0.1.1
       zod: 3.25.76
 
-  '@missiv/server@0.4.0(typescript@6.0.3)':
+  '@missiv/server@0.5.0(typescript@6.0.3)':
     dependencies:
-      '@hono/zod-validator': 0.4.3(hono@4.13.3)(zod@3.25.76)
-      '@missiv/common': 0.4.0
+      '@hono/zod-validator': 0.4.3(hono@4.13.23)(zod@3.25.76)
+      '@missiv/common': 0.5.0
       '@noble/hashes': 1.8.0
       '@noble/secp256k1': 2.3.0
       delegated-identity: 0.1.1
       eip-1193: 0.6.6
-      hono: 4.13.3
+      hono: 4.13.23
       named-logs: 0.3.2
       remote-procedure-call: 0.1.2
       remote-sql: 0.0.6
@@ -4573,9 +4593,9 @@ snapshots:
     dependencies:
       graphql: 16.15.0
 
-  '@push-notification/cli@0.2.0(hono@4.13.3)':
+  '@push-notification/cli@0.2.0(hono@4.13.23)':
     dependencies:
-      '@hono/node-server': 1.19.19(hono@4.13.3)
+      '@hono/node-server': 1.19.19(hono@4.13.23)
       '@libsql/client': 0.15.15
       '@push-notification/server': 0.2.0
       ldenv: 0.3.16
@@ -5531,12 +5551,12 @@ snapshots:
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
 
-  etherfold@0.12.0(@etherfold/browser@0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3))(hono@4.13.3)(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3):
+  etherfold@0.12.0(@etherfold/browser@0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3))(hono@4.13.23)(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3):
     dependencies:
       '@eip-1193/jsonrpc-provider': 0.5.0
       '@etherfold/core': 0.12.0(typescript@6.0.3)(zod@4.4.3)
       '@etherfold/fetcher-host': 0.3.0(typescript@6.0.3)(zod@4.4.3)
-      '@etherfold/platform-nodejs': 0.3.3(@etherfold/browser@0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3))(hono@4.13.3)(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3)
+      '@etherfold/platform-nodejs': 0.3.3(@etherfold/browser@0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3))(hono@4.13.23)(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3)
       '@etherfold/platform-nodejs-fetcher': 0.2.5(typescript@6.0.3)(zod@4.4.3)
       '@etherfold/processor-entities': 0.4.2(typescript@6.0.3)(zod@4.4.3)
       '@etherfold/server': 0.5.2(@etherfold/browser@0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3))(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3)
@@ -5599,9 +5619,9 @@ snapshots:
       - utf-8-validate
       - zod
 
-  faucet-server@0.2.0(@libsql/core@0.17.4)(hono@4.13.3)(typescript@6.0.3)(zod@3.25.76):
+  faucet-server@0.2.0(@libsql/core@0.17.4)(hono@4.13.23)(typescript@6.0.3)(zod@3.25.76):
     dependencies:
-      '@hono/node-server': 2.1.1(hono@4.13.3)
+      '@hono/node-server': 2.1.1(hono@4.13.23)
       '@libsql/client': 0.17.4
       commander: 14.0.3
       faucet-server-app: 0.2.0(typescript@6.0.3)(zod@3.25.76)
@@ -5794,6 +5814,8 @@ snapshots:
       - zod
       - zod-openapi
       - zod-to-json-schema
+
+  hono@4.13.23: {}
 
   hono@4.13.3: {}
 
@@ -6064,14 +6086,14 @@ snapshots:
 
   minimist@1.2.8: {}
 
-  missiv@0.4.0(typescript@6.0.3):
+  missiv@0.4.1(typescript@6.0.3):
     dependencies:
-      '@hono/node-server': 1.19.19(hono@4.13.3)
-      '@hono/node-ws': 1.3.1(@hono/node-server@1.19.19(hono@4.13.3))(hono@4.13.3)
+      '@hono/node-server': 1.19.19(hono@4.13.23)
+      '@hono/node-ws': 1.3.2(@hono/node-server@1.19.19(hono@4.13.23))(hono@4.13.23)
       '@libsql/client': 0.15.15
-      '@missiv/server': 0.4.0(typescript@6.0.3)
+      '@missiv/server': 0.5.0(typescript@6.0.3)
       commander: 13.1.0
-      hono: 4.13.3
+      hono: 4.13.23
       ldenv: 0.3.16
       named-logs-context: 0.1.1
       remote-sql-libsql: 0.0.6
@@ -6232,7 +6254,7 @@ snapshots:
       '@jest/schemas': 30.4.1
       ansi-styles: 5.2.0
       react-is-18: react-is@18.3.1
-      react-is-19: react-is@19.2.8
+      react-is-19: react-is@19.3.1
 
   promise-limit@2.7.0: {}
 
@@ -6257,9 +6279,9 @@ snapshots:
       - utf-8-validate
       - zod
 
-  purgatory@0.0.8(@libsql/core@0.17.4)(hono@4.13.3)(typescript@6.0.3)(zod@3.25.76):
+  purgatory@0.0.8(@libsql/core@0.17.4)(hono@4.13.23)(typescript@6.0.3)(zod@3.25.76):
     dependencies:
-      '@hono/node-server': 2.1.1(hono@4.13.3)
+      '@hono/node-server': 2.1.1(hono@4.13.23)
       '@libsql/client': 0.17.4
       commander: 14.0.3
       ldenv: 0.3.16
@@ -6290,7 +6312,7 @@ snapshots:
 
   react-is@18.3.1: {}
 
-  react-is@19.2.8: {}
+  react-is@19.3.1: {}
 
   readdirp@4.1.2: {}
 
@@ -6822,6 +6844,8 @@ snapshots:
   ws@8.21.0: {}
 
   ws@8.21.3: {}
+
+  ws@8.23.0: {}
 
   zellij-launcher@0.0.1: {}
 
