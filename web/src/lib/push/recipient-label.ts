@@ -9,7 +9,8 @@
  * in the app's own notifications) this says whom it is for: "For another
  * account (0x1234...abcd): ..." when signed in as someone else, "For
  * 0x1234...abcd: ..." when nobody is signed in, nothing when it is the
- * signed-in account's or names nobody (missiv's direct messages do not, yet).
+ * signed-in account's or names nobody. A node whose pushes name their
+ * recipient elsewhere adds a reader (`readRecipientWith`).
  *
  * NODE-LOCAL, NOT A ROOT HOOK (the human's choice): the root's service worker
  * module turns a posted push into an in-app notification without its data, so
@@ -33,19 +34,39 @@ import {truncateHex} from '$lib/core/utils/format/hex';
 
 type Posted = {title?: string; body?: string; account: string};
 
+/**
+ * Who a push's `data` says it is for, or undefined. The greeting push's is
+ * `data.account`; a node whose pushes name it elsewhere adds its own reader
+ * (`with/messaging`: missiv's `data.missiv.recipient`, QA F23).
+ */
+export type RecipientReader = (data: unknown) => unknown;
+
+/** The greeting push's: `data.account`. */
+export const accountOfData: RecipientReader = (data) =>
+	(data as {account?: unknown} | undefined)?.account;
+
 /** The recipient a posted push names, if any: `{type: 'notification', notification: {title, options: {body, data}}}`. */
-export function recipientOfPosted(message: unknown): Posted | undefined {
+export function recipientOfPosted(
+	message: unknown,
+	readers: readonly RecipientReader[] = [accountOfData],
+): Posted | undefined {
 	if (!message || typeof message !== 'object') return undefined;
 	const {type, notification} = message as {
 		type?: unknown;
 		notification?: {
 			title?: unknown;
-			options?: {body?: unknown; data?: {account?: unknown}};
+			options?: {body?: unknown; data?: unknown};
 		};
 	};
 	if (type !== 'notification' || !notification) return undefined;
-	const account = notification.options?.data?.account;
-	if (typeof account !== 'string' || !account.startsWith('0x')) {
+	const data = notification.options?.data;
+	const account = readers
+		.map((read) => read(data))
+		.find(
+			(value): value is string =>
+				typeof value === 'string' && value.startsWith('0x'),
+		);
+	if (!account) {
 		return undefined;
 	}
 	return {
@@ -80,6 +101,8 @@ export type RecipientLabels = {
 	notifications: NotificationsService;
 	/** follows the signed-in account (its wallet address, or undefined) */
 	follow(account: Readable<string | undefined>): () => void;
+	/** reads a push's recipient where a node's pushes name it (`RecipientReader`) */
+	readRecipientWith(reader: RecipientReader): void;
 };
 
 export function createRecipientLabels(
@@ -95,8 +118,9 @@ export function createRecipientLabels(
 ): RecipientLabels {
 	let signedIn: string | undefined;
 	let latest: Posted | undefined;
+	const readers: RecipientReader[] = [accountOfData];
 	container?.addEventListener('message', (event) => {
-		latest = recipientOfPosted(event.data);
+		latest = recipientOfPosted(event.data, readers);
 	});
 	return {
 		notifications: {
@@ -114,6 +138,9 @@ export function createRecipientLabels(
 				}
 				notifications.add(notification);
 			},
+		},
+		readRecipientWith(reader) {
+			readers.push(reader);
 		},
 		follow(account) {
 			return account.subscribe((address) => {

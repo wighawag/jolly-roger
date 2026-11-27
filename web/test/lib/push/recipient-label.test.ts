@@ -80,3 +80,33 @@ describe('the notifications the worker feeds', () => {
 		]);
 	});
 });
+
+// QA F23: a node whose pushes name their recipient elsewhere adds a reader
+describe('a recipient read where a node names it', () => {
+	it('labels a push whose data names its recipient through an added reader', () => {
+		const container = fakeContainer();
+		const service = createNotificationsService();
+		const labels = createRecipientLabels(service, container);
+		labels.follow(writable<string | undefined>(BOB));
+		const dm = {
+			type: 'notification',
+			notification: {
+				title: 'New message',
+				options: {body: 'From 0xaaaa', data: {missiv: {recipient: ALICE}}},
+			},
+		};
+
+		container.post(dm);
+		labels.notifications.add({title: 'New message', body: 'From 0xaaaa'});
+		labels.readRecipientWith(
+			(data) => (data as {missiv?: {recipient?: unknown}})?.missiv?.recipient,
+		);
+		container.post(dm);
+		labels.notifications.add({title: 'New message', body: 'From 0xaaaa'});
+
+		expect(get(service).map((n) => n.body)).toEqual([
+			'From 0xaaaa',
+			'For another account (0x1111...1111): From 0xaaaa',
+		]);
+	});
+});
