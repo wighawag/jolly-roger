@@ -1,4 +1,5 @@
 import {writable, type Readable} from 'svelte/store';
+import {splitUrlPushHandoff, type PushHandoffs} from './push-handoff';
 
 /**
  * THE PAGE SIDE OF A CLICK ON A NOTIFICATION (QA F19).
@@ -14,16 +15,36 @@ import {writable, type Readable} from 'svelte/store';
  * The worker waits for the ack on the message's port; a page that does not
  * answer (an older build) is navigated by the worker itself, so the ack is
  * what tells the worker not to.
+ *
+ * A PUSH'S HAND-OFF (QA F23, `./push-handoff.ts`). Where the worker never runs
+ * (Safari's Declarative Web Push), a click only loads the notification's URL,
+ * and a service carries what the app needs in its fragment,
+ * `#push-handoff=...`. The page reads it from its URL and it is published here
+ * as a click too, its `data` the hand-off (`{missiv: ...}`), so an app acts on
+ * a notification the same way whichever path it came by. A click's URL is
+ * routed and published WITHOUT its hand-off: `isCurrentPage` compares the
+ * hash, so a click on `/#push-handoff=...` from the root would otherwise route
+ * to it and leave it in the address bar.
  */
 
 /** A click, as the app sees it. `id` grows with each click, so a click is told from the last one. */
 export type NotificationClick = {
 	id: number;
-	/** where the notification leads, absolute; absent when it names nowhere */
+	/** where the notification leads, absolute, without its hand-off; absent when it names nowhere */
 	url?: string;
-	/** the notification's `data`, as the push carried it */
+	/**
+	 * the notification's `data`, as the push carried it; for a hand-off the page
+	 * read from its URL, the hand-off
+	 */
 	data?: unknown;
 };
+
+/**
+ * How long after the page read a hand-off a worker click carrying the same one
+ * is the same click: with no tab open, the worker opens one on the
+ * notification's URL (which the page reads on load), then hands it the click.
+ */
+export const SAME_CLICK_WINDOW_MS = 10_000;
 
 /**
  * The latest click, undefined before any. Subscribe where the app is composed
@@ -69,17 +90,48 @@ export function createNotificationClicks(options: {
 	navigateTo: (url: string) => void;
 	/** the page's URL now */
 	currentHref: () => string;
+	/** the hand-offs the page reads from its URL (`./push-handoff.ts`) */
+	pushHandoffs?: PushHandoffs;
+	/** the time, for the hand-off a worker click repeats */
+	now?: () => number;
 }) {
 	const store = writable<NotificationClick | undefined>(undefined);
+	const now = options.now ?? Date.now;
 	let lastId = 0;
+	let lastRead: {handoff: string; at: number} | undefined;
 
 	/** Take a click: go where it leads unless already there, then publish it. */
 	function take(click: {url?: string; data?: unknown}) {
-		if (click.url && !isCurrentPage(click.url, options.currentHref())) {
-			options.navigateTo(click.url);
+		const split = click.url ? splitUrlPushHandoff(click.url) : undefined;
+		const read = lastRead;
+		if (
+			split?.handoff &&
+			read &&
+			read.handoff === JSON.stringify(split.handoff) &&
+			now() - read.at <= SAME_CLICK_WINDOW_MS
+		) {
+			// the page read this hand-off from the URL the worker opened it on:
+			// already taken
+			lastRead = undefined;
+			return;
 		}
-		store.set({id: ++lastId, url: click.url, data: click.data});
+		const url = split?.url;
+		if (url && !isCurrentPage(url, options.currentHref())) {
+			options.navigateTo(url);
+		}
+		store.set({id: ++lastId, url, data: click.data});
 	}
+
+	let handoffTaken = 0;
+	options.pushHandoffs?.subscribe((read) => {
+		if (!read || read.id <= handoffTaken) {
+			return;
+		}
+		handoffTaken = read.id;
+		lastRead = {handoff: JSON.stringify(read.handoff), at: now()};
+		// the page is already there: nothing to route
+		store.set({id: ++lastId, url: read.url, data: read.handoff});
+	});
 
 	/**
 	 * A message from the worker: true when it was a click, taken and answered on

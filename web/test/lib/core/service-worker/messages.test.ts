@@ -1,8 +1,12 @@
 import {afterEach, describe, expect, it, vi} from 'vitest';
-import {get} from 'svelte/store';
+import {get, writable} from 'svelte/store';
 import {createServiceWorker} from '../../../../src/lib/core/service-worker';
 import {createNotificationsService} from '../../../../src/lib/core/notifications';
 import {isCurrentPage} from '../../../../src/lib/core/service-worker/notification-click';
+import {
+	withPushHandoff,
+	type PushHandoffRead,
+} from '../../../../src/lib/core/service-worker/push-handoff';
 
 // The page side of a push the worker forwards to a focused page. The worker
 // (`src/service-worker/index.ts`, `handlePush`) posts
@@ -193,6 +197,41 @@ describe('a click the worker posts to the page', () => {
 		});
 		notifications.onAction(get(notifications)[0].id);
 		expect(navigateTo).toHaveBeenCalledWith('https://example.com/ipfs/Qm/demo');
+		serviceWorker.cleanup();
+	});
+});
+
+// QA F23: a push's hand-off the page read from its URL is a click too, and a
+// worker click's URL is routed without one.
+describe('a hand-off', () => {
+	it("the page read is published as a click, in the same stream as the worker's", () => {
+		const navigator = fakeNavigator();
+		vi.stubGlobal('navigator', navigator);
+		vi.stubGlobal('location', {href: 'https://example.com/'});
+		const reads = writable<PushHandoffRead | undefined>(undefined);
+		const navigateTo = vi.fn();
+		const serviceWorker = createServiceWorker(
+			{resolvePath: (path) => path, navigateTo},
+			createNotificationsService(),
+			reads,
+		);
+		serviceWorker.register();
+
+		reads.set({id: 1, url: 'https://example.com/', handoff: {missiv: {}}});
+		expect(get(serviceWorker.notificationClicks)).toEqual({
+			id: 1,
+			url: 'https://example.com/',
+			data: {missiv: {}},
+		});
+
+		const url = withPushHandoff('https://example.com/', {s: 1});
+		post(navigator, {type: 'notification-click', url, data: {navigate: url}});
+		expect(navigateTo).not.toHaveBeenCalled();
+		expect(get(serviceWorker.notificationClicks)).toEqual({
+			id: 2,
+			url: 'https://example.com/',
+			data: {navigate: url},
+		});
 		serviceWorker.cleanup();
 	});
 });
