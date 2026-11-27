@@ -1,7 +1,7 @@
 import {describe, expect, it} from 'vitest';
 import {get, writable} from 'svelte/store';
 import {generatePrivateKey, privateKeyToAccount} from 'viem/accounts';
-import {delegatePublicKey} from 'delegated-identity';
+import {deriveKeySet} from 'delegated-identity';
 import {messagingAccount, messagingConfig} from '$lib/messaging/sources.js';
 import type {ConnectionLike} from '$lib/push/sources.js';
 
@@ -54,27 +54,21 @@ describe('messagingConfig', () => {
 describe('messagingAccount', () => {
 	const wallet = privateKeyToAccount(generatePrivateKey());
 	const privateKey = generatePrivateKey();
+	// the key set connect derives from the origin key
 	const signedIn = (key = privateKey): ConnectionLike => ({
 		step: 'SignedIn',
 		account: {
 			address: wallet.address, // checksummed, as connect gives it
-			signer: {
-				origin: 'http://localhost:5173',
-				publicKey: delegatePublicKey(key),
-				privateKey: key,
-			},
+			signer: {origin: 'http://localhost:5173'},
+			keySet: deriveKeySet(key),
 		},
 	});
 
-	it("is missiv's account, in lower case hex", () => {
+	it("is missiv's account: the wallet in lower case hex, and the key set", () => {
 		const account = get(messagingAccount(writable(signedIn())));
 		expect(account).toEqual({
 			address: wallet.address.toLowerCase(),
-			signer: {
-				address: privateKeyToAccount(privateKey).address.toLowerCase(),
-				privateKey: privateKey.toLowerCase(),
-				publicKey: delegatePublicKey(privateKey).toLowerCase(),
-			},
+			keySet: deriveKeySet(privateKey),
 		});
 	});
 
@@ -86,7 +80,7 @@ describe('messagingAccount', () => {
 		).toBeUndefined();
 	});
 
-	it('is one object per account and key, a new one for another key', () => {
+	it('is one object per account and key set, a new one for another key set', () => {
 		const connection = writable(signedIn());
 		const account = messagingAccount(connection);
 		const seen: unknown[] = [];

@@ -1,6 +1,7 @@
 import {describe, expect, it, vi} from 'vitest';
 import {get, writable} from 'svelte/store';
 import type {ConversationList, CurrentConversation} from '@missiv/client';
+import type {Conversation, ConversationStatus} from '@missiv/common';
 import {
 	conversationFromNotification,
 	createComposer,
@@ -16,16 +17,22 @@ const ME = '0x00000000000000000000000000000000000000aa';
 const BOB = '0x00000000000000000000000000000000000000bb';
 const CAROL = '0x00000000000000000000000000000000000000cc';
 
+/** A row of ME's inbox: its status, the last seq read and the last seq, the newest message's time. */
 function conversationWith(
 	other: string,
-	fields: {accepted: boolean; lastRead: number; lastMessage: number},
-) {
+	fields: {
+		status: ConversationStatus;
+		lastReadSeq: number;
+		lastSeq: number;
+		lastMessageAt: number;
+	},
+): Conversation {
 	return {
 		domain: 'app.example',
 		namespace: 'demo',
-		user: ME as `0x${string}`,
 		conversationID: `${other}${ME}`,
 		members: [ME, other] as `0x${string}`[],
+		version: 1,
 		...fields,
 	};
 }
@@ -36,11 +43,17 @@ describe('inboxOf', () => {
 			step: 'Fetched',
 			address: ME,
 			conversations: [
-				conversationWith(BOB, {accepted: true, lastRead: 5, lastMessage: 9}),
+				conversationWith(BOB, {
+					status: 'accepted',
+					lastReadSeq: 5,
+					lastSeq: 9,
+					lastMessageAt: 9,
+				}),
 				conversationWith(CAROL, {
-					accepted: false,
-					lastRead: 0,
-					lastMessage: 12,
+					status: 'unaccepted',
+					lastReadSeq: 0,
+					lastSeq: 1,
+					lastMessageAt: 12,
 				}),
 			],
 			numUnread: 1,
@@ -53,6 +66,30 @@ describe('inboxOf', () => {
 				{address: CAROL, accepted: false, unread: false, lastMessage: 12},
 				{address: BOB, accepted: true, unread: true, lastMessage: 9},
 			],
+			rejected: [],
+		});
+	});
+
+	it('lists no rejected conversation, and names its other member apart', () => {
+		const list: ConversationList = {
+			step: 'Fetched',
+			address: ME,
+			conversations: [
+				conversationWith(BOB, {
+					status: 'rejected',
+					lastReadSeq: 0,
+					lastSeq: 2,
+					lastMessageAt: 20,
+				}),
+			],
+			numUnread: 0,
+			numUnaccepted: 0,
+		};
+		expect(inboxOf(list)).toEqual({
+			step: 'Fetched',
+			count: 0,
+			items: [],
+			rejected: [BOB],
 		});
 	});
 
@@ -69,7 +106,12 @@ function fetched(conversations: string[]): ConversationList {
 		step: 'Fetched',
 		address: ME,
 		conversations: conversations.map((other) =>
-			conversationWith(other, {accepted: false, lastRead: 0, lastMessage: 1}),
+			conversationWith(other, {
+				status: 'unaccepted',
+				lastReadSeq: 0,
+				lastSeq: 1,
+				lastMessageAt: 1,
+			}),
 		),
 		numUnread: 0,
 		numUnaccepted: conversations.length,
@@ -135,6 +177,29 @@ describe('createMessagingPanel', () => {
 		expect(services.accept).toHaveBeenCalledWith(BOB);
 		expect(get(panel.conversationView)?.accepted).toBe(true);
 		expect(services.conversation).toHaveBeenLastCalledWith(BOB, {read: true});
+		stop();
+	});
+
+	it('shows a rejected conversation without answering it: looking does not accept it', () => {
+		const {services} = fakeServices([], {
+			step: 'Fetched',
+			address: ME,
+			conversations: [
+				conversationWith(BOB, {
+					status: 'rejected',
+					lastReadSeq: 0,
+					lastSeq: 1,
+					lastMessageAt: 1,
+				}),
+			],
+			numUnread: 0,
+			numUnaccepted: 0,
+		});
+		const panel = createMessagingPanel(services);
+		const stop = panel.conversationView.subscribe(() => {});
+		panel.openConversation(BOB);
+		expect(get(panel.conversationView)?.accepted).toBe(false);
+		expect(services.conversation).toHaveBeenLastCalledWith(BOB, {read: false});
 		stop();
 	});
 

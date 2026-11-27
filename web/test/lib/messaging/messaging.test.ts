@@ -1,8 +1,9 @@
 // The messaging store against missiv's own server, in process: the `missiv`
 // package's Node.js platform (`createNodeServer` on in-memory libSQL), reached
 // through its app's `request`, so no port. The accounts are real: a wallet that
-// signs the publication message of its app's delegate key, as connect does.
-// The room (a socket) is missiv's own store and is exercised by the e2e.
+// signs the publication message of its key set in the app, as connect does.
+// The live inbox polls here (its socket needs a port); the socket and the room
+// are missiv's own stores and are exercised by the e2e.
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {get, writable, type Readable} from 'svelte/store';
 import {generatePrivateKey, privateKeyToAccount} from 'viem/accounts';
@@ -11,13 +12,13 @@ import {splitPushHandoff} from '$lib/core/service-worker/push-handoff';
 import {conversationFromNotification} from '$lib/messaging/panel';
 import {createNodeServer as createPushServer} from '@push-notification/cli';
 import {
-	originPublicKeyPublicationMessage,
 	type Account,
 	type ConversationList,
 	type ConversationState,
 } from '@missiv/client';
 import {
-	delegatePublicKey,
+	deriveKeySet,
+	originPublicKeyPublicationMessage,
 	REQUEST_SIGNATURE_HEADER,
 	signRequest,
 } from 'delegated-identity';
@@ -121,6 +122,7 @@ describe('createMessaging, against missiv in process', () => {
 		missiv = await createNodeServer({
 			db: ':memory:',
 			env: {
+				SESSION_SECRET: 'a test secret, long enough for its HMAC',
 				PUSH_SERVER_URL: PUSH,
 				PUSH_TOKENS: 'greetings.example=missiv-token',
 			},
@@ -180,9 +182,13 @@ describe('createMessaging, against missiv in process', () => {
 				expirationTime: null,
 				keys: {p256dh: 'p256dh', auth: 'auth'},
 			},
+			keySet: {
+				signing: {publicKey: of.keySet.signing.publicKey},
+				encryption: {publicKey: of.keySet.encryption.publicKey},
+			},
 			ownershipSignature: await of.signOwnership(
 				of.account!.address,
-				originPublicKeyPublicationMessage(APP, delegatePublicKey(of.delegate)),
+				originPublicKeyPublicationMessage(APP, of.keySet),
 			),
 		});
 		const response = await pushServer.request(`${PUSH}/api/register`, {
@@ -191,7 +197,7 @@ describe('createMessaging, against missiv in process', () => {
 				'content-type': 'application/json',
 				[REQUEST_SIGNATURE_HEADER]: await signRequest(
 					{serverOrigin: PUSH, method: 'POST', path: '/api/register', body},
-					of.delegate,
+					of.keySet.signing.privateKey,
 				),
 			},
 			body,
@@ -203,7 +209,8 @@ describe('createMessaging, against missiv in process', () => {
 	// the wallet asked at most once, its answer kept
 	function newAccount() {
 		const wallet = privateKeyToAccount(generatePrivateKey());
-		const delegate = generatePrivateKey();
+		// its key set in the app, as connect derives it from the origin key
+		const keySet = deriveKeySet(generatePrivateKey());
 		const walletPrompts = vi.fn(async (message: string) =>
 			wallet.signMessage({message}),
 		);
@@ -214,15 +221,9 @@ describe('createMessaging, against missiv in process', () => {
 		);
 		const account: Account = {
 			address: wallet.address.toLowerCase() as `0x${string}`,
-			signer: {
-				address: privateKeyToAccount(
-					delegate,
-				).address.toLowerCase() as `0x${string}`,
-				privateKey: delegate,
-				publicKey: delegatePublicKey(delegate),
-			},
+			keySet,
 		};
-		return {account, signOwnership, walletPrompts, delegate};
+		return {account, signOwnership, walletPrompts, keySet};
 	}
 
 	function messagingOf(of: ReturnType<typeof newAccount>) {
@@ -231,8 +232,8 @@ describe('createMessaging, against missiv in process', () => {
 			account: writable(of.account),
 			signOwnership: of.signOwnership,
 			fetch: network,
-			listPollingInterval: 0.02,
-			conversationPollingInterval: 0.02,
+			inboxTransport: 'poll',
+			inboxPollIntervalMs: 20,
 		});
 	}
 
@@ -263,10 +264,10 @@ describe('createMessaging, against missiv in process', () => {
 			status: 'registered',
 			address: alice.account!.address,
 		});
-		// the publication message of THIS app's key, which connect signs
+		// the publication message of THIS app's key set, which connect signs
 		expect(alice.signOwnership).toHaveBeenCalledWith(
 			alice.account!.address,
-			originPublicKeyPublicationMessage(APP, delegatePublicKey(alice.delegate)),
+			originPublicKeyPublicationMessage(APP, alice.keySet),
 		);
 
 		// a second instance (a reload) finds it registered and asks nothing
@@ -356,7 +357,7 @@ describe('createMessaging, against missiv in process', () => {
 	it('surfaces a refused registration', async () => {
 		const alice = newAccount();
 		const bob = newAccount();
-		// Alice's delegate key, proven by Bob's wallet: missiv refuses it
+		// Alice's key set, proven by Bob's wallet: missiv refuses it
 		const messaging = createMessaging({
 			config,
 			account: writable(alice.account),
@@ -391,7 +392,7 @@ describe('createMessaging, against missiv in process', () => {
 		const stopToBob = hold(toBob);
 		await until(
 			toBob,
-			(c: ConversationState) => c.step === 'Fetched' && !!c.otherUser.publicKey,
+			(c: ConversationState) => c.step === 'Fetched' && !!c.otherUser.keySet,
 		);
 		await toBob.sendMessage('hello bob');
 
@@ -403,8 +404,8 @@ describe('createMessaging, against missiv in process', () => {
 			(l: ConversationList) => l.step === 'Fetched' && l.numUnaccepted === 1,
 		);
 		expect(
-			requested.step === 'Fetched' && requested.conversations[0].accepted,
-		).toBe(false);
+			requested.step === 'Fetched' && requested.conversations[0].status,
+		).toBe('unaccepted');
 
 		// shown as a request, it is read without being answered
 		const request = b.messaging.services!.conversation(aliceAddress, {
@@ -486,7 +487,7 @@ describe('createMessaging, against missiv in process', () => {
 		const stopToBob = hold(toBob);
 		await until(
 			toBob,
-			(c: ConversationState) => c.step === 'Fetched' && !!c.otherUser.publicKey,
+			(c: ConversationState) => c.step === 'Fetched' && !!c.otherUser.keySet,
 		);
 		await toBob.sendMessage('one');
 		await vi.waitFor(() => expect(pushes).toHaveLength(1));

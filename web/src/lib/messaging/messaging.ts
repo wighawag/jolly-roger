@@ -8,18 +8,25 @@
  *
  * - `room`: the domain's room (`@<domain>`), unencrypted, read by anyone, written
  *   by a registered account once logged in (automatic);
- * - `conversations`: the account's direct-message conversations, polled;
- * - `conversation(address)`: one direct conversation, encrypted to the other's
- *   key once it is verified against their wallet's publication signature;
- *   `accept(address)` and `reject(address)` (reject blocks the sender here).
+ * - `conversations`: the account's direct-message conversations;
+ * - `conversation(address)`: one direct conversation, each message encrypted to
+ *   the other's key set once it is verified against their wallet's publication
+ *   signature; `accept(address)` and `reject(address)` (reject blocks the
+ *   sender in the domain).
  *
- * THE IDENTITY is the one `with/push-notifications` uses: the wallet, the delegate
- * key `@etherplay/connect` derives for this app (its signer), and the wallet's
- * signature over the key's publication message. missiv's `register` needs that
- * signature, and `signOwnership` (connect's `getSignatureForPublicKeyPublication`)
- * answers it from the account when connect already holds it (a hosted account, or
- * a wallet that answered once, which connect 0.18 keeps), so the wallet is asked
- * at most once for messaging and notifications together. Registration happens on
+ * The conversation stores share missiv's LIVE INBOX (missiv 0.6): one channel
+ * per account, on a socket, or polling `inbox/changes` when the socket keeps
+ * failing or the deployment offers none (`inboxTransport`, `auto` by default);
+ * no store polls by itself.
+ *
+ * THE IDENTITY is the one `with/push-notifications` uses: the wallet, the key
+ * set `@etherplay/connect` derives for this app (`account.keySet`, an Ed25519
+ * signing key and an X25519 encryption key), and the wallet's signature over
+ * the key set's publication message. missiv's `register` needs that signature,
+ * and `signOwnership` (connect's `getSignatureForPublicKeyPublication`) answers
+ * it from the account when connect already holds it (a hosted account, or a
+ * wallet that answered once, which connect keeps), so the wallet is asked at
+ * most once for messaging and notifications together. Registration happens on
  * first use (`register()`), never on a page load.
  *
  * A DM notifies its recipient by Web Push through missiv itself (its server calls
@@ -36,14 +43,16 @@ import {
 	openConversationList,
 	openOneConversation,
 	openRoom,
-	originPublicKeyPublicationMessage,
 	type Account,
 	type ConversationListStore,
+	type CreateInboxSocket,
 	type CurrentConversation,
+	type InboxTransportOption,
 	type MissivRegistration,
 	type RoomSocket,
 } from '@missiv/client';
 import {getConversationID} from '@missiv/common';
+import {originPublicKeyPublicationMessage} from 'delegated-identity';
 import {
 	createMessagingPanel,
 	openConversationsFromClicks,
@@ -104,7 +113,7 @@ export type MessagingServices = {
 
 export type Messaging = Readable<MessagingState> & {
 	/**
-	 * Registers this account's delegate key at missiv (asks the wallet at most
+	 * Registers this account's key set at missiv (asks the wallet at most
 	 * once). Never rejects: a refusal, the wallet's included, is the state's `error`.
 	 */
 	register(): Promise<void>;
@@ -123,7 +132,7 @@ export type Messaging = Readable<MessagingState> & {
 export type MessagingOptions = {
 	/** undefined when missiv is not configured; `'off-browser'` in a server render (shown loading) */
 	config: MessagingConfig | 'off-browser' | undefined;
-	/** missiv's account: the wallet (lower case) and the app's delegate key */
+	/** missiv's account: the wallet (lower case) and its key set in the app */
 	account: Readable<Account>;
 	/** the wallet's signature over the publication message: connect's, asked at most once */
 	signOwnership: (address: string, message: string) => Promise<`0x${string}`>;
@@ -131,10 +140,15 @@ export type MessagingOptions = {
 	signIn?: () => Promise<unknown>;
 	fetch?: typeof fetch;
 	createWebSocket?: (url: string) => RoomSocket;
-	/** seconds between two fetches of the conversation list (default 10) */
-	listPollingInterval?: number;
-	/** seconds between two fetches of an open conversation (default 2) */
-	conversationPollingInterval?: number;
+	/** how the live inbox channel's socket is made (a test's) */
+	createInboxSocket?: CreateInboxSocket;
+	/**
+	 * how the live inbox reaches missiv: its socket, polling, or `auto` (the
+	 * default: the socket, polling when it keeps failing)
+	 */
+	inboxTransport?: InboxTransportOption;
+	/** milliseconds between two polls of the live inbox, when it polls (missiv's default 5 s) */
+	inboxPollIntervalMs?: number;
 	/**
 	 * Clicks on this app's notifications (`serviceWorker.notificationClicks`):
 	 * a direct message's push opens its conversation in the panel (QA F19).
@@ -194,6 +208,16 @@ export function createMessaging(options: MessagingOptions): Messaging {
 	}
 	const {endpoint, domain, namespace, appOrigin} = config;
 	const fetchOption = options.fetch ? {fetch: options.fetch} : {};
+	// the live inbox channel's options, shared by the conversation stores
+	const inboxOptions = {
+		...(options.createInboxSocket
+			? {createWebSocket: options.createInboxSocket}
+			: {}),
+		...(options.inboxTransport ? {transport: options.inboxTransport} : {}),
+		...(options.inboxPollIntervalMs
+			? {pollIntervalMs: options.inboxPollIntervalMs}
+			: {}),
+	};
 
 	const registration = createMissivRegistration({
 		endpoint,
@@ -238,7 +262,7 @@ export function createMessaging(options: MessagingOptions): Messaging {
 		endpoint,
 		domain,
 		namespace,
-		pollingInterval: options.listPollingInterval ?? 10,
+		...inboxOptions,
 		...fetchOption,
 	});
 
@@ -259,7 +283,7 @@ export function createMessaging(options: MessagingOptions): Messaging {
 				namespace,
 				otherUser: {address: other},
 				markAsAcceptedAndRead: read,
-				pollingInterval: options.conversationPollingInterval ?? 2,
+				...inboxOptions,
 				...fetchOption,
 			});
 			opened.set(key, store);
@@ -286,28 +310,27 @@ export function createMessaging(options: MessagingOptions): Messaging {
 		conversations,
 		conversation,
 		async accept(address) {
-			const {address: me, signer} = registered();
-			await api.acceptConversation(
+			const {address: me, keySet} = registered();
+			await api.accept(
 				{
-					type: 'acceptConversation',
+					type: 'accept',
 					domain,
 					namespace,
 					conversationID: getConversationID(me, address),
-					lastMessageReadTimestampMS: Date.now(),
 				},
-				{privateKey: signer.privateKey},
+				{privateKey: keySet.signing.privateKey},
 			);
 		},
 		async reject(address) {
-			const {address: me, signer} = registered();
-			await api.rejectConversation(
+			const {address: me, keySet} = registered();
+			await api.reject(
 				{
-					type: 'rejectConversation',
+					type: 'reject',
 					domain,
 					namespace,
 					conversationID: getConversationID(me, address),
 				},
-				{privateKey: signer.privateKey},
+				{privateKey: keySet.signing.privateKey},
 			);
 		},
 	};
@@ -350,11 +373,8 @@ export function createMessaging(options: MessagingOptions): Messaging {
 			if (of.step !== 'Unregistered' || of.registering) {
 				return;
 			}
-			const {address, signer} = of;
-			const message = originPublicKeyPublicationMessage(
-				appOrigin,
-				signer.publicKey as `0x${string}`,
-			);
+			const {address, keySet} = of;
+			const message = originPublicKeyPublicationMessage(appOrigin, keySet);
 			declined.set(undefined);
 			let signature: `0x${string}`;
 			try {
@@ -369,13 +389,13 @@ export function createMessaging(options: MessagingOptions): Messaging {
 				});
 				return;
 			}
-			// the account (or its key) changed while the wallet signed: the
-			// signature is for a key no longer in use
+			// the account (or its key set) changed while the wallet signed: the
+			// signature is for a key set no longer in use
 			const after = now();
 			if (
 				after.step !== 'Unregistered' ||
 				after.address !== address ||
-				after.signer.privateKey !== signer.privateKey
+				after.keySet.signing.privateKey !== keySet.signing.privateKey
 			) {
 				return;
 			}

@@ -33,7 +33,7 @@
 // FIRST: the services' loggers are made as their modules load (log-sink.ts)
 import './log-sink.js';
 import {spawn, type ChildProcess} from 'node:child_process';
-import {createHash} from 'node:crypto';
+import {createHash, randomBytes} from 'node:crypto';
 import {existsSync, mkdirSync, readFileSync} from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
@@ -197,14 +197,21 @@ async function servePush() {
 }
 
 /**
- * missiv (`with/messaging`), its Node.js platform: the HTTP API and the rooms'
- * sockets on one port, a new direct message pushed to its recipient through the
- * push server above, with missiv's own token for this app's domain (its host).
+ * missiv (`with/messaging`), its Node.js platform: the HTTP API, the rooms'
+ * sockets and the live inbox's (missiv 0.6: one socket per account, polling
+ * `inbox/changes` as its fallback) on one port, a new direct message pushed to
+ * its recipient through the push server above, with missiv's own token for this
+ * app's domain (its host). Its session tokens are signed with
+ * NOTIFIER_MISSIV_SESSION_SECRET, or a secret made at each start: a client whose
+ * token a restart invalidated opens a new session, once, by itself.
  */
 async function serveMissiv() {
 	const {app, injectWebSocket} = await createMissivServer({
 		db: `file:${path.join(DATA, 'missiv.db')}`,
 		env: {
+			SESSION_SECRET:
+				env.NOTIFIER_MISSIV_SESSION_SECRET ??
+				randomBytes(32).toString('base64url'),
 			PUSH_SERVER_URL: `http://${HOST}:${PUSH_PORT}`,
 			PUSH_TOKENS: MISSIV_PUSH_TOKEN
 				? `${new URL(APP_ORIGIN).host}=${MISSIV_PUSH_TOKEN}`

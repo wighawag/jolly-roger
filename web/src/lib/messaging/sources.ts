@@ -6,11 +6,11 @@
  *
  * - the CONFIGURATION, from the public environment: missiv's origin
  *   (`PUBLIC_MISSIV`), or none;
- * - the ACCOUNT, from `@etherplay/connect`'s connection: the wallet and the
- *   origin key connect derives for this app, in missiv's shape (lower case hex).
+ * - the ACCOUNT, from `@etherplay/connect`'s connection: the wallet (lower
+ *   case) and the key set connect derives for this app (`account.keySet`, an
+ *   Ed25519 signing key and an X25519 encryption key), in missiv's shape.
  */
 import {derived, type Readable} from 'svelte/store';
-import {privateKeyToAddress} from 'viem/accounts';
 import type {Account} from '@missiv/client';
 import type {ConnectionLike} from '$lib/push/sources';
 import type {MessagingConfig} from './messaging';
@@ -21,7 +21,7 @@ export type MessagingEnv = {PUBLIC_MISSIV?: string};
  * missiv's configuration, or undefined when `PUBLIC_MISSIV` is unset (messaging
  * is then "not configured", R2), or `'off-browser'` when it is set but there is
  * no page yet (a server render or the prerender). The domain is the page's host
- * and the app origin the page's origin: what connect's origin key and its
+ * and the app origin the page's origin: what connect's key set and its
  * publication signature are for.
  */
 export function messagingConfig(
@@ -47,9 +47,11 @@ export function messagingConfig(
 const lower = (hex: `0x${string}`) => hex.toLowerCase() as `0x${string}`;
 
 /**
- * missiv's account, ONE object per account and origin key (a connection update
+ * missiv's account, ONE object per account and key set (a connection update
  * that leaves them unchanged restarts nothing downstream); undefined unless
- * signed in.
+ * signed in. The wallet's publication signature is not carried here: it
+ * reaches missiv through `register`, from `signOwnership`, so connect keeping
+ * it on the account mid-registration does not restart the stores.
  */
 export function messagingAccount(
 	connection: Readable<ConnectionLike>,
@@ -60,21 +62,14 @@ export function messagingAccount(
 			last = undefined;
 			return last;
 		}
-		const {address, signer} = $connection.account;
+		const {address, keySet} = $connection.account;
 		if (
 			last?.address === lower(address) &&
-			last.signer?.privateKey === lower(signer.privateKey)
+			last.keySet.signing.privateKey === keySet.signing.privateKey
 		) {
 			return last;
 		}
-		last = {
-			address: lower(address),
-			signer: {
-				address: lower(privateKeyToAddress(signer.privateKey)),
-				privateKey: lower(signer.privateKey),
-				publicKey: lower(signer.publicKey),
-			},
-		};
+		last = {address: lower(address), keySet};
 		return last;
 	});
 }

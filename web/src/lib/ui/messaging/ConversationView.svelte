@@ -47,7 +47,7 @@
 		>
 	{:else}
 		<ul class="min-h-0 flex-1 space-y-2 overflow-y-auto">
-			{#each $conversation.messages as message (message.id + message.recipient)}
+			{#each $conversation.messages as message (message.messageID)}
 				<li
 					class="rounded-md px-2 py-1 text-sm {message.sender === view.address
 						? 'bg-muted'
@@ -85,7 +85,7 @@
 				onclick={() => panel.reject(view.address)}>Block</Button
 			>
 		</div>
-	{:else if $conversation.otherUser.publicKey}
+	{:else if $conversation.otherUser.keySet}
 		<Composer
 			composer={encrypted}
 			placeholder="Write a private message..."

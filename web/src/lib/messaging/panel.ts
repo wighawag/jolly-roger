@@ -10,7 +10,11 @@
 import {derived, get, writable, type Readable} from 'svelte/store';
 import type {ConversationList, CurrentConversation} from '@missiv/client';
 import type {MessagingServices} from './messaging';
-import {readMissivPushHandoff, type MissivPushData} from '@missiv/common';
+import {
+	isUnread,
+	readMissivPushHandoff,
+	type MissivPushData,
+} from '@missiv/common';
 
 export type PanelView =
 	| {kind: 'room'}
@@ -31,6 +35,7 @@ export type InboxItem = {
 	accepted: boolean;
 	/** accepted, with a message newer than the last read */
 	unread: boolean;
+	/** the server time of its newest message (ms) */
 	lastMessage: number;
 };
 
@@ -38,7 +43,10 @@ export type Inbox =
 	| {step: 'Idle' | 'Fetching'}
 	| {
 			step: 'Fetched';
+			/** the conversations and requests, newest first; a rejected one is not listed */
 			items: InboxItem[];
+			/** the other members of the conversations this account rejected (blocked) */
+			rejected: `0x${string}`[];
 			/** what the panel's badge counts: unread conversations and requests */
 			count: number;
 	  };
@@ -75,21 +83,27 @@ export function inboxOf(list: ConversationList): Inbox {
 		return {step: list.step};
 	}
 	const me = lower(list.address);
+	const otherOf = (members: string[]) =>
+		lower(members.find((member) => lower(member) !== me) ?? me);
 	const items = list.conversations
-		.map((conversation) => ({
-			address: lower(
-				conversation.members.find((member) => lower(member) !== me) ?? me,
-			),
-			accepted: conversation.accepted,
-			unread:
-				conversation.accepted &&
-				conversation.lastRead < conversation.lastMessage,
-			lastMessage: conversation.lastMessage,
-		}))
+		.filter((conversation) => conversation.status !== 'rejected')
+		.map((conversation) => {
+			const accepted = conversation.status === 'accepted';
+			return {
+				address: otherOf(conversation.members),
+				accepted,
+				unread: accepted && isUnread(conversation),
+				lastMessage: conversation.lastMessageAt,
+			};
+		})
 		.sort((a, b) => b.lastMessage - a.lastMessage);
+	const rejected = list.conversations
+		.filter((conversation) => conversation.status === 'rejected')
+		.map((conversation) => otherOf(conversation.members));
 	return {
 		step: 'Fetched',
 		items,
+		rejected,
 		count: list.numUnread + list.numUnaccepted,
 	};
 }
@@ -267,7 +281,7 @@ export function createMessagingPanel(
 	services: MessagingServices | undefined,
 ): MessagingPanel {
 	const state = writable<PanelState>({open: false, view: {kind: 'room'}});
-	// accepted here since the list was last fetched (it is polled)
+	// accepted here, before the list's live inbox passed the accepted row on
 	const acceptedHere = writable(new Set<string>());
 
 	const inbox = services ? derived(services.conversations, inboxOf) : undefined;
@@ -285,8 +299,11 @@ export function createMessagingPanel(
 			}
 			const address = $panel.view.address;
 			const item = $inbox.items.find((i) => i.address === address);
-			// a conversation not in the list yet is one this account starts
-			const accepted = !item || item.accepted || $acceptedHere.has(address);
+			// a conversation not in the list yet is one this account starts; a
+			// rejected one is not, and showing it must not accept it
+			const accepted =
+				$acceptedHere.has(address) ||
+				(item ? item.accepted : !$inbox.rejected.includes(address));
 			return {
 				address,
 				accepted,

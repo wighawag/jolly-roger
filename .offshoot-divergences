@@ -178,8 +178,8 @@ web/e2e/accounts.json                                  a pool of 7: a seventh ac
 [with/messaging]
 # AND BELOW THIS LINE, WHAT `with/messaging` MODIFIES FROM ITS STEM,
 # `with/push-notifications`: a chat room and direct messages on missiv
-# (@missiv/client), proven by the same delegate key and wallet signature as
-# the notifications, a direct message pushed to its recipient by missiv
+# (@missiv/client), proven by the same key set and wallet signature as the
+# notifications, a direct message pushed to its recipient by missiv
 # through the same push server (README.messaging.md).
 
 package.json                                           the LAN package's pnpmDepsHash for this branch's lockfile
