@@ -4,7 +4,9 @@ import {logs} from 'named-logs';
 import {handleAutomaticUpdate, listenForWaitingServiceWorker} from './utils';
 import {wouldDisturbForeignWorker} from './scope';
 import {createNotificationClicks} from './notification-click';
+import type {PushHandoffs} from './push-handoff';
 export type {NotificationClick, NotificationClicks} from './notification-click';
+export type {PushHandoffs} from './push-handoff';
 
 import type {NotificationsService, NotificationToAdd} from '../notifications';
 import type {PathResolver} from '../utils/web/path';
@@ -182,12 +184,18 @@ function fromPushNotification(
 export function createServiceWorker(
 	environment: ServiceWorkerEnvironment,
 	notifications?: NotificationsService,
+	/**
+	 * the hand-offs the page reads from its URL (QA F23, `./push-handoff.ts`),
+	 * published as clicks with the worker's
+	 */
+	pushHandoffs?: PushHandoffs,
 ) {
 	const {resolvePath, navigateTo} = environment;
 	const store = writable<ServiceWorkerState>(undefined);
 	const notificationClicks = createNotificationClicks({
 		navigateTo,
 		currentHref: () => location.href,
+		pushHandoffs,
 	});
 	// a push's `navigate`, resolved like the worker does (`notificationTarget`):
 	// a relative path against the worker's folder, so a base path is kept
@@ -628,7 +636,8 @@ export function createServiceWorker(
 		/**
 		 * The latest click on one of this app's notifications (QA F19), the page
 		 * already moved to its URL: for an app that acts on the notification's
-		 * `data`. See `./notification-click.ts`.
+		 * `data`. A push's hand-off the page read from its URL (QA F23) is one
+		 * too, its `data` the hand-off. See `./notification-click.ts`.
 		 */
 		notificationClicks: notificationClicks.clicks,
 		register,
