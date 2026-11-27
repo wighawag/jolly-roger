@@ -81,6 +81,30 @@ describe('notificationFromPush', () => {
 		).toEqual({navigate: '/own'});
 	});
 
+	// The Notifications standard ("Activating a notification"): a notification
+	// with a navigation URL is navigated to and `notificationclick` is NOT
+	// fired. The worker routes clicks itself (QA F19), so a push's `navigate`
+	// stays in `data`, hand-off and all (QA F23), never in the options.
+	it("keeps navigate out of showNotification's options, in data, a hand-off fragment and all", () => {
+		const navigate = 'https://app.example/#push-handoff=eyJtIjp7fX0';
+		const shown = notificationFromPush(
+			JSON.stringify({
+				web_push: 8030,
+				notification: {
+					title: 'New message',
+					navigate,
+					data: {missiv: {conversationID: '0xc'}},
+				},
+			}),
+			ICON,
+		);
+		expect(shown.options).not.toHaveProperty('navigate');
+		expect(shown.options.data).toEqual({
+			missiv: {conversationID: '0xc'},
+			navigate,
+		});
+	});
+
 	it('reads the legacy shape, a title with options at the root', () => {
 		const shown = notificationFromPush(
 			JSON.stringify({title: 'Old', options: {body: 'b'}}),
