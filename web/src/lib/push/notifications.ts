@@ -6,18 +6,19 @@
  * - push-notification-server holds THIS DEVICE's Web Push subscription for the
  *   account (`/register`), which @push-notification/client does: it asks the
  *   browser for a subscription against the server's VAPID key and registers
- *   it, signed by the app's delegate key and proven by the wallet's ownership
- *   signature (delegated-identity);
+ *   it, signed by the account's Ed25519 signing key (its key set in the app,
+ *   which connect derives) and proven by the wallet's ownership signature over
+ *   that key set (delegated-identity 0.2);
  * - the trigger service (etherfold's, `@etherfold/platform-nodejs-triggers`)
  *   holds the account's TRIGGER (`/subscriptions`, a `kind` the operator
  *   declared, such as "a new greeting from anyone but me"), which this module
- *   registers itself with the same identity: the same delegate key and the same
+ *   registers itself with the same identity: the same key set and the same
  *   ownership signature, signed for the trigger service's origin.
  *
  * So the wallet is asked once, at most, and that is connect's to ensure: the
  * ownership signature is the account's `savedPublicKeyPublicationSignature`
  * (a hosted account's from sign-in; a wallet's once it answered, which
- * `@etherplay/connect` 0.18 keeps on the persisted account), else
+ * `@etherplay/connect` keeps on the persisted account), else
  * `signOwnership` (connect's `getSignatureForPublicKeyPublication`) is asked,
  * and connect keeps what the wallet answers, for the trigger registration, its
  * renewal on every later load and `disable()`. Nothing is cached here.
@@ -59,11 +60,11 @@ import {
 	type PushStatus,
 } from '@push-notification/client';
 import {
-	delegatePublicKey,
 	fromDomainToOrigin,
 	originPublicKeyPublicationMessage,
 	REQUEST_SIGNATURE_HEADER,
 	signRequest,
+	type KeySet,
 } from 'delegated-identity';
 
 export type NotificationsConfig = {
@@ -71,17 +72,26 @@ export type NotificationsConfig = {
 	pushServer: string;
 	/** its VAPID public key (base64url) */
 	vapidPublicKey: string;
-	/** the trigger service's public ORIGIN (its API is served at its root) */
+	/**
+	 * the API root of this app at the trigger service: its public origin and
+	 * the app's prefix, e.g. `https://triggers.example/greetings` (one service
+	 * hosts several apps, each at `/{app}/`, @etherfold/triggers 0.3)
+	 */
 	notifier: string;
 	/** this app, as both services' configuration names it: a bare host or an origin */
 	domain: string;
 };
 
-/** The account notifications are addressed to (the wallet), and the app's delegate key for it. */
+/** The account notifications are addressed to (the wallet), and its key set in the app. */
 export type NotifiedAccount =
 	| {
 			address: `0x${string}`;
-			delegatePrivateKey: `0x${string}`;
+			/**
+			 * the account's key set in this app (connect's `account.keySet`): its
+			 * Ed25519 signing key signs each request, and only the two public keys
+			 * are sent
+			 */
+			keySet: KeySet;
 			/** the wallet's signature over the publication message, when the app holds it */
 			ownershipSignature?: `0x${string}`;
 	  }
@@ -165,13 +175,13 @@ export type NotificationsOptions = {
 	/**
 	 * The wallet's signature over the publication message, when the account
 	 * carries none: `@etherplay/connect`'s `getSignatureForPublicKeyPublication`,
-	 * which asks a wallet at most once per account and origin key (0.18) and
-	 * keeps the answer on the account.
+	 * which asks a wallet at most once per account and key set and keeps the
+	 * answer on the account.
 	 */
 	signOwnership: (address: string, message: string) => Promise<`0x${string}`>;
 	/**
 	 * One account per device: enabling removes this device's registrations for
-	 * the app's other accounts (push-notification-server 0.2's option). Default
+	 * the app's other accounts (push-notification-server's option, since 0.2). Default
 	 * false, several accounts per device; this app's composition sets it.
 	 */
 	replaceOtherAccounts?: boolean;
@@ -207,10 +217,7 @@ export function createNotifications(
 	const appOrigin = fromDomainToOrigin(config.domain);
 
 	function publicationOf(of: NonNullable<NotifiedAccount>) {
-		return originPublicKeyPublicationMessage(
-			appOrigin,
-			delegatePublicKey(of.delegatePrivateKey),
-		);
+		return originPublicKeyPublicationMessage(appOrigin, of.keySet);
 	}
 	/** The signature at hand, the wallet NOT asked: the account's own. */
 	function knownOwnership(of: NonNullable<NotifiedAccount>) {
@@ -262,12 +269,16 @@ export function createNotifications(
 		const body = JSON.stringify({
 			address: of.address,
 			domain: services.domain,
+			keySet: {
+				signing: {publicKey: of.keySet.signing.publicKey},
+				encryption: {publicKey: of.keySet.encryption.publicKey},
+			},
 			ownershipSignature,
 			kind: options.kind,
 		});
 		const signature = await signRequest(
 			{serverOrigin: url.origin, method: 'POST', path: url.pathname, body},
-			of.delegatePrivateKey,
+			of.keySet.signing.privateKey,
 		);
 		const response = await doFetch(url.toString(), {
 			method: 'POST',

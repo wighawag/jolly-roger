@@ -11,18 +11,22 @@ import {
 	publicationSigner,
 	type ConnectionLike,
 } from '$lib/push/sources.js';
-import {originPublicKeyPublicationMessage} from 'delegated-identity';
+import {
+	deriveKeySet,
+	originPublicKeyPublicationMessage,
+} from 'delegated-identity';
+
+/** The key set connect derives from the origin key `key` (a short hex, padded). */
+const keySetOf = (key: string) =>
+	deriveKeySet(`0x${key.slice(2).padStart(64, '0')}`);
 
 const signedIn = (address: string, key: string, saved?: string) =>
 	({
 		step: 'SignedIn',
 		account: {
 			address,
-			signer: {
-				origin: 'http://app.example',
-				publicKey: `pub-${key}`,
-				privateKey: key,
-			},
+			signer: {origin: 'http://app.example'},
+			keySet: keySetOf(key),
 			...(saved ? {savedPublicKeyPublicationSignature: saved} : {}),
 		},
 	}) as unknown as ConnectionLike;
@@ -35,11 +39,11 @@ describe('notifiedAccount', () => {
 		expect(get(notifiedAccount(connection))).toBeUndefined();
 	});
 
-	it("is the wallet, the app's delegate key and connect's saved signature", () => {
+	it("is the wallet, the account's key set in the app and connect's saved signature", () => {
 		const connection = writable(signedIn('0xA', '0x1', '0xsig'));
 		expect(get(notifiedAccount(connection))).toEqual({
 			address: '0xA',
-			delegatePrivateKey: '0x1',
+			keySet: keySetOf('0x1'),
 			ownershipSignature: '0xsig',
 		});
 	});
@@ -67,14 +71,14 @@ describe('notificationsConfig', () => {
 	const env = {
 		PUBLIC_PUSH_SERVER: 'http://localhost:34005/api',
 		PUBLIC_VAPID_PUBLIC_KEY: 'BKey',
-		PUBLIC_NOTIFIER: 'http://localhost:34006',
+		PUBLIC_NOTIFIER: 'http://localhost:34006/greetings',
 	};
 
 	it('is the three services and the page origin', () => {
 		expect(notificationsConfig(env, 'http://localhost:5173')).toEqual({
 			pushServer: 'http://localhost:34005/api',
 			vapidPublicKey: 'BKey',
-			notifier: 'http://localhost:34006',
+			notifier: 'http://localhost:34006/greetings',
 			domain: 'http://localhost:5173',
 		});
 	});
@@ -219,7 +223,7 @@ describe('publicationSigner', () => {
 	}
 	const message = originPublicKeyPublicationMessage(
 		'http://app.example',
-		'pub-0x1' as `0x${string}`,
+		keySetOf('0x1'),
 	);
 
 	it("is connect's signature for the account signed in and the message it signs", async () => {
@@ -234,7 +238,7 @@ describe('publicationSigner', () => {
 		const connection = connectionOf(signedIn('0xA', '0x1'));
 		const other = originPublicKeyPublicationMessage(
 			'http://elsewhere.example',
-			'pub-0x1' as `0x${string}`,
+			keySetOf('0x1'),
 		);
 		await expect(publicationSigner(connection)('0xA', other)).rejects.toThrow(
 			/signing origin/,

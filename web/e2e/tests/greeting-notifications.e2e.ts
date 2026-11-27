@@ -7,7 +7,7 @@ import {
 import {createWalletClient, http, parseAbi} from 'viem';
 import {generatePrivateKey, privateKeyToAccount} from 'viem/accounts';
 import {
-	delegatePublicKey,
+	deriveKeySet,
 	originPublicKeyPublicationMessage,
 	REQUEST_SIGNATURE_HEADER,
 	signRequest,
@@ -282,12 +282,10 @@ const OTHER_ENDPOINT = `https://push.invalid/e2e-other-${Date.now()}`;
 const otherAccount = privateKeyToAccount(generatePrivateKey());
 
 async function registerForOtherAccount(appOrigin: string) {
-	const delegatePrivateKey = generatePrivateKey();
+	// the other account's key set in the app, as connect derives it from its origin key
+	const keySet = deriveKeySet(generatePrivateKey());
 	const ownershipSignature = await otherAccount.signMessage({
-		message: originPublicKeyPublicationMessage(
-			appOrigin,
-			delegatePublicKey(delegatePrivateKey),
-		),
+		message: originPublicKeyPublicationMessage(appOrigin, keySet),
 	});
 	const url = new URL(`${PUSH_SERVER}/api/register`);
 	const body = JSON.stringify({
@@ -298,11 +296,15 @@ async function registerForOtherAccount(appOrigin: string) {
 			expirationTime: null,
 			keys: {p256dh: 'e2e-p256dh', auth: 'e2e-auth'},
 		},
+		keySet: {
+			signing: {publicKey: keySet.signing.publicKey},
+			encryption: {publicKey: keySet.encryption.publicKey},
+		},
 		ownershipSignature,
 	});
 	const signature = await signRequest(
 		{serverOrigin: url.origin, method: 'POST', path: url.pathname, body},
-		delegatePrivateKey,
+		keySet.signing.privateKey,
 	);
 	const response = await fetch(url, {
 		method: 'POST',

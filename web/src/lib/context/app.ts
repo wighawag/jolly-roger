@@ -128,7 +128,7 @@ export function createAppContext(core: CoreServices): AppMembers {
 
 	// PUSH NOTIFICATIONS (`with/push-notifications`): "notify me of new
 	// greetings", this device registered at the push server and the account's
-	// trigger at the trigger service, both proven by the delegate key connect
+	// trigger at the trigger service, both proven by the key set connect
 	// derives for this app (`$lib/push`, README.push-notifications.md). With
 	// either service unset it says notifications are not configured.
 	// the BUILD's mode, as +layout.ts reads it (`$app/environment`), not `$lib`'s

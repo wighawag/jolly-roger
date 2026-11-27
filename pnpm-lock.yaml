@@ -172,8 +172,8 @@ importers:
         specifier: ^0.2.2
         version: 0.2.2(@etherfold/browser@0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3))(vitest@4.1.11)
       '@etherfold/platform-nodejs-triggers':
-        specifier: ^0.1.1
-        version: 0.1.1(hono@4.13.3)(typescript@6.0.3)(zod@4.4.3)
+        specifier: ^0.3.0
+        version: 0.3.0(typescript@6.0.3)(zod@4.4.3)
       '@etherfold/processor-entities':
         specifier: ^0.4.2
         version: 0.4.2(typescript@6.0.3)(zod@4.4.3)
@@ -205,14 +205,14 @@ importers:
         specifier: ^1.62.1
         version: 1.62.1
       '@push-notification/cli':
-        specifier: ^0.2.0
-        version: 0.2.0(hono@4.13.3)
+        specifier: ^0.3.0
+        version: 0.3.0(hono@4.13.3)
       '@push-notification/client':
-        specifier: ^0.2.0
-        version: 0.2.0
+        specifier: ^0.3.0
+        version: 0.3.0
       '@push-notification/server':
-        specifier: ^0.2.0
-        version: 0.2.0
+        specifier: ^0.3.0
+        version: 0.3.0
       '@sveltejs/adapter-static':
         specifier: ^3.0.11
         version: 3.0.11(@sveltejs/kit@2.70.3(@sveltejs/vite-plugin-svelte@7.3.0(svelte@5.56.9)(vite@8.2.4(@types/node@26.2.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)))(svelte@5.56.9)(typescript@6.0.3)(vite@8.2.4(@types/node@26.2.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)))
@@ -244,8 +244,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       delegated-identity:
-        specifier: ^0.1.1
-        version: 0.1.1
+        specifier: ^0.2.0
+        version: 0.2.0
       eip-1193:
         specifier: ^0.7.4
         version: 0.7.4
@@ -593,8 +593,8 @@ packages:
   '@etherfold/platform-nodejs-fetcher@0.2.5':
     resolution: {integrity: sha512-hTpBCzinV1mIgWTutHLOOCQkd1vz5jaYeLwmVSNW6cLbSnuNy6CNVi1e3e5cPUIYg6Z1rCXE/pb2oghJqXkjXA==}
 
-  '@etherfold/platform-nodejs-triggers@0.1.1':
-    resolution: {integrity: sha512-w8yMHAZXKboHzirSeT1XHCFrXY4cC4boxMpMuRHvh41qLPuK+i1iM/9Ds86HFL9WXfOmk6bfFf8uvBsSASo51A==}
+  '@etherfold/platform-nodejs-triggers@0.3.0':
+    resolution: {integrity: sha512-WUttwfZTGBERn7+qNCEqu/20N0bAbCKi+jskcdBm6IrpT4/IEc0CQcupFYTJN7tTBnsjAWIMhDItAeTHeiZX5w==}
     hasBin: true
 
   '@etherfold/platform-nodejs@0.3.3':
@@ -615,8 +615,8 @@ packages:
   '@etherfold/state-store@0.5.1':
     resolution: {integrity: sha512-0NXxg0cE2zKrwyWD3nrHf0lp1QZX/YQCBI4CAapmtgOI4NHdCIICbek45rIMfgYv/1k1BEULSech6F+K3ohgaQ==}
 
-  '@etherfold/triggers@0.2.0':
-    resolution: {integrity: sha512-xKKcWyqekoJEvLvlFPtypp2fKszz9jkvYpYRDY9fz/r5h45DR68+tdmKWsSopII18HAiUfj77hFouWgDkexuRA==}
+  '@etherfold/triggers@0.4.0':
+    resolution: {integrity: sha512-eYc5Sc2m1LVVWUXdInkTLzrhrorqI90vIz3bA5jiwS6w8HojwJrjYZgol6JJaIPIhuDMQ6+QegmNc2LIoSRpzg==}
 
   '@etherfold/utils@0.8.5':
     resolution: {integrity: sha512-zIdHvvkML9Tah1s3kZpr8SC2zz0zVFYP7dMjr0BZIluipB31kyGKrw6lTpJWArXLH6fdzMWUX41P6pJDaHJAUg==}
@@ -1288,15 +1288,15 @@ packages:
     peerDependencies:
       graphql: ^16.10.0 || ^17.0.0
 
-  '@push-notification/cli@0.2.0':
-    resolution: {integrity: sha512-k84RGxkDxdYVO/8q4R5D/oDUkD+hXTIXao1mncd9Jvt5qre/NojBvO+TXptLBAtux55LR5R+0gx1rG8dZIQ7Tg==}
+  '@push-notification/cli@0.3.0':
+    resolution: {integrity: sha512-ExkhpkS/10x6RFq9F2BoJwG9ACNtvwdcIAk+uDzdTi1ejX4xoDe8aM5FXqtsEB1s3TcLQ9gAVzYTyOj4DiYJ/g==}
     hasBin: true
 
-  '@push-notification/client@0.2.0':
-    resolution: {integrity: sha512-dMl952B1VeC2b4CT7u/VcW6k+Ne0W8GbndBfwxZL1Vnn4CahkDECD+5oe+gWJ5uU3pR9RMqqrNPrrWu0LA3Vxw==}
+  '@push-notification/client@0.3.0':
+    resolution: {integrity: sha512-ZiLB8fD+njc3M5167q41B4dCC/IG9c5tzQjshZsEhLRnNfTO29/VEVHgX0W1yoPvDl9C+s2MQNzX4OzMQLIwpw==}
 
-  '@push-notification/server@0.2.0':
-    resolution: {integrity: sha512-unToM9Mg8WM74HSmj/1jKPX/GC69qrjUpHig7oSmx/ycqSl2ucjfpTo9uumsAhOSux9uBYrl1KpN+BJbhwt5Kw==}
+  '@push-notification/server@0.3.0':
+    resolution: {integrity: sha512-kKonz51aFRpNcbTPmKdRD0cO8PRdmSNlgNQNO7BXFGu/raTwQSx/RT757CIVKS6JB8/kVDkLmKAAEic2d3rlLw==}
 
   '@repeaterjs/repeater@3.1.0':
     resolution: {integrity: sha512-TaoVksZRSx2KWYYpyLQtMQXXeS98VsgZImzW65xmiVgbYhXLk+aEsmzPLirqVuE4/XuUapH2iMtxUzaBNDzdSQ==}
@@ -2030,9 +2030,6 @@ packages:
   delayed-stream@1.0.0:
     resolution: {integrity: sha512-ZySD7Nf91aLB0RxL4KGrKHBXl7Eds1DAmEdcoVawXnLD7SDhpNgtuII2aAkg7a7QS41jxPSZ17p4VdGnMHk3MQ==}
     engines: {node: '>=0.4.0'}
-
-  delegated-identity@0.1.1:
-    resolution: {integrity: sha512-JnsY+IMX/ebUAb8buUgr4/LYbLe4sWHD96wwvmwqtNxi6zGpbilpBdDM5cxKHwFiZGehP2/Zl03t2t+b1o1jDg==}
 
   delegated-identity@0.2.0:
     resolution: {integrity: sha512-UOysSpobqDIzv6SzJ+a5HOTyJRWIOC34vqrZEH4MSoNcCPboxm3XIduCR8UYtRrrhgukzBrXGBP/vXLvwrny8Q==}
@@ -3714,17 +3711,17 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@etherfold/platform-nodejs-triggers@0.1.1(hono@4.13.3)(typescript@6.0.3)(zod@4.4.3)':
+  '@etherfold/platform-nodejs-triggers@0.3.0(typescript@6.0.3)(zod@4.4.3)':
     dependencies:
-      '@etherfold/triggers': 0.2.0(typescript@6.0.3)(zod@4.4.3)
+      '@etherfold/triggers': 0.4.0(typescript@6.0.3)(zod@4.4.3)
       '@hono/node-server': 2.1.1(hono@4.13.3)
       '@libsql/client': 0.17.4
+      hono: 4.13.3
       remote-sql: 0.0.7
       remote-sql-libsql: 0.0.7(@libsql/core@0.17.4)
     transitivePeerDependencies:
       - '@libsql/core'
       - bufferutil
-      - hono
       - typescript
       - utf-8-validate
       - zod
@@ -3806,9 +3803,9 @@ snapshots:
 
   '@etherfold/state-store@0.5.1': {}
 
-  '@etherfold/triggers@0.2.0(typescript@6.0.3)(zod@4.4.3)':
+  '@etherfold/triggers@0.4.0(typescript@6.0.3)(zod@4.4.3)':
     dependencies:
-      delegated-identity: 0.1.1
+      delegated-identity: 0.2.0
       hono: 4.13.3
       remote-sql: 0.0.7
       viem: 2.55.19(typescript@6.0.3)(zod@4.4.3)
@@ -4479,11 +4476,11 @@ snapshots:
     dependencies:
       graphql: 16.15.0
 
-  '@push-notification/cli@0.2.0(hono@4.13.3)':
+  '@push-notification/cli@0.3.0(hono@4.13.3)':
     dependencies:
       '@hono/node-server': 1.19.19(hono@4.13.3)
       '@libsql/client': 0.15.15
-      '@push-notification/server': 0.2.0
+      '@push-notification/server': 0.3.0
       ldenv: 0.3.16
       remote-sql-libsql: 0.0.6
     transitivePeerDependencies:
@@ -4500,18 +4497,18 @@ snapshots:
       - zod-openapi
       - zod-to-json-schema
 
-  '@push-notification/client@0.2.0':
+  '@push-notification/client@0.3.0':
     dependencies:
-      delegated-identity: 0.1.1
+      delegated-identity: 0.2.0
       sveltore: 1.0.0
 
-  '@push-notification/server@0.2.0':
+  '@push-notification/server@0.3.0':
     dependencies:
       '@block65/webcrypto-web-push': 1.0.2
       '@hono/standard-validator': 0.4.1(@standard-schema/spec@1.1.0)(hono@4.13.3)
       '@hono/swagger-ui': 0.5.3(hono@4.13.3)
       '@standard-schema/spec': 1.1.0
-      delegated-identity: 0.1.1
+      delegated-identity: 0.2.0
       hono: 4.13.3
       hono-openapi: 1.6.0(hono@4.13.3)(zod@4.4.3)
       named-logs: 0.3.2
@@ -5283,11 +5280,6 @@ snapshots:
       gopd: 1.2.0
 
   delayed-stream@1.0.0: {}
-
-  delegated-identity@0.1.1:
-    dependencies:
-      '@noble/hashes': 1.8.0
-      '@noble/secp256k1': 2.3.0
 
   delegated-identity@0.2.0:
     dependencies:

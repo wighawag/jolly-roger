@@ -17,6 +17,12 @@
  * can deliver it to the worker itself. (The trigger service's registration API
  * answers CORS for the app's origin itself since @etherfold/triggers 0.2.)
  *
+ * The trigger service hosts its apps by name (@etherfold/triggers 0.3): this
+ * one is `greetings`, the indexer's name, so its registration API is at
+ * `/greetings/...` and the app's PUBLIC_NOTIFIER names that prefix. Its
+ * database is keyed by app since 0.3, and one written by an older service is
+ * refused at start: `pnpm notifier:reset` starts it empty.
+ *
  * Configuration is the environment (defaults are the dev stack's), plus
  * `notifier/.env.local`, the dev keys `keys.mjs` writes. The services' own
  * logs (a push the browser's push service refused, with its status and body)
@@ -230,42 +236,47 @@ async function serveTriggers(signal: AbortSignal) {
 	const origin =
 		env.NOTIFIER_TRIGGERS_ORIGIN ?? `http://${HOST}:${TRIGGERS_PORT}`;
 	const config = defineConfig({
-		name: INDEXER,
-		chainId: source.chainId,
 		database: `file:${path.join(DATA, 'triggers.db')}`,
-		etherfold: {url: `http://${HOST}:${INDEXER_PORT}`, indexer: INDEXER},
-		gate: {rpcUrl: RPC_URL, depth: 0},
-		triggers: greetingTriggers(source.contracts[0].address),
-		actions: {
-			push: pushAction({
-				url: `http://${HOST}:${PUSH_PORT}/api`,
-				domain: APP_ORIGIN,
-				token: required('NOTIFIER_PUSH_TOKEN', PUSH_TOKEN),
-			}),
-		},
-		verifier: delegatedIdentityVerifier({
-			serverOrigin: origin,
-			domain: APP_ORIGIN,
-		}),
 		intervalMs: INTERVAL_MS,
+		apps: {
+			// the app's name, the prefix of its routes: `/greetings/subscriptions`, ...
+			[INDEXER]: {
+				chainId: source.chainId,
+				etherfold: {url: `http://${HOST}:${INDEXER_PORT}`, indexer: INDEXER},
+				gate: {rpcUrl: RPC_URL, depth: 0},
+				triggers: greetingTriggers(source.contracts[0].address),
+				actions: {
+					push: pushAction({
+						url: `http://${HOST}:${PUSH_PORT}/api`,
+						domain: APP_ORIGIN,
+						token: required('NOTIFIER_PUSH_TOKEN', PUSH_TOKEN),
+					}),
+				},
+				verifier: delegatedIdentityVerifier({
+					serverOrigin: origin,
+					domain: APP_ORIGIN,
+				}),
+			},
+		},
 	});
-	const {service, close} = await createNodeService(config);
+	const service = await createNodeService(config);
 	const server = listen(
 		'trigger service',
 		TRIGGERS_PORT,
-		// CORS for the app's origin is the registration API's own (@etherfold/triggers
-		// 0.2: the verifier's app)
+		// every app's routes under `/{app}/`, CORS for each app's origin its own
+		// (@etherfold/triggers 0.2: the verifier's app)
 		(request) => service.api!.fetch(request),
 	);
 	try {
 		await service.run({
 			signal,
 			intervalMs: INTERVAL_MS,
-			onError: (error) => console.error('trigger service:', error),
+			onError: (app, error) =>
+				console.error(`trigger service (${app}):`, error),
 		});
 	} finally {
 		server.close();
-		close();
+		service.close();
 	}
 }
 

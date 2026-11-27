@@ -153,8 +153,9 @@ web/test/lib/view/pending-operations.test.ts           the optimistic entry keye
 # STEMS, `with/indexer` then `with/local-signer` (merged in that order): a
 # device subscribed to Web Push (@push-notification/client) and a trigger
 # registered with the trigger service (@etherfold/platform-nodejs-triggers),
-# both proven by the local signer's delegate key, so a new greeting by anyone
-# else reaches the account as a push (README.push-notifications.md).
+# both proven by the key set connect derives from the local signer's origin
+# key, so a new greeting by anyone else reaches the account as a push
+# (README.push-notifications.md).
 
 # Where the two stems meet, a file holds both
 contracts/package.json                                 both stems' changes: @etherplay/delegation (local-signer) and etherfold's packages with the utils export (indexer)
