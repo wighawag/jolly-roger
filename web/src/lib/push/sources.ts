@@ -4,20 +4,24 @@
  * and what the app has.
  *
  * - the ACCOUNT, from `@etherplay/connect`'s connection: the wallet's address,
- *   the origin key connect derives for this app (the local signer's key, the
- *   delegate both services check), and connect's saved publication signature
- *   when it holds one (a hosted account, which can never sign it again);
+ *   the key set connect derives for this app (`account.keySet`, an Ed25519
+ *   signing key and an X25519 encryption key, which both services check
+ *   through the publication signature), and connect's saved publication
+ *   signature when it holds one (a hosted account's, from sign-in);
  * - the CONFIGURATION, from the public environment: the push server's API
  *   root, its VAPID key and the trigger service's origin, all three or none;
  * - the WALLET's signature over the publication message, when the account
  *   carries none: connect's `getSignatureForPublicKeyPublication`, which asks a
- *   wallet at most once per account and origin key and keeps the answer;
+ *   wallet at most once per account and key set and keeps the answer;
  * - the WORKER's registration, once it is ready, or why there will be none
  *   (none in dev unless the worker is enabled there, `PUBLIC_ENABLE_SW_IN_DEV`),
  *   so the page can say so rather than ask to sign in (QA F13).
  */
 import {derived, get, readable, type Readable} from 'svelte/store';
-import {originPublicKeyPublicationMessage} from 'delegated-identity';
+import {
+	originPublicKeyPublicationMessage,
+	type KeySet,
+} from 'delegated-identity';
 import type {ServiceWorkerState} from '$lib/core/service-worker';
 import type {
 	NotificationsConfig,
@@ -31,21 +35,18 @@ export type ConnectionLike =
 			step: 'SignedIn';
 			account: {
 				address: `0x${string}`;
-				signer: {
-					origin: string;
-					publicKey: `0x${string}`;
-					privateKey: `0x${string}`;
-				};
+				signer: {origin: string};
+				keySet: KeySet;
 				savedPublicKeyPublicationSignature?: `0x${string}`;
 			};
 	  }
 	| {step: Exclude<string, 'SignedIn'>};
 
 /**
- * The account notifications are for, ONE object per account and origin key: a
+ * The account notifications are for, ONE object per account and key set: a
  * connection update that leaves them unchanged does not make the stores
  * downstream check the services again. That includes connect keeping the
- * wallet's publication signature on the account (0.18) DURING an `enable()`:
+ * wallet's publication signature on the account DURING an `enable()`:
  * a new object then would make the push client re-check mid-action. The object
  * keeps the signature it was made with, and a later ask goes through connect,
  * which answers from what it kept; a page load reads it from the start.
@@ -59,17 +60,17 @@ export function notifiedAccount(
 			last = undefined;
 			return last;
 		}
-		const {address, signer, savedPublicKeyPublicationSignature} =
+		const {address, keySet, savedPublicKeyPublicationSignature} =
 			$connection.account;
 		if (
 			last?.address === address &&
-			last.delegatePrivateKey === signer.privateKey
+			last.keySet.signing.privateKey === keySet.signing.privateKey
 		) {
 			return last;
 		}
 		last = {
 			address,
-			delegatePrivateKey: signer.privateKey,
+			keySet,
 			...(savedPublicKeyPublicationSignature
 				? {ownershipSignature: savedPublicKeyPublicationSignature}
 				: {}),
@@ -91,7 +92,7 @@ const trimmed = (url: string) => url.replace(/\/+$/, '');
  * configured", R2), or `'off-browser'` when they are set but there is no page
  * yet (a server render or the prerender, where nothing can be subscribed and
  * the page must not say "not configured" only to flip). `domain` is the page's
- * origin: what connect's origin key and saved signature are for, and what both
+ * origin: what connect's key set and saved signature are for, and what both
  * services' configuration must name.
  */
 export function notificationsConfig(
@@ -169,8 +170,8 @@ export type PublicationSigning = Readable<ConnectionLike> & {
 /**
  * The publication signature, from `@etherplay/connect` (its
  * `getSignatureForPublicKeyPublication`): a hosted account's saved one, or the
- * wallet asked at most once per account and origin key, kept on the account.
- * Connect signs for ITS signing origin and key, so this refuses a message that
+ * wallet asked at most once per account and key set, kept on the account.
+ * Connect signs for ITS signing origin and key set, so this refuses a message that
  * is not that one (the app's domain must be connect's signing origin: the
  * page's, unless the app sets `signingOrigin`) or an account that is not the
  * one signed in, rather than hand a service a signature it will refuse.
@@ -185,8 +186,9 @@ export function publicationSigner(connection: PublicationSigning) {
 		) {
 			throw new Error(`${address} is not the account signed in`);
 		}
-		const {origin, publicKey} = $connection.account.signer;
-		if (originPublicKeyPublicationMessage(origin, publicKey) !== message) {
+		const {signer, keySet} = $connection.account;
+		const {origin} = signer;
+		if (originPublicKeyPublicationMessage(origin, keySet) !== message) {
 			throw new Error(
 				`the publication message asked for is not the one the connection signs: is the app's domain connect's signing origin (${origin})?`,
 			);

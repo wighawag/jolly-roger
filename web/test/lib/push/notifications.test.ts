@@ -27,7 +27,7 @@ import {
 	NEW_GREETING,
 } from '$lib/onchain/notifier/greetings.js';
 import {
-	delegatePublicKey,
+	deriveKeySet,
 	originPublicKeyPublicationMessage,
 } from 'delegated-identity';
 
@@ -125,8 +125,8 @@ describe('createNotifications, against the push server and the trigger service i
 		});
 		now = Date.now();
 		triggers = createTriggerService({
-			db: openDatabase({database: ':memory:'}).db,
-			name: 'greetings',
+			db: openDatabase(':memory:').db,
+			app: 'greetings',
 			chainId: '31337',
 			feed: canonicalFeed({
 				url: 'http://etherfold.invalid',
@@ -153,12 +153,13 @@ describe('createNotifications, against the push server and the trigger service i
 		throw new Error(`no such host: ${url}`);
 	}) as typeof fetch;
 
-	// `signOwnership` stands for @etherplay/connect 0.18's
+	// `signOwnership` stands for @etherplay/connect's
 	// getSignatureForPublicKeyPublication: the wallet asked at most once, its
 	// answer kept on the account (so a reload starts with it, `reloadedAccount`)
 	function newAccount() {
 		const wallet = privateKeyToAccount(generatePrivateKey());
-		const delegatePrivateKey = generatePrivateKey();
+		// the account's key set in the app, as connect derives it from its origin key
+		const keySet = deriveKeySet(generatePrivateKey());
 		const walletPrompts = vi.fn(async (message: string) =>
 			wallet.signMessage({message}),
 		);
@@ -169,7 +170,7 @@ describe('createNotifications, against the push server and the trigger service i
 		);
 		const account: NonNullable<NotifiedAccount> = {
 			address: wallet.address,
-			delegatePrivateKey,
+			keySet,
 		};
 		const reloadedAccount = (): NotifiedAccount => ({
 			...account,
@@ -180,10 +181,7 @@ describe('createNotifications, against the push server and the trigger service i
 
 	async function savedSignature(of: ReturnType<typeof newAccount>) {
 		return of.wallet.signMessage({
-			message: originPublicKeyPublicationMessage(
-				APP,
-				delegatePublicKey(of.account.delegatePrivateKey),
-			),
+			message: originPublicKeyPublicationMessage(APP, of.account.keySet),
 		});
 	}
 
@@ -509,7 +507,7 @@ describe('createNotifications, before notifications can be turned on', () => {
 	}) as unknown as typeof fetch;
 	const someAccount = (): NonNullable<NotifiedAccount> => ({
 		address: privateKeyToAccount(generatePrivateKey()).address,
-		delegatePrivateKey: generatePrivateKey(),
+		keySet: deriveKeySet(generatePrivateKey()),
 	});
 	function line(
 		account: NotifiedAccount,

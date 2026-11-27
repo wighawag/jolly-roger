@@ -11,7 +11,7 @@ import {
 	type DecodedLog,
 } from '@etherfold/platform-nodejs-triggers';
 import {
-	delegatePublicKey,
+	deriveKeySet,
 	originPublicKeyPublicationMessage,
 	REQUEST_SIGNATURE_HEADER,
 	signRequest,
@@ -97,7 +97,7 @@ describe('the greetings trigger definitions', () => {
 
 		// a device registered for a wallet, as the app's toggle does
 		const wallet = privateKeyToAccount(generatePrivateKey());
-		const delegate = generatePrivateKey();
+		const keySet = deriveKeySet(generatePrivateKey());
 		const body = JSON.stringify({
 			address: wallet.address,
 			domain: APP,
@@ -106,11 +106,12 @@ describe('the greetings trigger definitions', () => {
 				expirationTime: null,
 				keys: {p256dh: 'p256dh', auth: 'auth'},
 			},
+			keySet: {
+				signing: {publicKey: keySet.signing.publicKey},
+				encryption: {publicKey: keySet.encryption.publicKey},
+			},
 			ownershipSignature: await wallet.signMessage({
-				message: originPublicKeyPublicationMessage(
-					APP,
-					delegatePublicKey(delegate),
-				),
+				message: originPublicKeyPublicationMessage(APP, keySet),
 			}),
 		});
 		const register = await push.request('https://push.example/api/register', {
@@ -124,7 +125,7 @@ describe('the greetings trigger definitions', () => {
 						path: '/api/register',
 						body,
 					},
-					delegate,
+					keySet.signing.privateKey,
 				),
 			},
 			body,

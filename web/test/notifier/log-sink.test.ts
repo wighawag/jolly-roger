@@ -4,6 +4,7 @@
 import {describe, expect, it, vi} from 'vitest';
 import {get, writable} from 'svelte/store';
 import {generatePrivateKey, privateKeyToAccount} from 'viem/accounts';
+import {deriveKeySet} from 'delegated-identity';
 import {
 	consoleLogFactory,
 	loggerEnabled,
@@ -124,7 +125,7 @@ describe('the notifier log sink', () => {
 				domain: APP,
 				account: writable({
 					address: wallet.address,
-					delegatePrivateKey: generatePrivateKey(),
+					keySet: deriveKeySet(generatePrivateKey()),
 				}),
 				serviceWorker: writable(registration),
 				signOwnership: async (_address, message) =>

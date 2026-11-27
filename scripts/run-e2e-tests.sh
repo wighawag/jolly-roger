@@ -126,7 +126,9 @@ NOTIFIER_TRIGGERS_PORT="${E2E_NOTIFIER_TRIGGERS_PORT:-34106}"
 export E2E_PUSH_SERVER="http://127.0.0.1:${NOTIFIER_PUSH_PORT}"
 export E2E_PUSH_TOKEN="e2e-notifier-token"
 export PUBLIC_PUSH_SERVER="${E2E_PUSH_SERVER}/api"
-export PUBLIC_NOTIFIER="http://127.0.0.1:${NOTIFIER_TRIGGERS_PORT}"
+# the trigger service's API root for this app: one service hosts several
+# apps, each under its name (`greetings`, web/notifier/serve.ts)
+export PUBLIC_NOTIFIER="http://127.0.0.1:${NOTIFIER_TRIGGERS_PORT}/greetings"
 # missiv (`with/messaging`), started with them: its own port (the dev stack's is
 # 34007), a direct message pushed through the recording push server with
 # missiv's own token. The app is built against it (PUBLIC_MISSIV).

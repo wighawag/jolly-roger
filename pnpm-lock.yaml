@@ -167,31 +167,31 @@ importers:
     devDependencies:
       '@etherfold/browser':
         specifier: ^0.13.0
-        version: 0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3)
+        version: 0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@3.25.76)
       '@etherfold/graphql':
         specifier: ^0.2.2
-        version: 0.2.2(@etherfold/browser@0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3))(vitest@4.1.11)
+        version: 0.2.2(@etherfold/browser@0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@3.25.76))(vitest@4.1.11)
       '@etherfold/platform-nodejs-triggers':
-        specifier: ^0.1.1
-        version: 0.1.1(hono@4.13.23)(typescript@6.0.3)(zod@4.4.3)
+        specifier: ^0.3.0
+        version: 0.3.0(typescript@6.0.3)(zod@3.25.76)
       '@etherfold/processor-entities':
         specifier: ^0.4.2
-        version: 0.4.2(typescript@6.0.3)(zod@4.4.3)
+        version: 0.4.2(typescript@6.0.3)(zod@3.25.76)
       '@etherfold/state-store':
         specifier: ^0.5.1
         version: 0.5.1
       '@etherkit/burner-wallet':
         specifier: ^0.2.2
-        version: 0.2.2(typescript@6.0.3)(viem@2.55.19(typescript@6.0.3)(zod@4.4.3))(zod@4.4.3)
+        version: 0.2.2(typescript@6.0.3)(viem@2.55.19(typescript@6.0.3)(zod@3.25.76))(zod@3.25.76)
       '@etherkit/tx-observer':
         specifier: 0.3.0
         version: 0.3.0
       '@etherkit/viem-tx-tracker':
         specifier: 0.2.1
-        version: 0.2.1(viem@2.55.19(typescript@6.0.3)(zod@4.4.3))
+        version: 0.2.1(viem@2.55.19(typescript@6.0.3)(zod@3.25.76))
       '@etherplay/connect':
-        specifier: ^0.18.1
-        version: 0.18.1
+        specifier: ^0.19.0
+        version: 0.19.0
       '@internationalized/date':
         specifier: ^3.12.3
         version: 3.12.3
@@ -211,14 +211,14 @@ importers:
         specifier: ^1.62.1
         version: 1.62.1
       '@push-notification/cli':
-        specifier: ^0.2.0
-        version: 0.2.0(hono@4.13.23)
+        specifier: ^0.3.0
+        version: 0.3.0(hono@4.13.23)
       '@push-notification/client':
-        specifier: ^0.2.0
-        version: 0.2.0
+        specifier: ^0.3.0
+        version: 0.3.0
       '@push-notification/server':
-        specifier: ^0.2.0
-        version: 0.2.0
+        specifier: ^0.3.0
+        version: 0.3.0
       '@sveltejs/adapter-static':
         specifier: ^3.0.11
         version: 3.0.11(@sveltejs/kit@2.70.3(@sveltejs/vite-plugin-svelte@7.3.0(svelte@5.56.9)(vite@8.2.4(@types/node@26.2.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)))(svelte@5.56.9)(typescript@6.0.3)(vite@8.2.4(@types/node@26.2.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)))
@@ -250,8 +250,8 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       delegated-identity:
-        specifier: ^0.1.1
-        version: 0.1.1
+        specifier: ^0.2.0
+        version: 0.2.0
       eip-1193:
         specifier: ^0.7.4
         version: 0.7.4
@@ -260,7 +260,7 @@ importers:
         version: 0.28.2
       etherfold:
         specifier: 0.12.0
-        version: 0.12.0(@etherfold/browser@0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3))(hono@4.13.23)(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3)
+        version: 0.12.0(@etherfold/browser@0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@3.25.76))(hono@4.13.23)(typescript@6.0.3)(vitest@4.1.11)(zod@3.25.76)
       fake-indexeddb:
         specifier: ^6.2.8
         version: 6.2.8
@@ -344,7 +344,7 @@ importers:
         version: 1.0.0-next.7(svelte@5.56.9)
       viem:
         specifier: ^2.55.19
-        version: 2.55.19(typescript@6.0.3)(zod@4.4.3)
+        version: 2.55.19(typescript@6.0.3)(zod@3.25.76)
       vite:
         specifier: ^8.2.4
         version: 8.2.4(@types/node@26.2.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)
@@ -602,8 +602,8 @@ packages:
   '@etherfold/platform-nodejs-fetcher@0.2.5':
     resolution: {integrity: sha512-hTpBCzinV1mIgWTutHLOOCQkd1vz5jaYeLwmVSNW6cLbSnuNy6CNVi1e3e5cPUIYg6Z1rCXE/pb2oghJqXkjXA==}
 
-  '@etherfold/platform-nodejs-triggers@0.1.1':
-    resolution: {integrity: sha512-w8yMHAZXKboHzirSeT1XHCFrXY4cC4boxMpMuRHvh41qLPuK+i1iM/9Ds86HFL9WXfOmk6bfFf8uvBsSASo51A==}
+  '@etherfold/platform-nodejs-triggers@0.3.0':
+    resolution: {integrity: sha512-WUttwfZTGBERn7+qNCEqu/20N0bAbCKi+jskcdBm6IrpT4/IEc0CQcupFYTJN7tTBnsjAWIMhDItAeTHeiZX5w==}
     hasBin: true
 
   '@etherfold/platform-nodejs@0.3.3':
@@ -624,8 +624,8 @@ packages:
   '@etherfold/state-store@0.5.1':
     resolution: {integrity: sha512-0NXxg0cE2zKrwyWD3nrHf0lp1QZX/YQCBI4CAapmtgOI4NHdCIICbek45rIMfgYv/1k1BEULSech6F+K3ohgaQ==}
 
-  '@etherfold/triggers@0.2.0':
-    resolution: {integrity: sha512-xKKcWyqekoJEvLvlFPtypp2fKszz9jkvYpYRDY9fz/r5h45DR68+tdmKWsSopII18HAiUfj77hFouWgDkexuRA==}
+  '@etherfold/triggers@0.4.0':
+    resolution: {integrity: sha512-eYc5Sc2m1LVVWUXdInkTLzrhrorqI90vIz3bA5jiwS6w8HojwJrjYZgol6JJaIPIhuDMQ6+QegmNc2LIoSRpzg==}
 
   '@etherfold/utils@0.8.5':
     resolution: {integrity: sha512-zIdHvvkML9Tah1s3kZpr8SC2zz0zVFYP7dMjr0BZIluipB31kyGKrw6lTpJWArXLH6fdzMWUX41P6pJDaHJAUg==}
@@ -643,11 +643,11 @@ packages:
     peerDependencies:
       viem: ^2.46.3
 
-  '@etherplay/connect-core@0.7.6':
-    resolution: {integrity: sha512-3CgYewydzFIJ085FjtX3G0QpnRwXig40GnON5sRfZ5+xFTgV/tpZz98PlmE6UQvLuDKG7BxR5+weud/Jctd0sw==}
+  '@etherplay/connect-core@0.8.0':
+    resolution: {integrity: sha512-/Q9PQT1QZHtHPwfdA+tYmifwf9eR7uljMjgbkOr0gxJ2BsSerK333uTbp2+UCAbH4ZItaaZbd55AT4eHdjcdEQ==}
 
-  '@etherplay/connect@0.18.1':
-    resolution: {integrity: sha512-ctqZwrm93hoUfrlu4YhInPxtbfbIKhPeaoy6l8Zqzi2SxopS2+VdazueUmujLbOWNu95V4Wr/nmAvOiblsOGvA==}
+  '@etherplay/connect@0.19.0':
+    resolution: {integrity: sha512-kBxclo94ZbcmcCHs4mJfd7jEq6+9C/G3q0s3f75xWhnzTQGS3ZSxZ752bdilnxHO0CGRugQ4EGhV0N6R13l6Xg==}
 
   '@etherplay/delegation@0.2.0':
     resolution: {integrity: sha512-q7HXzj9IytIrlDqyDEDj2JhcsIOL9nZHQdyx344oAtShjbQLuaq3J7aJ3/eyd0ov6fYEgRwWJ46F32ufi4jRtA==}
@@ -1321,15 +1321,15 @@ packages:
     peerDependencies:
       graphql: ^16.10.0 || ^17.0.0
 
-  '@push-notification/cli@0.2.0':
-    resolution: {integrity: sha512-k84RGxkDxdYVO/8q4R5D/oDUkD+hXTIXao1mncd9Jvt5qre/NojBvO+TXptLBAtux55LR5R+0gx1rG8dZIQ7Tg==}
+  '@push-notification/cli@0.3.0':
+    resolution: {integrity: sha512-ExkhpkS/10x6RFq9F2BoJwG9ACNtvwdcIAk+uDzdTi1ejX4xoDe8aM5FXqtsEB1s3TcLQ9gAVzYTyOj4DiYJ/g==}
     hasBin: true
 
-  '@push-notification/client@0.2.0':
-    resolution: {integrity: sha512-dMl952B1VeC2b4CT7u/VcW6k+Ne0W8GbndBfwxZL1Vnn4CahkDECD+5oe+gWJ5uU3pR9RMqqrNPrrWu0LA3Vxw==}
+  '@push-notification/client@0.3.0':
+    resolution: {integrity: sha512-ZiLB8fD+njc3M5167q41B4dCC/IG9c5tzQjshZsEhLRnNfTO29/VEVHgX0W1yoPvDl9C+s2MQNzX4OzMQLIwpw==}
 
-  '@push-notification/server@0.2.0':
-    resolution: {integrity: sha512-unToM9Mg8WM74HSmj/1jKPX/GC69qrjUpHig7oSmx/ycqSl2ucjfpTo9uumsAhOSux9uBYrl1KpN+BJbhwt5Kw==}
+  '@push-notification/server@0.3.0':
+    resolution: {integrity: sha512-kKonz51aFRpNcbTPmKdRD0cO8PRdmSNlgNQNO7BXFGu/raTwQSx/RT757CIVKS6JB8/kVDkLmKAAEic2d3rlLw==}
 
   '@repeaterjs/repeater@3.1.0':
     resolution: {integrity: sha512-TaoVksZRSx2KWYYpyLQtMQXXeS98VsgZImzW65xmiVgbYhXLk+aEsmzPLirqVuE4/XuUapH2iMtxUzaBNDzdSQ==}
@@ -2070,6 +2070,9 @@ packages:
 
   delegated-identity@0.1.1:
     resolution: {integrity: sha512-JnsY+IMX/ebUAb8buUgr4/LYbLe4sWHD96wwvmwqtNxi6zGpbilpBdDM5cxKHwFiZGehP2/Zl03t2t+b1o1jDg==}
+
+  delegated-identity@0.2.0:
+    resolution: {integrity: sha512-UOysSpobqDIzv6SzJ+a5HOTyJRWIOC34vqrZEH4MSoNcCPboxm3XIduCR8UYtRrrhgukzBrXGBP/vXLvwrny8Q==}
 
   dequal@2.0.3:
     resolution: {integrity: sha512-0je+qPKHEMohvfRTCEo3CrPG6cAzAYgmzKyxRiYSSDkS6eGJdyVJm7WaYA5ECaAD9wLB2T4EEeymA5aFVcYXCA==}
@@ -3689,24 +3692,6 @@ snapshots:
       - vitest
       - zod
 
-  '@etherfold/browser@0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3)':
-    dependencies:
-      '@eip-1193/over-port': 0.2.1
-      '@etherfold/core': 0.12.0(typescript@6.0.3)(zod@4.4.3)
-      '@etherfold/state-store': 0.5.1
-      '@etherfold/state-store-indexeddb': 0.4.1(vitest@4.1.11)
-      eip-1193: 0.7.4
-      idb-keyval: 6.3.0
-      named-logs: 0.4.1
-      sveltore: 0.0.2
-      use-stores: 0.2.1
-    transitivePeerDependencies:
-      - bufferutil
-      - typescript
-      - utf-8-validate
-      - vitest
-      - zod
-
   '@etherfold/core@0.12.0(typescript@6.0.3)(zod@3.25.76)':
     dependencies:
       abitype: 1.3.0(typescript@6.0.3)(zod@3.25.76)
@@ -3719,22 +3704,10 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@etherfold/core@0.12.0(typescript@6.0.3)(zod@4.4.3)':
-    dependencies:
-      abitype: 1.3.0(typescript@6.0.3)(zod@4.4.3)
-      eip-1193: 0.7.4
-      named-logs: 0.4.1
-      viem: 2.55.19(typescript@6.0.3)(zod@4.4.3)
-    transitivePeerDependencies:
-      - bufferutil
-      - typescript
-      - utf-8-validate
-      - zod
-
-  '@etherfold/fetcher-host@0.3.0(typescript@6.0.3)(zod@4.4.3)':
+  '@etherfold/fetcher-host@0.3.0(typescript@6.0.3)(zod@3.25.76)':
     dependencies:
       '@eip-1193/jsonrpc-provider': 0.5.0
-      '@etherfold/core': 0.12.0(typescript@6.0.3)(zod@4.4.3)
+      '@etherfold/core': 0.12.0(typescript@6.0.3)(zod@3.25.76)
       eip-1193: 0.7.4
       named-logs: 0.4.1
     transitivePeerDependencies:
@@ -3753,20 +3726,10 @@ snapshots:
       '@etherfold/browser': 0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@3.25.76)
       vitest: 4.1.11(@types/node@26.2.0)(@vitest/browser-playwright@4.1.11)(vite@8.2.4(@types/node@26.2.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12))
 
-  '@etherfold/graphql@0.2.2(@etherfold/browser@0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3))(vitest@4.1.11)':
+  '@etherfold/platform-nodejs-fetcher@0.2.5(typescript@6.0.3)(zod@3.25.76)':
     dependencies:
-      '@etherfold/accessor': 0.1.2(vitest@4.1.11)
-      '@etherfold/state-store': 0.5.1
-      '@pothos/core': 4.18.0(graphql@16.15.0)
-      graphql: 16.15.0
-    optionalDependencies:
-      '@etherfold/browser': 0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3)
-      vitest: 4.1.11(@types/node@26.2.0)(@vitest/browser-playwright@4.1.11)(vite@8.2.4(@types/node@26.2.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12))
-
-  '@etherfold/platform-nodejs-fetcher@0.2.5(typescript@6.0.3)(zod@4.4.3)':
-    dependencies:
-      '@etherfold/core': 0.12.0(typescript@6.0.3)(zod@4.4.3)
-      '@etherfold/fetcher-host': 0.3.0(typescript@6.0.3)(zod@4.4.3)
+      '@etherfold/core': 0.12.0(typescript@6.0.3)(zod@3.25.76)
+      '@etherfold/fetcher-host': 0.3.0(typescript@6.0.3)(zod@3.25.76)
       named-logs: 0.4.1
     transitivePeerDependencies:
       - bufferutil
@@ -3774,24 +3737,24 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@etherfold/platform-nodejs-triggers@0.1.1(hono@4.13.23)(typescript@6.0.3)(zod@4.4.3)':
+  '@etherfold/platform-nodejs-triggers@0.3.0(typescript@6.0.3)(zod@3.25.76)':
     dependencies:
-      '@etherfold/triggers': 0.2.0(typescript@6.0.3)(zod@4.4.3)
+      '@etherfold/triggers': 0.4.0(typescript@6.0.3)(zod@3.25.76)
       '@hono/node-server': 2.1.1(hono@4.13.23)
       '@libsql/client': 0.17.4
+      hono: 4.13.23
       remote-sql: 0.0.7
       remote-sql-libsql: 0.0.7(@libsql/core@0.17.4)
     transitivePeerDependencies:
       - '@libsql/core'
       - bufferutil
-      - hono
       - typescript
       - utf-8-validate
       - zod
 
-  '@etherfold/platform-nodejs@0.3.3(@etherfold/browser@0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3))(hono@4.13.23)(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3)':
+  '@etherfold/platform-nodejs@0.3.3(@etherfold/browser@0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@3.25.76))(hono@4.13.23)(typescript@6.0.3)(vitest@4.1.11)(zod@3.25.76)':
     dependencies:
-      '@etherfold/server': 0.5.2(@etherfold/browser@0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3))(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3)
+      '@etherfold/server': 0.5.2(@etherfold/browser@0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@3.25.76))(typescript@6.0.3)(vitest@4.1.11)(zod@3.25.76)
       '@hono/node-server': 2.1.1(hono@4.13.23)
       '@libsql/client': 0.17.4
       named-logs: 0.4.1
@@ -3818,22 +3781,11 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@etherfold/processor-entities@0.4.2(typescript@6.0.3)(zod@4.4.3)':
+  '@etherfold/server@0.5.2(@etherfold/browser@0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@3.25.76))(typescript@6.0.3)(vitest@4.1.11)(zod@3.25.76)':
     dependencies:
-      '@etherfold/core': 0.12.0(typescript@6.0.3)(zod@4.4.3)
-      '@etherfold/state-store': 0.5.1
-      named-logs: 0.4.1
-    transitivePeerDependencies:
-      - bufferutil
-      - typescript
-      - utf-8-validate
-      - zod
-
-  '@etherfold/server@0.5.2(@etherfold/browser@0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3))(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3)':
-    dependencies:
-      '@etherfold/core': 0.12.0(typescript@6.0.3)(zod@4.4.3)
-      '@etherfold/graphql': 0.2.2(@etherfold/browser@0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3))(vitest@4.1.11)
-      '@etherfold/processor-entities': 0.4.2(typescript@6.0.3)(zod@4.4.3)
+      '@etherfold/core': 0.12.0(typescript@6.0.3)(zod@3.25.76)
+      '@etherfold/graphql': 0.2.2(@etherfold/browser@0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@3.25.76))(vitest@4.1.11)
+      '@etherfold/processor-entities': 0.4.2(typescript@6.0.3)(zod@3.25.76)
       '@etherfold/state-store-sqlite': 0.5.1(vitest@4.1.11)
       graphql: 16.15.0
       graphql-yoga: 5.24.6(graphql@16.15.0)
@@ -3866,21 +3818,21 @@ snapshots:
 
   '@etherfold/state-store@0.5.1': {}
 
-  '@etherfold/triggers@0.2.0(typescript@6.0.3)(zod@4.4.3)':
+  '@etherfold/triggers@0.4.0(typescript@6.0.3)(zod@3.25.76)':
     dependencies:
-      delegated-identity: 0.1.1
-      hono: 4.13.3
+      delegated-identity: 0.2.0
+      hono: 4.13.23
       remote-sql: 0.0.7
-      viem: 2.55.19(typescript@6.0.3)(zod@4.4.3)
+      viem: 2.55.19(typescript@6.0.3)(zod@3.25.76)
     transitivePeerDependencies:
       - bufferutil
       - typescript
       - utf-8-validate
       - zod
 
-  '@etherfold/utils@0.8.5(typescript@6.0.3)(zod@4.4.3)':
+  '@etherfold/utils@0.8.5(typescript@6.0.3)(zod@3.25.76)':
     dependencies:
-      '@etherfold/core': 0.12.0(typescript@6.0.3)(zod@4.4.3)
+      '@etherfold/core': 0.12.0(typescript@6.0.3)(zod@3.25.76)
       named-logs: 0.4.1
     transitivePeerDependencies:
       - bufferutil
@@ -3888,12 +3840,12 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@etherkit/burner-wallet@0.2.2(typescript@6.0.3)(viem@2.55.19(typescript@6.0.3)(zod@4.4.3))(zod@4.4.3)':
+  '@etherkit/burner-wallet@0.2.2(typescript@6.0.3)(viem@2.55.19(typescript@6.0.3)(zod@3.25.76))(zod@3.25.76)':
     dependencies:
       eip-1193: 0.7.4
-      eip-1193-accounts-wrapper: 0.3.0(typescript@6.0.3)(zod@4.4.3)
+      eip-1193-accounts-wrapper: 0.3.0(typescript@6.0.3)(zod@3.25.76)
       remote-procedure-call: 0.2.0
-      viem: 2.55.19(typescript@6.0.3)(zod@4.4.3)
+      viem: 2.55.19(typescript@6.0.3)(zod@3.25.76)
     transitivePeerDependencies:
       - bufferutil
       - typescript
@@ -3907,12 +3859,12 @@ snapshots:
       named-logs: 0.4.1
       radiate: 0.3.2
 
-  '@etherkit/viem-tx-tracker@0.2.1(viem@2.55.19(typescript@6.0.3)(zod@4.4.3))':
+  '@etherkit/viem-tx-tracker@0.2.1(viem@2.55.19(typescript@6.0.3)(zod@3.25.76))':
     dependencies:
       radiate: 0.3.2
-      viem: 2.55.19(typescript@6.0.3)(zod@4.4.3)
+      viem: 2.55.19(typescript@6.0.3)(zod@3.25.76)
 
-  '@etherplay/connect-core@0.7.6':
+  '@etherplay/connect-core@0.8.0':
     dependencies:
       '@etherplay/delegation': 0.2.0
       '@etherplay/wallet-connector': 0.2.1
@@ -3921,14 +3873,14 @@ snapshots:
       '@noble/secp256k1': 2.3.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
-      delegated-identity: 0.1.1
+      delegated-identity: 0.2.0
 
-  '@etherplay/connect@0.18.1':
+  '@etherplay/connect@0.19.0':
     dependencies:
-      '@etherplay/connect-core': 0.7.6
+      '@etherplay/connect-core': 0.8.0
       '@etherplay/wallet-connector': 0.2.1
       '@etherplay/wallet-connector-ethereum': 0.4.0
-      delegated-identity: 0.1.1
+      delegated-identity: 0.2.0
       sveltore: 1.0.0
 
   '@etherplay/delegation@0.2.0':
@@ -4049,14 +4001,14 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@hono/standard-validator@0.4.1(@standard-schema/spec@1.1.0)(hono@4.13.3)':
+  '@hono/standard-validator@0.4.1(@standard-schema/spec@1.1.0)(hono@4.13.23)':
     dependencies:
       '@standard-schema/spec': 1.1.0
-      hono: 4.13.3
+      hono: 4.13.23
 
-  '@hono/swagger-ui@0.5.3(hono@4.13.3)':
+  '@hono/swagger-ui@0.5.3(hono@4.13.23)':
     dependencies:
-      hono: 4.13.3
+      hono: 4.13.23
 
   '@hono/zod-validator@0.4.3(hono@4.13.23)(zod@3.25.76)':
     dependencies:
@@ -4593,11 +4545,11 @@ snapshots:
     dependencies:
       graphql: 16.15.0
 
-  '@push-notification/cli@0.2.0(hono@4.13.23)':
+  '@push-notification/cli@0.3.0(hono@4.13.23)':
     dependencies:
       '@hono/node-server': 1.19.19(hono@4.13.23)
       '@libsql/client': 0.15.15
-      '@push-notification/server': 0.2.0
+      '@push-notification/server': 0.3.0
       ldenv: 0.3.16
       remote-sql-libsql: 0.0.6
     transitivePeerDependencies:
@@ -4614,20 +4566,20 @@ snapshots:
       - zod-openapi
       - zod-to-json-schema
 
-  '@push-notification/client@0.2.0':
+  '@push-notification/client@0.3.0':
     dependencies:
-      delegated-identity: 0.1.1
+      delegated-identity: 0.2.0
       sveltore: 1.0.0
 
-  '@push-notification/server@0.2.0':
+  '@push-notification/server@0.3.0':
     dependencies:
       '@block65/webcrypto-web-push': 1.0.2
-      '@hono/standard-validator': 0.4.1(@standard-schema/spec@1.1.0)(hono@4.13.3)
-      '@hono/swagger-ui': 0.5.3(hono@4.13.3)
+      '@hono/standard-validator': 0.4.1(@standard-schema/spec@1.1.0)(hono@4.13.23)
+      '@hono/swagger-ui': 0.5.3(hono@4.13.23)
       '@standard-schema/spec': 1.1.0
-      delegated-identity: 0.1.1
-      hono: 4.13.3
-      hono-openapi: 1.6.0(hono@4.13.3)(zod@4.4.3)
+      delegated-identity: 0.2.0
+      hono: 4.13.23
+      hono-openapi: 1.6.0(hono@4.13.23)(zod@4.4.3)
       named-logs: 0.3.2
       remote-sql: 0.0.6
       webpush-webcrypto: 1.0.5
@@ -4890,6 +4842,14 @@ snapshots:
 
   '@solidity-parser/parser@0.20.2': {}
 
+  '@standard-community/standard-json@0.4.1(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(zod@3.25.76)':
+    dependencies:
+      '@standard-schema/spec': 1.1.0
+      '@types/json-schema': 7.0.15
+      quansync: 0.2.11
+    optionalDependencies:
+      zod: 3.25.76
+
   '@standard-community/standard-json@0.4.1(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(zod@4.4.3)':
     dependencies:
       '@standard-schema/spec': 1.1.0
@@ -4898,9 +4858,9 @@ snapshots:
     optionalDependencies:
       zod: 4.4.3
 
-  '@standard-community/standard-openapi@0.2.12(@standard-community/standard-json@0.4.1(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(zod@4.4.3))(@standard-schema/spec@1.1.0)(openapi-types@12.1.3)(zod@4.4.3)':
+  '@standard-community/standard-openapi@0.2.12(@standard-community/standard-json@0.4.1(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(zod@3.25.76))(@standard-schema/spec@1.1.0)(openapi-types@12.1.3)(zod@4.4.3)':
     dependencies:
-      '@standard-community/standard-json': 0.4.1(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(zod@4.4.3)
+      '@standard-community/standard-json': 0.4.1(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(zod@3.25.76)
       '@standard-schema/spec': 1.1.0
       openapi-types: 12.1.3
     optionalDependencies:
@@ -5202,20 +5162,10 @@ snapshots:
       typescript: 6.0.3
       zod: 3.25.76
 
-  abitype@1.2.3(typescript@6.0.3)(zod@4.4.3):
-    optionalDependencies:
-      typescript: 6.0.3
-      zod: 4.4.3
-
   abitype@1.3.0(typescript@6.0.3)(zod@3.25.76):
     optionalDependencies:
       typescript: 6.0.3
       zod: 3.25.76
-
-  abitype@1.3.0(typescript@6.0.3)(zod@4.4.3):
-    optionalDependencies:
-      typescript: 6.0.3
-      zod: 4.4.3
 
   acorn@8.18.0: {}
 
@@ -5405,6 +5355,12 @@ snapshots:
       '@noble/hashes': 1.8.0
       '@noble/secp256k1': 2.3.0
 
+  delegated-identity@0.2.0:
+    dependencies:
+      '@noble/curves': 1.9.7
+      '@noble/hashes': 1.8.0
+      '@noble/secp256k1': 2.3.0
+
   dequal@2.0.3: {}
 
   detect-libc@2.0.2: {}
@@ -5445,11 +5401,11 @@ snapshots:
     dependencies:
       error-stack-parser: 2.1.4
 
-  eip-1193-accounts-wrapper@0.3.0(typescript@6.0.3)(zod@4.4.3):
+  eip-1193-accounts-wrapper@0.3.0(typescript@6.0.3)(zod@3.25.76):
     dependencies:
       eip-1193: 0.7.4
       named-logs: 0.4.1
-      viem: 2.55.19(typescript@6.0.3)(zod@4.4.3)
+      viem: 2.55.19(typescript@6.0.3)(zod@3.25.76)
     transitivePeerDependencies:
       - bufferutil
       - typescript
@@ -5551,18 +5507,18 @@ snapshots:
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
 
-  etherfold@0.12.0(@etherfold/browser@0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3))(hono@4.13.23)(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3):
+  etherfold@0.12.0(@etherfold/browser@0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@3.25.76))(hono@4.13.23)(typescript@6.0.3)(vitest@4.1.11)(zod@3.25.76):
     dependencies:
       '@eip-1193/jsonrpc-provider': 0.5.0
-      '@etherfold/core': 0.12.0(typescript@6.0.3)(zod@4.4.3)
-      '@etherfold/fetcher-host': 0.3.0(typescript@6.0.3)(zod@4.4.3)
-      '@etherfold/platform-nodejs': 0.3.3(@etherfold/browser@0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3))(hono@4.13.23)(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3)
-      '@etherfold/platform-nodejs-fetcher': 0.2.5(typescript@6.0.3)(zod@4.4.3)
-      '@etherfold/processor-entities': 0.4.2(typescript@6.0.3)(zod@4.4.3)
-      '@etherfold/server': 0.5.2(@etherfold/browser@0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3))(typescript@6.0.3)(vitest@4.1.11)(zod@4.4.3)
+      '@etherfold/core': 0.12.0(typescript@6.0.3)(zod@3.25.76)
+      '@etherfold/fetcher-host': 0.3.0(typescript@6.0.3)(zod@3.25.76)
+      '@etherfold/platform-nodejs': 0.3.3(@etherfold/browser@0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@3.25.76))(hono@4.13.23)(typescript@6.0.3)(vitest@4.1.11)(zod@3.25.76)
+      '@etherfold/platform-nodejs-fetcher': 0.2.5(typescript@6.0.3)(zod@3.25.76)
+      '@etherfold/processor-entities': 0.4.2(typescript@6.0.3)(zod@3.25.76)
+      '@etherfold/server': 0.5.2(@etherfold/browser@0.13.0(typescript@6.0.3)(vitest@4.1.11)(zod@3.25.76))(typescript@6.0.3)(vitest@4.1.11)(zod@3.25.76)
       '@etherfold/state-store': 0.5.1
       '@etherfold/state-store-sqlite': 0.5.1(vitest@4.1.11)
-      '@etherfold/utils': 0.8.5(typescript@6.0.3)(zod@4.4.3)
+      '@etherfold/utils': 0.8.5(typescript@6.0.3)(zod@3.25.76)
       commander: 15.0.0
       eip-1193: 0.7.4
       ldenv: 0.5.0
@@ -5795,14 +5751,14 @@ snapshots:
     dependencies:
       function-bind: 1.1.2
 
-  hono-openapi@1.6.0(hono@4.13.3)(zod@4.4.3):
+  hono-openapi@1.6.0(hono@4.13.23)(zod@4.4.3):
     dependencies:
-      '@hono/standard-validator': 0.4.1(@standard-schema/spec@1.1.0)(hono@4.13.3)
+      '@hono/standard-validator': 0.4.1(@standard-schema/spec@1.1.0)(hono@4.13.23)
       '@standard-community/standard-json': 0.4.1(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(zod@4.4.3)
-      '@standard-community/standard-openapi': 0.2.12(@standard-community/standard-json@0.4.1(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(zod@4.4.3))(@standard-schema/spec@1.1.0)(openapi-types@12.1.3)(zod@4.4.3)
+      '@standard-community/standard-openapi': 0.2.12(@standard-community/standard-json@0.4.1(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(zod@3.25.76))(@standard-schema/spec@1.1.0)(openapi-types@12.1.3)(zod@4.4.3)
       '@standard-schema/spec': 1.1.0
       '@types/json-schema': 7.0.15
-      hono: 4.13.3
+      hono: 4.13.23
       openapi-types: 12.1.3
     transitivePeerDependencies:
       - '@valibot/to-json-schema'
@@ -6173,21 +6129,6 @@ snapshots:
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
       abitype: 1.2.3(typescript@6.0.3)(zod@3.25.76)
-      eventemitter3: 5.0.1
-    optionalDependencies:
-      typescript: 6.0.3
-    transitivePeerDependencies:
-      - zod
-
-  ox@0.14.34(typescript@6.0.3)(zod@4.4.3):
-    dependencies:
-      '@adraffy/ens-normalize': 1.11.1
-      '@noble/ciphers': 1.3.0
-      '@noble/curves': 1.9.1
-      '@noble/hashes': 1.8.0
-      '@scure/bip32': 1.7.0
-      '@scure/bip39': 1.6.0
-      abitype: 1.2.3(typescript@6.0.3)(zod@4.4.3)
       eventemitter3: 5.0.1
     optionalDependencies:
       typescript: 6.0.3
@@ -6731,23 +6672,6 @@ snapshots:
       abitype: 1.2.3(typescript@6.0.3)(zod@3.25.76)
       isows: 1.0.7(ws@8.21.0)
       ox: 0.14.34(typescript@6.0.3)(zod@3.25.76)
-      ws: 8.21.0
-    optionalDependencies:
-      typescript: 6.0.3
-    transitivePeerDependencies:
-      - bufferutil
-      - utf-8-validate
-      - zod
-
-  viem@2.55.19(typescript@6.0.3)(zod@4.4.3):
-    dependencies:
-      '@noble/curves': 1.9.1
-      '@noble/hashes': 1.8.0
-      '@scure/bip32': 1.7.0
-      '@scure/bip39': 1.6.0
-      abitype: 1.2.3(typescript@6.0.3)(zod@4.4.3)
-      isows: 1.0.7(ws@8.21.0)
-      ox: 0.14.34(typescript@6.0.3)(zod@4.4.3)
       ws: 8.21.0
     optionalDependencies:
       typescript: 6.0.3
