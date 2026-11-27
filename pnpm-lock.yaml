@@ -150,8 +150,8 @@ importers:
         specifier: 0.2.1
         version: 0.2.1(viem@2.55.19(typescript@6.0.3)(zod@4.4.3))
       '@etherplay/connect':
-        specifier: ^0.18.0
-        version: 0.18.0
+        specifier: ^0.19.0
+        version: 0.19.0
       '@etherplay/wallet-connector':
         specifier: ^0.2.1
         version: 0.2.1
@@ -549,14 +549,14 @@ packages:
     peerDependencies:
       viem: ^2.46.3
 
-  '@etherplay/connect-core@0.7.5':
-    resolution: {integrity: sha512-BERRuoLmNKo9huuy/BX4Q6fnri6YR2X8EMwA7qKX/PPp/H5nGca4fcEitIiET8ZnCd1k2fvX0ApvL78jP5pSxg==}
+  '@etherplay/connect-core@0.8.0':
+    resolution: {integrity: sha512-/Q9PQT1QZHtHPwfdA+tYmifwf9eR7uljMjgbkOr0gxJ2BsSerK333uTbp2+UCAbH4ZItaaZbd55AT4eHdjcdEQ==}
 
-  '@etherplay/connect@0.18.0':
-    resolution: {integrity: sha512-pYPpKKl+1Rs7nwvjP8k/Eo9KiT5j6YfFpHPLlNWy9OeiNpOQnkpDByCXDECstvn4W3XNSBzDWLQmW7IhcTQj1g==}
+  '@etherplay/connect@0.19.0':
+    resolution: {integrity: sha512-kBxclo94ZbcmcCHs4mJfd7jEq6+9C/G3q0s3f75xWhnzTQGS3ZSxZ752bdilnxHO0CGRugQ4EGhV0N6R13l6Xg==}
 
-  '@etherplay/delegation@0.1.2':
-    resolution: {integrity: sha512-tq/4ke1H1zkdxyUOXD6e2gWgLUTTuPRE7HVPwKMJOBFl3tJ24wO75a3TH+eHgWhGdsLTzXZLASHziA7rxjdOeA==}
+  '@etherplay/delegation@0.2.0':
+    resolution: {integrity: sha512-q7HXzj9IytIrlDqyDEDj2JhcsIOL9nZHQdyx344oAtShjbQLuaq3J7aJ3/eyd0ov6fYEgRwWJ46F32ufi4jRtA==}
 
   '@etherplay/wallet-connector-ethereum@0.4.0':
     resolution: {integrity: sha512-ixoxyGwYz0YrE3Ef55YQfTOMtigFS5ta1OEfhnJQfLGlrBIfKhktHtQrR3PfVySOizk23Q/c9cMHbQlyjNyxBg==}
@@ -1758,8 +1758,8 @@ packages:
     resolution: {integrity: sha512-ZySD7Nf91aLB0RxL4KGrKHBXl7Eds1DAmEdcoVawXnLD7SDhpNgtuII2aAkg7a7QS41jxPSZ17p4VdGnMHk3MQ==}
     engines: {node: '>=0.4.0'}
 
-  delegated-identity@0.1.1:
-    resolution: {integrity: sha512-JnsY+IMX/ebUAb8buUgr4/LYbLe4sWHD96wwvmwqtNxi6zGpbilpBdDM5cxKHwFiZGehP2/Zl03t2t+b1o1jDg==}
+  delegated-identity@0.2.0:
+    resolution: {integrity: sha512-UOysSpobqDIzv6SzJ+a5HOTyJRWIOC34vqrZEH4MSoNcCPboxm3XIduCR8UYtRrrhgukzBrXGBP/vXLvwrny8Q==}
 
   dequal@2.0.3:
     resolution: {integrity: sha512-0je+qPKHEMohvfRTCEo3CrPG6cAzAYgmzKyxRiYSSDkS6eGJdyVJm7WaYA5ECaAD9wLB2T4EEeymA5aFVcYXCA==}
@@ -3338,26 +3338,26 @@ snapshots:
       radiate: 0.3.2
       viem: 2.55.19(typescript@6.0.3)(zod@4.4.3)
 
-  '@etherplay/connect-core@0.7.5':
+  '@etherplay/connect-core@0.8.0':
     dependencies:
-      '@etherplay/delegation': 0.1.2
+      '@etherplay/delegation': 0.2.0
       '@etherplay/wallet-connector': 0.2.1
       '@noble/curves': 1.9.7
       '@noble/hashes': 1.8.0
       '@noble/secp256k1': 2.3.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
-      delegated-identity: 0.1.1
+      delegated-identity: 0.2.0
 
-  '@etherplay/connect@0.18.0':
+  '@etherplay/connect@0.19.0':
     dependencies:
-      '@etherplay/connect-core': 0.7.5
+      '@etherplay/connect-core': 0.8.0
       '@etherplay/wallet-connector': 0.2.1
       '@etherplay/wallet-connector-ethereum': 0.4.0
-      delegated-identity: 0.1.1
+      delegated-identity: 0.2.0
       sveltore: 1.0.0
 
-  '@etherplay/delegation@0.1.2':
+  '@etherplay/delegation@0.2.0':
     dependencies:
       '@noble/hashes': 1.8.0
 
@@ -4579,8 +4579,9 @@ snapshots:
 
   delayed-stream@1.0.0: {}
 
-  delegated-identity@0.1.1:
+  delegated-identity@0.2.0:
     dependencies:
+      '@noble/curves': 1.9.7
       '@noble/hashes': 1.8.0
       '@noble/secp256k1': 2.3.0
 
