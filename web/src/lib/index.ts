@@ -19,6 +19,7 @@ import {
 import {createServiceWorker} from '$lib/core/service-worker';
 import {resolvePath} from './kit/paths';
 import {openFromNotification} from './kit/notification-navigation';
+import {pushHandoffs} from './push-handoffs';
 import {createNotificationsService} from './core/notifications';
 import {createRecipientLabels} from './push/recipient-label';
 import {createContext} from 'svelte';
@@ -116,6 +117,9 @@ export const pushRecipients = createRecipientLabels(
 export const serviceWorker = createServiceWorker(
 	{resolvePath, navigateTo: openFromNotification},
 	pushRecipients.notifications,
+	// a push's hand-off the page read from its URL (`src/hooks.client.ts`),
+	// published as a click with the worker's (QA F23)
+	pushHandoffs.reads,
 );
 
 /**
