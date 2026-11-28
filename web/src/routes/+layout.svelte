@@ -3,11 +3,15 @@
 	import VersionAndInstallNotfications from '$lib/core/service-worker/VersionAndInstallNotfications.svelte';
 	import NavigationProgress from '$lib/components/NavigationProgress.svelte';
 	import {notifications, serviceWorker} from '$lib';
+	import {theme} from '$lib/theme';
 	import {LAYERS} from '$lib/core/ui/layers';
 	import {navigating} from '$app/state';
 	import {ModeWatcher} from 'mode-watcher';
+	import {onMount} from 'svelte';
 	import '../app.css';
 	let {children} = $props();
+	// After <ModeWatcher>'s own onMount (a child mounts first): see core/theme.
+	onMount(theme.enforce);
 </script>
 
 <!--
@@ -16,10 +20,11 @@
 	white body on a black page), dialogs and toasts portalled to <body> come
 	out white, and the sonner wrapper's `mode.current` still writes the
 	SYSTEM preference into `color-scheme`, which gives a light phone light
-	native scrollbars over a dark page. Dark by default, to match app.html; a
-	descendant offering a light theme passes another `defaultMode`.
+	native scrollbars over a dark page. Which mode is chosen by `theme` in
+	src/web-config.json ("dark" by default, to match app.html), never here,
+	so a descendant changes its theme without editing this layout.
 -->
-<ModeWatcher defaultMode="dark" />
+<ModeWatcher {...theme.modeWatcher} />
 
 {@render children()}
 

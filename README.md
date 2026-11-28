@@ -30,6 +30,16 @@ Each tier owns one concern. The shared core services (`route()` and its `globalQ
 - The shadcn theme layer in `src/app.css`: the `dark` custom variant, the `:root` / `.dark` token sets, `@theme inline`, and the base layer.
 - The shadcn presentation of the notification components, and of `VersionAndInstallNotfications`.
 
+## Web configuration
+
+This tier reads one more key from `web/src/web-config.json` (the file a project already owns for its name, icons and `themeColor`). The template's own file leaves it out, which means `"dark"`, so adding it is a project's own edit and never a line merged in from upstream:
+
+| key     | values                          | default  | effect |
+| ------- | ------------------------------- | -------- | ------ |
+| `theme` | `"dark"`, `"light"`, `"system"` | `"dark"` | `dark`/`light` force that mode whatever the browser prefers; `system` follows `prefers-color-scheme` live. |
+
+`routes/+layout.svelte` reads it (through `src/lib/theme.ts`, logic in `src/lib/core/theme`) to configure `<ModeWatcher>`, so choose your theme here and never in the layout. Any other value fails the build. `"dark"` matches `app.html`, which paints the page black before the app loads: a project choosing `"light"` or `"system"` should change those `app.html` classes too.
+
 ## Adding components
 
 ```bash

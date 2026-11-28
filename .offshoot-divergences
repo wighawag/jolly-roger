@@ -30,6 +30,6 @@ web/svelte.config.js                                   the `$ui` alias, which ki
 
 # The kit
 web/src/app.css                                        shadcn's theme tokens and dark variant, tw-animate, the forms plugin dropped, the overlay layers' z-index scale
-web/src/routes/+layout.svelte                          the mode watcher, and the overlay layers rendered from core/ui/layers with the notices and the progress bar in theirs
+web/src/routes/+layout.svelte                          the mode watcher configured by web-config.json's `theme`, and the overlay layers rendered from core/ui/layers with the notices and the progress bar in theirs
 web/src/lib/core/notifications/NotificationCard.svelte the notification card painted on shadcn's Card and Button
 web/src/lib/components/NavigationProgress.svelte       no z-index of its own: it renders inside the "progress" overlay layer, which decides what it covers
