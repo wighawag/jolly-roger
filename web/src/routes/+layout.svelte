@@ -35,10 +35,12 @@
 	import AcrossPages from '$lib/context/AcrossPages.svelte';
 	import AppShell from '$lib/core/ui/AppShell.svelte';
 	import {chromeFor} from '$lib/ui/chrome';
+	import {theme} from '$lib/theme';
 	import {LAYERS} from '$lib/core/ui/layers';
 	import KitNavigation from '$lib/kit/KitNavigation.svelte';
 	import {ModeWatcher} from 'mode-watcher';
 	import {navigating, page} from '$app/state';
+	import {onMount} from 'svelte';
 	// Identity, from the one file that holds it. Deliberately NOT written as
 	// literals here: this layout is the most-edited file in the template, so a
 	// constant parked in it costs a merge conflict to every fork that changes it
@@ -80,10 +82,12 @@
 	if (PUBLIC_ENS_NODE_URL) provideENS(createENSService());
 	provideBlockExplorer(blockExplorer);
 	provideFaucet(faucet);
+	// After <ModeWatcher>'s own onMount (a child mounts first): see core/theme.
+	onMount(theme.enforce);
 </script>
 
-<!-- dark on <html>, and color-scheme with it: see the template's layout -->
-<ModeWatcher defaultMode="dark" />
+<!-- dark on <html>, and color-scheme with it, as `theme` in web-config.json says: see the template's layout and core/theme -->
+<ModeWatcher {...theme.modeWatcher} />
 
 {#if $fatal}
 	<InitError message={$fatal} />
